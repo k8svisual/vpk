@@ -32,7 +32,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/k8debug/VpK.git"
+    "url": "https://github.com/k8svisual/viewk8s.git"
   },
   "devDependencies": {
     "eslint": "^7.15.0"
