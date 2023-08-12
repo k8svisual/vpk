@@ -1,0 +1,38 @@
+#==== Directories and Files to exclude ====
+
+# VpK created runtime directories
+cluster/*
+usage/*
+userconfig.json
+
+# Node packages and other libs
+node_modules/*
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# VSCode
+.vscode/*
+
+# eslint
+.eslintrc.js
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# node package
+package-lock.json
+
+# DS_Store
+.DS_Store
+public/.DS_Store
+public/docs/.DS_Store
+public/docs/docimages/.DS_Store
+public/images/.DS_Store
+
+
