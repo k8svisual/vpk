@@ -1,0 +1,400 @@
+{
+    "providers": [
+        {
+            "name": "usekubeconn",
+            "dropdown": "Existing kubectl connection",
+            "getCmd": {
+                "command": "kubectl get"
+            },
+            "authCmd": {
+                "command": "",
+                "parms": [
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "kube",
+                        "sal": true
+                    }
+                ],
+                "test": "",
+                "pass": "",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "noauth"
+            }
+        },
+        {
+            "name": "useocconn",
+            "dropdown": "Existing oc connection",
+            "getCmd": {
+                "command": "oc get"
+            },
+            "authCmd": {
+                "command": "",
+                "parms": [
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "oc",
+                        "sal": true
+                    }
+                ],
+                "test": "",
+                "pass": "",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "noauth"
+            }
+        },
+        {
+            "name": "minikube",
+            "dropdown": "MiniKube Local",
+            "getCmd": {
+                "command": "kubectl get"
+            },
+            "authCmd": {
+                "command": "kubectl config use-context minikube",
+                "parms": [
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "minikube",
+                        "sal": true
+                    }
+                ],
+                "test": "",
+                "pass": "",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "noauth"
+            }
+        },
+        {
+            "name": "microk8",
+            "dropdown": "MicroK8 existing connection",
+            "getCmd": {
+                "command": "microk8s kubectl get "
+            },
+            "authCmd": {
+                "command": "microk8s kubectl ",
+                "parms": [
+                    {
+                        "key": "-a",
+                        "value": "{{protocol}}://{{ip}}:{{port}}",
+                        "default": "https, 192.168.64.7, 16443",
+                        "sal": true
+                    },
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "microk8s",
+                        "sal": true
+                    }
+                ],
+                "test": "",
+                "pass": "",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "noauth"
+            }
+        },
+        {
+            "name": "iks",
+            "dropdown": "IBM Cloud (IKS)",
+            "getCmd": {
+                "command": "kubectl get"
+            },
+            "authCmd": {
+                "command": "ibmcloud login",
+                "parms": [
+                    {
+                        "key": "-a",
+                        "value": "{{protocol}}://{{ip}}",
+                        "default": "https, cloud.ibm.com"
+                    },
+                    {
+                        "key": "-r",
+                        "value": "{{region}}",
+                        "default": "us-south",
+                        "example": "ibmcloud login -a https://cloud.ibm.com -r us-south -u user@email.com -p password -c 45489887fe28105ed68a2b7060c0dad3 -g default --skip-ssl-validation"
+                    },
+                    {
+                        "key": "-u",
+                        "value": "{{username}}"
+                    },
+                    {
+                        "key": "-p",
+                        "value": "{{password}}",
+                        "swe": true
+                    },
+                    {
+                        "key": "-c",
+                        "value": "{{accountID}}",
+                        "default": "454281ed68a2b7060c0589887fe0dad3"
+                    },
+                    {
+                        "key": "-g",
+                        "value": "{{group}}",
+                        "default": "default"
+                    },
+                    {
+                        "key": "-n",
+                        "value": "{{namespace}}",
+                        "default": "all-namespaces",
+                        "swe": true,
+                        "sal": true
+                    },
+                    {
+                        "key": "--skip-ssl-validation",
+                        "value": ""
+                    },
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "iks",
+                        "sal": true
+                    }
+                ],
+                "test": "cv:icp",
+                "pass": "",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "ibmcloud logout"
+            }
+        },
+        {
+            "name": "crc",
+            "dropdown": "CodeReadyContainers",
+            "getCmd": {
+                "command": "oc get"
+            },
+            "authCmd": {
+                "command": "oc login",
+                "parms": [
+                    {
+                        "key": "",
+                        "value": "{{protocol}}://{{ip}}:{{port}}",
+                        "default": "https, api.crc.testing, 6443"
+                    },
+                    {
+                        "key": "-u",
+                        "value": "{{username}}",
+                        "default": "kubeadmin"
+                    },
+                    {
+                        "key": "-p",
+                        "value": "{{password}}",
+                        "default": "hxYtC-KLeQC-kfNkm-ppi8i",
+                        "swe": true
+                    },
+                    {
+                        "key": "-n",
+                        "value": "{{namespace}}",
+                        "default": "all-namespaces",
+                        "sal": true
+                    },
+                    {
+                        "key": "dirName",
+                        "value": "{{snapshot_prefix}}",
+                        "default": "crc",
+                        "sal": true
+                    }
+                ],
+                "test": "",
+                "pass": "Login successful",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "oc logout"
+            }
+        },
+        {
+            "name": "rhos",
+            "dropdown": "OKD-V2",
+            "getCmd": {
+                "command": "oc get"
+            },
+            "authCmd": {
+                "command": "oc login",
+                "parms": [
+                    {
+                        "key": "",
+                        "value": "{{protocol}}://{{ip}}:{{port}}",
+                        "default": "https, 159.23.66.107,  8443"
+                    },
+                    {
+                        "key": "-u",
+                        "value": "{{username}}",
+                        "default": "admin"
+                    },
+                    {
+                        "key": "-p",
+                        "value": "{{password}}",
+                        "default": "admin",
+                        "swe": true
+                    },
+                    {
+                        "key": "-n",
+                        "value": "{{namespace}}",
+                        "default": "all-namespaces",
+                        "sal": true
+                    },
+                    {
+                        "key": "--insecure-skip-tls-verify=false",
+                        "value": ""
+                    }
+                ],
+                "test": "",
+                "pass": "You have access",
+                "fail": ""
+            },
+            "stopCmd": {
+                "command": "oc logout"
+            }
+        },
+        {
+            "name": "rhos@ibm",
+            "dropdown": "IBM Cloud ROCS",
+            "getCmd": {
+                "command": "oc get"
+            },
+            "authCmd": {
+                "command": "oc login",
+                "parms": [
+                    {
+                        "key": "",
+                        "value": "{{protocol}}://{{ip}}:{{port}}",
+                        "default": "https, c100-e.us-east.containers.cloud.ibm.com, 30576"
+                    },
+                    {
+                        "key": "--token=",
+                        "value": "{{token}}"
+                    },
+                    {
+                        "key": "--insecure-skip-tls-verify=false",
+                        "value": ""
+                    }
+                ],
+                "test": "",
+                "pass": "You have access",
+                "fail": ""
+            }
+        }
+    ],
+    "cv": [
+        {
+            "name": "",
+            "command": "",
+            "pass": "",
+            "fail": ""
+        }
+    ],
+    "sv": [
+        {
+            "name": "ok",
+            "pass": "OK",
+            "fail": ""
+        },
+        {
+            "name": "fail",
+            "pass": "",
+            "fail": "fail"
+        }
+    ],
+    "xrefNames": {
+        "secrets": {
+            "xon": true,
+            "xtype": "s",
+            "desc": "Secrets defined in the environment"
+        },
+        "configs": {
+            "xon": true,
+            "xtype": "s",
+            "desc": "ConfigMaps defined in the environment"
+        },
+        "podUids": {
+            "xon": true,
+            "xtype": "s",
+            "desc": "UID of each pod"
+        },
+        "labelsApp": {
+            "xon": true,
+            "xtype": "s",
+            "desc": "Labels for app"
+        },
+        "routeHosts": {
+            "xon": true,
+            "xtype": "s",
+            "desc": "host on route"
+        }
+    },
+    "xrefRules": {
+        "Pod": [
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x0",
+                "xrk": "configs",
+                "xrw": "spec.containers[*].env[*].valueFrom.configMapKeyRef.name"
+            },
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "1",
+                "xrk": "configs",
+                "xrw": "spec.volumes[*].configMap[*].name"
+            },
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x2",
+                "xrk": "podUids",
+                "xrw": "metadata.uid"
+            },
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x3",
+                "xrk": "secrets",
+                "xrw": "spec.volumes[*].secret.secretName"
+            },
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x4",
+                "xrk": "labelsApp",
+                "xrw": "metadata.labels.app{{prometheus}}"
+            }
+        ],
+        "ServiceAccount": [
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x0",
+                "xrk": "secrets",
+                "xrw": "secrets[*].name"
+            },
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x1",
+                "xrk": "secrets",
+                "xrw": "imagePullSecrets[*].name"
+            }
+        ],
+        "Route": [
+            {
+                "xon": true,
+                "xtype": "s",
+                "xid": "x0",
+                "xrk": "routeHosts",
+                "xrw": "spec.host"
+            }
+        ]
+    }
+}

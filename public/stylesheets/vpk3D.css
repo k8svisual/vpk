@@ -1,0 +1,221 @@
+#renderCanvas {
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+#sliceKey {
+    display: none;
+}
+
+/* 3D cluster legend and filter slideouts */
+.cluster_legend_close {
+    position: absolute;
+    right: 100%;
+    top: 0;
+    color: red;
+    cursor: pointer;
+    font-size: 24px;
+    background: #7d1515;
+    padding: 0 5px;
+    border-radius: 3px 0 0 3px;
+    box-shadow: -2px 0 3px rbga(0, 0, 0, 0.2);
+}
+
+.cluster_legend_box {
+    position: fixed;
+    right: 0;
+    top: 25%;
+    /* bottom: 200px; */
+    width: 320px;
+    height: 300px;
+    z-index: 1000;
+    padding: 25px;
+    background: #7d1515;
+    color: #fff;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease-in-out;
+    min-height: 200px;
+    transform: translateX(120%);
+}
+
+.cluster_legend_box.active {
+    transform: translateX(0%);
+}
+
+.cluster_legend {
+    position: fixed;
+    right: -25px;
+    top: 50%;
+    background: #f93010;
+    color: #fff;
+    padding: 10px 22px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+.cluster_legend:hover {
+    color: #fff;
+    text-decoration: none;
+    background: #bf4104;
+}
+
+/* cluster filter slidout */
+.cluster_filter_close {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    color: #fff;
+    cursor: pointer;
+    font-size: 20px;
+    background: rgb(0, 123, 255);
+    padding: 0 5px;
+    border-radius: 0 3px 3px 0;
+    border-top: 1px solid rgb(0, 123, 255);
+    border-right: 1px solid rgb(0, 123, 255);
+    border-bottom: 1px solid rgb(0, 123, 255);
+    box-shadow: -2px 0 3px rbga(0, 0, 0, 0.2);
+}
+
+.cluster_filter_box {
+    position: fixed;
+    left: 0;
+    top: 16%;
+    /* bottom: 200px; */
+    width: 300px;
+    height: 750px;
+    z-index: 1000;
+    padding: 5px;
+    background: #eee;
+    color: #555;
+    border: 1px solid rgb(0, 123, 255);
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease-in-out;
+    min-height: 200px;
+    transform: translateX(-120%);
+}
+
+.cluster_filter_box.active {
+    transform: translateX(0%);
+}
+
+.cluster_filter {
+    position: fixed;
+    left: -36px;
+    top: 50%;
+    /* background: rgb(0, 123, 255); */
+    background: #bbbbbb;
+    color: #fff;
+    padding: 10px 22px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+
+}
+
+.cluster_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+
+}
+
+.filter-checkbox {
+    margin-top: 1px;
+}
+
+.memoryRequest {
+    background-color: #1e18ef;
+}
+
+.memoryLimit {
+    background-color: #f4a8e6;
+}
+
+.cpuRequest {
+    background-color: #66b0aa;
+}
+
+.cpuLimit {
+    background-color: #ef5818;
+}
+
+.podRunning {
+    background-color: #00ff00;
+}
+
+.podWarn {
+    background-color: #ffff00;
+}
+
+.podFail {
+    background-color: #bf0000;
+}
+
+.podSuccessful {
+    background-color: #00a6ff;
+}
+
+.podDaemon {
+    background-color: #808080;
+}
+
+.nodeMst {
+    background-color: #804040;
+}
+
+.nodeWrk {
+    background-color: #c4bec4
+}
+
+.endpoint {
+    background-color: #0000ef
+}
+
+.service {
+    background-color: #80bfbf
+}
+
+.pvc {
+    background-color: #bfbf1a
+}
+
+.pv {
+    background-color: #ba8759
+}
+
+.storageClass {
+    background-color: #fa9903
+}
+
+.nodeMemory {
+    background-color: #7b737b
+}
+
+.nodeCPU {
+    background-color: #f58b4e
+}
+
+.nodeStorage {
+    background-color: #f72141
+}
+
+.controlPlane {
+    background-color: #725db7
+}
+
+.filterBorder {
+    padding-top: 15px;
+}
+
+.hideBox {
+    display: none;
+}

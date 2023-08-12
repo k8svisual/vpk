@@ -1,0 +1,492 @@
+<!--
+        Copyright (c) 2018-2022 K8Debug
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!-- ==================================== -->
+<!-- xref edit Modal section              -->
+<!-- ==================================== -->
+<div class="modal fade" id="xrefEditModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="ml-1 modal-title vpkcolor">X-Reference Maintainance</span>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <div id="xrefSelect" class="row pl-1 ml-2 mt-1 vpkcolor">
+                    <div class="mb-5 mr-2 ml-2 mt-1 align-middle vpkfont vpkcolor">
+                        <span class="pt-2">Add new xref</span>
+                    </div>
+                    <div class="mb-5 mr-5 align-middle vpkfont vpkcolor">
+                        <button class="btn btn-outline-primary btn-sm" onclick="xrefOpenNewXref()">Create
+                            defitition</button>&nbsp;
+                    </div>
+
+                    <div class="mb-5 mr-2 ml-2 mt-1 align-middle vpkfont vpkcolor">
+                        <span class="pt-2">Edit existing xref</span>
+                    </div>
+                    <div class="ml-1 mr-1 vpkfont vpkcolor">
+                        <select id="xrefEdit-type" style="width: 500px" class="vpkfont">
+                            <option></option>
+                            <option>Xref Names</option>
+                        </select>
+                    </div>
+                </div>
+
+
+                <div id="xrefShowSelected">
+
+                    <div id="xrefInfo"></div>
+                    <div class="row ml-1 font-weight-bold text-secondary">
+                        Xref -
+                    </div>
+                    <div class="row ml-4 vpkfont vpkcolor">
+                        <div class="col-1 font-weight-bold text-secondary">
+                            Name:
+                        </div>
+                        <div id="xrefShowName" class="col-4">
+                        </div>
+                    </div>
+                    <div class="row ml-4 vpkfont vpkcolor">
+                        <div class="col-1 font-weight-bold text-secondary">
+                            Desc:
+                        </div>
+                        <div id="xrefShowDesc" class="col-6">
+                        </div>
+
+                        <div id="xrefEditDescBtn" class="col-4">
+
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefEditName()"
+                                style="margin: 5px;">
+                                Edit description
+                            </button>
+                            <div class="float-right">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefDeleteXref()"
+                                    style="margin: 5px;">
+                                    Delete xref
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="xrefPathRules">
+                    <div class="row ml-4 vpkfont vpkcolor">
+                        <div class="col-2 font-weight-bold text-secondary">
+                            Path rules:
+                        </div>
+                    </div>
+                    <div class="ml-4 events col-11">
+                        <div id="xrefTable" class="row pl-1 mt-1 vpkfont-lg vpkcolor">
+                            <!-- Pouplated from vpkcommon.js function bldXrefRulesTable() -->
+                        </div>
+                    </div>
+                    <div class="row vpkcolor">
+                        <div class="col-2">
+                        </div>
+                        <div class="col-4 pt-2 pr-2 text-secondary">
+                            Click above<span class="font-weight-bold"> Path </span>value to edit or delete
+                        </div>
+                        <div class="col-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefNewPathRule()"
+                                style="margin: 5px;">
+                                New path rule
+                            </button>
+                        </div>
+                        <div class="col-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefCancel()"
+                                style="margin: 5px;">
+                                &nbsp;Exit&nbsp;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="xrefEditName" class="bg-warn">
+                <hr>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Description</span>
+                                </div>
+                                <input id="xrefDesc" type="text" class="form-control" aria-label="Sizing example input"
+                                    aria-describedby="inputGroup-sizing-sm">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-1">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-5">
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefNameSave()"
+                            style="margin: 5px;">
+                            Save
+                        </button>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefNameCancel()"
+                            style="margin: 5px;">
+                            Cancel
+                        </button>
+                    </div>
+                    <div class="col-5">
+                    </div>
+                </div>
+            </div>
+
+            <div id="xrefShowRuleName">
+                <hr>
+                <div class="row vpkcolor">
+                    <div class="col-2 ml-1 font-weight-bold text-secondary">
+                        Rule -
+                    </div>
+                </div>
+
+                <div class="row ml-4 vpkfont vpkcolor">
+                    <div class="col-2 font-weight-bold text-secondary">
+                        K8 Kind:
+                    </div>
+                    <div id="xrefRuleKind" class="col-4 vpkfont">
+                    </div>
+                </div>
+
+                <div class="row ml-4 vpkfont vpkcolor">
+                    <div class="col-2 font-weight-bold text-secondary">
+                        Path rule:
+                    </div>
+                    <div id="xrefRuleText" class="col-10 vpkfont">
+                    </div>
+                </div>
+
+                <div class="row ml-4 vpkfont vpkcolor">
+                    <div class="col-2 font-weight-bold text-secondary">
+                        Enabled:
+                    </div>
+                    <div id="xrefRuleEnabled" class="col-4 vpkfont">
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="xrefEditQuestion">
+                <hr>
+                <div class="row">
+                    <div class="col-3">
+                    </div>
+                    <div class="col-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefEditRuleOpen()"
+                            style="margin: 5px;">
+                            Edit Rule
+                        </button>
+                    </div>
+                    <div class="col-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefEditRuleDelete()"
+                            style="margin: 5px;">
+                            Delete Rule
+                        </button>
+                    </div>
+                    <div class="col-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefEditRuleCancel()"
+                            style="margin: 5px;">
+                            &nbsp;Exit&nbsp;
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="xrefEditRule">
+                <hr>
+                <div class="row mb-2">
+                    <div class="col-2">
+                    </div>
+                    <div class="col-8 vpkfont text-secondary">
+                        Kind: <span id="xrefRuleKind2" class="col-4 vpkfont text-secondary"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-2">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Path</span>
+                                </div>
+                                <input id="xrefRule" type="text" class="form-control" aria-label="Sizing example input"
+                                    aria-describedby="inputGroup-sizing-sm">
+                            </div>
+
+                            <div class="form-group form-check">
+                                <input type="checkbox" class="form-check-input" id="xrefRuleOnOff">
+                                <label class="form-check-label vpkfont" for="xrefRuleOnOff">
+                                    Enabled <span class="text-secondary">(if enabled path rule will be processed)</span>
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-5">
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefSaveEditedRule()"
+                            style="margin: 5px;">
+                            Save
+                        </button>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefCancelEditRule()"
+                            style="margin: 5px;">
+                            Cancel
+                        </button>
+                    </div>
+                    <div class="col-5">
+                    </div>
+                </div>
+            </div>
+
+            <div id="xrefNewPathRule">
+                <hr>
+                <div class="row">
+                    <div class="col-10 mb-2 vpkfont vpkcolor">
+                        <span class="pl-2">Create new path rule</span>
+                    </div>
+                    <div class="col-1">
+
+                    </div>
+                    <div class="col-1">
+                        <span class="float-right pr-2">
+                            <a href="javascript:getDocumentation('xreference')">
+                                <i class="fas fa-question mr-2 vpkcolor"></i>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10 vpkfont vpkcolor">
+                        Any valid Kubernetes resource kind. This is a case sensitve field and the value must exactly
+                        match the K8 resource kind.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">K8 Kind</span>
+                                </div>
+                                <input id="xrefNewPathKind" type="text" class="form-control"
+                                    aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10 vpkfont vpkcolor">
+                        Kubernetes resource path to element that will be cross referenced. For detail insturctions click
+                        the question mark above.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Path rule</span>
+                                </div>
+                                <input id="xrefNewPathRuleData" type="text" class="form-control"
+                                    aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10 vpkfont vpkcolor">
+                        Indicate if the path rule will be processed.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="form-group form-check">
+                                <input id="xrefNewOnOff" type="checkbox" class="form-check-input">
+                                <label class="form-check-label vpkfont" for="xrefNewOnOff">
+                                    Enabled <span class="text-secondary">(if enabled path rule will be processed)</span>
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-5">
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefSaveNewPathRule()"
+                            style="margin: 5px;">
+                            Save
+                        </button>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefCancelNewPathRule()"
+                            style="margin: 5px;">
+                            Cancel
+                        </button>
+                    </div>
+                    <div class="col-5">
+                    </div>
+                </div>
+            </div>
+
+            <div id="xrefNewXref">
+                <hr>
+                <div class="row">
+                    <div class="col-11 mb-2 vpkfont vpkcolor">
+                        <span class="pl-2">Create new xref</span>
+                    </div>
+                    <div class="col-1">
+                        <span class="float-right">
+                            <a href="javascript:getDocumentation('xreference')">
+                                <i class="fas fa-question mr-2 vpkcolor"></i>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10 vpkfont vpkcolor">
+                        Provide name for new xref. The name must be alpha without spaces.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Xref name</span>
+                                </div>
+                                <input id="xrefNewXrefName" type="text" class="form-control"
+                                    aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10 vpkfont vpkcolor">
+                        Description of xref.
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-1">
+                    </div>
+                    <div class="col-10">
+                        <form>
+                            <div class="input-group input-group-sm mb-3">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text" id="inputGroup-sizing-sm">Description</span>
+                                </div>
+                                <input id="xrefNewXrefDesc" type="text" class="form-control"
+                                    aria-label="Sizing example input" aria-describedby="inputGroup-sizing-sm">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-5">
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefSaveNewXref()"
+                            style="margin: 5px;">
+                            Save
+                        </button>
+                    </div>
+                    <div class="col-1">
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefCancelNewXref()"
+                            style="margin: 5px;">
+                            Cancel
+                        </button>
+                    </div>
+                    <div class="col-5">
+                    </div>
+                </div>
+            </div>
+
+            <div id="xrefFirstRule" class="row vpkcolor mb-2">
+                <div class="col-4">
+                </div>
+                <div class="col-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefOpenFirstRule()"
+                        style="margin: 5px;">
+                        Create first path rule
+                    </button>
+                </div>
+                <div class="col-">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="xrefCloseFirstRule()"
+                        style="margin: 5px;">
+                        &nbsp;Exit&nbsp;
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

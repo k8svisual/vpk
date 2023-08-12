@@ -1,0 +1,991 @@
+<!--
+        Copyright (c) 2018-2022 K8Debug
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <%- include('partials/head') %>
+
+</head>
+
+<body>
+    <div id="banner" class="">
+        <div id="header-bar" class="header ml-1 mr-0 pt-1 pb-1">
+            <!-- <span onclick="printDiv()"> -->
+            <span>
+                <img class="vpk-vert-mid" src='images/vpk.png' width='30' height='30' onclick="getDocumentation('toc')">
+
+                <div class="vpkcolor vpkfont pl-1 vpkinline vpk-vert-mid" onclick="getDocumentation('toc')">
+                    <span class="vpkfont-lg">V</span><span class="vpkfont">isual </span>
+                    <span class="vpkfont">parsed</span>
+                    <span class="vpkfont-lg">K</span><span class="vpkfont">ubernetes</span>
+                </div>
+
+                <div id="datasource" class="header vpkfont-md ml-3 vpk-hdr-mid vpkinline">
+                    <div id="runLocal" style="display: inline;">
+                        <select id="pickDataSource" class="vpkfont-md pl-3 vpk-hdr-mid">
+                            <option></option>
+                            <option>Running cluster</option>
+                            <option>Previous captured snapshot</option>
+                        </select>
+                    </div>
+                    <div id="runContainer" style="display: inline;">
+                        <select id="pickDataSource2" class="vpkfont-md pl-3 vpk-hdr-mid">
+                            <option></option>
+                            <option>Running cluster</option>
+                            <option>Previous captured snapshot</option>
+                            <option>Run command in container</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-sm btn-outline-primary vpkfont-md ml-2" onclick="dirStats()">
+                        <span id="baseDir" class="float-left"></span>
+                    </button>
+                </div>
+
+                <div class="header-right">
+                    <a href="javascript:closeVpK()">
+                        <i class="fas fa-window-close fa-lg mr-3 vpkcolor"></i>
+                    </a>
+
+
+                    <a href="javascript:getDocumentation()">
+                        <i class="fas fa-question mr-3 vpkcolor"></i>
+                    </a>
+                    <a href="javascript:about()">
+                        <i class="fas fa-info-circle fa-lg mr-3 vpkcolor"></i>
+                    </a>
+                    <a href="javascript:showConfig()">
+                        <i class="fas fa-cog fa-lg vpkcolor"></i>
+                    </a>
+                </div>
+
+                <div id="messageDiv" class="collapse hide mt-0 mb-0 vpkfont-md">
+                    <div id="messageType" class="alert alert-warning fade show pt-2 pb-2" role="alert">
+                        <span id="messageText"></span>
+                        <button type="button" class="close pt-0" onclick="hideMessage2()">
+                            <span>&times;</span>
+                        </button>
+                    </div>
+                </div>
+            </span>
+        </div>
+
+        <ul id="tabs" class="nav nav-tabs ml-1 mr-0 vpkfont-md">
+            <li class="nav-item"><a id="instTab" href="#instructions" data-target="#instructions" data-toggle="tab"
+                    class="nav-link small text-uppercase active">Overview</a></li>
+            <li class="nav-item"><a id="clusterTab" href="#cluster" data-target="#cluster" data-toggle="tab"
+                    class="nav-link small text-uppercase">Cluster</a></li>
+            <li class="nav-item"><a id="schematicTab" href="#schematic" data-target="#schematic" data-toggle="tab"
+                    class="nav-link small text-uppercase">Schematics</a></li>
+            <li class="nav-item"><a id="graphicTab" href="#graphic" data-target="#graphic" data-toggle="tab"
+                    class="nav-link small text-uppercase">Graphic View</a></li>
+            <li class="nav-item"><a id="storageTab" href="#storage" data-target="#storage" data-toggle="tab"
+                    class="nav-link small text-uppercase">Storage</a></li>
+            <li class="nav-item"><a id="securityTab" href="#security" data-target="#security" data-toggle="tab"
+                    class="nav-link small text-uppercase">Security</a></li>
+            <li class="nav-item"><a id="tableTab" href="#tableview" data-target="#tableview" data-toggle="tab"
+                    class="nav-link small text-uppercase">Table View</a></li>
+            <li class="nav-item"><a id="xreferenceTab" href="#xreference" data-target="#xreference" data-toggle="tab"
+                    class="nav-link small text-uppercase">X-Reference</a></li>
+            <li class="nav-item"><a id="ownerliksTab" href="#ownerlinks" data-target="#ownerlinks" data-toggle="tab"
+                    class="nav-link small text-uppercase">OwnerRef Links</a></li>
+            <li class="nav-item"><a id="compareTab" href="#comparesnap" data-target="#comparesnap" data-toggle="tab"
+                    class="nav-link small text-uppercase">Compare Snapshots</a></li>
+        </ul>
+
+        <div id="viewtop">
+            <div id="instructionsHdr">
+            </div>
+
+            <div id="tableviewHdr" class="vpkhidden">
+                <!-- ==================================== -->
+                <!-- Filtered data results section        -->
+                <!-- ==================================== -->
+                <div class="grid ml-2 mr-2">
+                    <div id="filterdata" class="border rounded mt-1 collapse hide vpkcolor">
+                        <div id="filter-bar-1" class="row filterBack pl-1 mt-1">
+                            <div class="vpkfont-md mt-2 filterWidth">
+                                Namespace(s)
+                            </div>
+                            <div id="bar1-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="ns-filter" multiple="multiple" style="width: 550px" id="bar1-options">
+                                    <option>all-namespaces</option>
+                                    <option>&lt;cluster-level&gt;</option>
+                                    <option>openshift</option>
+                                    <option>default</option>
+                                    <option>team01</option>
+                                    <option>team02</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="filter-bar-2" class="row filterBack pl-1">
+                            <div class="vpkfont-md mt-2 filterWidth">
+                                Kind(s)
+                            </div>
+                            <div id="bar2-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="kind-filter" multiple="multiple" style="width: 550px" id="bar2-options">
+                                    <option>all-kinds</option>
+                                    <option>Pod</option>
+                                    <option>Deployment</option>
+                                    <option>ConfigMap</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="filter-bar-3" class="row filterBack pl-1">
+                            <div class="vpkfont-md mt-2 filterWidth">
+                                Labels(s)
+                            </div>
+                            <div id="bar3-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="label-filter" multiple="multiple" style="width: 550px" id="bar3-options">
+                                    <option>key1 : value1</option>
+                                    <option>key2 : value2</option>
+                                    <option>key3 : value3</option>
+                                    <option>key4 : value4</option>
+                                    <option>key5 : value5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="filter-bar-5" class="row filterBack pl-1">
+                            <div class="vpkfont-md mt-2 filterWidth">
+                                K8 resource kind name
+                            </div>
+                            <div id="bar5-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
+                                <input type="text" class="form-control vpkfont-md" id="kind-name"
+                                    placeholder="partial or complete name resource name">
+                            </div>
+                        </div>
+                        <div id="filterTheData" class="row filterBack pl-1">
+                            <div class="vpkfont-md mt-2 filterWidth">
+                                Press button to apply filter
+                            </div>
+                            <div class="col-2 mt-1 mb-1 pl-1">
+                                <button type="button" class="btn btn-sm btn-primary vpkButtons float-left vpkwhite"
+                                    onclick="searchObj()">
+                                    Apply filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div id="tableviewActions" class="float-left mt-2 mb-1 ml-1 border rounded">
+
+                    <button type="button" class="ml-3 btn btn-sm btn-outline-primary vpkButtons ml-1 mt-1 mb-1 vpkwhite"
+                        onclick="searchObj()">
+                        Populate table
+                    </button>
+                    <button type="button"
+                        class="btn btn-sm btn-outline-primary vpkButtons  ml-1 mr-2 mt-1 mb-1 vpkwhite"
+                        id="filterButton" onclick="toggleFilterPanel()">
+                        Open filter panel
+                    </button>
+                </div>
+            </div>
+
+            <div id="graphicHdr" class="vpkhidden">
+                <div id="filter-chart" class="vpkcolor mt-1 mr-2 ml-2 border rounded">
+                    <div class="row filterBack pl-1 ml-2 mt-1">
+                        <div class="vpkfont-md mr-1 pt-1">
+                            Select namespaces
+                        </div>
+                        <div id="grachic-ns-select" class="ml-1 mr-1 vpkfont-md">
+                            <select id="graphic-ns-filter" multiple="multiple" style="width: 300px">
+                                <option>all-namespaces</option>
+                                <option>default</option>
+                            </select>
+                        </div>
+
+                        <div class="vpkcolor vpkfont-md ml-5 mr-2 pt-1">
+                            Select view
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="viewChart01" onclick="getChart('hierarchy')">
+                                &nbsp;Hierarchy&nbsp;
+                            </button>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="viewChart02" onclick="getChart('collapsible')">
+                                &nbsp;Collapsible&nbsp;
+                            </button>
+
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="viewChart03" onclick="getChart('circlePack')">
+                                &nbsp;Circle Pack&nbsp;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="schematicHdr" class="vpkhidden">
+                <div class="mt-1 ml-2 mr-2 border rounded">
+                    <div class="col-md-2 mt-1 mb-1 ml-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                            id="viewSchematic" onclick="bldSchematic()">
+                            &nbsp;Build Schematic diagrams&nbsp;
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="securityHdr" class="vpkhidden">
+                <div class="row ml-2 mt-1 mb-2 mr-2 border rounded">
+                    <div class="align-middle vpkfont-md vpkcolor ml-2 mr-2 mb-2 mt-2">
+                        Select information to view
+                    </div>
+                    <div class="mt-1">
+                        <!-- <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec01"
+                            onclick="bldSecurity()">
+                            &nbsp;RBAC Definitions&nbsp;
+                        </button>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec02"
+                            onclick="bldSecurityUsage()">
+                            &nbsp;RBAC Usage&nbsp;
+                        </button>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec03"
+                            onclick="getSecurityChart('s')">
+                            &nbsp;Subject binding to Role&nbsp;
+                        </button>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec04"
+                            onclick="getSecurityChart('r')">
+                            &nbsp;Resource binding to Role&nbsp;
+                        </button>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec05"
+                            onclick="getSecurityRules()">
+                            &nbsp;Security Rules&nbsp;
+                        </button> -->
+
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
+                            onclick="getSecurityViewData()">
+                            &nbsp;View selected namespace&nbsp;
+                        </button>
+
+                        <span id="security-ns-select" class="ml-1 mr-1 vpkfont-md">
+                            <select id="security-ns-filter" style="width: 300px">
+                                <option>all-namespaces</option>
+                                <option>default</option>
+                            </select>
+                        </span>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="storageHdr" class="vpkhidden">
+                <div class="row ml-2 mt-1 mb-2 mr-2 border rounded">
+                    <div class="align-middle vpkfont-md vpkcolor ml-2 mb-2 mt-2">
+                        Select information to view
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite mt-1"
+                            id="viewSchematic" onclick="getStorageInfo()">
+                            &nbsp;Request storage&nbsp;
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="clusterHdr" class="vpkhidden">
+                <div class="grid mt-1 ml-2 mr-1 mb-1 border rounded">
+                    <div class="row vpkButtons mb-1 ml-1 mt-1">
+                        <div>
+                            <span>
+                                <button type="button" id="c3DView"
+                                    class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                    onclick="getCluster3DInfo()">&nbsp;Refresh 3D View&nbsp;</button>
+
+                                <span style="float: right;">
+                                    <a href="javascript:print3Dscene()" class="pl-4 pt-2">
+                                        <i class="fas fa-print mr-3 float-right vpkcolor vpkfont-lg"></i>
+                                    </a>
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div id="resourceProps" class="mt-0 mb-0 vpkfont vpkcolor">
+                    &nbsp;
+                </div>
+
+            </div>
+
+            <div id="xreferenceHdr" class="vpkhidden">
+                <div id="xrefUsageType" class="mb-1 vpkcolor ml-2 mr-2 mt-1 border rounded">
+                    <div class="row filterBack pl-1 ml-2 mt-1">
+                        <div class="mb-2 pt-1 align-middle vpkfont-md">
+                            Select xref
+                        </div>
+                        <div class="ml-1 mr-1 vpkfont-md">
+                            <select id="xref-type" style="width: 300px">
+                                <option></option>
+                                <option>Secrets : Secrets defined in environment</option>
+                            </select>
+                        </div>
+
+                        <div class="vpkcolor vpkfont-md ml-5 pt-1" style="width: 100px;">
+                            Select view
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="xrefChart01" onclick="bldXrefChart('hierarchy')">
+                                &nbsp;Hierarchy&nbsp;
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="xrefChart02" onclick="bldXrefChart('collapsible')">
+                                &nbsp;Collapsible&nbsp;
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="xrefChart03" onclick="bldXrefChart('circlePack')">
+                                &nbsp;Circle Pack&nbsp;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ownerlinksHdr" class="vpkhidden">
+                <div class="grid mt-1 ml-2 mr-2 mb-2 border rounded">
+                    <div class="row vpkButtons ml-1">
+                        <div class="vpkcolor vpkfont-md ml-2 mt-2" style="width: 75px;">
+                            Sort first by
+                        </div>
+                        <div class="ml-2 mt-1">
+                            <select id="ownerSort1" class="vpkfont-md pl-3"
+                                style="width: 100px; vertical-align:middle;">
+                                <option></option>
+                                <option>Kind</option>
+                                <option>Namespace</option>
+                                <option>Levels</option>
+                            </select>
+                        </div>
+                        <div class="vpkcolor vpkfont-md ml-4 mt-2" style="width: 90px;">
+                            Sort second by
+                        </div>
+                        <div class="ml-2 mt-1">
+                            <select id="ownerSort2" class="vpkfont-md pl-3"
+                                style="width: 100px; vertical-align:middle;">
+                                <option></option>
+                                <option>Kind</option>
+                                <option>Namespace</option>
+                                <option>Levels</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2 mt-2 ml-4">
+                            <button type="button" class="btn btn-outline-primary vpkButtons pl-1 pr-1 vpkwhite"
+                                id="viewChart01" onclick="getOwnerRefLinks()">
+                                <span>Retrieve data</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="comparesnapHdr" class="vpkhidden">
+                <div class="grid mt-1 ml-2 mr-2 mb-2 border rounded">
+                    <div class="ml-0 mt-1 vpkfont-md">
+                        <span class="vpkfont-md vpkcolor ml-1">Snapshots:</span>
+                        <div class="pl-1" style='vertical-align:middle; display:inline;'>
+                            <button class="btn btn-sm btn-outline-primary vpkfont-md vpkwhite"
+                                onclick="getCompareSnap('1')">
+                                <span id="firstSnapDir" class="float-left">Snapshot 1</span>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary vpkfont-md vpkwhite"
+                                onclick="getCompareSnap('2')">
+                                <span id="secondSnapDir" class="float-left">Snapshot 2</span>
+                            </button>
+                            <span class="vpkfont-md vpkcolor ml-1">Sort:<span class="ml-2 vpkfont-sm">1st</span></span>
+                            <div class="ml-1 mt-1" style="display: inline;">
+                                <select id="compareSort1" class="vpkfont-sm pl-3"
+                                    style="width: 100px; vertical-align:middle;">
+                                    <option></option>
+                                    <option>Namespace</option>
+                                    <option>Name</option>
+                                    <option>Kind</option>
+                                </select>
+                            </div>
+                            <span class="vpkfont-md vpkcolor ml-1"><span class="vpkfont-sm">2nd</span></span>
+                            <div class="ml-1 mt-1" style="display: inline;">
+                                <select id="compareSort2" class="vpkfont-md pl-3"
+                                    style="width: 100px; vertical-align:middle;">
+                                    <option></option>
+                                    <option>Namespace</option>
+                                    <option>Name</option>
+                                    <option>Kind</option>
+                                </select>
+                            </div>
+                            <span class="vpkfont-md vpkcolor ml-4">View:</span>
+                            <div class="ml-1 mt-1" style="display: inline;">
+                                <select id="compareView" class="vpkfont-md pl-3"
+                                    style="width: 100px; vertical-align:middle;">
+                                    <option></option>
+                                    <option>All</option>
+                                    <option>Matching</option>
+                                    <option>Non-matching</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ml-2 mt-2">
+                        <div class="vpkfont-sm vpkcolor ml-0"><b>Snapshot 1:&nbsp;</b> <span id="firstSnap"
+                                class="vpkfont-sm vpkcolor"></span>
+                        </div>
+                        <div class="vpkfont-sm vpkcolor ml-0"><b>Snapshot 2:&nbsp;</b> <span id="secondSnap"
+                                class="vpkfont-sm vpkcolor"></span>
+                        </div>
+                    </div>
+
+                    <div class="ml-0 mt-1 mb-1 vpkfont-md">
+                        <button class="btn btn-sm btn-outline-primary vpkfont-md ml-2 vpkwhite"
+                            onclick="compareSnapshots()">
+                            <span id="snapCompare" class="float-left">&nbsp;&nbsp;&nbsp;&nbsp;Compare
+                                snapshots&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <div id="viewarea">
+        <div id="graph" style="text-align: center;"></div>
+        <!-- <div id="legend" style="text-align: center;"></div> -->
+        <div id="tabsContent" class="tab-content">
+            <div id="instructions" class="tab-pane active show">
+                <div class="text-center vpkcolor vkpfont-lg vpk-tagline">
+                    <span>"VpK&nbsp;&nbsp;visualizing what's inside of Kubernetes"</span>
+                </div>
+                <div id="vpkCarousel" class="carousel slide carousel-bg" data-ride="carousel" data-interval="5000"
+                    data-pause="hover">
+
+                    <!-- Indicators -->
+                    <ul class="carousel-indicators">
+                        <li data-target="#vpkCarousel" data-slide-to="0" class="active"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="1"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="2"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="3"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="4"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="5"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="6"></li>
+                        <li data-target="#vpkCarousel" data-slide-to="7"></li>
+                    </ul>
+
+                    <!-- The slideshow -->
+                    <div class="carousel-inner centerImage">
+                        <div class="carousel-item mb-5 mt-4 active">
+                            <img src="images/wow/pic-cluster.png" width="600" height="419">
+                            <!-- <img src="images/wow/wow-graphics.gif" width="400" height="280"> -->
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-schematic.png" width="600" height="419">
+                            <!-- <img src="images/wow/wow-schematic.gif" width="600" height="419"> -->
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-graphic.png" width="600" height="419">
+                            <!-- <img src="images/wow/wow-3dview.gif" width="400" height="280"> -->
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-storage.png" width="600" height="419">
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-security.png" width="600" height="419">
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-tableview.png" width="600" height="419">
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-ownerref.png" width="600" height="419">
+                        </div>
+                        <div class="carousel-item mb-5 mt-4">
+                            <img src="images/wow/pic-comparesnapshots.png" width="600" height="419">
+                        </div>
+                    </div>
+
+                    <!-- Left and right controls -->
+                    <a class="carousel-control-prev" href="#myCarousel" data-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </a>
+                    <a class="carousel-control-next" href="#myCarousel" data-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </a>
+                </div>
+
+                <div class="vpkfont-md vpkcolor pt-2 text-center">
+                    <span>Visual parsed Kubernetes (<b>VpK</b>) brings understanding
+                        and insight to the Kubernetes universe.
+                    </span>
+                </div>
+            </div>
+
+            <div id="tableview" class="tab-pane">
+                <div id="searchResults" class="ml-2 mr-2 mt-1">
+                    <table id="tableL" class="table table-bordered table-sm" data-buttons-class="primary"
+                        data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
+                        data-maintain-meta-data="true" data-page-list="[10, 25, 50, 100, 200, All]"
+                        data-pagination="true" data-pagination-v-align="both" data-search="true"
+                        data-search-highlight="true" data-show-columns="true" data-show-export="true"
+                        data-show-fullscreen="true" data-show-print="true" data-show-refresh="true"
+                        data-show-toggle="true" data-sort-class="table-active" data-sortable="true"
+                        data-trim-on-search="false" data-toggle="table" data-visible="true">
+                        <thead class='thead-light'>
+                            <tr>
+                                <th data-field="namespace" data-sortable="true">Namespace</th>
+                                <th data-field="kind" data-sortable="true">Kind</th>
+                                <th data-field="value" data-sortable="true">Kind Name</th>
+                                <th data-field="src">Fnum</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="col-md-12 ml-2 mt-2 mb-3 p-0">
+                    <span class="mr-2 vpkfont-md vpkcolor">
+                        Click table row to view the resource yaml
+                    </span>
+                </div>
+            </div>
+
+            <div id="graphic" class="tab-pane">
+                <div class="mt-2 vpkfont vpkcolor" id="chartInfo">
+                </div>
+                <div id="prtGraphic" class="ml-3 mr-3">
+                    <svg id="graphicCharts2"></svg>
+                </div>
+            </div>
+
+            <div id="schematic" class="tab-pane">
+                <div id="schematicDetail" class="vpkfont">
+                </div>
+            </div>
+
+            <div id="security" class="tab-pane">
+                <!-- <div id="securityDetail" style="display: none;" class="vpkfont">
+                </div>
+                <div class="mt-2 vpkfont vpkcolor" id="securityChartInfo" style="display: none;">
+                </div>
+
+                <div id="secGraphic" class="ml-3 mr-3" style="display: none;">
+                    <svg id="securityCharts"></svg>
+                </div>
+
+                <div id="secResults" class="ml-2 mr-2 mt-1">
+                    <table id="secTable" class="table table-bordered table-sm" data-buttons-class="primary"
+                        data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
+                        data-maintain-meta-data="true" data-page-list="[10, 25, 50, 100, 200, All]"
+                        data-pagination="true" data-pagination-v-align="both" data-search="true"
+                        data-search-highlight="true" data-show-columns="true" data-show-export="true"
+                        data-show-fullscreen="true" data-show-print="true" data-show-refresh="true"
+                        data-show-toggle="true" data-sort-class="table-active" data-sortable="true"
+                        data-trim-on-search="false" data-toggle="table" data-visible="true">
+                        <thead class='thead-light'>
+                            <tr>
+                                <th data-field="name" data-sortable="true">Role Name</th>
+                                <th data-field="kind" data-sortable="true">Kind</th>
+                                <th data-field="vset" data-sortable="true">VerbSet</th>
+                                <th data-field="apiG" data-sortable="true">ApiGroups</th>
+                                <th data-field="rsc" data-sortable="true">Resources</th>
+                                <th data-field="fnum" data-sortable="true">Fnum</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div> -->
+                <div id="vizWrapper">
+                    <div id="secViz" style="text-align: center;"></div>
+                </div>
+
+            </div>
+
+            <div id="xreference" class="tab-pane">
+                <div class="mt-2 vpkfont vpkcolor" id="xrefInfo">
+                </div>
+                <div id="prtXref" class="ml-3 mr-3">
+                    <svg id="xrefCharts2"></svg>
+                </div>
+            </div>
+
+            <div id="storage" class="tab-pane">
+                <!-- Append the needed UI components -->
+                <div id="storageDetail" class="ml-2 mt-1">
+
+                </div>
+            </div>
+
+            <div id="cluster" class="tab-pane">
+
+                <!-- Cluster 3D View-->
+                <div id="cluster3DView" style="display: none;">
+                    <!-- <div class="cluster-wrap"> -->
+                    <div class="cluster-content" id="canvas3D">
+                        <canvas id="renderCanvas"></canvas>
+                    </div>
+                    <!-- </div> -->
+                    <!-- LEGEND on right of screen -->
+                    <!-- <span class="cluster_legend">Legend</span>
+                    <div class="cluster_legend_box">
+                        <span class="cluster_legend_close">
+                            <i class="fa fa-times" aria-hidden="true"></i>
+                        </span>
+                        <h3>Get in Touch</h3>
+                        <form>
+                            <div>
+                                <input type="text" name="">"
+                                <input type="text" name="">"
+                                <input type="text" name="">"
+                                <input type="text" name="">"
+                            </div>
+                        </form>
+                    </div> -->
+                    <!-- FILTER on left of screen-->
+                    <span class="cluster_filter">Filter view</span>
+                    <div class="cluster_filter_box">
+                        <span class="cluster_filter_close">
+                            <i class="fa fa-times" aria-hidden="true"></i>
+                        </span>
+
+                        <div class="form-check vpkfont-filter">
+                            <span>GROUPS</span>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterNodes" name="clusterFilterNodes" checked>
+                            <span class="nodeMst">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                                class="nodeWrk">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterNodes">
+                                Nodes (Master, Worker)
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterStorage" name="clusterFilterStorage" checked>
+                            <span class="pvc">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                                class="pv">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                                class="storageClass">&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterStorage">
+                                Storage (PVC, PV, Storage Class)
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterNetwork" name="clusterFilterNetwork" checked>
+                            <span class="endpoint">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                                class="service">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterNetwork">
+                                Network (Endpoint, Service)
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterControlP" name="clusterFilterControlP" checked>
+                            <span
+                                class="controlPlane">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterControlP">
+                                Control Plane
+                            </label>
+                        </div>
+
+                        <hr style="margin-left: -10px;">
+                        <div class="form-check vpkfont-filter">
+                            <span>PODS</span>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterRunning" name="clusterFilterRunning" checked>
+                            <span
+                                class="podRunning">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterRunning">
+                                Running Pods
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterWarning" name="clusterFilterWarning" checked>
+                            <span
+                                class="podWarn">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterWarning">
+                                Warning Pods
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterFailed" name="clusterFilterFailed" checked>
+                            <span
+                                class="podFail">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterFailed">
+                                Failed Pods
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterSuccessful" name="clusterFilterSuccessful" checked>
+                            <span
+                                class="podSuccessful">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterSuccessful">
+                                Successful/Finished Pods
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterDSPods" name="clusterFilterDSPods">
+                            <span
+                                class="podDaemon">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterDSPods">
+                                DaemonSet Pods
+                            </label>
+                        </div>
+
+                        <hr style="margin-left: -10px;">
+                        <div class="form-check vpkfont-filter">
+                            <span>RESOURCES</span>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterNodeMemory" name="clusterFilterNodeMemory">
+                            <span
+                                class="nodeMemory">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterNodeMemory">
+                                Node Memory
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterNodeCPU" name="clusterFilterNodeCPU">
+                            <span
+                                class="nodeCPU">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterNodeCPU">
+                                Node CPU
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterNodeStorage" name="clusterFilterNodeStorage">
+                            <span
+                                class="nodeStorage">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterNodeStorage">
+                                Node Persistent Storage
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterMemoryLimit" name="clusterFilterMemoryLimit">
+                            <span
+                                class="memoryLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterMemoryLimit">
+                                Pod Memory Limit
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterMemoryRequest" name="clusterFilterMemoryRequest">
+                            <span
+                                class="memoryRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterMemoryRequest">
+                                Pod Memory Requested
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterCPULimit" name="clusterFilterCPULimit">
+                            <span
+                                class="cpuLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterCPU">
+                                Pod CPU Limit
+                            </label>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterCPURequest" name="clusterFilterCPURequest">
+                            <span
+                                class="cpuRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <label class="form-check-label" for="clusterFilterCPURequest">
+                                Pod CPU Requested
+                            </label>
+                        </div>
+
+                        <hr style="margin-left: -10px;">
+                        <div class="form-check vpkfont-filter">
+                            <span>NAMESPACES</span>&nbsp;&nbsp;
+                            <span class="vpkfont-filter">(default: all-namespaces)</span>
+                        </div>
+
+                        <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
+                            <select id="cluster-ns-filter" multiple="multiple" style="width: 250px"
+                                id="cluster-bar1-options">
+                                <option>all-namespaces</option>
+                                <option>&lt;cluster-level&gt;</option>
+                                <option>default</option>
+                            </select>
+                        </div>
+
+                        <hr style="margin-left: -10px;">
+                        <div class="form-check vpkfont-filter">
+                            <span>SOUND</span>
+                        </div>
+
+                        <div class="form-check vpkfont-filter ml-1">
+                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                                id="clusterFilterSound" checked>
+                            <label class="form-check-label" for="clusterFilterSound">
+                                Play Sound
+                                <span class="vpkfont-filter">(sound indicates resource was selected in view)</span>
+                            </label>
+                        </div>
+
+                        <hr style="margin-left: -10px;">
+                        <div class="form-check vpkfont-filter">
+                            <span class="pt-1">BACKGROUND</span>
+                        </div>
+
+                        <div>
+                            <span class="form-check vpkfont-filter">Click color or
+                                image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
+
+                            <table class="ml-1" style="width: 250px; border: 1px solid black;">
+                                <tr>
+                                    <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
+                                        onclick="set3dBackColor('255','255','255','White')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
+                                        onclick="set3dBackColor('242','242','242','Grey')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
+                                        onclick="set3dBackColor('220','208','255','Lavender')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
+                                        onclick="set3dBackColor('234','219','200','Straw')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
+                                        onclick="set3dBackColor('32','178','170','Teal')">
+                                    </td>
+
+                                    <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
+                                        onclick="set3dBackColor('72','61','139','Purple')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
+                                        onclick="set3dBackColor('154','185','115','Olive')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
+                                        onclick="set3dBackColor('131','105','83','Brown')">
+                                    </td>
+                                    <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
+                                        onclick="set3dBackColor('0','0','0', 'Black')">
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table class="ml-1" style="width: 250px;">
+                                <tr>
+                                    <td onclick="set3dBackColor('0','0','0', 'Stars')">
+                                        <img style="float:left" src="images/stars.jpg" width="125" height="30" />
+                                    </td>
+                                    <td onclick="set3dBackColor('0','0','0', 'Clouds')">
+                                        <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div class="form-check mt-1 vpkfont-filter">
+                                <button type="button" id="c3DView" class="btn btn-primary btn-sm vpkButtons"
+                                    onclick="getCluster3DInfo()">&nbsp;Update background and refresh view&nbsp;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cluster 3d screen shot-->
+                <div id="clusterPicture" class="text-center mr-2" style="display: none;">
+                    <div class="text-center vpkfont-lg mt-1 mb-1">VpK Cluster 3D view</div>
+                    <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
+                </div>
+
+                <!-- Cluster Table View-->
+                <div id="clusterDetail" class="mr-2">
+                </div>
+            </div>
+
+            <div id="comparesnap" class="tab-pane">
+                <div id="compareDetail" class="mr-2 ml-2 mt-2">
+                </div>
+            </div>
+
+            <div id="ownerlinks" class="tab-pane">
+                <div id="ownerRefLinksDetail" class="mr-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================================== -->
+        <!-- Tool tips are shown here             -->
+        <!-- ==================================== -->
+        <div id="tooltip" display="none" style="position: absolute; 
+            display: none; 
+            background-color: #ddd; 
+            padding: 5px; 
+            border-radius: 10px; 
+            border-style: double;">
+        </div>
+
+    </div>
+
+    <!-- Append the needed modals -->
+    <%- include('partials/modals') %>
+
+        <!-- Append the needed modals -->
+        <%- include('partials/xrefModal') %>
+
+
+</body>
+
+<!-- Append the needed scripts -->
+<%- include('partials/scripts') %>
+
+</html>
