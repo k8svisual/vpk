@@ -2,6 +2,7 @@
   "name": "vpk",
   "version": "5.0.0",
   "description": "Visual parsed Kubernetes",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js -p 4200",

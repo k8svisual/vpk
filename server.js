@@ -25,28 +25,38 @@ const softwareVersion = '5.2.0';
 //------------------------------------------------------------------------------
 // Require statements
 //------------------------------------------------------------------------------
-const utl = require('./lib/utl');
-const vpkReset = require('./lib/vpkReset');
-const docm = require('./lib/documentation');
-const appRoutes = require('./lib/appRoutes')
-const splash = require('./lib/splash')
-const vpk = require('./lib/vpk');
+import utl from './lib/utl.js';
+
+import vpkReset from './lib/vpkReset.js';
+import docm from './lib/documentation.js';
+import appRoutes from './lib/appRoutes.js';
+import splash from './lib/splash.js';
+import vpk from './lib/vpk.js';
 
 // third-party requires and configuration
-const bodyParser = require('body-parser');
-const commandLineArgs = require('command-line-args');
-const http = require('http');
-let express = require('express');
-let socketio = require('socket.io');
-const partials = require('express-partials');
-const compression = require('compression');
-const cors = require('cors');
-const fs = require('fs');
+import bodyParser from 'body-parser';
+
+import commandLineArgs from 'command-line-args';
+import http from 'http';
+import express from 'express';
+import socketio from 'socket.io';
+import partials from 'express-partials';
+import compression from 'compression';
+import cors from 'cors';
+import fs from 'fs';
 // server and socketio configuration
 let app = express();
 let server = http.createServer(app);
 let io = socketio(server);
-const clientIO = require('./lib/clientIO');
+import clientIO from './lib/clientIO.js';
+
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+import indexRouter from './public/routes/index.js';
 
 //------------------------------------------------------------------------------
 // Application start parms
@@ -182,7 +192,7 @@ app.use(partials());
 // Express 
 app.use(express.urlencoded({ extended: true }));
 // Routes
-app.use('/', require('./public/routes/index.js'));
+app.use('/', indexRouter);
 // Views location and processing engine
 app.set('views', __dirname + '/public/views');
 app.set('view engine', 'ejs');
