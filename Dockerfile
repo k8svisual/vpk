@@ -1,5 +1,5 @@
 #FROM mhart/alpine-node:16
-FROM node:18.10.0
+FROM node:18.17.1
 LABEL maintainer="k8svisual"
 
 RUN mkdir /vpk
@@ -10,7 +10,7 @@ RUN mkdir /vpk/userconfig
 WORKDIR /vpk
 COPY lib/ ./lib
 COPY public/ ./public
-COPY userconfig/ ./userconfig
+#COPY userconfig/ ./userconfig
 COPY server.js .
 COPY vpkconfig.json .
 COPY package.json .

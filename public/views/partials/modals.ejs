@@ -1,5 +1,5 @@
 <!--
-        Copyright (c) 2018-2022 K8Debug
+        Copyright (c) 2018-2023 k8sVisual
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files (the
@@ -39,7 +39,7 @@
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor">
                             <p>Display the <b>"managedFields"</b> portion of K8 resource view.
-                                &nbsp;&nbsp;If set to On the "managedFields" fo the resource will be shown.</p>
+                                &nbsp;&nbsp;If set to On the "managedFields" for the k8s resource will be shown.</p>
                         </div>
                         <!-- <div class="col-2 px-3 py-1 vpkfont vpkcolor">
                             <p>&nbsp;</p>
@@ -377,7 +377,7 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title vpkcolor">Visual parsed Kubernetes</h6>
+                <h6 class="modal-title vpkcolor">Visually presented Kubernetes</h6>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -385,17 +385,18 @@
             <div class="modal-body docBackground">
                 <div class="align-middle">
                     <div class="ml-1 mr-1 mt-2 mb-2 vpkfont vpkcolor text-center">
-                        <p><span id="version" class="ml-1 vpkfont vpkcolor"></span>
+                        <p><span class="vpkfont-lg">VpK&nbsp;</span><span id="version"
+                                class="ml-1 vpkfont vpkcolor"></span>
                         </p>
                     </div>
 
                     <div class="vpkfont-md vpkcolor ml-4 mr-4 mt-4 mb-4">
-                        <p>
+                        <!-- <p>
                             Icons that are used to help identify resources are the properties of the associated
                             companies or organizations.
                             Any errors or omissions in providing attribution is merely an accident and does not imply
                             any ownership.
-                        </p>
+                        </p> -->
                     </div>
 
                     <div id="usageRunning" class="row ml-4">

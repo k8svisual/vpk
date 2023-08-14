@@ -15,7 +15,7 @@ if [ -z "$1" ]; then
     echo "    --- NAME ---     -REQ/OPT-     --------- DESCRIPTION ---------      -- DEFAULT VALUE --"
     echo "    [image name]      Required     Name of the image to be created      N/A"
     echo "    [tag]             Optional     Tag to label the image               latest"
-    echo "    [repository]      Optional     Target image repository              docker.io/dweilert"
+    echo "    [repository]      Optional     Target image repository              docker.io/k8svisual"
     echo " "
     echo $DASH
     echo " "
@@ -39,7 +39,7 @@ fi
 
 # default target docker repository
 if [ -z "$3" ]; then
-    TR="docker.io/k8debug"
+    TR="docker.io/k8svisual"
     echo "  Using default image repository : $TR"
 else 
     TR=$3

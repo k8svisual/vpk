@@ -25,30 +25,6 @@
             }
         },
         {
-            "name": "useocconn",
-            "dropdown": "Existing oc connection",
-            "getCmd": {
-                "command": "oc get"
-            },
-            "authCmd": {
-                "command": "",
-                "parms": [
-                    {
-                        "key": "dirName",
-                        "value": "{{snapshot_prefix}}",
-                        "default": "oc",
-                        "sal": true
-                    }
-                ],
-                "test": "",
-                "pass": "",
-                "fail": ""
-            },
-            "stopCmd": {
-                "command": "noauth"
-            }
-        },
-        {
             "name": "minikube",
             "dropdown": "MiniKube Local",
             "getCmd": {

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2022 K8Debug
+Copyright (c) 2018-2023 k8sVisual
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -40,7 +40,8 @@ import bodyParser from 'body-parser';
 import commandLineArgs from 'command-line-args';
 import http from 'http';
 import express from 'express';
-import socketio from 'socket.io';
+// import socketio from 'socket.io';
+import { Server } from 'socket.io';
 import partials from 'express-partials';
 import compression from 'compression';
 import cors from 'cors';
@@ -51,7 +52,7 @@ import { fileURLToPath } from 'url';
 // server and socketio configuration
 let app = express();
 let server = http.createServer(app);
-let io = socketio(server);
+let io = new Server(server);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,7 +91,7 @@ let optionDefinitions = [{
 {
     name: 'container',
     description: 'Indicates VpK is running from a container.'
-        + 'Additional feature to communicate with the host machine is enabled.',
+        + 'Enables an additional feature to communicate via the web interface to send commands to the container.',
     alias: 'c'
 },
 {
