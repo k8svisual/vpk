@@ -1,4 +1,4 @@
-<img style="float: center;" src="https://raw.githubusercontent.com/k8debug/vpk/main/public/images/vpk.png" width="70" height="70">
+<img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/vpk.png" width="70" height="70">
 
 ## VpK - Visual parsed Kubernetes
 
@@ -22,7 +22,7 @@ You cannot install and run this application without first installing node.js and
 
 Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following clone command or retrieved 
 
-git clone http://github.com/k8debug/vpk.git/ 
+git clone http://github.com/k8svisual/viewk8s.git/ 
 
 Change to the directory where the files were placed. Run the following command to install the required Node modules:
 
@@ -40,11 +40,11 @@ Once the above has successfully completed the application can be started by usin
 
 ## Docker container
 	
-VpK is available as a Docker container.  The container is available from the following DockerHub account: __k8debug__  container: __vpk__
+VpK is available as a Docker container.  The container is available from the following DockerHub account: __k8svisual__  container: __vpk__
 
 Example docker pull command: 
 ```
-docker pull k8debug/vpk
+docker pull k8svisual/viewk8s
 ```
 
 The container hosts a web application at the default port 4200.
@@ -68,14 +68,14 @@ Optional volume:
 Example with both volumes defined and mapping local port 4200 to the default port:
 
 ```
-docker run -v /data/snapshot:/vpk/cluster -v /data/parms:/vpk/cluster -p 4200:4200 k8debug/vpk
+docker run -v /data/snapshot:/vpk/cluster -v /data/parms:/vpk/cluster -p 4200:4200 k8svisual/viewk8s
 ```
 
 
 
 The cluster snapshot files to be used with the container are created using another progarm available from this same github account.  The repository is for this application is:
 
-git clone http://github.com/k8debug/snapshot.git/ 
+git clone http://github.com/k8svisual/snapshot.git/ 
 
 Follow the instructions in the snapshot repository for how to build and install the snapshot application.
 
@@ -123,7 +123,7 @@ What is VpK?
 
 ### Vpk Architecture
 
-![Architecture](https://raw.githubusercontent.com/k8debug/vpk/main/public/docs/docimages/architecture.png)
+![Architecture](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/architecture.png)
 
 
 <br>
@@ -137,7 +137,7 @@ VpK user interface is comprised of multiple tabs. The following sections are scr
 
 Cluster view provides a 3D view of the cluster showing Nodes (master and worker), Pods (Running, Warning, Failed, Successful, DaemonSet), Network Services, Storage (PVC, PV, and Storage Class), and resource for memory, cpu, and storage.
 
-![clusterTab](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-cluster.png)
+![clusterTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-cluster.png)
 
 <br>
 
@@ -145,7 +145,7 @@ Cluster view provides a 3D view of the cluster showing Nodes (master and worker)
 
 Kubernetes resources associated with a Pod are shown in a schematic similar to the following diagram.
 
-![schematicTab](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-schematic.png)
+![schematicTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-schematic.png)
 
 <br>
 
@@ -153,7 +153,7 @@ Kubernetes resources associated with a Pod are shown in a schematic similar to t
 
 Select cluster or namespace level graphic views of defined resources in the cluster or namespace.
 
-![graphicTab](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-graphic.png)
+![graphicTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-graphic.png)
 
 <br>
 
@@ -161,7 +161,7 @@ Select cluster or namespace level graphic views of defined resources in the clus
 
 View defined storage resources include PersistentVolumeClaim, PersistentVolume, and StorageClass.
 
-![storageTab](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-storage.png)
+![storageTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-storage.png)
 
 <br>
 
@@ -169,7 +169,7 @@ View defined storage resources include PersistentVolumeClaim, PersistentVolume, 
 
 RBAC definitons of Role, Subject, and RoleBinding are shown by cluster or namespace level.
 
-![storage](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-security.png)
+![storage](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-security2.png)
 
 <br>
 
@@ -177,7 +177,7 @@ RBAC definitons of Role, Subject, and RoleBinding are shown by cluster or namesp
 
 View all resources in the cluster and filter as desired.
 
-![rbac](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-tableview.png)
+![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-tableview.png)
 
 <br>
 
@@ -185,7 +185,7 @@ View all resources in the cluster and filter as desired.
 
 View ownership chains of resources in the cluster.
 
-![rbac](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-ownerref.png)
+![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-ownerref.png)
 
 <br>
 
@@ -193,7 +193,7 @@ View ownership chains of resources in the cluster.
 
 Select two cluster snapshots and compare for differences.
 
-![3DView](https://raw.githubusercontent.com/k8debug/vpk/main/public/images/wow/pic-comparesnapshots.png)
+![3DView](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-comparesnapshots.png)
 
 <br>
 
@@ -228,7 +228,7 @@ Dave Krier
 
 ## License
 
-Copyright (c) 2018-2022 K8Debug
+Copyright (c) 2018-2022 k8sVisual
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the
 "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish,
