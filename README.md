@@ -1,6 +1,6 @@
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/vpk.png" width="70" height="70">
 
-## VpK - Visual parsed Kubernetes
+## VpK - Visually presented Kubernetes
 
 
 Vpk can be installed on a local computer or run from a Docker container.  Refer to the appropriate section for installing the software.
