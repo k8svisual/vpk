@@ -167,7 +167,7 @@ View defined storage resources include PersistentVolumeClaim, PersistentVolume, 
 
 ### Security tab
 
-RBAC definitons of Role, Subject, and RoleBinding are shown by cluster or namespace level.
+Graphical view of security definitons shown by cluster or namespace level.
 
 ![storage](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-security2.png)
 
@@ -199,7 +199,7 @@ Select two cluster snapshots and compare for differences.
 
 ### YouTube videos on how to use VpK
 
-To assist in understanding YouTube videos are available that discuss may of the features of the product.
+To assist in understanding YouTube videos are available that discuss many of the features of the product.
 Videos are sorted alpha by topic.
 
 [https://youtu.be/8LtXugxdASY](https://youtu.be/8LtXugxdASY) - Cluster view __(out of date needs to be updated)__  

@@ -1,6 +1,6 @@
 #FROM mhart/alpine-node:16
 FROM node:18.10.0
-LABEL maintainer="k8debug"
+LABEL maintainer="k8svisual"
 
 RUN mkdir /vpk
 RUN mkdir /vpk/cluster

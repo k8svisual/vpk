@@ -25,17 +25,18 @@ const softwareVersion = '6.0.0';
 //------------------------------------------------------------------------------
 // Require statements
 //------------------------------------------------------------------------------
+import vpk from './lib/vpk.js';
 import utl from './lib/utl.js';
-
 import vpkReset from './lib/vpkReset.js';
 import docm from './lib/documentation.js';
 import appRoutes from './lib/appRoutes.js';
 import splash from './lib/splash.js';
-import vpk from './lib/vpk.js';
+import clientIO from './lib/clientIO.js';
+import indexRouter from './public/routes/index.js';
+
 
 // third-party requires and configuration
 import bodyParser from 'body-parser';
-
 import commandLineArgs from 'command-line-args';
 import http from 'http';
 import express from 'express';
@@ -44,19 +45,16 @@ import partials from 'express-partials';
 import compression from 'compression';
 import cors from 'cors';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 // server and socketio configuration
 let app = express();
 let server = http.createServer(app);
 let io = socketio(server);
-import clientIO from './lib/clientIO.js';
-
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-import indexRouter from './public/routes/index.js';
 
 //------------------------------------------------------------------------------
 // Application start parms
@@ -68,7 +66,7 @@ let startMsg = [];
 let cwd = process.cwd();
 let optionDefinitions = [{
     name: 'port',
-    description: 'Port to provide access for the browser to the VpK application. Range is 1 to 65535.',
+    description: 'Port to provide access for the browser portion of the VpK application. Range is 1 to 65535.',
     alias: 'p',
     type: Number,
     defaultOption: 4200
@@ -91,7 +89,8 @@ let optionDefinitions = [{
 },
 {
     name: 'container',
-    description: 'Indicates VpK is running from a container.',
+    description: 'Indicates VpK is running from a container.'
+        + 'Additional feature to communicate with the host machine is enabled.',
     alias: 'c'
 },
 {
