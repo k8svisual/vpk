@@ -100,7 +100,7 @@ $(document).ready(function () {
             $('#instructionsHdr').hide();
         }
         if (currentTab === "#tableview") {
-            px = 113;
+            px = 235;
             checkIfDataLoaded();
             documentationTabTopic = 'tableview';
             $('#tableview').show();
@@ -235,10 +235,10 @@ $(document).ready(function () {
     });
 
 
-    $('#label-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md"
-    });
+    // $('#label-filter').select2({
+    //     dropdownCssClass: "vpkfont-md",
+    //     containerCssClass: "vpkfont-md"
+    // });
 
     $('#anno-filter').select2({
         dropdownCssClass: "vpkfont-md",
@@ -347,10 +347,10 @@ $(document).ready(function () {
         placeholder: "All"
     });
 
-    $("#clusterType").change(function () {
-        var selected = $('#clusterType option:selected').val();
-        buildClusterUI(selected);
-    });
+    // $("#clusterType").change(function () {
+    //     var selected = $('#clusterType option:selected').val();
+    //     buildClusterUI(selected);
+    // });
 
     $('#cluster-bar1-select').focusout(function () {
         console.log('No FOCUS')
@@ -658,32 +658,20 @@ socket.on('compareSnapshotsResults', function (data) {
 //----------------------------------------------------------
 // process cluster info input and pass to server 
 function dynamic() {
-    $("#clusterButton").hide();
     $("#clusterRunning").show();
-    //$("#clusterModalFooter").hide();
-
     var kinfo = {};
-    var kStr = '';
-    if (inputFlds.length > 0) {
-        for (var f = 0; f < inputFlds.length; f++) {
-            var fld = inputFlds[f];
-            fld = fld.trim();
-            var content = document.getElementById(fld).value;
-            content = content.trim();
-            if (f === 0) {
-                kStr = kStr + '"' + fld + '":"' + content + '" '
-            } else {
-                kStr = kStr + ', "' + fld + '":"' + content + '" '
-            }
-        }
-        kStr = '{' + kStr + '}';
+    kinfo.snapshot_prefix = document.getElementById("snapshot_prefix").value;
+    kinfo.command = document.getElementById("get_cmd").value;
+    var k8n = document.getElementById("k8_namespace").value;
+    if (k8n === "<all>") {
+        kinfo.namespace = "";
+    } else {
+        kinfo.namespace = k8n;
     }
 
-    kinfo = JSON.parse(kStr);
-    kinfo.ctype = $("#clusterType option:selected").val();
     socket.emit('connectK8', kinfo);
     $("#clusterStatus").empty();
-    var resp = '<br><div><span class="vkpfont vpkcolor" style="vertical-align: middle;">Request will take several seconds to complete</span></div>';
+    var resp = '<div><span class="vkpfont vpkcolor" style="vertical-align: middle;">Request will take several seconds to complete</span></div>';
     $("#clusterStatus").html(resp);
 }
 //...
@@ -694,6 +682,16 @@ socket.on('getKStatus', function (data) {
     let msg = 'Processing request'
     if (typeof data.msg !== 'undefined') {
         msg = data.msg
+    }
+    // If the number processed is equal to the total
+    // change msg to indicated processing is done
+    if (msg.startsWith("Processed count")) {
+        let tmp = msg.split(' of ');
+        let fNum = tmp[0].split('count');
+        let sNum = tmp[1].split(' - ');
+        if (fNum[1].trim() === sNum[0].trim()) {
+            msg = "Processing completed"
+        }
     }
     let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
     $("#clusterStatus").html(resp);
@@ -1094,7 +1092,6 @@ function closeGetCluster() {
 //$$ Also invoked in  $(document).ready(function() $$
 //...
 socket.on('selectListsResult', function (data) {
-    clusterProviders = data.providers;
     populateSelectLists(data);
 });
 //==========================================================
@@ -1256,13 +1253,6 @@ function getCluster3DInfo() {
     $("#resourceProps").html(processingRequest)
     getDataRequest = 'cluster3D';
     socket.emit('schematic');
-
-    // if (typeof k8cData === 'undefined' || k8cData === null) {
-    //     socket.emit('schematic');
-    // } else {
-    //     console.log('k8cData exists')
-    //     buildCluster3D();
-    // }
 }
 
 //...
@@ -1276,10 +1266,6 @@ socket.on('schematicResult', function (data) {
     if (getDataRequest === 'cluster3D') {
         buildCluster3D();
     }
-    // if (getDataRequest === 'clusterTable') {
-    //     buildClusterTable();
-    // }
-
 });
 
 //==========================================================
@@ -1370,7 +1356,7 @@ function searchObj() {
     var namespaces = '::';
     var kinds = '::';
     var labels = '::';
-    var kindnameValue = '';
+    var searchValue = '';
     var skipU = true;
     var nsKey = false;
     var kindKey = false;
@@ -1402,18 +1388,18 @@ function searchObj() {
             kindKey = true;
         }
     };
-    // reuse options var
-    options = $('#label-filter').select2('data');
-    for (var i = 0; i < options.length; i++) {
-        var tmp = options[i].text;
-        tmp.trim();
-        labels = labels + tmp + '::';
-        labelKey = true;
-    };
+    // // reuse options var
+    // options = $('#label-filter').select2('data');
+    // for (var i = 0; i < options.length; i++) {
+    //     var tmp = options[i].text;
+    //     tmp.trim();
+    //     labels = labels + tmp + '::';
+    //     labelKey = true;
+    // };
 
-    kindnameValue = $("#kind-name").val();
-    if (typeof kindnameValue === 'undefined' || kindnameValue.length === 0) {
-        kindnameValue = '';
+    searchValue = $("#search-value").val();
+    if (typeof searchValue === 'undefined' || searchValue.length === 0) {
+        searchValue = '';
     } else {
         kindnameKey = true;
     }
@@ -1438,11 +1424,9 @@ function searchObj() {
     }
 
     var data = {
-        "kindnameValue": kindnameValue,
+        "searchValue": searchValue,
         "namespaceFilter": namespaces,
-        "kindFilter": kinds,
-        "skipU": skipU,
-        "labelFilter": labels
+        "kindFilter": kinds
     }
     socket.emit('search', data);
 }
@@ -1590,30 +1574,31 @@ function pickXref(tmp) {
 
 
 
-//----------------------------------------------------------
-// used by search section of main UI
-function toggleFilterPanel() {
+// //----------------------------------------------------------
+// // used by search section of main UI
+// function toggleFilterPanel() {
 
-    let px;
-    if ($('#filterdata').is('.collapse:not(.show)')) {
-        // open filter panel
-        $("#filterButton").html('Close filter panel');
-        $("#filterdata").collapse("show");
-        px = 303;
-    } else {
-        $("#filterButton").html('Open filter panel');
-        $("#filterdata").collapse("hide");
-        px = 113;
-    }
+//     let px;
 
-    element = document.getElementById("banner")
-    element.style['height'] = px + "px";
+//     if ($('#filterdata').is('.collapse:not(.show)')) {
+//         // open filter panel
+//         $("#filterButton").html('Close filter panel');
+//         $("#filterdata").collapse("show");
+//         px = 303;
+//     } else {
+//         $("#filterButton").html('Open filter panel');
+//         $("#filterdata").collapse("hide");
+//         px = 113;
+//     }
 
-    element = document.getElementById("viewarea")
-    px++;
-    element.style['top'] = px + "px";
+//     element = document.getElementById("banner")
+//     element.style['height'] = px + "px";
 
-}
+//     element = document.getElementById("viewarea")
+//     px++;
+//     element.style['top'] = px + "px";
+
+// }
 
 
 //----------------------------------------------------------
@@ -1627,8 +1612,6 @@ function toggleStorage(id) {
     } else {
         $(id).collapse("hide");
     }
-
-
 }
 
 
@@ -1636,10 +1619,7 @@ function toggleStorage(id) {
 // get Cluster information
 function getCluster() {
     hideMessage();
-    // generate the UI base on selected cluster
-    $('#clusterType').val('none');
-    $("#clusterInfo").hide();
-    $("#clusterInfo").html('');
+    $("#clusterInfo").show();
     $("#clusterButton").show();
     $("#clusterModal").modal({
         backdrop: 'static',
@@ -1679,74 +1659,77 @@ function openRunCommand() {
 //----------------------------------------------------------
 // build UI for the get Cluster
 function buildClusterUI(selected) {
-    $("#clusterInfo").empty();
-    $("#clusterInfo").html('');
+    // $("#clusterInfo").empty();
+    // $("#clusterInfo").html('');
+    var fields = ["snapshot_prefix", "get_cmd"];
 
-    var bttn = '<div id="clusterButton">'
-        + '<div style="padding-top: 20px;">'
-        + '<button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="dynamic()" style="margin: 5px;">'
-        + 'Connect'
-        + '</button>'
-        + '</div></div>';
-    // values to be used in building the UI
-    var tmp00 = '<dir class="form-row">';
-    var tmp01 = '<label class="col-sm-4 col-form-label vpkcolor" for="';       //add name part 1
-    var tmp02 = '" style="padding-top: 15px;">';                               //add name part 2
-    var tmp03 = '</label>';
-    var tmp04 = '<input id="'                                                  //add ???
-    var tmp05t = '" type="text" class="form-control col-sm-8" ';               //plain text input
-    var tmp05p = '" type="password" class="form-control col-sm-8" ';           //password input
-    var tmp06a = 'value="';                                                    //if default value is provided add the value
-    var tmp06b = '"';
-    var tmp07 = ' style="margin-bottom: 5px;"></div>';
-    var fields = [];
-    var prov = getProvider(selected);
-    var parms = prov.parms;
-    var html = tmp00;
-    for (var f = 0; f < parms.length; f++) {
-        if (typeof parms[f].value !== 'undefined') {
-            var flds = parms[f].value.split('{{');
-            var defs = [];
-            var d = 0;
-            if (typeof parms[f].default !== 'undefined') {
-                defs = parms[f].default.split(',')
-            }
-            if (flds.length > 0) {
-                for (var g = 0; g < flds.length; g++) {
-                    var fn = flds[g];
-                    var lp = fn.indexOf('}');
-                    if (lp !== -1) {
-                        fn = fn.substr(0, lp);
-                    }
-                    if (fn.length > 0) {
-                        fields.push(fn);
-                        var inf = tmp01 + fn + tmp02 + fn + tmp03 + tmp04 + fn;
-                        var cfn = fn.toUpperCase();
-                        if (cfn === 'PASSWORD') {
-                            inf = inf + tmp05p;
-                        } else {
-                            inf = inf + tmp05t;
-                        }
-                        if (typeof defs[d] !== 'undefined') {
-                            inf = inf + tmp06a + defs[d] + tmp06b + tmp07
-                            d++;
-                        } else {
-                            inf = inf + tmp07;
-                        }
-                        html = html + inf;
-                    }
-                }
-            }
-        }
-    }
-    html = html + bttn;
+    // var bttn = '<div id="clusterButton">'
+    //     + '<div style="padding-top: 20px;">'
+    //     + '<button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="dynamic()" style="margin: 5px;">'
+    //     + 'Connect'
+    //     + '</button>'
+    //     + '</div></div>';
+    // // values to be used in building the UI
+    // var tmp00 = '<dir class="form-row">';
+    // var tmp01 = '<label class="col-sm-4 col-form-label vpkcolor" for="';       //add name part 1
+    // var tmp02 = '" style="padding-top: 15px;">';                               //add name part 2
+    // var tmp03 = '</label>';
+    // var tmp04 = '<input id="'                                                  //add ???
+    // var tmp05t = '" type="text" class="form-control col-sm-8" ';               //plain text input
+    // var tmp05p = '" type="password" class="form-control col-sm-8" ';           //password input
+    // var tmp06a = 'value="';                                                    //if default value is provided add the value
+    // var tmp06b = '"';
+    // var tmp07 = ' style="margin-bottom: 5px;"></div>';
+    // var fields = [snapshot_prefix, get_cmd];
+    // var prov = getProvider(selected);
+    // var parms = prov.parms;
+    // var html = tmp00;
+    // for (var f = 0; f < parms.length; f++) {
+    //     if (typeof parms[f].value !== 'undefined') {
+    //         var flds = parms[f].value.split('{{');
+    //         var defs = [];
+    //         var d = 0;
+    //         if (typeof parms[f].default !== 'undefined') {
+    //             defs = parms[f].default.split(',')
+    //         }
+    //         if (flds.length > 0) {
+    //             for (var g = 0; g < flds.length; g++) {
+    //                 var fn = flds[g];
+    //                 var lp = fn.indexOf('}');
+    //                 if (lp !== -1) {
+    //                     fn = fn.substr(0, lp);
+    //                 }
+    //                 if (fn.length > 0) {
+    //                     fields.push(fn);
+    //                     var inf = tmp01 + fn + tmp02 + fn + tmp03 + tmp04 + fn;
+    //                     var cfn = fn.toUpperCase();
+    //                     if (cfn === 'PASSWORD') {
+    //                         inf = inf + tmp05p;
+    //                     } else {
+    //                         inf = inf + tmp05t;
+    //                     }
+    //                     if (typeof defs[d] !== 'undefined') {
+    //                         inf = inf + tmp06a + defs[d] + tmp06b + tmp07
+    //                         d++;
+    //                     } else {
+    //                         inf = inf + tmp07;
+    //                     }
+    //                     html = html + inf;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // html = html + bttn;
+
+    // // $("#clusterInfo").html(html);
+
     inputFlds = fields;
-    $("#clusterInfo").html(html);
+
     $("#clusterInfo").show();
     $("#clusterStatus").empty();
     $("#clusterStatus").html('&nbsp');
 }
-
 
 function getProvider(selected) {
     for (var p = 0; p < clusterProviders.length; p++) {
@@ -1754,6 +1737,10 @@ function getProvider(selected) {
             return clusterProviders[p].fields;
         }
     }
+}
+
+function searchValues() {
+    $("#searchModal").modal('show');
 }
 
 //----------------------------------------------------------

@@ -89,6 +89,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     font-size: 3.00rem;
 }
 
+.vpkfont-bold {
+    font-weight: bold;
+}
+
 .vpkcolor {
     /* color: rgb(18, 100, 187); */
     color: rgb(0, 123, 255);
@@ -144,7 +148,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
 .filterWidth {
-    width: 250px;
+    width: 150px;
 }
 
 /* buttons */

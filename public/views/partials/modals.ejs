@@ -128,26 +128,45 @@
                 <h6 class="modal-title vpkcolor">Cluster Information</h6>
             </div>
             <div class="modal-body docBackground">
-                <!-- Drop down for cluster type is dynamically built -->
-                <div class="form-group col-4 vpkcolor" style="margin: -15px; padding-bottom: 15px;">
-                    <label for="clusterType">Cluster type</label>
-                    <select class="form-control form-control-sm" id="clusterType">
-                        <option value="none">select cluster type</option>
-                    </select>
-                </div>
-
                 <div id="clusterInfo">
-                </div>
-
-                <div id="clusterStatus">
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="snapshot_prefix"
+                            style="padding-top: 15px;">
+                            Snapshot prefix
+                        </label>
+                        <input id="snapshot_prefix" type="text" class="form-control col-sm-8" value="vpk"
+                            style="margin-bottom: 5px;">
+                    </div>
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="get_cmd" style="padding-top: 15px;">
+                            kubectl or other command</label>
+                        <input id="get_cmd" type="text" class="form-control col-sm-8" value="kubectl"
+                            style="margin-bottom: 5px;">
+                    </div>
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="k8_namespace" style="padding-top: 15px;">
+                            Namespace</label>
+                        <input id="k8_namespace" type="text" class="form-control col-sm-8" value="<all>"
+                            style="margin-bottom: 5px;">
+                    </div>
+                    <div id="clusterButton">
+                        <div style="padding-top: 20px;">
+                            <button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm"
+                                onclick="dynamic()" style="margin: 5px;">Connect</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <div id="clusterStatus" class="ml-3 mb-2">
+            </div>
+
             <div id="clusterModalFooter" class="modal-footer">
                 <button type="button" class="btn btn-sm btn-primary" onclick="closeGetCluster()">Close</button>
             </div>
-
         </div>
     </div>
+</div>
 </div>
 
 
@@ -524,6 +543,103 @@
                 <div class="vpkfont vpkcolor">
                     <p>Unable to display resource definition. Yaml for the selected resource was not located.
                     </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================== -->
+<!-- Search value Modal section           -->
+<!-- ==================================== -->
+<div class="modal fade" id="searchModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Search value</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="vpkfont vpkcolor">
+                    <p>The Search value input field can be used standalone or in conjuntion with the Namespace(s) and/or
+                        Kind(s) inputs. The Namespace(s) and Kind(s) searches are performed before the Seach value
+                        input.
+                        <span class="vpkfont-bold">All entered information is case sensative.</span>
+                    </p>
+                    <ul>
+                        <li>
+                            <p class="vpkfont-bold">Full search</p>
+                        </li>
+                        <span>
+                            <p> Enter any text in the input field. Kubernetes resource defintions will
+                                be searched for the value regardless of where the value is located.
+                            </p>
+                        </span>
+                        <li>
+                            <p class="vpkfont-bold">Limited searchs </p>
+                        </li>
+                        <span>
+                            <p>There are three types of limited searches. Each requires a specific keyword to indicate
+                                the associated search is to be performed. Keywords are case sensative and must be
+                                entered
+                                in lowercase.
+                            </p>
+                            <ol>
+                                <li><span class="vpkfont-bold">name</span> - search for a resource by name. Keyword -
+                                    name: </li>
+                                <li><span class="vpkfont-bold">labels</span> - search lables of the metatdata section.
+                                    Keyword - labels: </li>
+                                <li><span class="vpkfont-bold">annotations</span> - search annotations of the metatdata
+                                    section. Keyword - annotations: </li>
+                            </ol>
+                            <p class="pt-2">The optional parameter of "::value::" can be used with labels and
+                                annotations.
+                                If a matching label or annotation is found the value defined for the label or annotation
+                                is then compared for a matching value against this parameter.</p>
+                            <p>The ::value:: parameter can be used to locate all matching values regardless of the label
+                                or
+                                annotation name. This is accomplished by using an "*" astrick as the value for the
+                                labels: or
+                                annotations: parameters.</p>
+                    </ul>
+                    <hr>
+                    Example searchs:
+                    <p class="pl-3">Search all resources for any occurance of text 'Part=a7be5c9d'.<br>
+                        <span class="pl-5 vpkfont-bold">Part=a7be5c9d</span>
+                    </p>
+
+                    <p class="pl-3">Search for resources defined with the name 'bookinfo'.<br>
+                        <span class="pl-5 vpkfont-bold">name: bookinfo</span>
+                    </p>
+
+                    <p class="pl-3">Search resource metadata labels that match 'app.kubernetes.io'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: app.kubernetes.io</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata labels that match 'release' and have the value
+                        'production'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: release ::value:: production
+                    </p>
+                    <p class="pl-3">Search all resource metadata labels for the value 'server'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: * ::value:: server</span>
+                    </p>
+
+
+                    <p class="pl-3">Search resource metadata annotations that match 'productName'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: productName</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata annotations that match 'network' and have the value
+                        'wifi'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: network ::value:: wifi</span>
+                    </p>
+                    <p class="pl-3">Search all resource metadata annotations for the value 'click'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: * ::value:: operational-task</span>
+                    </p>
+                    </span>
+
                 </div>
             </div>
             <div class="modal-footer">

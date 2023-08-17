@@ -61,8 +61,8 @@ const __dirname = path.dirname(__filename);
 // Application start parms
 //------------------------------------------------------------------------------
 let port = 4200;
-let snapshot = "";
-let userconfig = "";
+let snapshot = "x";
+
 let startMsg = [];
 let cwd = process.cwd();
 let optionDefinitions = [{
@@ -78,14 +78,6 @@ let optionDefinitions = [{
         + 'Provide the complete path to the snapshot instances. '
         + 'If not defined the directory: ' + cwd + '/cluster will be used.',
     alias: 's',
-    type: String
-},
-{
-    name: 'userconfig',
-    description: 'Directory that contains the userconfig.json file. '
-        + 'Provide the complete path to the file. '
-        + 'If not defined the directory: ' + cwd + ' will be used.',
-    alias: 'u',
     type: String
 },
 {
@@ -124,32 +116,25 @@ if (typeof options.port !== 'undefined' && options.port !== null) {
 // -s snapshot volume
 if (typeof options.snapshot !== 'undefined' && options.snapshot !== null) {
     snapshot = options.snapshot;
+    vpk.snapshotDir = snapshot;
+
     if (fs.existsSync(snapshot)) {
-        startMsg.push('vpkMNL100 - Using snapshot directory: ' + snapshot);
+        startMsg.push('vpkMNL100 - Located startup parameter snapshot directory: ' + snapshot);
     } else {
         utl.logMsg('vpkMNL101 - Did not locate snapshot directory: ' + snapshot);
         process.exit(-1);
     }
-}
-
-// -u userconfig volume
-if (typeof options.userconfig !== 'undefined' && options.userconfig !== null) {
-    userconfig = options.userconfig;
-    if (fs.existsSync(userconfig)) {
-        startMsg.push('vpkMNL102 - Using user config directory: ' + userconfig);
-    } else {
-        utl.logMsg('vpkMNL103 - Did not locate user config directory: ' + userconfig);
-        process.exit(-1);
-    }
+} else {
+    vpk.snapshotDir = "none";
 }
 
 // -c container instance
 if (typeof options.container !== 'undefined' && options.container !== null) {
     vpk.runMode = 'C';
-    startMsg.push('vpkMNL104 - Vpk running from container');
+    // startMsg.push('vpkMNL104 - Vpk running from container');
 } else {
     vpk.runMode = 'L';
-    startMsg.push('vpkMNL105 - Vpk running locally');
+    // startMsg.push('vpkMNL105 - Vpk running locally');
 }
 
 //------------------------------------------------------------------------------
@@ -163,19 +148,12 @@ if (startMsg.length > 0) {
     }
 }
 
-vpk.snapshotDir = snapshot;
-vpk.userconfigDir = userconfig;
-
 //------------------------------------------------------------------------------
 // read vpk configuration file
 //------------------------------------------------------------------------------
-let gcstatus = utl.readConfig('vpkconfig.json');
-let vf = 'userconfig.json';
-if (gcstatus === 'OK') {
-    // get userconfig.json data
-    utl.readConfig(vf);
-} else {
-    utl.logMsg('vpkMNL095 - Terminating application unable to find configuration file: ' + vf);
+let gcstatus = utl.readConfig();
+if (gcstatus !== 'OK') {
+    utl.logMsg('vpkMNL095 - Terminating application error processing configuration file vpkconfig.json');
     process.exit(-1);
 }
 

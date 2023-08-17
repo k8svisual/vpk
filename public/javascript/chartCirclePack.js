@@ -17,7 +17,7 @@ const chartCirclePack = (input, chType) => {
             // type g: general chart, type  x: x-reference chart 
             if (chType === 'g') {
                 $("#chartInfo").empty();
-                $("#chartInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view yaml.<span>'
+                $("#chartInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view resource definition.<span>'
                     + '<div class="header-right">'
                     + '<a href="javascript:printDiv(\'prtGraphic\')">'
                     + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
@@ -26,7 +26,7 @@ const chartCirclePack = (input, chType) => {
 
             } else if (chType === 'x') {
                 $("#xrefInfo").empty();
-                $("#xrefInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view yaml.<span>'
+                $("#xrefInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view resource definition.<span>'
                     + '<div class="header-right">'
                     + '<a href="javascript:printDiv(\'prtXref\')">'
                     + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'

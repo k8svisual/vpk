@@ -33,7 +33,7 @@ const chartCollapsible = (input, chType) => {
         const tree = (root) => {
             if (chType === 'g') {
                 $("#chartInfo").empty();
-                $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view yaml.</span>'
+                $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
                     + '<div class="header-right">'
                     + '<a href="javascript:printDiv(\'prtGraphic\')">'
                     + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
@@ -41,7 +41,7 @@ const chartCollapsible = (input, chType) => {
                     + '</div>');
             } else if (chType === 's') {
                 $("#securityChartInfo").empty();
-                $("#securityChartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view yaml.</span>'
+                $("#securityChartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
                     + '<div class="header-right">'
                     + '<a href="javascript:printDiv(\'prtGraphic\')">'
                     + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
@@ -49,7 +49,7 @@ const chartCollapsible = (input, chType) => {
                     + '</div>');
             } else if (chType === 'x') {
                 $("#xrefInfo").empty();
-                $("#xrefInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view yaml.</span>'
+                $("#xrefInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
                     + '<div class="header-right">'
                     + '<a href="javascript:printDiv(\'prtXref\')">'
                     + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'

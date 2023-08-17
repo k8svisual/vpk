@@ -1148,13 +1148,13 @@ function hideVpkTooltip() {
 }
 
 
-function pickData(tmp) {
-	tmp.trim();
-	if (tmp === 'Running cluster') {
+function pickData(what) {
+	what.trim();
+	if (what === 'Running cluster') {
 		getCluster();
-	} else if (tmp === 'Previous captured snapshot') {
+	} else if (what === 'Previous captured snapshot') {
 		changeDir();
-	} else if (tmp === 'Run command in container') {
+	} else if (what === 'Run command in container') {
 		openRunCommand();
 	}
 }

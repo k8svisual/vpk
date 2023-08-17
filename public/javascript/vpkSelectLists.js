@@ -29,10 +29,6 @@ function populateSelectLists(data) {
     popCnt++;
     var options;
 
-    // populate providers always
-    options = bldProviders(data.providers, 'P', 'no');
-    $("#clusterType").html(options);
-
     // populate only if valid datasource
     if (data.validDir === false) {
         setBaseDir(data.baseDir);
@@ -88,16 +84,16 @@ function populateSelectLists(data) {
             containerCssClass: "vpkfont-md"
         });
 
-        // filter bar3 (resource kinds)
-        if (typeof data.labels !== 'undefined') {
-            options = bldOptions(data.labels, 'L', 'select2');
-            $("#label-filter").empty();
-            $("#label-filter").select2({
-                data: options,
-                dropdownCssClass: "vpkfont-md",
-                containerCssClass: "vpkfont-md"
-            });
-        }
+        // // filter bar3 (resource kinds)
+        // if (typeof data.labels !== 'undefined') {
+        //     options = bldOptions(data.labels, 'L', 'select2');
+        //     $("#label-filter").empty();
+        //     $("#label-filter").select2({
+        //         data: options,
+        //         dropdownCssClass: "vpkfont-md",
+        //         containerCssClass: "vpkfont-md"
+        //     });
+        // }
 
         populateXrefLists(data);
 

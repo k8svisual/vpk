@@ -69,7 +69,6 @@
                         <i class="fas fa-window-close fa-lg mr-3 vpkcolor"></i>
                     </a>
 
-
                     <a href="javascript:getDocumentation()">
                         <i class="fas fa-question mr-3 vpkcolor"></i>
                     </a>
@@ -119,12 +118,12 @@
             <div id="instructionsHdr">
             </div>
 
-            <div id="tableviewHdr" class="vpkhidden">
+            <div id="tableviewHdr">
                 <!-- ==================================== -->
                 <!-- Filtered data results section        -->
                 <!-- ==================================== -->
                 <div class="grid ml-2 mr-2">
-                    <div id="filterdata" class="border rounded mt-1 collapse hide vpkcolor">
+                    <div id="filterdata" class="border rounded mt-1 vpkcolor">
                         <div id="filter-bar-1" class="row filterBack pl-1 mt-1">
                             <div class="vpkfont-md mt-2 filterWidth">
                                 Namespace(s)
@@ -153,59 +152,49 @@
                                 </select>
                             </div>
                         </div>
-                        <div id="filter-bar-3" class="row filterBack pl-1">
+
+                        <div id="filter-bar-5" class="row filterBack pl-1 pb-2">
                             <div class="vpkfont-md mt-2 filterWidth">
-                                Labels(s)
-                            </div>
-                            <div id="bar3-select" class="ml-1 mr-1 mt-1 vpkfont-md">
-                                <select id="label-filter" multiple="multiple" style="width: 550px" id="bar3-options">
-                                    <option>key1 : value1</option>
-                                    <option>key2 : value2</option>
-                                    <option>key3 : value3</option>
-                                    <option>key4 : value4</option>
-                                    <option>key5 : value5</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div id="filter-bar-5" class="row filterBack pl-1">
-                            <div class="vpkfont-md mt-2 filterWidth">
-                                K8 resource kind name
+                                Search value
+                                <!-- K8 resource kind name -->
                             </div>
                             <div id="bar5-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
-                                <input type="text" class="form-control vpkfont-md" id="kind-name"
+                                <input type="text" class="form-control vpkfont-md" id="search-value"
                                     placeholder="partial or complete name resource name">
                             </div>
-                        </div>
-                        <div id="filterTheData" class="row filterBack pl-1">
-                            <div class="vpkfont-md mt-2 filterWidth">
-                                Press button to apply filter
-                            </div>
-                            <div class="col-2 mt-1 mb-1 pl-1">
-                                <button type="button" class="btn btn-sm btn-primary vpkButtons float-left vpkwhite"
-                                    onclick="searchObj()">
-                                    Apply filters
-                                </button>
-                            </div>
+                            <span class="pt-2">
+                                <a href="javascript:searchValues()">
+                                    <i class="fas fa-info-circle fa-lg mr-3 mt-1 vpkcolor"></i>
+                                </a>
+                            </span>
+
                         </div>
                     </div>
                 </div>
 
 
-                <div id="tableviewActions" class="float-left mt-2 mb-1 ml-1 border rounded">
+                <div id="tableviewActions" class="float-left mt-2 mb-1 ml-1">
 
-                    <button type="button" class="ml-3 btn btn-sm btn-outline-primary vpkButtons ml-1 mt-1 mb-1 vpkwhite"
+                    <!-- <button type="button" class="btn btn-sm btn-outline-primary vpkButtons ml-3 ml-1 mt-1 mb-1 vpkwhite"
                         onclick="searchObj()">
-                        Populate table
-                    </button>
+                        View results
+                    </button> -->
                     <button type="button"
+                        class="btn btn-sm btn-primary vpkButtons ml-3 mr-2 mt-0 mb-1 pl-1 pr-1 vpkwhite"
+                        onclick="searchObj()">
+                        Apply filters
+                    </button>
+
+                    <!-- <button type="button"
                         class="btn btn-sm btn-outline-primary vpkButtons  ml-1 mr-2 mt-1 mb-1 vpkwhite"
                         id="filterButton" onclick="toggleFilterPanel()">
                         Open filter panel
-                    </button>
+                    </button> -->
                 </div>
             </div>
 
-            <div id="graphicHdr" class="vpkhidden">
+            <!-- <div id="graphicHdr" class="vpkhidden"> -->
+            <div id="graphicHdr">
                 <div id="filter-chart" class="vpkcolor mt-1 mr-2 ml-2 border rounded">
                     <div class="row filterBack pl-1 ml-2 mt-1">
                         <div class="vpkfont-md mr-1 pt-1">
