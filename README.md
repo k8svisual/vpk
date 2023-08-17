@@ -48,7 +48,7 @@ Once the above has successfully completed the application can be started by usin
 
 ## Container
 	
-VpK is available as a container image on dockerhub  https://hub.docker.com/repository/docker/k8svisual/viewk8s/general .  The container is available from the following DockerHub account: __k8svisual__  container: __vpk__
+VpK is available as a container image on dockerhub https://hub.docker.com/repository/docker/k8svisual/viewk8s/general .  The container is available from the following DockerHub account: __k8svisual__  container: __vpk__
 
 Example docker pull command: 
 ```
