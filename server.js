@@ -45,7 +45,7 @@ import { Server } from 'socket.io';
 import partials from 'express-partials';
 import compression from 'compression';
 import cors from 'cors';
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 import { fileURLToPath } from 'url';
 

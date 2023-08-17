@@ -25,7 +25,6 @@ else
     echo "  Using provided image name      : $IMG"
 fi
 
-
 # check if tag is provided
 if [ -z "$2" ]; then
     TAG="latest"
@@ -34,8 +33,6 @@ else
     TAG=$2
     echo "  Using provided tag             : $TAG"
 fi
-
-
 
 # default target docker repository
 if [ -z "$3" ]; then

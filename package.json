@@ -23,7 +23,6 @@
     "express-partials": "^0.3.0",
     "express-session": "^1.17.3",
     "flatted": "^3.2.7",
-    "fs": "0.0.1-security",
     "fs-extra": "^11.1.1",
     "js-yaml": "^3.10.0",
     "markdown-it": "^13.0.1",
@@ -36,6 +35,6 @@
     "url": "https://github.com/k8svisual/viewk8s.git"
   },
   "devDependencies": {
-    "eslint": "^8.437.0"
+    "eslint": "^8.47.0"
   }
 }
