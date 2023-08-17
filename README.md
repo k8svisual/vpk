@@ -13,6 +13,10 @@ The Help feature of the application also provides access to the video links alon
 
 <br>
 
+## Installation
+
+This software can be installed locally or run from a conatiner.  When running from a conatiner there is an additional application, VpKSnapShot that is
+required.  VpKSnapShot is needed to create a snapshot of a Kubernetes cluster that will be shown by VpK.
 
 ## Local installation
 	
@@ -38,9 +42,9 @@ Once the above has successfully completed the application can be started by usin
 
 <br>
 
-## Docker container
+## Container
 	
-VpK is available as a Docker container.  The container is available from the following DockerHub account: __k8svisual__  container: __vpk__
+VpK is available as a container image on dockerhub  https://hub.docker.com/repository/docker/k8svisual/viewk8s/general .  The container is available from the following DockerHub account: __k8svisual__  container: __vpk__
 
 Example docker pull command: 
 ```
@@ -71,7 +75,7 @@ docker run -v /data/snapshot:/vpk/cluster -p 4200:4200 k8svisual/vpk
 
 The cluster snapshot files to be used with the container are created using another progarm available from this same github account.  The repository is for this application is:
 
-git clone http://github.com/k8svisual/snapshot.git/ 
+git clone https://github.com/k8svisual/snapshot.git/ 
 
 Follow the instructions in the snapshot repository for how to build and install the snapshot application.
 
