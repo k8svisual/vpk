@@ -28,7 +28,7 @@ Download the source files and place in a directory.  The source files are availa
 
 git clone http://github.com/k8svisual/viewk8s.git/ 
 
-or retireve the files can be downloaded from GitHub in a zip file format.
+or retireve the files from GitHub in a zip file format.  If using the zip file be sure to extract the source code from the zip file.
 
 Change to the directory where the files were placed. Run the following command to install the required Node modules:
 
