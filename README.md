@@ -24,13 +24,13 @@ For local installation __node.js__ and __npm__ are required to build, from sourc
 
 You cannot install and run this application without first installing node.js and npm.  After the prerequisites, node.js and npm, are installed proceed to the next step. 
 
-Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following clone command  
+Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following command:
 
 git clone http://github.com/k8svisual/viewk8s.git/ 
 
 (OR) 
 
-retireve the files from GitHub in a zip file format.  If using the zip file be sure to extract the source code from the zip file.
+Retireve the files from GitHub in a zip file format.  If using the zip file be sure to extract the source code from the zip file.
 
 Change to the directory where the files were placed. Run the following command to install the required Node modules:
 
