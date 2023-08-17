@@ -20,13 +20,15 @@ required.  VpKSnapShot is needed to create a snapshot of a Kubernetes cluster th
 
 ## Local installation
 	
-__Node.js__ and __npm__ are required to install and execute this application.
+For local installation __node.js__ and __npm__ are required to build, from source code and execute this application.
 
-You cannot install and run this application without first installing node.js and npm.  After the prerequisites are installed proceed to the next step. 
+You cannot install and run this application without first installing node.js and npm.  After the prerequisites, node.js and npm, are installed proceed to the next step. 
 
-Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following clone command or retrieved 
+Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following clone command  
 
 git clone http://github.com/k8svisual/viewk8s.git/ 
+
+or retireve the files can be downloaded from GitHub in a zip file format.
 
 Change to the directory where the files were placed. Run the following command to install the required Node modules:
 
