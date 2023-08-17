@@ -10,12 +10,12 @@ RUN mkdir /vpk/userconfig
 WORKDIR /vpk
 COPY lib/ ./lib
 COPY public/ ./public
-#COPY userconfig/ ./userconfig
+COPY LICENSE .
+COPY package.json .
 COPY server.js .
 COPY vpkconfig.json .
-COPY package.json .
-COPY LICENSE .
 
+#Install kubectl inside image
 RUN apt-get install -y  curl \
     && npm install \
     && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \ 
@@ -24,6 +24,7 @@ RUN apt-get install -y  curl \
 CMD ["sh", "-c", "node server.js -c yes"]
 EXPOSE 4200/tcp
 
-#docker run -it k8debug/vpk sh
-#docker run -v /Users/bob/snaptest/:/vpk/cluster -v /Users/bob/userconfig/:/vpk/userconfig -p 4500:4200 k8debug/vpk
-#docker tag k8debug/vpk:5.2.0 k8debug/vpk:latest
+#EXAMPLE docker commands
+#docker run -it k8svisual/vpk sh
+#docker run -v /Users/bob/snaptest/:/vpk/cluster -v /Users/bob/userconfig/:/vpk/userconfig -p 4500:4200 k8svisual/vpk
+#docker tag k8svisual/vpk:5.2.0 k8svisual/vpk:latest
