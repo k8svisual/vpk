@@ -21,6 +21,26 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // populate drop down options for UI
 //----------------------------------------------------------
 
+function populateSchematicList() {
+    let options = {}
+    let keys = Object.keys(nsResourceInfo);
+    let data = {};
+    for (let i = 0; i < keys.length; i++) {
+        data[keys[i]] = keys[i]
+    }
+    $("#schematic-ns-filter").empty();
+    $("#schematic-ns-filter").select2({
+        data: options,
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md"
+    });
+
+    options = bldOptions(data, 'S', 'no');
+
+    $("#schematic-ns-filter").empty();
+    $("#schematic-ns-filter").html(options);
+
+}
 
 function populateSelectLists(data) {
     // reset indicator for 3d selection dropdown built process
@@ -84,20 +104,11 @@ function populateSelectLists(data) {
             containerCssClass: "vpkfont-md"
         });
 
-        // // filter bar3 (resource kinds)
-        // if (typeof data.labels !== 'undefined') {
-        //     options = bldOptions(data.labels, 'L', 'select2');
-        //     $("#label-filter").empty();
-        //     $("#label-filter").select2({
-        //         data: options,
-        //         dropdownCssClass: "vpkfont-md",
-        //         containerCssClass: "vpkfont-md"
-        //     });
-        // }
-
         populateXrefLists(data);
 
         populateExplains(data);
+
+        populateSchematicList();
     }
 }
 

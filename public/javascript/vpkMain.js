@@ -20,17 +20,22 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //----------------------------------------------------------
 // document ready
 //----------------------------------------------------------
+
+let svgWhere = "";
+let svgPassData = "";
+let childwin;
+const childname = "schematicWindow";
+
 $(document).ready(function () {
 
     // get version from server
     getVersion();
 
-
-    document.addEventListener("keypress", function onPress(event) {
-        if (event.key === "p" && event.ctrlKey) {
-            // Do something awesome
-            console.log('got it, ctrl Z')
-        }
+    // Listen for messages from the child window
+    window.addEventListener('message', function (event) {
+        // This indicates the child window is open, now send the
+        // svg data to the child.
+        sendChildSvg();
     });
 
     $('.carousel-item', '.multi-item-carousel').each(function () {
@@ -120,7 +125,7 @@ $(document).ready(function () {
             $('#schematicHdr').hide();
         }
         if (currentTab === "#graphic") {
-            px = 157;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'graphicview';
             $('#graphic').show();
@@ -130,7 +135,7 @@ $(document).ready(function () {
             $('#graphicHdr').hide();
         }
         if (currentTab === "#security") {
-            px = 123;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'security';
             $('#security').show();
@@ -140,7 +145,7 @@ $(document).ready(function () {
             $('#securityHdr').hide();
         }
         if (currentTab === "#storage") {
-            px = 123;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'storage';
             $('#storage').show();
@@ -150,7 +155,7 @@ $(document).ready(function () {
             $('#storageHdr').hide();
         }
         if (currentTab === "#cluster") {
-            px = 165;
+            px = 110;
             checkIfDataLoaded();
             documentationTabTopic = 'cluster';
             $('#cluster').show();
@@ -160,7 +165,7 @@ $(document).ready(function () {
             $('#clusterHdr').hide();
         }
         if (currentTab === "#xreference") {
-            px = 122;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'xreference';
             $('#xreference').show();
@@ -170,7 +175,7 @@ $(document).ready(function () {
             $('#xreferenceHdr').hide();
         }
         if (currentTab === "#ownerlinks") {
-            px = 130;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'ownerref';
             $('#ownerlinks').show();
@@ -180,7 +185,7 @@ $(document).ready(function () {
             $('#ownerlinksHdr').hide();
         }
         if (currentTab === "#comparesnap") {
-            px = 202;
+            px = 190;
             documentationTabTopic = 'comparesnap';
             $('#comparesnap').show();
             $('#comparesnapHdr').show();
@@ -234,12 +239,6 @@ $(document).ready(function () {
         $('#pickDataSource2').val(null)
     });
 
-
-    // $('#label-filter').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md"
-    // });
-
     $('#anno-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md"
@@ -257,11 +256,11 @@ $(document).ready(function () {
         placeholder: "select namespace(s)"
     });
 
-    // $('#security-ns-filter').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "select namespace"
-    // });
+    $('#schematic-ns-filter').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select namespace(s)"
+    });
 
     $('#security-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
@@ -281,7 +280,6 @@ $(document).ready(function () {
         console.log('Snap selected: ' + compareSnapSelected);
         $('#compareInstance').val(null)
     });
-
 
     $('#cluster-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
@@ -346,11 +344,6 @@ $(document).ready(function () {
         containerCssClass: "vpkfont-md",
         placeholder: "All"
     });
-
-    // $("#clusterType").change(function () {
-    //     var selected = $('#clusterType option:selected').val();
-    //     buildClusterUI(selected);
-    // });
 
     $('#cluster-bar1-select').focusout(function () {
         console.log('No FOCUS')
@@ -452,38 +445,15 @@ $(document).ready(function () {
 });
 
 
-// function checkForData() {
-//     console.log('baseDir:@' + baseDir + '@')
-//     if (baseDir !== null) {
-//         if (baseDir !== '-none-') {
-//             socket.emit('schematic');
-//             console.log('Asked for k8cData')
-//             clearInterval(checkInterval);
-//         }
-//     } else {
-//         console.log('Interval fired')
-//     }
-// }
+function showSchematic(ns, podId) {
+    getSchematic(ns, podId);
+}
 
-// let checkInterval = setInterval(checkForData, 1000);
-
-
-// // Cluster tab slideout filter panel
-// var hideClusterPanel = function () {
-//     clusterPanelIsClosed = true;
-//     clusterFilterPanel.style.webkitTransform = "translateX(300px)";
-//     clusterFilterPanel.style.transform = "translateX(300px)"
-// };
-
-// var check3DFilter = function () {
-//     if (clusterPanelIsClosed) {
-//         clusterPanelIsClosed = false;
-//         clusterFilterPanel.style.webkitTransform = "translateX(0px)";
-//         clusterFilterPanel.style.transform = "translateX(0px)"
-//     } else {
-//         hideClusterPanel()
-//     }
-// }
+function sendChildSvg() {
+    let msg = { 'svg': svgPassData, 'tips': svgInfo };
+    childwin.postMessage(msg, '*');
+    childwin.focus();
+}
 
 
 //----------------------------------------------------------
@@ -1144,16 +1114,7 @@ function reload() {
     $("#schematicDetail").html('');
     $("#ownerRefLinksDetail").empty();
     $("#ownerRefLinksDetail").html('');
-
     $("#cluster3DView").hide();
-
-    // if (typeof createDefaultEngine !== 'undefined') {
-    //     createDefaultEngine = null;
-    //     $("#canvas3D").html('<canvas id="renderCanvas"></canvas>');
-    // }
-    // if (typeof engine !== null) {
-    //     $("#canvas3D").html('<canvas id="renderCanvas"></canvas>');
-    // }
 
     //This will clear any previously loaded data
     k8cData = null;
@@ -1230,35 +1191,16 @@ function sendShutdownS2() {
 
 //----------------------------------------------------------
 function bldSchematic() {
-    hideMessage();
-    $("#schematicDetail").html(processingRequest)
-    getDataRequest = 'schematic';
-    if (typeof k8cData === 'undefined' || k8cData === null) {
-        socket.emit('schematic');
-    } else {
-        if (typeof k8cData['0000-clusterLevel'] === 'undefined') {
-            socket.emit('schematic');
-        } else {
-            console.log('k8cData exists')
-            schematic();
-        }
-    }
+    socket.emit('schematicBuild', options);
 }
 
-function getCluster3DInfo() {
+socket.on('schematicBuildResult', function (data) {
+    k8cData = data.pods;
+    schematicKeys = data.keys;
+    svgInfo = data.info;
+    nsResourceInfo = data.nsRI;
     hideMessage();
-    // $("#clusterDetail").hide();
-    // $("#clusterDetail").html('');
-    $('#cluster3DView').hide();
-    $("#resourceProps").html(processingRequest)
-    getDataRequest = 'cluster3D';
-    socket.emit('schematic');
-}
-
-//...
-socket.on('schematicResult', function (data) {
-    k8cData = data.data;
-    hideMessage();
+    populateSchematicList()
     $("#clusterDetail").html('')
     if (getDataRequest === 'schematic') {
         schematic();
@@ -1267,6 +1209,117 @@ socket.on('schematicResult', function (data) {
         buildCluster3D();
     }
 });
+
+
+//----------------------------------------------------------
+function getSchematic(ns, pod) {
+    if (ns !== null && typeof ns !== 'undefined') {
+        svgWhere = pod;
+    } else {
+        svgWhere = ""
+    }
+
+    let namespaces = "";
+    if (svgWhere === "") {
+        let tmp;
+        let options = $('#schematic-ns-filter').select2('data');
+        for (var i = 0; i < options.length; i++) {
+            tmp = options[i].text;
+            tmp = tmp.trim();
+            if (tmp.length === 0) {
+                namespaces = namespaces + ':all-namespaces';
+            } else {
+                namespaces = namespaces + ':' + tmp;
+            }
+        };
+        if (namespaces === '') {
+            namespaces = ':all-namespaces:';
+        }
+    } else {
+        namespaces = ":" + ns;
+    }
+    socket.emit('schematicGetSvg', namespaces);
+}
+//...
+socket.on('schematicGetSvgResult', function (data) {
+    if (svgWhere === "") {
+        let html = formatSVG(data);
+        $("#schematicDetail").html(html)
+    } else {
+        svgPassData = formatSingleSVG(data.data, svgWhere);
+        childwin = window.open('../views/child.html?cnt=0', childname, 'height=700px, width=1200px');
+    }
+});
+
+function formatSVG(data) {
+    let = newData = data.data;
+    let nsKeys = Object.keys(newData);
+    let podKeys;
+    let html = "";
+    let podsFound;
+    let collNum = 0;
+
+    for (let i = 0; i < nsKeys.length; i++) {
+        podsFound = false;
+        //html = html + '<div><h6>' + nsKeys[i] + '</h6></div>';
+        podKeys = Object.keys(newData[nsKeys[i]]);
+        for (let p = 0; p < podKeys.length; p++) {
+            if (podKeys[p] === 'NoPod') {
+                html = html + newData[nsKeys[i]][podKeys[p]];
+                continue;
+            } else {
+                podsFound = true;
+                collNum++
+                if (p === 0) {
+                    html = html +
+                        '<div class="breakBar"><button type="button" '
+                        + ' class="btn btn-primary btn-sm vpkButtons pl-4 pr-4" data-toggle="collapse" data-target="#collid-'
+                        + collNum + '">' + nsKeys[i] + '</button>'
+                        + '<hr></div>'
+                        + '<div id="collid-' + collNum + '" class="collapse">'
+                        + '<div class="header-right">'
+                        + '<a href="javascript:printDiv(\'collid-' + collNum + '\')">'
+                        + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
+                        + '</a>'
+                        + '</div>'
+                        + newData[nsKeys[i]][podKeys[p]];
+                } else {
+                    html = html + newData[nsKeys[i]][podKeys[p]];
+                }
+            }
+        }
+        if (podsFound === true) {
+            html = html + '</div>';
+        }
+    }
+    return html;
+}
+
+function formatSingleSVG(data, pod) {
+    let nsKeys = Object.keys(data);
+    let podKeys;
+    for (let i = 0; i < nsKeys.length; i++) {
+        podKeys = Object.keys(data[nsKeys[i]]);
+        for (let p = 0; p < podKeys.length; p++) {
+            if (podKeys[p] !== pod) {
+                continue;
+            } else {
+                return '<div>' + data[nsKeys[i]][podKeys[p]] + '</div>';
+            }
+        }
+    }
+    return '';
+}
+
+
+function getCluster3DInfo() {
+    hideMessage();
+    $('#cluster3DView').hide();
+    $("#resourceProps").html(processingRequest)
+    getDataRequest = 'cluster3D';
+    socket.emit('schematicBuild');
+}
+
 
 //==========================================================
 
@@ -1658,73 +1711,12 @@ function openRunCommand() {
 }
 //----------------------------------------------------------
 // build UI for the get Cluster
-function buildClusterUI(selected) {
+function buildClusterUI(s) {
     // $("#clusterInfo").empty();
     // $("#clusterInfo").html('');
-    var fields = ["snapshot_prefix", "get_cmd"];
+    // var fields = ["snapshot_prefix", "get_cmd"];
 
-    // var bttn = '<div id="clusterButton">'
-    //     + '<div style="padding-top: 20px;">'
-    //     + '<button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="dynamic()" style="margin: 5px;">'
-    //     + 'Connect'
-    //     + '</button>'
-    //     + '</div></div>';
-    // // values to be used in building the UI
-    // var tmp00 = '<dir class="form-row">';
-    // var tmp01 = '<label class="col-sm-4 col-form-label vpkcolor" for="';       //add name part 1
-    // var tmp02 = '" style="padding-top: 15px;">';                               //add name part 2
-    // var tmp03 = '</label>';
-    // var tmp04 = '<input id="'                                                  //add ???
-    // var tmp05t = '" type="text" class="form-control col-sm-8" ';               //plain text input
-    // var tmp05p = '" type="password" class="form-control col-sm-8" ';           //password input
-    // var tmp06a = 'value="';                                                    //if default value is provided add the value
-    // var tmp06b = '"';
-    // var tmp07 = ' style="margin-bottom: 5px;"></div>';
-    // var fields = [snapshot_prefix, get_cmd];
-    // var prov = getProvider(selected);
-    // var parms = prov.parms;
-    // var html = tmp00;
-    // for (var f = 0; f < parms.length; f++) {
-    //     if (typeof parms[f].value !== 'undefined') {
-    //         var flds = parms[f].value.split('{{');
-    //         var defs = [];
-    //         var d = 0;
-    //         if (typeof parms[f].default !== 'undefined') {
-    //             defs = parms[f].default.split(',')
-    //         }
-    //         if (flds.length > 0) {
-    //             for (var g = 0; g < flds.length; g++) {
-    //                 var fn = flds[g];
-    //                 var lp = fn.indexOf('}');
-    //                 if (lp !== -1) {
-    //                     fn = fn.substr(0, lp);
-    //                 }
-    //                 if (fn.length > 0) {
-    //                     fields.push(fn);
-    //                     var inf = tmp01 + fn + tmp02 + fn + tmp03 + tmp04 + fn;
-    //                     var cfn = fn.toUpperCase();
-    //                     if (cfn === 'PASSWORD') {
-    //                         inf = inf + tmp05p;
-    //                     } else {
-    //                         inf = inf + tmp05t;
-    //                     }
-    //                     if (typeof defs[d] !== 'undefined') {
-    //                         inf = inf + tmp06a + defs[d] + tmp06b + tmp07
-    //                         d++;
-    //                     } else {
-    //                         inf = inf + tmp07;
-    //                     }
-    //                     html = html + inf;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // html = html + bttn;
-
-    // // $("#clusterInfo").html(html);
-
-    inputFlds = fields;
+    // inputFlds = fields;
 
     $("#clusterInfo").show();
     $("#clusterStatus").empty();
@@ -1742,6 +1734,21 @@ function getProvider(selected) {
 function searchValues() {
     $("#searchModal").modal('show');
 }
+
+
+// Function to open the slide-in
+function openSlideIn() {
+    slideIn.classList.add("active");
+    //closeButton.style.display = "block"; // Show the close button
+}
+
+// Function to close the slide-in
+function closeSlideIn() {
+    slideIn.classList.remove("active");
+    //closeButton.style.display = "none"; // Hide the close button
+}
+
+
 
 //----------------------------------------------------------
 console.log('loaded vpkMain.js');

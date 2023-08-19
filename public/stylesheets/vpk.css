@@ -693,3 +693,28 @@ tr.border_bottom td {
 .carousel-bg {
     background-color: #444444;
 }
+
+
+#slideIn {
+    position: fixed;
+    top: 120px;
+    right: -500px;
+    /* Initially, it's off-screen to the right */
+    width: 500px;
+    height: 290px;
+    background-color: #f1f1f1;
+    overflow-x: hidden;
+    transition: 0.5s;
+    /* Animation duration */
+}
+
+
+/* Content styling */
+#slideIn.content {
+    padding: 20px;
+}
+
+/* Show it when active */
+#slideIn.active {
+    right: 0;
+}

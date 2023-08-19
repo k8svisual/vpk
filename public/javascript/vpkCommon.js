@@ -25,6 +25,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Schematic related
 let collapseNamespaces = {};
+let schematicKeys = {};
 
 // 3D view related
 let clusterPanelIsClosed = true;
@@ -346,15 +347,7 @@ function printDiv(id) {
 		+ '<link rel="stylesheet" href="stylesheets/bootstrap-toggle.min.css">'
 		+ '<link rel="stylesheet" href="stylesheets/all.min.css">'
 		+ '<link rel="stylesheet" href="stylesheets/bootstrap-table.min.css" >'
-		+ '<link rel="stylesheet" href="stylesheets/select2.css"> '
 		+ '<link rel="stylesheet" href="stylesheets/vpk.css">'
-		+ '<script src="javascript/jquery-3.4.1.min.js"></script>'
-		+ '<script src="javascript/popper.min.js"></script>'
-		+ '<script src="javascript/bootstrap.min.js"></script>'
-		+ '<script src="javascript/bootstrap-toggle.min.js"></script>'
-		+ '<script src="javascript/bootstrap-table.min.js"></script>'
-		+ '<script src="javascript/select2.full.min.js"></script>'
-		+ '<script src="javascript/f62fcc73b5.js" crossorigin="anonymous"></script>';
 
 	// how to from:
 	// https://www.aspsnippets.com/Articles/Print-DIV-contents-with-CSS-using-JavaScript-and-jQuery.aspx
@@ -397,7 +390,6 @@ function printDiv(id) {
 		window.frames["frame1"].print();
 		frame1.remove();
 	}, 500);
-
 }
 
 

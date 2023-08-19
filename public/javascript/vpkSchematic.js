@@ -232,7 +232,7 @@ function buildCSVG() {
 			rdata = rdata + breakData + nsWide;
 		}
 		let acb = process(fnum);
-		rdata = rdata + acb;
+		rdata = `${rdata}${acb}`;
 	}
 	rdata = rdata + '</div>'
 	return rdata

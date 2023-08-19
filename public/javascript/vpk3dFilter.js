@@ -513,11 +513,6 @@ function filter3DView() {
             controlPArray[i].obj.setEnabled(false);
         }
     }
-
-
-    //console.log('At end===========================')
-    //meshCnt();
-
 }
 
 

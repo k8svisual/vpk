@@ -35,13 +35,10 @@ createDefaultEngine = function () {
 
 function print3Dscene() {
     if (engine !== null) {
-        //BABYLON.Tools.CreateScreenshot(engine, camera, 800)
-        //BABYLON.Tools.CreateScreenshot(engine, camera, { width: 1024, height: 300 },
         BABYLON.Tools.CreateScreenshot(engine, camera, { width: 1250, height: 700 },
             function (data) {
                 $("#clusterScreenShot").html("<img src='" + data + "'/>");
                 printDiv('clusterPicture')
-
             });
     } else {
         console.log('No 3D image to print');
@@ -107,9 +104,9 @@ function createScene() {
     let NODE_HEIGHT = 1.0;
     let POD_HEIGHT = 0.30;
     let POD_SIZE = 0.20;
-    let RES_NAME = 'Name:';
+    let RES_NAME = 'Name :';
     let RES_STATUS = 'Status:';
-    let RES_NS = 'NS:';
+    let RES_NS = 'Namespace :';
     let SLICE_HEIGHT = 0.01;
     let SLICE_SIZE = 0.50;
     let SLICE_SIZE_BIG = 1.60;
@@ -186,14 +183,7 @@ function createScene() {
     }
 
     camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, 3 * Math.PI / 8, 30, BABYLON.Vector3.Zero());
-    // camera.setPosition(new BABYLON.Vector3(0, 0, 100));
     camera.attachControl(canvas, true);
-
-
-    // camera = new BABYLON.ArcRotateCamera("camera1", 0, 0, 0, new BABYLON.Vector3(0, 0, -0), scene);
-    // camera.setPosition(new BABYLON.Vector3(0, -40, -25));
-    // camera.attachControl(canvas, true);
-
 
     const light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 50, 0));
     const light2 = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(10, -50, 0));
@@ -202,57 +192,43 @@ function createScene() {
 
     // build materials with colors for nodes and pods
     const mstNodeMat = new BABYLON.StandardMaterial("nMstMat", scene);
-    //mstNodeMat.diffuseColor = new BABYLON.Color3(0.5, 0.25, 0.25);
     mstNodeMat.diffuseColor = new BABYLON.Color3.FromHexString("#804040");
 
     const wrkNodeMat = new BABYLON.StandardMaterial("nWrkMat", scene);
-    //wrkNodeMat.diffuseColor = new BABYLON.Color3(0.90, 0.80, 0.90);
     wrkNodeMat.diffuseColor = new BABYLON.Color3.FromHexString("#c4bec4");
 
     const podRed = new BABYLON.StandardMaterial("", scene);
-    //podRed.diffuseColor = new BABYLON.Color3(0.75, 0.0, 0.0);
     podRed.diffuseColor = new BABYLON.Color3.FromHexString("#bf0000");
 
     const podGreen = new BABYLON.StandardMaterial("", scene);
-    //podGreen.diffuseColor = new BABYLON.Color3(0.0, 1.0, 0.0);
     podGreen.diffuseColor = new BABYLON.Color3.FromHexString("#00ff00");
 
     const podYellow = new BABYLON.StandardMaterial("", scene);
-    //podYellow.diffuseColor = new BABYLON.Color3(1.0, 1.0, 0.0);
     podYellow.diffuseColor = new BABYLON.Color3.FromHexString("#ffff00");
 
     const podPurple = new BABYLON.StandardMaterial("", scene);
-    //podPurple.diffuseColor = new BABYLON.Color3(0.7, 0.0, 0.7);
     podPurple.diffuseColor = new BABYLON.Color3.FromHexString("#00a6ff");
 
     const podGrey = new BABYLON.StandardMaterial("", scene);
-    //podGrey.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
     podGrey.diffuseColor = new BABYLON.Color3.FromHexString("#808080")
 
     const endpointColor = new BABYLON.StandardMaterial("", scene);
-    //endpointColor.diffuseColor = new BABYLON.Color3(0.0, 0.0, 0.75);
     endpointColor.diffuseColor = new BABYLON.Color3.FromHexString("#0000ef")
 
     const serviceColor = new BABYLON.StandardMaterial("", scene);
-    //serviceColor.diffuseColor = new BABYLON.Color3(0.5, 0.75, 0.75);
     serviceColor.diffuseColor = new BABYLON.Color3.FromHexString("#80bfbf")
 
     const pvColor = new BABYLON.StandardMaterial("", scene);
-    //pvColor.diffuseColor = new BABYLON.Color3(0.73, 0.53, 0.35);
     pvColor.diffuseColor = new BABYLON.Color3.FromHexString("#ba8759")
 
     const pvcColor = new BABYLON.StandardMaterial("", scene);
-    //pvcColor.diffuseColor = new BABYLON.Color3(0.75, 0.75, 0.10);
     pvcColor.diffuseColor = new BABYLON.Color3.FromHexString("#bfbf1a")
 
     const storageClassColor = new BABYLON.StandardMaterial("", scene);
-    //SCColor.diffuseColor = new BABYLON.Color3(0.98, 0.60, 0.01);
     storageClassColor.diffuseColor = new BABYLON.Color3.FromHexString("#fa9903");
 
     const csiNodeColor = new BABYLON.StandardMaterial("", scene);
-    //SCColor.diffuseColor = new BABYLON.Color3(0.98, 0.60, 0.01);
     csiNodeColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff9903");
-
 
     const memoryLimitColor = new BABYLON.StandardMaterial("", scene);
     memoryLimitColor.diffuseColor = new BABYLON.Color3.FromHexString("#f4a8e6");
@@ -465,20 +441,28 @@ function createScene() {
             podName = '<div class="vpkfont vpkcolor ml-4">'
                 + '<div id="sliceKey">' + podFnum + '</div>'
 
-                + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
+                + '<a href="javascript:getDefFnum(\'' + podFnum + '\')">'
+                + '<img src="images/k8/pod.svg" style="width:60px;height:60px;">'
+                + '</a>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                + '<button type="button" '
+                + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                + '</button>'
+                + '</span>'
+                + '<br><hr>'
+                + '<span class="pl-3 pr-3"><b>Pod -</b>'
+                + '<br>'
+                + '<span class="pl-4"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].name + '</span>'
+                + '<br>'
+                + '<span class="pl-4"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + ns + '</span>'
+                + '<br>'
+                + '<span class="pl-4"><b>' + RES_STATUS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].phase + '</span>'
+                + '<br>'
+                + '<button type="button" class="ml-2 mt-2 btn btn-primary btn-sm vpkButton" '
                 + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\')"> &nbsp;View pod schematic&nbsp;</button>&nbsp;'
 
-                + '<a href="javascript:getDefFnum(\'' + podFnum + '\')">'
-                + '<img src="images/k8/pod.svg" style="width:40px;height:40px;"></a>'
-                + '<span class="pl-3"><b>' + RES_STATUS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].phase + '</span>'
-                + '<span class="pl-3"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].name + '</span>'
-                + '<span class="pl-3"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + ns + '</span>'
-                + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span>'
-
             // build Pod and save the center cords for use with network and storage    
-            //podCords = buildPodObj(angleArray[cPtr], nLen, 'N_' + node + '_P_' + cCnt, podStatus, podName, ns, podFnum, podStatus)
-
-            //console.log('Node: ' + node + '  cPtr: ' + cPtr + ' AngleArray: ' + angleArray[cPtr])
             podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
 
             // Memory Limit and Request resource cylinders
@@ -508,6 +492,7 @@ function createScene() {
                 size = size / 2;
                 buildMemCPUResource(podCords.x, podCords.y + .25, podCords.z - 0.03, size, 0.08, 3, cpuRequestColor, ns, 'CPURequest', podFnum, podName)
             }
+
             ///////////////////////////////////////////////////////////////////
             // Network related - Service and Endpoint
             ///////////////////////////////////////////////////////////////////
@@ -515,14 +500,21 @@ function createScene() {
                 svcName = '<div class="vpkfont vpkcolor ml-4">'
                     + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].services[0].fnum + '</div>'
 
-                    + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                    + ' onclick="getDefFnum(\'' + cluster.nodes[node].pods[cCnt].services[0].fnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].services[0].fnum + '\')">'
-                    + '<img src="images/k8/svc.svg" style="width:40px;height:40px;"></a>'
-                    + '<span class="pl-3"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
-                    + '<span class="pl-3"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
-                    + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>';
+                    + '<img src="images/k8/svc.svg" style="width:60px;height:60px;"></a>'
+                    + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                    + '<button type="button" '
+                    + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                    + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                    + '</button>'
+                    + '</span>'
+                    + '<br><hr>'
+                    + '<span class="pl-3 pr-3"><b>Service -</b>'
+                    + '<br>'
+                    + '<span class="pl-4"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
+                    + '<br>'
+                    + '<span class="pl-4"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
+                    + '</span></div>';
 
                 // Create a fully qualified name using service name and namespace    
                 serviceName = cluster.nodes[node].pods[cCnt].services[0].name + '::' + cluster.nodes[node].pods[cCnt].services[0].namespace;
@@ -554,15 +546,21 @@ function createScene() {
                 if (endPoint !== "") {
                     epName = '<div class="vpkfont vpkcolor ml-4">'
                         + '<div id="sliceKey">' + epFnum + '</div>'
-
-                        + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                        + ' onclick="getDefFnum(\'' + epFnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                         + '<a href="javascript:getDefFnum(\'' + epFnum + '\')">'
-                        + '<img src="images/k8/' + epType + '.svg" style="width:40px;height:40px;"></a>'
-                        + '<span class="pl-3"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
-                        + '<span class="pl-3"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
-                        + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>';
+                        + '<img src="images/k8/' + epType + '.svg" style="width:60px;height:60px;"></a>'
+                        + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                        + '<button type="button" '
+                        + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                        + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                        + '</button>'
+                        + '</span>'
+                        + '<br><hr>'
+                        + '<span class="pl-3 pr-3"><b>Endpoints (EP)/ EndpointSlice (EPS) -</b>'
+                        + '<br>'
+                        + '<span class="pl-4"><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
+                        + '<br>'
+                        + '<span class="pl-4"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
+                        + '</span></div>';
                 }
 
                 let svcFnum = cluster.nodes[node].pods[cCnt].services[0].fnum;
@@ -576,26 +574,39 @@ function createScene() {
                 pvcName = '<div class="vpkfont vpkcolor ml-4">'
                     + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].pvc[0].fnum + '</div>'
 
-                    + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                    + ' onclick="getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].fnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].fnum + '\')">'
-                    + '<img src="images/k8/pvc.svg" style="width:40px;height:40px;"></a>'
-                    + '<span class="pl-3"><b>PVC Name: &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].name + '</span>'
-                    + '<span class="pl-3"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].ns + '</span>'
-                    + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>';
+                    + '<img src="images/k8/pvc.svg" style="width:60px;height:60px;"></a>'
+                    + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                    + '<button type="button" '
+                    + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                    + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                    + '</button>'
+                    + '</span>'
+                    + '<br><hr>'
+                    + '<span class="pl-3 pr-3"><b>PersistentVolumeClaim (PVC) -</b>'
+                    + '<br>'
+                    + '<span class="pl-4"><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].name + '</span>'
+                    + '<br>'
+                    + '<span class="pl-4"><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].ns + '</span>'
+                    + '</span></div>';
 
                 if (typeof cluster.nodes[node].pods[cCnt].pvc[0].pvName !== 'undefined') {
                     pvName = '<div class="vpkfont vpkcolor ml-4">'
                         + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + '</div>'
-
-                        + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                        + ' onclick="getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                         + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + '\')">'
-                        + '<img src="images/k8/pv.svg" style="width:40px;height:40px;"></a>'
-                        + '<span class="pl-3"><b>PV Name: &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].pvName + '</span>'
-                        + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>';
+                        + '<img src="images/k8/pv.svg" style="width:60px;height:60px;"></a>'
+                        + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                        + '<button type="button" '
+                        + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                        + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                        + '</button>'
+                        + '</span>'
+                        + '<br><hr>'
+                        + '<span class="pl-3 pr-3"><b>PersistentVolume (PV) -</b>'
+                        + '<br>'
+                        + '<span class="pl-4"><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].pvName + '</span>'
+                        + '</span></div>';
+
                 } else {
                     pvName = '';
                 }
@@ -609,7 +620,6 @@ function createScene() {
                     found = buildStorageObj(podCords, pvcName, cluster.nodes[node].pods[cCnt].ns, pvName, podFnum, pvcFnum, pvFnum, foundKey);
 
                     // save x,y,z for use with storage class if the PV was built
-                    //console.log('Found: ' + found)
                     if (found) {
                         //console.log('ns: ' + cluster.nodes[node].pods[cCnt].ns)
                         podCords.ns = cluster.nodes[node].pods[cCnt].ns;
@@ -626,7 +636,6 @@ function createScene() {
                             //console.log('Created PV in foundStorageClass')
                             foundStorageClasses[key].pv = [];
                         }
-
                         foundStorageClasses[key].pv.push(podCords);
                     }
                 }
@@ -646,7 +655,6 @@ function createScene() {
                     cPtr = cPtr + 10;
                 }
             }
-
         }
         // Update maxRings so outter band/ring is properly placed
         if (maxRings < lc) {
@@ -829,9 +837,12 @@ function createScene() {
     //==============================================
     // build a sphere for the endpoint and service
     function buildServiceObj(pCords, sName, ns, nCords, epName, pFnum, svcFnum, epFnum) {
+
         if (nCords === 'build') {
             // define the Endpoint
             buildSphere(pCords.x, pCords.y + 5, pCords.z, .175, 32, endpointColor, ns, 'Endpoint', pFnum, epName)
+            //            buildSphere(x       ,            y,        z, diameter, segs, material     , ns, type, fnum, inner)
+
             buildSlice(pCords.x, pCords.y + 5, pCords.z, epFnum, 'n')
 
             // Add connection line between the Pod and the Endpoint
@@ -941,14 +952,19 @@ function createScene() {
             scFnum = scData.fnum;
             scTxt = '<div class="vpkfont vpkcolor ml-4">'
                 + '<div id="sliceKey">' + scFnum + '</div>'
-
-                + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                + ' onclick="getDefFnum(\'' + scFnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                 + '<a href="javascript:getDefFnum(\'' + scFnum + '\')">'
-                + '<img src="images/k8/sc.svg" style="width:40px;height:40px;"></a>'
-                + '<span class="pl-3 pr-3"><b>Storage Class : &nbsp;&nbsp;</b>' + scData.name + '</span>'
-                + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>'
+                + '<img src="images/k8/sc.svg" style="width:60px;height:60px;"></a>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                + '<button type="button" '
+                + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                + '</button>'
+                + '</span>'
+                + '<br><hr>'
+                + '<span class="pl-3 pr-3"><b>StorageClass (SC) -</b>'
+                + '<br>'
+                + '<span class="pl-4 pr-3"><b>Name : &nbsp;&nbsp;</b>' + scData.name + '</span>'
+                + '</span></div>';
 
             //createSC(scTxt, scFnum, scData)
             let adjustment = 0;
@@ -1066,14 +1082,19 @@ function createScene() {
 
                                 csiInner = '<div class="vpkfont vpkcolor ml-4">'
                                     + '<div id="sliceKey">' + cluster.nodes[nodePtr].csiNodes[0].fnum + '</div>'
-
-                                    + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                                    + ' onclick="getDefFnum(\'' + cluster.nodes[nodePtr].csiNodes[0].fnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[nodePtr].csiNodes[0].fnum + '\')">'
-                                    + '<img src="images/k8/csinode.svg" style="width:40px;height:40px;"></a>'
-                                    + '<span class="pl-3"><b>CSINode: &nbsp;&nbsp;</b>' + cluster.nodes[nodePtr].csiNodes[0].drivers[c].name + '</span>'
-                                    + '&nbsp;&nbsp&nbsp;&nbsp&nbsp;&nbsp<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>';
+                                    + '<img src="images/k8/csinode.svg" style="width:60px;height:60px;"></a>'
+                                    + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                                    + '<button type="button" '
+                                    + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                                    + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                                    + '</button>'
+                                    + '</span>'
+                                    + '<br><hr>'
+                                    + '<span class="pl-3 pr-3"><b>CSINode (Container Storage Interface Node) -</b>'
+                                    + '<br>'
+                                    + '<span class="pl-4"><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[nodePtr].csiNodes[0].drivers[c].name + '</span>'
+                                    + '</span></div>';
 
                                 // define the csiNode
                                 buildSphere(csiX, pY - 2, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
@@ -1098,7 +1119,6 @@ function createScene() {
                                         }
                                     }
                                 }
-
                                 // increase csi X location for next entry
                                 csiX = csiX + .25;
                             }
@@ -1106,10 +1126,6 @@ function createScene() {
                     }
                 }
             }
-
-
-
-
 
             // Node CPU resource cylinder
             if (typeof nodeSpace[nName] !== 'undefined') {
@@ -1148,18 +1164,27 @@ function createScene() {
 
             let nTxt = '<div class="vpkfont vpkcolor ml-4">'
                 + '<div id="sliceKey">' + cluster.nodes[nodePtr].fnum + '</div>'
-
-                + '<button type="button" class="btn btn-outline-primary btn-sm vpkButton" '
-                + ' onclick="getDefFnum(\'' + cluster.nodes[nodePtr].fnum + '\')"> &nbsp;View resource&nbsp;</button>&nbsp;'
-
                 + '<a href="javascript:getDefFnum(\'' + cluster.nodes[nodePtr].fnum + '\')">'
-                + '<img src="images/k8/node.svg" style="width:40px;height:40px;"></a>'
-                + '<span class="pl-3 pr-3"><b>Node ' + NODE_TYPE + '&nbsp;&nbsp;</b>' + nType + '</span>'
-                + '<span class="pl-3"><b>' + NODE_NAME + '&nbsp;&nbsp;</b>' + nName + '</span>'
-                + '&nbsp;<span class="pl-3 vpkfont"><b>CPU:</b>&nbsp;' + cpu + '</span>'
-                + '&nbsp;<span class="pl-3 vpkfont"><b>Memory:</b>&nbsp;' + memory + '</span>'
-                + '&nbsp;<span class="pl-3 vpkfont"><b>Storage:</b>&nbsp;' + storage + '</span>'
-                + '&nbsp;&nbsp;&nbsp;<span class="pl-3 vpkfont-sm">(Press icon to view resource info)</span></div>'
+                + '<img src="images/k8/node.svg" style="width:60px;height:60px;"></a>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press icon to view resource source)'
+                + '<button type="button" '
+                + ' class="btn btn-outline-primary vpkButtons vpkwhite header-right" '
+                + ' onclick="closeSlideIn()">&nbsp;Close&nbsp'
+                + '</button>'
+                + '</span>'
+                + '<br><hr>'
+                + '<span class="pl-3 pr-3"><b>Node -</b>'
+                + '<br>'
+                + '<span class="pl-4"><b>' + NODE_NAME + '&nbsp;&nbsp;</b>' + nName + '</span>'
+                + '<br>'
+                + '<span class="pl-4 pr-3"><b>' + NODE_TYPE + '&nbsp;&nbsp;</b>' + nType + '</span>'
+                + '<br>'
+                + '<span class="pl-4 vpkfont"><b>CPU:</b>&nbsp;' + cpu + '</span>'
+                + '<br>'
+                + '<span class="pl-4 vpkfont"><b>Memory:</b>&nbsp;' + memory + '</span>'
+                + '<br>'
+                + '<span class="pl-4 vpkfont"><b>Storage:</b>&nbsp;' + storage + '</span>'
+                + '</span></div>';
 
             // register click event for each node;
             can.actionManager = new BABYLON.ActionManager(scene);
@@ -1175,7 +1200,6 @@ function createScene() {
             ));
 
             addMesh(can, 'ClusterLevel', 'Node', 'na', 'na')
-
             buildSlice(pX, pY, pZ, cluster.nodes[nodePtr].fnum, 'b')
 
             if (memoryBase > 0) {
@@ -1196,7 +1220,6 @@ function createScene() {
                 size = size * -1;
                 buildMemCPUResource(pX, pY - .45, pZ, size, 0.25, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', fnum, nTxt)
             }
-
 
             buildWall = true;
             nodePtr++;
@@ -1251,8 +1274,6 @@ function createScene() {
             buildResources(start, stop, currentNode)
         }
 
-
-
         // define the arc start and stop points for the control plane
         if (typeof cluster.nodes[currentNode] !== 'undefined') {
             if (typeof cluster.nodes[currentNode].type !== 'undefined') {
@@ -1287,7 +1308,6 @@ function createScene() {
     buildSCs();
 
     // return the newly built scene to the calling function
-    //console.log(stringify(scene))
     return scene;
 }
 
@@ -1306,29 +1326,12 @@ function build3DView() {
         }
 
         window.engine = await asyncEngineCreation();
-
         if (!engine) {
             throw 'engine should not be null.';
         }
 
         window.scene = createScene();
         filter3DView();
-
-        // Populate the schematic tab 
-        var openSch = async function () {
-            try {
-                bldSchematic();
-                console.log("3D view opens schematics for viewing");
-                return
-            } catch (e) {
-                alert("Failed to open schematics for viewing")
-                console.log("Failed to open schematics for viewing");
-                return;
-            }
-        }
-
-        let done = await openSch();
-        openAll('collid-');
     };
 
     initFunction().then(() => {

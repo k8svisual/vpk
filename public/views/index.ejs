@@ -174,22 +174,11 @@
 
 
                 <div id="tableviewActions" class="float-left mt-2 mb-1 ml-1">
-
-                    <!-- <button type="button" class="btn btn-sm btn-outline-primary vpkButtons ml-3 ml-1 mt-1 mb-1 vpkwhite"
-                        onclick="searchObj()">
-                        View results
-                    </button> -->
                     <button type="button"
                         class="btn btn-sm btn-primary vpkButtons ml-3 mr-2 mt-0 mb-1 pl-1 pr-1 vpkwhite"
                         onclick="searchObj()">
                         Apply filters
                     </button>
-
-                    <!-- <button type="button"
-                        class="btn btn-sm btn-outline-primary vpkButtons  ml-1 mr-2 mt-1 mb-1 vpkwhite"
-                        id="filterButton" onclick="toggleFilterPanel()">
-                        Open filter panel
-                    </button> -->
                 </div>
             </div>
 
@@ -233,12 +222,25 @@
             </div>
 
             <div id="schematicHdr" class="vpkhidden">
-                <div class="mt-1 ml-2 mr-2 border rounded">
-                    <div class="col-md-2 mt-1 mb-1 ml-3">
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                            id="viewSchematic" onclick="bldSchematic()">
-                            &nbsp;Build Schematic diagrams&nbsp;
-                        </button>
+
+                <div id="filter-chart" class="vpkcolor mt-1 mr-2 ml-2 border rounded">
+                    <div class="row filterBack pl-1 ml-2 mt-1">
+                        <div class="vpkfont-md mr-1 pt-1">
+                            Select namespaces
+                        </div>
+                        <div id="schematic-ns-select" class="ml-1 mr-1 vpkfont-md">
+                            <select id="schematic-ns-filter" multiple="multiple" style="width: 300px">
+                                <option>all-namespaces</option>
+                                <option>default</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                id="getSchematic" onclick="getSchematic()">
+                                &nbsp;View Schematic(s)&nbsp;
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -249,31 +251,6 @@
                         Select information to view
                     </div>
                     <div class="mt-1">
-                        <!-- <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec01"
-                            onclick="bldSecurity()">
-                            &nbsp;RBAC Definitions&nbsp;
-                        </button>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec02"
-                            onclick="bldSecurityUsage()">
-                            &nbsp;RBAC Usage&nbsp;
-                        </button>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec03"
-                            onclick="getSecurityChart('s')">
-                            &nbsp;Subject binding to Role&nbsp;
-                        </button>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec04"
-                            onclick="getSecurityChart('r')">
-                            &nbsp;Resource binding to Role&nbsp;
-                        </button>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec05"
-                            onclick="getSecurityRules()">
-                            &nbsp;Security Rules&nbsp;
-                        </button> -->
-
                         <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
                             onclick="getSecurityViewData()">
                             &nbsp;View selected namespace&nbsp;
@@ -310,8 +287,13 @@
                         <div>
                             <span>
                                 <button type="button" id="c3DView"
-                                    class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                    onclick="getCluster3DInfo()">&nbsp;Refresh 3D View&nbsp;</button>
+                                    class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
+                                    onclick="getCluster3DInfo()">Refresh 3D View
+                                </button>
+                                <button type="button" id="c3DView"
+                                    class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
+                                    onclick="openSlideIn()">Open properties view
+                                </button>
 
                                 <span style="float: right;">
                                     <a href="javascript:print3Dscene()" class="pl-4 pt-2">
@@ -322,10 +304,6 @@
                         </div>
                     </div>
                 </div>
-                <div id="resourceProps" class="mt-0 mb-0 vpkfont vpkcolor">
-                    &nbsp;
-                </div>
-
             </div>
 
             <div id="xreferenceHdr" class="vpkhidden">
@@ -470,7 +448,6 @@
     </div>
 
 
-
     <div id="viewarea">
         <div id="graph" style="text-align: center;"></div>
         <!-- <div id="legend" style="text-align: center;"></div> -->
@@ -524,14 +501,6 @@
                             <img src="images/wow/pic-comparesnapshots.png" width="600" height="419">
                         </div>
                     </div>
-
-                    <!-- Left and right controls
-                    <a class="carousel-control-prev" href="#myCarousel" data-slide="prev">
-                        <span class="carousel-control-prev-icon"></span>
-                    </a>
-                    <a class="carousel-control-next" href="#myCarousel" data-slide="next">
-                        <span class="carousel-control-next-icon"></span>
-                    </a> -->
                 </div>
 
                 <div class="vpkfont-md vpkcolor pt-2 text-center">
@@ -582,36 +551,6 @@
             </div>
 
             <div id="security" class="tab-pane">
-                <!-- <div id="securityDetail" style="display: none;" class="vpkfont">
-                </div>
-                <div class="mt-2 vpkfont vpkcolor" id="securityChartInfo" style="display: none;">
-                </div>
-
-                <div id="secGraphic" class="ml-3 mr-3" style="display: none;">
-                    <svg id="securityCharts"></svg>
-                </div>
-
-                <div id="secResults" class="ml-2 mr-2 mt-1">
-                    <table id="secTable" class="table table-bordered table-sm" data-buttons-class="primary"
-                        data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
-                        data-maintain-meta-data="true" data-page-list="[10, 25, 50, 100, 200, All]"
-                        data-pagination="true" data-pagination-v-align="both" data-search="true"
-                        data-search-highlight="true" data-show-columns="true" data-show-export="true"
-                        data-show-fullscreen="true" data-show-print="true" data-show-refresh="true"
-                        data-show-toggle="true" data-sort-class="table-active" data-sortable="true"
-                        data-trim-on-search="false" data-toggle="table" data-visible="true">
-                        <thead class='thead-light'>
-                            <tr>
-                                <th data-field="name" data-sortable="true">Role Name</th>
-                                <th data-field="kind" data-sortable="true">Kind</th>
-                                <th data-field="vset" data-sortable="true">VerbSet</th>
-                                <th data-field="apiG" data-sortable="true">ApiGroups</th>
-                                <th data-field="rsc" data-sortable="true">Resources</th>
-                                <th data-field="fnum" data-sortable="true">Fnum</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div> -->
                 <div id="vizWrapper">
                     <div id="secViz" style="text-align: center;"></div>
                 </div>
@@ -634,334 +573,331 @@
             </div>
 
             <div id="cluster" class="tab-pane">
-
                 <!-- Cluster 3D View-->
                 <div id="cluster3DView" style="display: none;">
                     <!-- <div class="cluster-wrap"> -->
                     <div class="cluster-content" id="canvas3D">
                         <canvas id="renderCanvas"></canvas>
                     </div>
-                    <!-- </div> -->
-                    <!-- LEGEND on right of screen -->
-                    <!-- <span class="cluster_legend">Legend</span>
-                    <div class="cluster_legend_box">
-                        <span class="cluster_legend_close">
-                            <i class="fa fa-times" aria-hidden="true"></i>
-                        </span>
-                        <h3>Get in Touch</h3>
-                        <form>
-                            <div>
-                                <input type="text" name="">"
-                                <input type="text" name="">"
-                                <input type="text" name="">"
-                                <input type="text" name="">"
-                            </div>
-                        </form>
-                    </div> -->
-                    <!-- FILTER on left of screen-->
-                    <span class="cluster_filter">Filter view</span>
-                    <div class="cluster_filter_box">
-                        <span class="cluster_filter_close">
-                            <i class="fa fa-times" aria-hidden="true"></i>
-                        </span>
 
-                        <div class="form-check vpkfont-filter">
-                            <span>GROUPS</span>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterNodes" name="clusterFilterNodes" checked>
-                            <span class="nodeMst">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
-                                class="nodeWrk">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterNodes">
-                                Nodes (Master, Worker)
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterStorage" name="clusterFilterStorage" checked>
-                            <span class="pvc">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
-                                class="pv">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
-                                class="storageClass">&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterStorage">
-                                Storage (PVC, PV, Storage Class)
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterNetwork" name="clusterFilterNetwork" checked>
-                            <span class="endpoint">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
-                                class="service">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterNetwork">
-                                Network (Endpoint, Service)
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterControlP" name="clusterFilterControlP" checked>
-                            <span
-                                class="controlPlane">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterControlP">
-                                Control Plane
-                            </label>
-                        </div>
-
-                        <hr style="margin-left: -10px;">
-                        <div class="form-check vpkfont-filter">
-                            <span>PODS</span>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterRunning" name="clusterFilterRunning" checked>
-                            <span
-                                class="podRunning">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterRunning">
-                                Running Pods
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterWarning" name="clusterFilterWarning" checked>
-                            <span
-                                class="podWarn">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterWarning">
-                                Warning Pods
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterFailed" name="clusterFilterFailed" checked>
-                            <span
-                                class="podFail">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterFailed">
-                                Failed Pods
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterSuccessful" name="clusterFilterSuccessful" checked>
-                            <span
-                                class="podSuccessful">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterSuccessful">
-                                Successful/Finished Pods
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterDSPods" name="clusterFilterDSPods">
-                            <span
-                                class="podDaemon">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterDSPods">
-                                DaemonSet Pods
-                            </label>
-                        </div>
-
-                        <hr style="margin-left: -10px;">
-                        <div class="form-check vpkfont-filter">
-                            <span>RESOURCES</span>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterNodeMemory" name="clusterFilterNodeMemory">
-                            <span
-                                class="nodeMemory">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterNodeMemory">
-                                Node Memory
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterNodeCPU" name="clusterFilterNodeCPU">
-                            <span
-                                class="nodeCPU">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterNodeCPU">
-                                Node CPU
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterNodeStorage" name="clusterFilterNodeStorage">
-                            <span
-                                class="nodeStorage">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterNodeStorage">
-                                Node Persistent Storage
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterMemoryLimit" name="clusterFilterMemoryLimit">
-                            <span
-                                class="memoryLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterMemoryLimit">
-                                Pod Memory Limit
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterMemoryRequest" name="clusterFilterMemoryRequest">
-                            <span
-                                class="memoryRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterMemoryRequest">
-                                Pod Memory Requested
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterCPULimit" name="clusterFilterCPULimit">
-                            <span
-                                class="cpuLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterCPU">
-                                Pod CPU Limit
-                            </label>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterCPURequest" name="clusterFilterCPURequest">
-                            <span
-                                class="cpuRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <label class="form-check-label" for="clusterFilterCPURequest">
-                                Pod CPU Requested
-                            </label>
-                        </div>
-
-                        <hr style="margin-left: -10px;">
-                        <div class="form-check vpkfont-filter">
-                            <span>NAMESPACES</span>&nbsp;&nbsp;
-                            <span class="vpkfont-filter">(default: all-namespaces)</span>
-                        </div>
-
-                        <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
-                            <select id="cluster-ns-filter" multiple="multiple" style="width: 250px"
-                                id="cluster-bar1-options">
-                                <option>all-namespaces</option>
-                                <option>&lt;cluster-level&gt;</option>
-                                <option>default</option>
-                            </select>
-                        </div>
-
-                        <hr style="margin-left: -10px;">
-                        <div class="form-check vpkfont-filter">
-                            <span>SOUND</span>
-                        </div>
-
-                        <div class="form-check vpkfont-filter ml-1">
-                            <input class="form-check-input filter-checkbox" type="checkbox" value=""
-                                id="clusterFilterSound" checked>
-                            <label class="form-check-label" for="clusterFilterSound">
-                                Play Sound
-                                <span class="vpkfont-filter">(sound indicates resource was selected in view)</span>
-                            </label>
-                        </div>
-
-                        <hr style="margin-left: -10px;">
-                        <div class="form-check vpkfont-filter">
-                            <span class="pt-1">BACKGROUND</span>
-                        </div>
-
-                        <div>
-                            <span class="form-check vpkfont-filter">Click color or
-                                image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
-
-                            <table class="ml-1" style="width: 250px; border: 1px solid black;">
-                                <tr>
-                                    <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
-                                        onclick="set3dBackColor('255','255','255','White')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
-                                        onclick="set3dBackColor('242','242','242','Grey')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
-                                        onclick="set3dBackColor('220','208','255','Lavender')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
-                                        onclick="set3dBackColor('234','219','200','Straw')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
-                                        onclick="set3dBackColor('32','178','170','Teal')">
-                                    </td>
-
-                                    <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
-                                        onclick="set3dBackColor('72','61','139','Purple')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
-                                        onclick="set3dBackColor('154','185','115','Olive')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
-                                        onclick="set3dBackColor('131','105','83','Brown')">
-                                    </td>
-                                    <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
-                                        onclick="set3dBackColor('0','0','0', 'Black')">
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <table class="ml-1" style="width: 250px;">
-                                <tr>
-                                    <td onclick="set3dBackColor('0','0','0', 'Stars')">
-                                        <img style="float:left" src="images/stars.jpg" width="125" height="30" />
-                                    </td>
-                                    <td onclick="set3dBackColor('0','0','0', 'Clouds')">
-                                        <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <div class="form-check mt-1 vpkfont-filter">
-                                <button type="button" id="c3DView" class="btn btn-primary btn-sm vpkButtons"
-                                    onclick="getCluster3DInfo()">&nbsp;Update background and refresh view&nbsp;</button>
+                    <!-- PopOut on right of screen-->
+                    <div id="slideIn" class="hidden" style="background-color: transparent;">
+                        <div class="content">
+                            <div class="mr-2 pd-2" style="background-color: rgba(155,155,155, 0.75);
+                                border-style: solid;
+                                border-color: gba(255,255,255, 0.12);
+                                border-radius: 10px;
+                                border-width: 1px;">
+                                <div id="resourceProps" class="mt-1 mb-1 mr-1 pr-3 pt-3 pb-3 vpkfont vpkcolor">
+                                    <!-- Resource info inserted here -->
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cluster 3d screen shot-->
-                <div id="clusterPicture" class="text-center mr-2" style="display: none;">
-                    <div class="text-center vpkfont-lg mt-1 mb-1">VpK Cluster 3D view</div>
-                    <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
-                </div>
 
-                <!-- Cluster Table View-->
-                <div id="clusterDetail" class="mr-2">
+                <!-- FILTER on left of screen-->
+                <span class="cluster_filter">Filter view</span>
+                <div class="cluster_filter_box">
+                    <span class="cluster_filter_close">
+                        <i class="fa fa-times" aria-hidden="true"></i>
+                    </span>
+
+                    <div class="form-check vpkfont-filter">
+                        <span>GROUPS</span>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterNodes"
+                            name="clusterFilterNodes" checked>
+                        <span class="nodeMst">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                            class="nodeWrk">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterNodes">
+                            Nodes (Master, Worker)
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterStorage" name="clusterFilterStorage" checked>
+                        <span class="pvc">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                            class="pv">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                            class="storageClass">&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterStorage">
+                            Storage (PVC, PV, Storage Class)
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterNetwork" name="clusterFilterNetwork" checked>
+                        <span class="endpoint">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+                            class="service">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterNetwork">
+                            Network (Endpoint, Service)
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterControlP" name="clusterFilterControlP" checked>
+                        <span
+                            class="controlPlane">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterControlP">
+                            Control Plane
+                        </label>
+                    </div>
+
+                    <hr style="margin-left: -10px;">
+                    <div class="form-check vpkfont-filter">
+                        <span>PODS</span>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterRunning" name="clusterFilterRunning" checked>
+                        <span
+                            class="podRunning">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterRunning">
+                            Running Pods
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterWarning" name="clusterFilterWarning" checked>
+                        <span class="podWarn">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterWarning">
+                            Warning Pods
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterFailed" name="clusterFilterFailed" checked>
+                        <span class="podFail">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterFailed">
+                            Failed Pods
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterSuccessful" name="clusterFilterSuccessful" checked>
+                        <span
+                            class="podSuccessful">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterSuccessful">
+                            Successful/Finished Pods
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterDSPods" name="clusterFilterDSPods">
+                        <span
+                            class="podDaemon">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterDSPods">
+                            DaemonSet Pods
+                        </label>
+                    </div>
+
+                    <hr style="margin-left: -10px;">
+                    <div class="form-check vpkfont-filter">
+                        <span>RESOURCES</span>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterNodeMemory" name="clusterFilterNodeMemory">
+                        <span
+                            class="nodeMemory">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterNodeMemory">
+                            Node Memory
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterNodeCPU" name="clusterFilterNodeCPU">
+                        <span class="nodeCPU">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterNodeCPU">
+                            Node CPU
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterNodeStorage" name="clusterFilterNodeStorage">
+                        <span
+                            class="nodeStorage">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterNodeStorage">
+                            Node Persistent Storage
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterMemoryLimit" name="clusterFilterMemoryLimit">
+                        <span
+                            class="memoryLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterMemoryLimit">
+                            Pod Memory Limit
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterMemoryRequest" name="clusterFilterMemoryRequest">
+                        <span
+                            class="memoryRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterMemoryRequest">
+                            Pod Memory Requested
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterCPULimit" name="clusterFilterCPULimit">
+                        <span class="cpuLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterCPU">
+                            Pod CPU Limit
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterCPURequest" name="clusterFilterCPURequest">
+                        <span
+                            class="cpuRequest">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterCPURequest">
+                            Pod CPU Requested
+                        </label>
+                    </div>
+
+                    <hr style="margin-left: -10px;">
+                    <div class="form-check vpkfont-filter">
+                        <span>NAMESPACES</span>&nbsp;&nbsp;
+                        <span class="vpkfont-filter">(default: all-namespaces)</span>
+                    </div>
+
+                    <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
+                        <select id="cluster-ns-filter" multiple="multiple" style="width: 250px"
+                            id="cluster-bar1-options">
+                            <option>all-namespaces</option>
+                            <option>&lt;cluster-level&gt;</option>
+                            <option>default</option>
+                        </select>
+                    </div>
+
+                    <hr style="margin-left: -10px;">
+                    <div class="form-check vpkfont-filter">
+                        <span>SOUND</span>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterSound"
+                            checked>
+                        <label class="form-check-label" for="clusterFilterSound">
+                            Play Sound
+                            <span class="vpkfont-filter">(sound indicates resource was selected in view)</span>
+                        </label>
+                    </div>
+
+                    <hr style="margin-left: -10px;">
+                    <div class="form-check vpkfont-filter">
+                        <span class="pt-1">BACKGROUND</span>
+                    </div>
+
+                    <div>
+                        <span class="form-check vpkfont-filter">Click color or
+                            image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
+
+                        <table class="ml-1" style="width: 250px; border: 1px solid black;">
+                            <tr>
+                                <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
+                                    onclick="set3dBackColor('255','255','255','White')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
+                                    onclick="set3dBackColor('242','242','242','Grey')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
+                                    onclick="set3dBackColor('220','208','255','Lavender')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
+                                    onclick="set3dBackColor('234','219','200','Straw')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
+                                    onclick="set3dBackColor('32','178','170','Teal')">
+                                </td>
+
+                                <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
+                                    onclick="set3dBackColor('72','61','139','Purple')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
+                                    onclick="set3dBackColor('154','185','115','Olive')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
+                                    onclick="set3dBackColor('131','105','83','Brown')">
+                                </td>
+                                <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
+                                    onclick="set3dBackColor('0','0','0', 'Black')">
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table class="ml-1" style="width: 250px;">
+                            <tr>
+                                <td onclick="set3dBackColor('0','0','0', 'Stars')">
+                                    <img style="float:left" src="images/stars.jpg" width="125" height="30" />
+                                </td>
+                                <td onclick="set3dBackColor('0','0','0', 'Clouds')">
+                                    <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div class="form-check mt-1 vpkfont-filter">
+                            <button type="button" id="c3DView" class="btn btn-primary btn-sm vpkButtons"
+                                onclick="getCluster3DInfo()">&nbsp;Update background and refresh
+                                view&nbsp;</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="comparesnap" class="tab-pane">
-                <div id="compareDetail" class="mr-2 ml-2 mt-2">
-                </div>
+            <!-- Cluster 3d screen shot-->
+            <div id="clusterPicture" class="text-center mr-2" style="display: none;">
+                <div class="text-center vpkfont-lg mt-1 mb-1">VpK Cluster 3D view</div>
+                <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
             </div>
 
-            <div id="ownerlinks" class="tab-pane">
-                <div id="ownerRefLinksDetail" class="mr-2">
-                </div>
+            <!-- Cluster Table View-->
+            <div id="clusterDetail" class="mr-2">
             </div>
         </div>
 
-        <!-- ==================================== -->
-        <!-- Tool tips are shown here             -->
-        <!-- ==================================== -->
-        <div id="tooltip" display="none" style="position: absolute; 
+        <div id="comparesnap" class="tab-pane">
+            <div id="compareDetail" class="mr-2 ml-2 mt-2">
+            </div>
+        </div>
+
+        <div id="ownerlinks" class="tab-pane">
+            <div id="ownerRefLinksDetail" class="mr-2">
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================================== -->
+    <!-- Tool tips are shown here             -->
+    <!-- ==================================== -->
+    <div id="tooltip" display="none" style="position: absolute; 
             display: none; 
             background-color: #ddd; 
             padding: 5px; 
             border-radius: 10px; 
             border-style: double;">
-        </div>
+    </div>
 
     </div>
 
