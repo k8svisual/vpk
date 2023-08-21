@@ -1750,6 +1750,9 @@ function closeSlideIn() {
     //closeButton.style.display = "none"; // Hide the close button
 }
 
+function viewSecurityLegend() {
+    $("#securityLegendModal").modal('show');
+}
 
 
 //----------------------------------------------------------
