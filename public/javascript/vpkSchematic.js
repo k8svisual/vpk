@@ -335,7 +335,6 @@ function nsChange(ns) {
 }
 
 
-
 //Builder for the Workloads
 function process(fnum) {
 	genS = 0;

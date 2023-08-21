@@ -450,6 +450,7 @@ function showSchematic(ns, podId) {
 }
 
 function sendChildSvg() {
+    // workloadEventsInfo needs to be parsed to NS and sent
     let msg = { 'svg': svgPassData, 'tips': svgInfo };
     childwin.postMessage(msg, '*');
     childwin.focus();
@@ -1199,6 +1200,7 @@ socket.on('schematicBuildResult', function (data) {
     schematicKeys = data.keys;
     svgInfo = data.info;
     nsResourceInfo = data.nsRI;
+    workloadEventsInfo = data.evts;
     hideMessage();
     populateSchematicList()
     $("#clusterDetail").html('')

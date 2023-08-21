@@ -173,7 +173,7 @@ function handleCPMouseOver(d, i) {
                 offTop = $("#prtXref").offset().top;
             }
             //let offTop  = window.pageYOffset;
-            console.log(offTop)
+            //console.log(offTop)
             let tipX = d.clientX - 100;
             // adjust for fixed portion of page
             if (offTop < 0) {

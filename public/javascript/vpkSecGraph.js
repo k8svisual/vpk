@@ -35,6 +35,8 @@ let graphsPrintNodeInfo = true;
 let graphsPrintData = false;
 let graphsPrintRawData = true;
 let graphNamespaces = {};
+let secData;
+let secNS = '';
 
 //=========================================
 
@@ -49,23 +51,84 @@ function buildSecGraph(content) {
     graphvNodeToFnum = {};
     missingSubjectCnt = 0;   // gets appended to subject Missing to create a unique subject name
 
-    let data = content.data;
-    let ns = content.ns
+    secData = content.data;
+    secNS = content.ns;
+    checkBindingCount();
 
-    if (data.length === 0) {
+}
+
+function buildAll() {
+    let ns = secNS;
+    if (secData.length === 0) {
         console.log('Nothing')
         document.getElementById('vizWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkcolor">No data for requested namespace: <span class="vpkfont-lg">' + ns + '</span></div>';
         return;
     }
-
-
-    buildGraphSubjects(data, ns);
-    buildGraphBindings(data, ns);
-    buildGraphRoles(data, ns);
-    buildConnections(data, ns);
+    buildGraphSubjects(secData, ns);
+    buildGraphBindings(secData, ns);
+    buildGraphRoles(secData, ns);
+    buildConnections(secData, ns);
     buildDOTData(ns);            // add and second parm and each line of DOT data will print to console
     createGraph();
+}
 
+function checkBindingCount() {
+    let bindKeys = Object.keys(secData);
+    if (bindKeys.length < 6) {
+        buildAll();
+    } else {
+        $("#bindingsCnt").html(bindKeys.length);
+        let listArray = [];
+        for (let i = 0; i < bindKeys.length; i++) {
+            listArray.push({ id: secData[i].name, text: secData[i].name });
+        }
+        listArray.sort();
+        $("#bindings-filter").empty();
+        $("#bindings-filter").select2({
+            data: listArray,
+            dropdownCssClass: "vpkfont-md",
+            containerCssClass: "vpkfont-md",
+            placeholder: "select all bindings"
+        });
+        $("#manyBindingsModal").modal('show');
+    }
+}
+
+function reduceBindings() {
+    let options = $('#bindings-filter').select2('data');
+    if (options.length === 0) {
+        buildAll();
+    }
+    let picked = [];
+    for (let i = 0; i < options.length; i++) {
+        picked.push(options[i].text);
+    }
+    let bindKeys = Object.keys(secData);
+    for (let i = 0; i < bindKeys.length; i++) {
+        if (picked.includes(secData[bindKeys[i]].name)) {
+            console.log(`keep binding ${secData[bindKeys[i]].name}`)
+            continue;
+        } else {
+            console.log(`delete binding ${secData[bindKeys[i]].name}`)
+            delete secData[bindKeys[i]]
+        }
+    }
+    // If anything was deleted the array must be reindexed
+    if (picked.length > 0) {
+        let newD = [];
+        for (let i = 0; i < secData.length; i++) {
+            if (typeof secData[bindKeys[i]] !== 'undefined') {
+                if (typeof secData[bindKeys[i]].name !== 'undefined') {
+                    newD.push(secData[bindKeys[i]]);
+                }
+            }
+        }
+        let nd = JSON.stringify(newD);
+        secData = JSON.parse(nd);
+        nd = null;
+    }
+    $("#manyBindingsModal").modal('hide');
+    buildAll();
 }
 
 function buildDOTData(ns) {
@@ -389,6 +452,9 @@ function buildGraphSubjects(data, ns) {
     let subNS;
     let checkSubjects = {};
     for (let s = 0; s < data.length; s++) {
+        // if (typeof data[s] === 'undefined') {
+        //     continue;
+        // }
 
         // If subjectName is Missing change to create ar unique
         // name to it will graph as a single subject 
@@ -539,6 +605,7 @@ function buildGraphRoles(data, ns) {
                 }
                 end = 'RULES' + nodeNum;
                 connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[r].ns });
+                addNodeFnum('RULES' + nodeNum, data[r].roleFnum);
 
                 // check if the maximum number of rules are shown
                 if (graphvizMaxReached) {
@@ -561,6 +628,8 @@ function buildGraphRoles(data, ns) {
                         }
                         connections.push({ 'link': begin + '->' + 'MAXRULES' + nodeNum + '[dir="back"]', 'ns': data[r].ns });
                     }
+                    // graphvNodeToFnum[node] === 'undefined') {
+                    addNodeFnum('MAXRULES' + nodeNum, data[r].roleFnum);
                 }
             }
         }

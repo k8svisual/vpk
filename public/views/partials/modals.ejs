@@ -552,6 +552,60 @@
 </div>
 
 <!-- ==================================== -->
+<!-- Mand Bindings Modal section          -->
+<!-- ==================================== -->
+<div class="modal fade" id="manyBindingsModal" tabindex="-1" role="dialog" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Bindings filter</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="vpkfont vpkcolor">
+                    <p>
+                        <scan id="bindingsCnt"></scan> RoleBindings and/or ClusterRoleBindings exist, if you would like
+                        to filter the view select one or more binding names and then press the filter bindings button.
+                    </p>
+                </div>
+
+                <div id="filter-bindings" class="row filterBack pl-1 mt-1">
+                    <div class="vpkfont-md mt-2 filterWidth">
+                        Binding names
+                    </div>
+                    <div id="bindings-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                        <select id="bindings-filter" multiple="multiple" style="width: 550px" id="bar1-options">
+                            <option>all-namespaces</option>
+                            <option>&lt;cluster-level&gt;</option>
+                            <option>openshift</option>
+                            <option>default</option>
+                            <option>team01</option>
+                            <option>team02</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="configBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="reduceBindings()"
+                    style="margin: 5px;">
+                    Filter bindings
+                </button>
+
+
+
+            </div>
+
+            <div id="manyBindingsModalFooter" class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================== -->
 <!-- Search value Modal section           -->
 <!-- ==================================== -->
 <div class="modal fade" id="searchModal" tabindex="-1" role="dialog">

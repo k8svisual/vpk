@@ -216,7 +216,7 @@ function buildStatsToggle() {
 function bldOptions(options, type, style) {
     var items = [];
     var listitems = '';
-    var listArrary = [];
+    var listArray = [];
 
     if (Array.isArray(options)) {
         items = options;
@@ -236,7 +236,7 @@ function bldOptions(options, type, style) {
                 listitems = '<option>all-kinds</option>'
             } else {
                 id++;
-                listArrary.push({ id: id, text: 'all-kinds' });
+                listArray.push({ id: id, text: 'all-kinds' });
             }
         }
 
@@ -259,10 +259,10 @@ function bldOptions(options, type, style) {
             } else {
                 if (cki === ": " || cki === "") {
                     id++;
-                    listArrary.push({ id: id, text: '<cluster-level>' });
+                    listArray.push({ id: id, text: '<cluster-level>' });
                 } else {
                     id++;
-                    listArrary.push({ id: id, text: items[i] });
+                    listArray.push({ id: id, text: items[i] });
                 }
             }
 
@@ -274,7 +274,7 @@ function bldOptions(options, type, style) {
     if (style !== 'select2') {
         return listitems;
     } else {
-        return listArrary;
+        return listArray;
     }
 }
 
