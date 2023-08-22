@@ -25,6 +25,7 @@ let svgWhere = "";
 let svgPassData = "";
 let childwin;
 const childname = "schematicWindow";
+const themeToggle = document.getElementById("theme-toggle");
 
 $(document).ready(function () {
 
@@ -424,18 +425,20 @@ $(document).ready(function () {
 
     //cluster tab slideout for filter and/or legend
 
-    $(".cluster_legend").click(function (event) {
-        $(".cluster_legend_box").addClass("active")
-    });
-    $(".cluster_legend_close").click(function (event) {
-        $(".cluster_legend_box").removeClass("active")
+    // $(".cluster_legend").click(function (event) {
+    //     $(".cluster_legend_box").addClass("active")
+    // });
+
+    // $(".cluster_legend_close").click(function (event) {
+    //     $(".cluster_legend_box").removeClass("active")
+    // });
+
+    $("#cluster_filter").click(function (event) {
+        $("#cluster_filter_box").addClass("active")
     });
 
-    $(".cluster_filter").click(function (event) {
-        $(".cluster_filter_box").addClass("active")
-    });
-    $(".cluster_filter_close").click(function (event) {
-        $(".cluster_filter_box").removeClass("active")
+    $("#slideIn_box").click(function (event) {
+        $("#slideIn").addClass("active")
     });
 
     //clearDisplay();
@@ -1737,13 +1740,6 @@ function searchValues() {
     $("#searchModal").modal('show');
 }
 
-
-// Function to open the slide-in
-function openSlideIn() {
-    slideIn.classList.add("active");
-    //closeButton.style.display = "block"; // Show the close button
-}
-
 // Function to close the slide-in
 function closeSlideIn() {
     slideIn.classList.remove("active");
@@ -1753,7 +1749,14 @@ function closeSlideIn() {
 function viewSecurityLegend() {
     $("#securityLegendModal").modal('show');
 }
+function viewClusterLegend() {
+    $("#clusterLegendModal").modal('show');
+}
 
+// Function to close the slide-in
+function closeClusterFilter() {
+    $("#cluster_filter_box").removeClass("active")
+}
 
 //----------------------------------------------------------
 console.log('loaded vpkMain.js');

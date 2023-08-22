@@ -601,101 +601,243 @@
 
 
 <!-- ==================================== -->
+<!-- Cluster Legend Modal section          -->
+<!-- ==================================== -->
+<div class="modal fade" id="clusterLegendModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Cluster Legend:</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="mt-1 pl-3 vpkfont">Nodes (square cube)</div>
+                <div class="pl-3 pt-3">
+                    <svg width="400" height="65">
+                        <g>
+                            <rect x="25" y="1" width="40" height="40" fill="#804040"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="40" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Master node</text>
+                        </g>
+                        <g>
+                            <rect x="110" y="1" width="40" height="40" fill="#c4bec4"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="125" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Worker node</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+                <div class="mt-1 pl-3 vpkfont">Pods (hexagon prism)</div>
+                <div class="pl-3 pt-3">
+                    <svg width="450" height="65">
+                        <g>
+                            <polygon points="22,20 37,1 57,1 72,20 57,40 37,40 22,20"
+                                style="fill:#00ff00; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="47" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Running</text>
+                        </g>
+                        <g>
+                            <polygon points="105,20 120,1 140,1 155,20 140,40 120,40 105,20"
+                                style="fill:#00a6ff; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="130" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Successful</text>
+                        </g>
+                        <g>
+                            <polygon points="188,20 203,1 223,1 237,20 223,40 203,40 188,20"
+                                style="fill:#ffff00; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="213" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Warning</text>
+                        </g>
+                        <g>
+                            <polygon points="271,20 286,1 306,1 321,20 306,40 286,40 271,20"
+                                style="fill:#808080; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="296" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">DaemonSet</text>
+                        </g>
+                        <g>
+                            <polygon points="354,20 369,1 389,1 404,20 389,40 369,40 354,20"
+                                style="fill:#bf0000; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="379" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Failed</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Network (sphere)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="65">
+                        <g>
+                            <circle cx="45" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#0000ef" />
+                            <text text-anchor="middle" x="45" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Endpoint</text>
+                        </g>
+                        <g>
+                            <circle cx="130" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#80bfbf" />
+                            <text text-anchor="middle" x="130" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Service</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Storage (cylinder)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="110">
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="45" cy="55" rx="20" ry="10" fill="#ba8759" />
+                            <!-- Side faces -->
+                            <rect x="25" y="15" width="40" height="40" fill="#ba8759" style="stroke: #ba8759" />
+                            <!-- Top face -->
+                            <ellipse cx="45" cy="15" rx="20" ry="10" fill="#ba8759"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="45" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Persistent</text>
+                            <text text-anchor="middle" x="45" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Volume</text>
+                            <text text-anchor="middle" x="45" y="110" font-family="Times 100" font-size="12.00"
+                                fill="#000000">PV</text>
+                        </g>
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="125" cy="55" rx="20" ry="10" fill="#bfbf1a" />
+                            <!-- Side faces -->
+                            <rect x="105" y="15" width="40" height="40" fill="#bfbf1a" style="stroke: #bfbf1a" />
+                            <!-- Top face -->
+                            <ellipse cx="125" cy="15" rx="20" ry="10" fill="#bfbf1a"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="125" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Persistent</text>
+                            <text text-anchor="middle" x="125" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Volume Claim</text>
+                            <text text-anchor="middle" x="125" y="110" font-family="Times 100" font-size="12.00"
+                                fill="#000000">PVC</text>
+                        </g>
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="205" cy="55" rx="20" ry="10" fill="#fa9903" />
+                            <!-- Side faces -->
+                            <rect x="185" y="15" width="40" height="40" fill="#fa9903" style="stroke: #fa9903" />
+                            <!-- Top face -->
+                            <ellipse cx="205" cy="15" rx="20" ry="10" fill="#fa9903"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="205" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Storage</text>
+                            <text text-anchor="middle" x="205" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Class</text>
+                        </g>
+
+                    </svg>
+                    <hr>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================================== -->
 <!-- Security Legend Modal section          -->
 <!-- ==================================== -->
 <div class="modal fade" id="securityLegendModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title vpkcolor">Security Legend</h6>
+                <h6 class="modal-title vpkcolor">Security Legend:</h6>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body docBackground">
-                <div class="vpkfont vpkcolor">
-                    <p>
-                        Security diagrams use the following symbols.
-                    </p>
+                <div class="mt-1 pl-3 vpkfont">Subject Kinds (rectangle)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="750" height="55">
+                        <g>
+                            <rect x="10" y="0" width="100" height="40" fill="#17a2b8" />
+                            <text text-anchor="middle" x="60" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">ServiceAccount</text>
+                        </g>
+                        <g>
+                            <rect x="120" y="0" width="100" height="40" fill="#007bff" />
+                            <text text-anchor="middle" x="167" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">SystemGroup</text>
+                        </g>
+                        <g>
+                            <rect x="230" y="0" width="100" height="40" fill="#6c757d" />
+                            <text text-anchor="middle" x="280" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">SystemUser</text>
+                        </g>
+                        <g>
+                            <rect x="340" y="0" width="100" height="40" fill="#f0ad4e" />
+                            <text text-anchor="middle" x="390" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">Group</text>
+                        </g>
+                        <g>
+                            <rect x="450" y="0" width="100" height="40" fill="#dc3545" />
+                            <text text-anchor="middle" x="500" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">User</text>
+                        </g>
+                        <g>
+                            <rect x="560" y="0" width="100" height="40" fill="#0000ff" />
+                            <text text-anchor="middle" x="610" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">
+                                &lt;not defined&gt;
+                            </text>
+                        </g>
+                    </svg>
+                    <hr>
                 </div>
 
-                <p class="vpkcolor vpkfont">Subject Kinds (rectangle) </p>
-                <svg width="750" height="60">
-                    <g>
-                        <rect x="10" y="0" width="100" height="40" fill="#17a2b8" /> -->
-                        <text text-anchor="middle" x="60" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">ServiceAccount</text>
-                    </g>
-                    <g>
-                        <rect x="120" y="0" width="100" height="40" fill="#007bff" /> -->
-                        <text text-anchor="middle" x="167" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">SystemGroup</text>
-                    </g>
-                    <g>
-                        <rect x="230" y="0" width="100" height="40" fill="#6c757d" /> -->
-                        <text text-anchor="middle" x="280" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">SystemUser</text>
-                    </g>
-                    <g>
-                        <rect x="340" y="0" width="100" height="40" fill="#f0ad4e" /> -->
-                        <text text-anchor="middle" x="390" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">Group</text>
-                    </g>
-                    <g>
-                        <rect x="450" y="0" width="100" height="40" fill="#dc3545" /> -->
-                        <text text-anchor="middle" x="500" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">User</text>
-                    </g>
-                    <g>
-                        <rect x="560" y="0" width="100" height="40" fill="#0000ff" /> -->
-                        <text text-anchor="middle" x="610" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">
-                            &lt;not defined&gt;
-                        </text>
-                    </g>
-                </svg>
+                <div class="mt-3 pl-3 vpkfont">Bindings (ellipse)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="55">
+                        <g>
+                            <ellipse cx="70" cy="20" rx="70" ry="20" fill="#6e03d3" />
+                            <text text-anchor="middle" x="70" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">ClusterRoleBinding</text>
+                        </g>
+                        <g>
+                            <ellipse cx="220" cy="20" rx="70" ry="20" fill="#016601" />
+                            <text text-anchor="middle" x="220" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">RoleBinding</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
 
+                <div class="mt-3 pl-3 vpkfont">Roles (polygon)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="55">
+                        <g>
+                            <polygon points="0,20 20,1 120,1 140,20 120,40 20,40 0,20"
+                                style="fill:#dec4f7; stroke: #000000; stroke-width:1" />
+                            <text text-anchor="middle" x="70" y="24" font-family="Times 100" font-size="12.00"
+                                fill="ffffff">ClusterRole</text>
+                        </g>
+                        <g>
+                            <polygon points="150,20 170,1 270,1 290,20 270,40 170,40 150,20"
+                                style="fill:#3ad35d; stroke: #000000; stroke-width:1" />
+                            <text text-anchor="middle" x="220" y="24" font-family="Times 100" font-size="12.00"
+                                fill="#ffffff">Role</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
 
-                <p class="vpkcolor vpkfont">Bindings (ellipse) </p>
-                <svg width="400" height="60">
-                    <g>
-                        <ellipse cx="70" cy="20" rx="70" ry="20" fill="#6e03d3" />
-                        <text text-anchor="middle" x="70" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">ClusterRoleBinding</text>
-                    </g>
-                    <g>
-                        <ellipse cx="220" cy="20" rx="70" ry="20" fill="#016601" />
-                        <text text-anchor="middle" x="220" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">RoleBinding</text>
-                    </g>
-                </svg>
-
-                <p class="vpkcolor vpkfont">Roles (polygon)</p>
-                <svg width="400" height="60">
-                    <!-- <rect width="100" height="100" fill="blue" /> -->
-                    <g>
-                        <polygon points="0,20 20,1 120,1 140,20 120,40 20,40 0,20"
-                            style="fill:#dec4f7; stroke: #000000; stroke-width:1" />
-                        <text text-anchor="middle" x="70" y="24" font-family="Times 100" font-size="12.00"
-                            fill="ffffff">ClusterRole</text>
-                    </g>
-                    <g>
-                        <polygon points="150,20 170,1 270,1 290,20 270,40 170,40 150,20"
-                            style="fill:#3ad35d; stroke: #000000; stroke-width:1" />
-                        <text text-anchor="middle" x="220" y="24" font-family="Times 100" font-size="12.00"
-                            fill="#ffffff">Role</text>
-                    </g>
-                </svg>
-
-                <p class="vpkcolor vpkfont mt-1">Rules (table list)
-                    <br><br>The table will provide upto 35 entires, anymore are suppressed. Viewing of
-                    the addtional rules is accomplished by clicking any of the lsited rules or the box symbol
-                    below the table.
-                </p>
-
-
-            </div>
-            <div id="securityLegendModalFooter" class="modal-footer">
+                <div class="mt-3 pl-3 vpkfont">Rules (table)</div>
+                <div class="pl-3 pr-3 pt-3 pb-2 vpkfont">
+                    Rule table provides up to 35 entires. Viewing of addtional rules is accomplished
+                    by clicking any of the listed rules or the box symbol shown below this table.
+                </div>
+                <hr>
             </div>
         </div>
     </div>

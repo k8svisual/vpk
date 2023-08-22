@@ -21,6 +21,26 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
+
+body {
+    /* Disable scrollbars and ensure that the body fills the window */
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    margin: 0;
+}
+
+body,
+div {
+    margin: 0;
+    padding: 0;
+}
+
+
 #secViz svg {
     height: auto;
     width: 100%;
@@ -37,6 +57,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 }
 
 .vpkfont-filter {
+    font-size: 0.75rem;
+}
+
+.vpkfont-slidein {
     font-size: 0.75rem;
 }
 
@@ -228,10 +252,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /* Header bars */
 * {
     box-sizing: border-box;
-}
-
-body {
-    margin: 0;
 }
 
 .header {
@@ -601,19 +621,6 @@ table.docsTable td {
     width: 33.33333333%;
 }
 
-body,
-div {
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    /* Disable scrollbars and ensure that the body fills the window */
-    overflow: hidden;
-    width: 100%;
-    height: 100%;
-}
-
 #banner {
     overflow: auto;
     position: absolute;
@@ -695,26 +702,9 @@ tr.border_bottom td {
 }
 
 
-#slideIn {
-    position: fixed;
-    top: 120px;
-    right: -500px;
-    /* Initially, it's off-screen to the right */
-    width: 500px;
-    height: 290px;
-    background-color: #f1f1f1;
-    overflow-x: hidden;
-    transition: 0.5s;
-    /* Animation duration */
-}
-
-
-/* Content styling */
-#slideIn.content {
-    padding: 20px;
-}
-
-/* Show it when active */
-#slideIn.active {
-    right: 0;
+.legend-security {
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 1px;
+    background-color: white;
 }

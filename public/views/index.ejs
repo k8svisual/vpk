@@ -65,6 +65,7 @@
                 </div>
 
                 <div class="header-right">
+                    <!-- <button id="theme-toggle">Toggle Theme</button> -->
                     <a href="javascript:closeVpK()">
                         <i class="fas fa-window-close fa-lg mr-3 vpkcolor"></i>
                     </a>
@@ -78,6 +79,7 @@
                     <a href="javascript:showConfig()">
                         <i class="fas fa-cog fa-lg vpkcolor"></i>
                     </a>
+
                 </div>
 
                 <div id="messageDiv" class="collapse hide mt-0 mb-0 vpkfont-md">
@@ -295,10 +297,10 @@
                                     class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
                                     onclick="getCluster3DInfo()">Refresh 3D View
                                 </button>
-                                <button type="button" id="c3DView"
+                                <!-- <button type="button" id="c3DView"
                                     class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
                                     onclick="openSlideIn()">Open properties view
-                                </button>
+                                </button> -->
 
                                 <span style="float: right;">
                                     <a href="javascript:print3Dscene()" class="pl-4 pt-2">
@@ -306,6 +308,10 @@
                                     </a>
                                 </span>
                             </span>
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
+                                onclick="viewClusterLegend()">
+                                &nbsp;Legend&nbsp;
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -580,37 +586,36 @@
             <div id="cluster" class="tab-pane">
                 <!-- Cluster 3D View-->
                 <div id="cluster3DView" style="display: none;">
-                    <!-- <div class="cluster-wrap"> -->
                     <div class="cluster-content" id="canvas3D">
                         <canvas id="renderCanvas"></canvas>
                     </div>
+                </div>
 
-                    <!-- PopOut on right of screen-->
-                    <div id="slideIn" class="hidden" style="background-color: transparent;">
-                        <div class="content">
-                            <div class="mr-2 pd-2" style="background-color: rgba(155,155,155, 0.75);
-                                border-style: solid;
-                                border-color: gba(255,255,255, 0.12);
-                                border-radius: 10px;
-                                border-width: 1px;">
-                                <div id="resourceProps" class="mt-1 mb-1 mr-1 pr-3 pt-3 pb-3 vpkfont vpkcolor">
-                                    <!-- Resource info inserted here -->
-                                </div>
+                <span id="slideIn_box">Properties</span>
+                <div id="slideIn" class="hidden">
+                    <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right mt-1 mr-1"
+                        onclick="closeSlideIn()">&nbsp;Close&nbsp;
+                    </button>
+
+                    <div class="content">
+                        <div class="mr-2 pd-2">
+                            <div id="resourceProps" class="mt-1 mb-1 mr-1 pr-3 pt-3 pb-3 vpkfont vpkcolor">
+                                <!-- Resource info inserted here -->
                             </div>
                         </div>
                     </div>
                 </div>
 
-
                 <!-- FILTER on left of screen-->
-                <span class="cluster_filter">Filter view</span>
-                <div class="cluster_filter_box">
-                    <span class="cluster_filter_close">
-                        <i class="fa fa-times" aria-hidden="true"></i>
-                    </span>
-
-                    <div class="form-check vpkfont-filter">
-                        <span>GROUPS</span>
+                <span id="cluster_filter">Filter view</span>
+                <div id="cluster_filter_box">
+                    <div style="display: inline;">
+                        <div class="form-check vpkfont-filter">
+                            <span>GROUPS</span>
+                            <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right"
+                                onclick="closeClusterFilter()">&nbsp;Close&nbsp;
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">

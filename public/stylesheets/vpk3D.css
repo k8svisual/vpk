@@ -8,83 +8,80 @@
     display: none;
 }
 
-/* 3D cluster legend and filter slideouts */
-.cluster_legend_close {
-    position: absolute;
-    right: 100%;
-    top: 0;
-    color: red;
-    cursor: pointer;
-    font-size: 24px;
-    background: #7d1515;
-    padding: 0 5px;
-    border-radius: 3px 0 0 3px;
-    box-shadow: -2px 0 3px rbga(0, 0, 0, 0.2);
-}
-
-.cluster_legend_box {
+#slideIn_box {
     position: fixed;
+    top: 80px;
     right: 0;
-    top: 25%;
-    /* bottom: 200px; */
-    width: 320px;
-    height: 300px;
-    z-index: 1000;
-    padding: 25px;
-    background: #7d1515;
-    color: #fff;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
-    transition: all 0.3s ease-in-out;
-    min-height: 200px;
-    transform: translateX(120%);
-}
-
-.cluster_legend_box.active {
-    transform: translateX(0%);
-}
-
-.cluster_legend {
-    position: fixed;
-    right: -25px;
-    top: 50%;
-    background: #f93010;
+    background: #bbbbbb;
     color: #fff;
     padding: 10px 22px;
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.3s ease-in-out;
-    transform: translateY(-50%) rotate(90deg);
+    transform-origin: bottom right;
+    transform: rotate(-90deg);
+}
+
+#slideIn_box:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#slideIn {
+    /* Initially, it's off-screen to the right */
+    position: fixed;
+    top: 120px;
+    right: -300px;
+    width: 300px;
+    height: 290px;
+    overflow-x: hidden;
+    transition: 0.5s;
+    z-index: 1000;
+    padding: 5px;
+    background: #eee;
+    color: #555;
+    border: 1px solid rgb(0, 123, 255);
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Content styling */
+#slideIn.content {
+    padding: 20px;
+}
+
+/* Show it when active */
+#slideIn.active {
+    right: 0;
+}
+
+#cluster_filter {
+    position: fixed;
+    left: -36px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 10px 22px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
     border-radius: 0 0 5px 5px;
     z-index: 100;
 }
 
-.cluster_legend:hover {
+#cluster_filter:hover {
     color: #fff;
     text-decoration: none;
-    background: #bf4104;
-}
-
-/* cluster filter slidout */
-.cluster_filter_close {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    color: #fff;
-    cursor: pointer;
-    font-size: 20px;
+    /* background: #bbbbbb; */
     background: rgb(0, 123, 255);
-    padding: 0 5px;
-    border-radius: 0 3px 3px 0;
-    border-top: 1px solid rgb(0, 123, 255);
-    border-right: 1px solid rgb(0, 123, 255);
-    border-bottom: 1px solid rgb(0, 123, 255);
-    box-shadow: -2px 0 3px rbga(0, 0, 0, 0.2);
 }
 
-.cluster_filter_box {
+#cluster_filter_box {
     position: fixed;
     left: 0;
-    top: 16%;
+    top: 120px;
     /* bottom: 200px; */
     width: 300px;
     height: 750px;
@@ -99,34 +96,11 @@
     transform: translateX(-120%);
 }
 
-.cluster_filter_box.active {
+#cluster_filter_box.active {
     transform: translateX(0%);
 }
 
-.cluster_filter {
-    position: fixed;
-    left: -36px;
-    top: 50%;
-    /* background: rgb(0, 123, 255); */
-    background: #bbbbbb;
-    color: #fff;
-    padding: 10px 22px;
-    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-    transform: translateY(-50%) rotate(-90deg);
-    border-radius: 0 0 5px 5px;
-    z-index: 100;
 
-}
-
-.cluster_filter:hover {
-    color: #fff;
-    text-decoration: none;
-    /* background: #bbbbbb; */
-    background: rgb(0, 123, 255);
-
-}
 
 .filter-checkbox {
     margin-top: 1px;
