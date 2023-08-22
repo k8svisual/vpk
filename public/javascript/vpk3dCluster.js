@@ -1054,9 +1054,8 @@ function createScene() {
                     if (cluster.nodes[nodePtr].csiNodes[0].drivers !== null) {
                         for (let c = 0; c < cluster.nodes[nodePtr].csiNodes[0].drivers.length; c++) {
                             if (typeof cluster.nodes[nodePtr].csiNodes[0].fnum !== 'undefined') {
-
                                 csiInner = '<div class="vpkfont vpkcolor ml-1">'
-                                    + '<div id="sliceKey">' + cluster.nodes[nodePtr].csiNodes[0].fnum + '</div>'
+                                    + '<div id="sliceKey">' + cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c + '</div>'
                                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[nodePtr].csiNodes[0].fnum + '\')">'
                                     + '<img src="images/k8/csinode.svg" style="width:60px;height:60px;"></a>'
                                     + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
@@ -1069,7 +1068,8 @@ function createScene() {
 
                                 // define the csiNode
                                 buildSphere(csiX, pY - 2, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
-                                buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum, 'n');
+                                console.log(`csiX:${csiX}  pY:${pY - 2}  pZ:${pZ} fnum:${cluster.nodes[nodePtr].csiNodes[0].fnum}`)
+                                buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
                                 buildLine(csiX, pY - 2, pZ, 4, 'CSILine', 'ClusterLevel', cluster.nodes[nodePtr].csiNodes[0].fnum);
 
                                 //save the volumeAttachments
