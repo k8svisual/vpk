@@ -50,18 +50,7 @@ function buildStorageSVG() {
     let fmtSpc = '';
     let first = true;
 
-    let rtn = '<div class="mt-0 ml-5 vpkfont-sm vpkcolor"><span pl-5>Click horizontal bars to view StorageClase details</span>'
-        + '<span class="pl-3">'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #F8BBD0; color: black;">KiloByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #B39DDB; color: white;">MegaByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #90CAF9; color: black;">GigaByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4CAF50; color: white;">TeraByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #C0CA33; color: black;">PetaByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #FFA000; color: black;">ExaByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #D84315; color: white;">ZettaByte</span>'
-        + '<span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4E342E; color: white;">YottaByte</span>'
-
-
+    let rtn = '<div class="mt-0 ml-5 vpkfont-sm vpkcolor"><span pl-5></span>'
         + '</div>'
         + '<svg width="1200" height="10">'
         + '<line  x1="30"  x2="190"  y1="10" y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
@@ -102,7 +91,7 @@ function buildStorageSVG() {
 
     let name;
     let fnum;
-    let spcLength = 09;
+    let spcLength = 9;
     let cSec = '';
     let tmp;
     let fillColor;

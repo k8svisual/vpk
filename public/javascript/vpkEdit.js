@@ -79,15 +79,16 @@ function editDef(data, which) {
         $("#editTitle").html(editImage + '</div>');
         initAceEditor(rtn);
         $('#editorModal').modal('show');
-    } else if (which === '1') {
-        $("#snapTitle1").html('<b>Snapshot 1:</b>&nbsp;' + compareSnap1Selected)
-        $("#compareTitle1").html(editImage + '<hr></div>');
-        compareFile1Editor1(rtn);
-    } else if (which === '2') {
-        $("#snapTitle2").html('<b>Snapshot 2:</b>&nbsp;' + compareSnap2Selected)
-        $("#compareTitle2").html(editImage + '<hr></div>');
-        compareFile2Editor1(rtn);
     }
+    // } else if (which === '1') {
+    //     $("#snapTitle1").html('<b>Snapshot 1:</b>&nbsp;' + compareSnap1Selected)
+    //     $("#compareTitle1").html(editImage + '<hr></div>');
+    //     compareFile1Editor1(rtn);
+    // } else if (which === '2') {
+    //     $("#snapTitle2").html('<b>Snapshot 2:</b>&nbsp;' + compareSnap2Selected)
+    //     $("#compareTitle2").html(editImage + '<hr></div>');
+    //     compareFile2Editor1(rtn);
+    // }
 }
 
 
@@ -112,47 +113,47 @@ function initAceEditor(rtn) {
     editor.renderer.scrollToRow(1);
 }
 
-function compareFile1Editor1(rtn) {
-    editorC1 = ace.edit("editorC1");
-    editorC1.setValue(rtn);
-    editorC1.setTheme("ace/theme/sqlserver");         // theme for editing
-    editorC1.getSession().setMode("ace/mode/yaml");   // type of file high lighting
-    editorC1.setOptions(
-        {
-            cursorStyle: "wide",
-            fontSize: 11,
-            printMargin: false,
-            tabSize: 2,
-            scrollPastEnd: 0.10,
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true
-        }
-    );
-    editorC1.focus();
-    editorC1.gotoLine(1, 0, true);
-    editorC1.renderer.scrollToRow(1);
-}
+// function compareFile1Editor1(rtn) {
+//     editorC1 = ace.edit("editorC1");
+//     editorC1.setValue(rtn);
+//     editorC1.setTheme("ace/theme/sqlserver");         // theme for editing
+//     editorC1.getSession().setMode("ace/mode/yaml");   // type of file high lighting
+//     editorC1.setOptions(
+//         {
+//             cursorStyle: "wide",
+//             fontSize: 11,
+//             printMargin: false,
+//             tabSize: 2,
+//             scrollPastEnd: 0.10,
+//             enableBasicAutocompletion: true,
+//             enableLiveAutocompletion: true
+//         }
+//     );
+//     editorC1.focus();
+//     editorC1.gotoLine(1, 0, true);
+//     editorC1.renderer.scrollToRow(1);
+// }
 
-function compareFile2Editor1(rtn) {
-    editorC2 = ace.edit("editorC2");
-    editorC2.setValue(rtn);
-    editorC2.setTheme("ace/theme/sqlserver");         // theme for editing
-    editorC2.getSession().setMode("ace/mode/yaml");   // type of file high lighting
-    editorC2.setOptions(
-        {
-            cursorStyle: "wide",
-            fontSize: 11,
-            printMargin: false,
-            tabSize: 2,
-            scrollPastEnd: 0.10,
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true
-        }
-    );
-    editorC2.focus();
-    editorC2.gotoLine(1, 0, true);
-    editorC2.renderer.scrollToRow(1);
-}
+// function compareFile2Editor1(rtn) {
+//     editorC2 = ace.edit("editorC2");
+//     editorC2.setValue(rtn);
+//     editorC2.setTheme("ace/theme/sqlserver");         // theme for editing
+//     editorC2.getSession().setMode("ace/mode/yaml");   // type of file high lighting
+//     editorC2.setOptions(
+//         {
+//             cursorStyle: "wide",
+//             fontSize: 11,
+//             printMargin: false,
+//             tabSize: 2,
+//             scrollPastEnd: 0.10,
+//             enableBasicAutocompletion: true,
+//             enableLiveAutocompletion: true
+//         }
+//     );
+//     editorC2.focus();
+//     editorC2.gotoLine(1, 0, true);
+//     editorC2.renderer.scrollToRow(1);
+// }
 
 
 //----------------------------------------------------------

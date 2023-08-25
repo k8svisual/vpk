@@ -119,11 +119,7 @@ What is VpK?
 - Schematic views of running workloads in the cluster.
 
 - Views of roles, bindings, and subject used to define RBAC.
-
-- Usage of RBAC definitions.
-
-- Create and view custom cross reference information of K8 resource elements.	
-- Compare previously captured snapshots.  
+  
 
 <br><br>
 
@@ -196,13 +192,7 @@ View ownership chains of resources in the cluster.
 
 <br>
 
-### Snapshot compares
 
-Select two cluster snapshots and compare for differences.
-
-![3DView](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-comparesnapshots.png)
-
-<br>
 
 ### YouTube videos on how to use VpK
 

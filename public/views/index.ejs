@@ -106,23 +106,21 @@
             <li class="nav-item"><a id="securityTab" href="#security" data-target="#security" data-toggle="tab"
                     class="nav-link small text-uppercase">Security</a></li>
             <li class="nav-item"><a id="tableTab" href="#tableview" data-target="#tableview" data-toggle="tab"
-                    class="nav-link small text-uppercase">Table View</a></li>
-            <!-- <li class="nav-item"><a id="xreferenceTab" href="#xreference" data-target="#xreference" data-toggle="tab"
-                    class="nav-link small text-uppercase">X-Reference</a></li> -->
+                    class="nav-link small text-uppercase">Search</a></li>
             <li class="nav-item"><a id="ownerliksTab" href="#ownerlinks" data-target="#ownerlinks" data-toggle="tab"
                     class="nav-link small text-uppercase">OwnerRef Links</a></li>
-            <!-- <li class="nav-item"><a id="compareTab" href="#comparesnap" data-target="#comparesnap" data-toggle="tab"
-                    class="nav-link small text-uppercase">Compare Snapshots</a></li> -->
         </ul>
 
         <div id="viewtop">
             <div id="instructionsHdr">
             </div>
 
-            <div id="tableviewHdr">
+            <div id="tableviewHdr"> <!-- tab refers to this as Search -->
+                <div class="grid ml-3 mr-2 mt-1 vpkcolor vpkfont">
+                    Select or provide one or more criteria to filter the search and press the Search button
+                </div>
                 <!-- ==================================== -->
                 <!-- Filtered data results section        -->
-                <!-- ==================================== -->
                 <div class="grid ml-2 mr-2">
                     <div id="filterdata" class="border rounded mt-1 vpkcolor">
                         <div id="filter-bar-1" class="row filterBack pl-1 mt-1">
@@ -154,15 +152,16 @@
                             </div>
                         </div>
 
-                        <div id="filter-bar-5" class="row filterBack pl-1 pb-2">
+                        <div id="filter-bar-3" class="row filterBack pl-1 pb-2">
                             <div class="vpkfont-md mt-2 filterWidth">
                                 Search value
                                 <!-- K8 resource kind name -->
                             </div>
-                            <div id="bar5-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
+                            <div id="bar3-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
                                 <input type="text" class="form-control vpkfont-md" id="search-value"
                                     placeholder="partial or complete name resource name">
                             </div>
+                            <!-- Information blue DOT -->
                             <span class="pt-2">
                                 <a href="javascript:searchValues()">
                                     <i class="fas fa-info-circle fa-lg mr-3 mt-1 vpkcolor"></i>
@@ -173,12 +172,11 @@
                     </div>
                 </div>
 
-
                 <div id="tableviewActions" class="float-left mt-2 mb-1 ml-1">
                     <button type="button"
                         class="btn btn-sm btn-primary vpkButtons ml-3 mr-2 mt-0 mb-1 pl-1 pr-1 vpkwhite"
                         onclick="searchObj()">
-                        Apply filters
+                        Search
                     </button>
                 </div>
             </div>
@@ -187,9 +185,9 @@
             <div id="graphicHdr">
                 <div id="filter-chart" class="vpkcolor mt-1 mr-2 ml-2 border rounded">
                     <div class="row filterBack pl-1 ml-2 mt-1">
-                        <div class="vpkfont-md mr-1 pt-1">
+                        <!-- <div class="vpkfont-md mr-1 pt-1">
                             Select namespaces
-                        </div>
+                        </div> -->
                         <div id="grachic-ns-select" class="ml-1 mr-1 vpkfont-md">
                             <select id="graphic-ns-filter" multiple="multiple" style="width: 300px">
                                 <option>all-namespaces</option>
@@ -270,15 +268,27 @@
             </div>
 
             <div id="storageHdr" class="vpkhidden">
-                <div class="row ml-2 mt-1 mb-2 mr-2 border rounded">
-                    <div class="align-middle vpkfont-md vpkcolor ml-2 mb-2 mt-2">
-                        Select information to view
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite mt-1"
-                            id="viewSchematic" onclick="getStorageInfo()">
-                            &nbsp;Request storage&nbsp;
-                        </button>
+                <div class="row ml-2 mt-1 mr-2 ">
+
+                    <div class="mt-2 vpkfont-sm vpkcolor"><span pl-5>Click horizontal bars to view StorageClase
+                            details</span>
+                        <span class="pl-3 pt-1">
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #F8BBD0; color: black;">KiloByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #B39DDB; color: white;">MegaByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #90CAF9; color: black;">GigaByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #4CAF50; color: white;">TeraByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #C0CA33; color: black;">PetaByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #FFA000; color: black;">ExaByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #D84315; color: white;">ZettaByte</span>
+                            <span class="pl-3 pr-3 pb-1 pt-1 mr-2"
+                                style="background-color: #4E342E; color: white;">YottaByte</span>
                     </div>
                 </div>
             </div>
@@ -290,7 +300,7 @@
                             <span>
                                 <button type="button" id="c3DView"
                                     class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                    onclick="getCluster3DInfo()">View cluster
+                                    onclick="getCluster3DInfo()">Refresh view
                                 </button>
                                 <span class="'vpkcolor header-right">
                                     <button type="button"
@@ -302,41 +312,6 @@
                                     onclick="print3Dscene()">
                                 </span>
                             </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="xreferenceHdr" class="vpkhidden">
-                <div id="xrefUsageType" class="mb-1 vpkcolor ml-2 mr-2 mt-1 border rounded">
-                    <div class="row filterBack pl-1 ml-2 mt-1">
-                        <div class="mb-2 pt-1 align-middle vpkfont-md">
-                            Select xref
-                        </div>
-                        <div class="ml-1 mr-1 vpkfont-md">
-                            <select id="xref-type" style="width: 300px">
-                                <option></option>
-                                <option>Secrets : Secrets defined in environment</option>
-                            </select>
-                        </div>
-
-                        <div class="vpkcolor vpkfont-md ml-5 pt-1" style="width: 100px;">
-                            Select view
-                        </div>
-
-                        <div>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="xrefChart01" onclick="bldXrefChart('hierarchy')">
-                                &nbsp;Hierarchy&nbsp;
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="xrefChart02" onclick="bldXrefChart('collapsible')">
-                                &nbsp;Collapsible&nbsp;
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="xrefChart03" onclick="bldXrefChart('circlePack')">
-                                &nbsp;Circle Pack&nbsp;
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -370,71 +345,6 @@
                 </div>
             </div>
 
-            <div id="comparesnapHdr" class="vpkhidden">
-                <div class="grid mt-1 ml-2 mr-2 mb-2 border rounded">
-                    <div class="ml-0 mt-1 vpkfont-md">
-                        <span class="vpkfont-md vpkcolor ml-1">Snapshots:</span>
-                        <div class="pl-1" style='vertical-align:middle; display:inline;'>
-                            <button class="btn btn-sm btn-outline-primary vpkfont-md vpkwhite"
-                                onclick="getCompareSnap('1')">
-                                <span id="firstSnapDir" class="float-left">Snapshot 1</span>
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary vpkfont-md vpkwhite"
-                                onclick="getCompareSnap('2')">
-                                <span id="secondSnapDir" class="float-left">Snapshot 2</span>
-                            </button>
-                            <span class="vpkfont-md vpkcolor ml-1">Sort:<span class="ml-2 vpkfont-sm">1st</span></span>
-                            <div class="ml-1 mt-1" style="display: inline;">
-                                <select id="compareSort1" class="vpkfont-sm pl-3"
-                                    style="width: 100px; vertical-align:middle;">
-                                    <option></option>
-                                    <option>Namespace</option>
-                                    <option>Name</option>
-                                    <option>Kind</option>
-                                </select>
-                            </div>
-                            <span class="vpkfont-md vpkcolor ml-1"><span class="vpkfont-sm">2nd</span></span>
-                            <div class="ml-1 mt-1" style="display: inline;">
-                                <select id="compareSort2" class="vpkfont-md pl-3"
-                                    style="width: 100px; vertical-align:middle;">
-                                    <option></option>
-                                    <option>Namespace</option>
-                                    <option>Name</option>
-                                    <option>Kind</option>
-                                </select>
-                            </div>
-                            <span class="vpkfont-md vpkcolor ml-4">View:</span>
-                            <div class="ml-1 mt-1" style="display: inline;">
-                                <select id="compareView" class="vpkfont-md pl-3"
-                                    style="width: 100px; vertical-align:middle;">
-                                    <option></option>
-                                    <option>All</option>
-                                    <option>Matching</option>
-                                    <option>Non-matching</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="ml-2 mt-2">
-                        <div class="vpkfont-sm vpkcolor ml-0"><b>Snapshot 1:&nbsp;</b> <span id="firstSnap"
-                                class="vpkfont-sm vpkcolor"></span>
-                        </div>
-                        <div class="vpkfont-sm vpkcolor ml-0"><b>Snapshot 2:&nbsp;</b> <span id="secondSnap"
-                                class="vpkfont-sm vpkcolor"></span>
-                        </div>
-                    </div>
-
-                    <div class="ml-0 mt-1 mb-1 vpkfont-md">
-                        <button class="btn btn-sm btn-outline-primary vpkfont-md ml-2 vpkwhite"
-                            onclick="compareSnapshots()">
-                            <span id="snapCompare" class="float-left">&nbsp;&nbsp;&nbsp;&nbsp;Compare
-                                snapshots&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        </button>
-                    </div>
-
-                </div>
-
-            </div>
         </div>
     </div>
 
@@ -467,15 +377,12 @@
                     <div class="carousel-inner centerImage">
                         <div class="carousel-item mb-5 mt-4 active">
                             <img src="images/wow/pic-cluster.png" width="600" height="419">
-                            <!-- <img src="images/wow/wow-graphics.gif" width="400" height="280"> -->
                         </div>
                         <div class="carousel-item mb-5 mt-4">
                             <img src="images/wow/pic-schematic.png" width="600" height="419">
-                            <!-- <img src="images/wow/wow-schematic.gif" width="600" height="419"> -->
                         </div>
                         <div class="carousel-item mb-5 mt-4">
                             <img src="images/wow/pic-graphic.png" width="600" height="419">
-                            <!-- <img src="images/wow/wow-3dview.gif" width="400" height="280"> -->
                         </div>
                         <div class="carousel-item mb-5 mt-4">
                             <img src="images/wow/pic-storage.png" width="600" height="419">
@@ -488,9 +395,6 @@
                         </div>
                         <div class="carousel-item mb-5 mt-4">
                             <img src="images/wow/pic-ownerref.png" width="600" height="419">
-                        </div>
-                        <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-comparesnapshots.png" width="600" height="419">
                         </div>
                     </div>
                 </div>
@@ -549,13 +453,13 @@
 
             </div>
 
-            <div id="xreference" class="tab-pane">
+            <!-- <div id="xreference" class="tab-pane">
                 <div class="mt-2 vpkfont vpkcolor" id="xrefInfo">
                 </div>
                 <div id="prtXref" class="ml-3 mr-3">
                     <svg id="xrefCharts2"></svg>
                 </div>
-            </div>
+            </div> -->
 
             <div id="storage" class="tab-pane">
                 <!-- Append the needed UI components -->
@@ -910,10 +814,6 @@
 
     <!-- Append the needed modals -->
     <%- include('partials/modals') %>
-
-        <!-- Append the needed modals -->
-        <%- include('partials/xrefModal') %>
-
 
 </body>
 

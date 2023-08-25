@@ -74,7 +74,8 @@ function populateSelectLists(data) {
         $("#graphic-ns-filter").select2({
             data: options,
             dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
+            containerCssClass: "vpkfont-md",
+            placeholder: "select namespace(s)"
         });
 
         let secTemp = [];
@@ -99,6 +100,7 @@ function populateSelectLists(data) {
 
         $("#ownerRef-ns-filter").empty();
         $("#ownerRef-ns-filter").html(options);
+
 
         // filter bar2 (resource kinds)
         options = bldOptions(data.kinds, 'K', 'select2');

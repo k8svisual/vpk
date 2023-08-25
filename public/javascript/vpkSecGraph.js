@@ -69,7 +69,7 @@ function buildAll() {
     buildGraphRoles(secData, ns);
     buildConnections(secData, ns);
     buildDOTData(ns);            // add and second parm and each line of DOT data will print to console
-    console.log(graphVizData)
+    // console.log(graphVizData)
     createGraph();
 }
 
@@ -314,92 +314,92 @@ function buildConnections(data, ns) {
     let checkSubjectBindings = {};
 
     for (let c = 0; c < data.length; c++) {
-
-        // Build link between Subject and Binding
-        begin = '';
-        end = '';
-        if (typeof data[c].subjectNS === 'undefined') {
-            subNS = '<blank>';
-        } else {
-            subNS = data[c].subjectNS;
-        }
-
-        //  check for duplicate subject bindings    
-        if (typeof checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] !== 'undefined') {
-            //console.log(`Found dup binding: ${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`)
-            continue;
-        } else {
-            checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] = 'Y';
-        }
-
-        try {
-            beginKey = data[c].subjectName + '.' + data[c].subjectKind + '.' + subNS
-            begin = nodeData[beginKey].node;
-        } catch (e) {
-            console.log(`Error locating subject connection: ${beginKey}`);
-        }
-
-
-        if (typeof data[c].ns !== 'undefined') {
-            bindNS = data[c].ns;
-        }
-        if (typeof data[c].ns === 'undefined' && data[c].kind === 'ClusterRoleBinding') {
-            bindNS = "<blank>";
-        }
-        key = data[c].name + '.' + data[c].kind + '.' + bindNS;
-        endKey = data[c].name + '.' + data[c].kind + '.' + bindNS
-
-        if (typeof nodeData[endKey] === 'undefined') {
-            console.log('Link Subject-Binding did not find endKey: ' + endKey)
-            return;
-        }
-
-        end = nodeData[endKey].node;
-
-
-        if (begin !== '' && end !== '') {
-            if (typeof checkLinks[`${begin}.${end}.${data[c].ns}`] === 'undefined') {
-                checkLinks[`${begin}.${end}.${data[c].ns}`]
-                connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[c].ns });
-            }
-        } else {
-            console.log('Failed to build subject to binding link\n'
-                + '- begin: ' + beginKey + '\n'
-                + '- end: ' + endKey)
-        }
-
-        // now use the binding as the start
-        begin = end;
-        end = '';
-
-        if (typeof data[c].ns !== 'undefined') {
-            roleNS = data[c].ns;
-        }
-        if (typeof data[c].ns === 'undefined' && data[c].kind === 'ClusterRoleBinding') {
-            roleNS = "<blank>";
-        }
-
-        endKey = data[c].roleName + '.' + data[c].roleKind + '.' + roleNS;
-        if (typeof nodeData[endKey] === 'undefined') {
-            console.log('Link Role-Binding did not find endKey: ' + endKey)
-            return;
-        }
-
-        end = nodeData[endKey].node;
-
-        if (begin !== '' && end !== '') {
-            if (typeof checkLinks[`${begin}.${end}.${data[c].ns}`] === 'undefined') {
-                checkLinks[`${begin}.${end}.${data[c].ns}`]
-                connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[c].ns });
+        if (typeof data[c] !== 'undefined') {
+            // Build link between Subject and Binding
+            begin = '';
+            end = '';
+            if (typeof data[c].subjectNS === 'undefined') {
+                subNS = '<blank>';
+            } else {
+                subNS = data[c].subjectNS;
             }
 
-            //connections.push({ 'link': begin + '->' + end, 'ns': data[c].ns });
-        } else {
-            console.log('Failed to build binding to role link\n'
-                + '- begin: ' + beginKey + '\n'
-                + '- end: ' + endKey)
-        }
+            //  check for duplicate subject bindings    
+            if (typeof checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] !== 'undefined') {
+                //console.log(`Found dup binding: ${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`)
+                continue;
+            } else {
+                checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] = 'Y';
+            }
 
+            try {
+                beginKey = data[c].subjectName + '.' + data[c].subjectKind + '.' + subNS
+                begin = nodeData[beginKey].node;
+            } catch (e) {
+                console.log(`Error locating subject connection: ${beginKey}`);
+            }
+
+
+            if (typeof data[c].ns !== 'undefined') {
+                bindNS = data[c].ns;
+            }
+            if (typeof data[c].ns === 'undefined' && data[c].kind === 'ClusterRoleBinding') {
+                bindNS = "<blank>";
+            }
+            key = data[c].name + '.' + data[c].kind + '.' + bindNS;
+            endKey = data[c].name + '.' + data[c].kind + '.' + bindNS
+
+            if (typeof nodeData[endKey] === 'undefined') {
+                console.log('Link Subject-Binding did not find endKey: ' + endKey)
+                return;
+            }
+
+            end = nodeData[endKey].node;
+
+
+            if (begin !== '' && end !== '') {
+                if (typeof checkLinks[`${begin}.${end}.${data[c].ns}`] === 'undefined') {
+                    checkLinks[`${begin}.${end}.${data[c].ns}`]
+                    connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[c].ns });
+                }
+            } else {
+                console.log('Failed to build subject to binding link\n'
+                    + '- begin: ' + beginKey + '\n'
+                    + '- end: ' + endKey)
+            }
+
+            // now use the binding as the start
+            begin = end;
+            end = '';
+
+            if (typeof data[c].ns !== 'undefined') {
+                roleNS = data[c].ns;
+            }
+            if (typeof data[c].ns === 'undefined' && data[c].kind === 'ClusterRoleBinding') {
+                roleNS = "<blank>";
+            }
+
+            endKey = data[c].roleName + '.' + data[c].roleKind + '.' + roleNS;
+            if (typeof nodeData[endKey] === 'undefined') {
+                console.log('Link Role-Binding did not find endKey: ' + endKey)
+                return;
+            }
+
+            end = nodeData[endKey].node;
+
+            if (begin !== '' && end !== '') {
+                if (typeof checkLinks[`${begin}.${end}.${data[c].ns}`] === 'undefined') {
+                    checkLinks[`${begin}.${end}.${data[c].ns}`]
+                    connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[c].ns });
+                }
+
+                //connections.push({ 'link': begin + '->' + end, 'ns': data[c].ns });
+            } else {
+                console.log('Failed to build binding to role link\n'
+                    + '- begin: ' + beginKey + '\n'
+                    + '- end: ' + endKey)
+            }
+        }
     }
 }
 
@@ -498,33 +498,38 @@ function buildGraphSubjects(data, ns) {
 function buildGraphBindings(data, ns) {
     let bindNS;
     let checkBinds = {};
-    for (let b = 0; b < data.length; b++) {
+    try {
+        for (let b = 0; b < data.length; b++) {
+            if (typeof data[b] !== 'undefined') {
+                if (typeof checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] !== 'undefined') {
+                    //console.log(`Found dup binding: ${data[b].name} . ${data[b].kind} . ${data[b].fnum}`)
+                    continue;
+                } else {
+                    checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] = 'Y';
+                }
 
-        if (typeof checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] !== 'undefined') {
-            //console.log(`Found dup binding: ${data[b].name} . ${data[b].kind} . ${data[b].fnum}`)
-            continue;
-        } else {
-            checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] = 'Y';
-        }
+                if (typeof data[b].ns !== 'undefined') {
+                    bindNS = data[b].ns;
+                }
+                if (typeof data[b].ns === 'undefined' && data[b].kind === 'ClusterRoleBinding') {
+                    bindNS = "<blank>";
+                }
 
-        if (typeof data[b].ns !== 'undefined') {
-            bindNS = data[b].ns;
-        }
-        if (typeof data[b].ns === 'undefined' && data[b].kind === 'ClusterRoleBinding') {
-            bindNS = "<blank>";
-        }
-
-        key = data[b].name + '.' + data[b].kind + '.' + bindNS;
-        if (typeof nodeData[key] === 'undefined') {
-            nodeNum++;
-            nodeData[key] = {
-                'node': 'B' + nodeNum,
-                'content': setNodeContent('Binding', data[b].name, data[b].kind),
-                'fnum': data[b].fnum,
-                'ns': data[b].ns
+                key = data[b].name + '.' + data[b].kind + '.' + bindNS;
+                if (typeof nodeData[key] === 'undefined') {
+                    nodeNum++;
+                    nodeData[key] = {
+                        'node': 'B' + nodeNum,
+                        'content': setNodeContent('Binding', data[b].name, data[b].kind),
+                        'fnum': data[b].fnum,
+                        'ns': data[b].ns
+                    }
+                    addNodeFnum('B' + nodeNum, data[b].fnum);
+                }
             }
-            addNodeFnum('B' + nodeNum, data[b].fnum);
         }
+    } catch (e) {
+        console.log(`Error: ${e}`)
     }
 }
 
@@ -541,92 +546,94 @@ function buildGraphRoles(data, ns) {
 
     for (let r = 0; r < data.length; r++) {
 
-        beginFnum = ''
-        if (typeof checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] !== 'undefined') {
-            //console.log(`Found dup role: ${data[r].name} . ${data[r].kind} . ${data[r].fnum}`)
-            continue;
-        } else {
-            checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] = 'Y';
-        }
-
-        if (typeof data[r].ns !== 'undefined') {
-            roleNS = data[r].ns;
-        }
-        if (typeof data[r].ns === 'undefined' && data[r].kind === 'ClusterRoleBinding') {
-            roleNS = "<blank>";
-        }
-        key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS;
-        if (typeof nodeData[key] === 'undefined') {
-            nodeNum++;
-            nodeData[key] = {
-                'node': 'R' + nodeNum,
-                'content': setNodeContent('Role', data[r].roleName, data[r].roleKind, fnum, 'R' + nodeNum),
-                'fnum': data[r].roleFnum,
-                'ns': data[r].ns
+        if (typeof data[r] !== 'undefined') {
+            beginFnum = ''
+            if (typeof checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] !== 'undefined') {
+                //console.log(`Found dup role: ${data[r].name} . ${data[r].kind} . ${data[r].fnum}`)
+                continue;
+            } else {
+                checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] = 'Y';
             }
-            addNodeFnum('R' + nodeNum, data[r].roleFnum);
-            begin = 'R' + nodeNum;
-            beginFnum = data[r].roleFnum
-        }
 
-        // build rule information
-        if (typeof data[r].rules !== 'undefined') {
-            let holdRules;
-            let returnData;
-            key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS + '.RULE';
+            if (typeof data[r].ns !== 'undefined') {
+                roleNS = data[r].ns;
+            }
+            if (typeof data[r].ns === 'undefined' && data[r].kind === 'ClusterRoleBinding') {
+                roleNS = "<blank>";
+            }
+            key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS;
             if (typeof nodeData[key] === 'undefined') {
-                returnData = buildRules(data[r].rules);
-                if (returnData === null) {
-                    console.log(`Null rules for role: ${data[r].roleName} namespace: ${roleNS}`)
-                    continue;
-                }
-
-                graphvizMaxReached = returnData.maxReached;
-
-                if (graphvizMaxReached) {
-                    holdRules = returnData.allRules;
-                    rules = returnData.reducedRules;
-                } else {
-                    rules = returnData.allRules;
-                }
-
                 nodeNum++;
                 nodeData[key] = {
-                    'node': 'RULES' + nodeNum,
-                    'content': rules,
+                    'node': 'R' + nodeNum,
+                    'content': setNodeContent('Role', data[r].roleName, data[r].roleKind, fnum, 'R' + nodeNum),
                     'fnum': data[r].roleFnum,
                     'ns': data[r].ns
                 }
-                if (graphvizMaxReached) {
-                    largeRuleSets[key] = holdRules;
-                }
-                end = 'RULES' + nodeNum;
-                connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[r].ns });
-                addNodeFnum('RULES' + nodeNum, data[r].roleFnum);
+                addNodeFnum('R' + nodeNum, data[r].roleFnum);
+                begin = 'R' + nodeNum;
+                beginFnum = data[r].roleFnum
+            }
 
-                // check if the maximum number of rules are shown
-                if (graphvizMaxReached) {
-                    begin = end;   //save the rules node id 
-                    let content = `[
+            // build rule information
+            if (typeof data[r].rules !== 'undefined') {
+                let holdRules;
+                let returnData;
+                key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS + '.RULE';
+                if (typeof nodeData[key] === 'undefined') {
+                    returnData = buildRules(data[r].rules);
+                    if (returnData === null) {
+                        console.log(`Null rules for role: ${data[r].roleName} namespace: ${roleNS}`)
+                        continue;
+                    }
+
+                    graphvizMaxReached = returnData.maxReached;
+
+                    if (graphvizMaxReached) {
+                        holdRules = returnData.allRules;
+                        rules = returnData.reducedRules;
+                    } else {
+                        rules = returnData.allRules;
+                    }
+
+                    nodeNum++;
+                    nodeData[key] = {
+                        'node': 'RULES' + nodeNum,
+                        'content': rules,
+                        'fnum': data[r].roleFnum,
+                        'ns': data[r].ns
+                    }
+                    if (graphvizMaxReached) {
+                        largeRuleSets[key] = holdRules;
+                    }
+                    end = 'RULES' + nodeNum;
+                    connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[r].ns });
+                    addNodeFnum('RULES' + nodeNum, data[r].roleFnum);
+
+                    // check if the maximum number of rules are shown
+                    if (graphvizMaxReached) {
+                        begin = end;   //save the rules node id 
+                        let content = `[
                     fillcolor="#ff0000",
                     fontcolor="red",
                     fontsize="16",
                     label=<Total rules: ${data[r].rules.length}>,
                     penwidth="1.0",
                     shape="component"]`
-                    key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS + data[r].roleKind + data[r].fnum + '.MAXRULES';
-                    nodeNum++;
-                    if (typeof nodeData[key] === 'undefined') {
-                        nodeData[key] = {
-                            'node': 'MAXRULES' + nodeNum,
-                            'content': content,
-                            'fnum': data[r].roleFnum,
-                            'ns': data[r].ns
+                        key = data[r].roleName + '.' + data[r].roleKind + '.' + roleNS + data[r].roleKind + data[r].fnum + '.MAXRULES';
+                        nodeNum++;
+                        if (typeof nodeData[key] === 'undefined') {
+                            nodeData[key] = {
+                                'node': 'MAXRULES' + nodeNum,
+                                'content': content,
+                                'fnum': data[r].roleFnum,
+                                'ns': data[r].ns
+                            }
+                            connections.push({ 'link': begin + '->' + 'MAXRULES' + nodeNum + '[dir="back"]', 'ns': data[r].ns });
                         }
-                        connections.push({ 'link': begin + '->' + 'MAXRULES' + nodeNum + '[dir="back"]', 'ns': data[r].ns });
+                        // graphvNodeToFnum[node] === 'undefined') {
+                        addNodeFnum('MAXRULES' + nodeNum, data[r].roleFnum);
                     }
-                    // graphvNodeToFnum[node] === 'undefined') {
-                    addNodeFnum('MAXRULES' + nodeNum, data[r].roleFnum);
                 }
             }
         }

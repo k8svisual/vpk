@@ -43,7 +43,7 @@ function buildCluster3D() {
 	build3DJSON();
 	$('#cluster3DView').show();
 	build3DView();
-	$("#resourceProps").html('')
+	// $("#resourceProps").html('')
 }
 
 // async function showSchematic(ns, fnum) {

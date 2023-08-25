@@ -1,6 +1,6 @@
 <topicKey ownerref/>
-<topicBack id="topicNext" link="comparesnap"/>
-<topicNext id="topicBack" link="xreference"/>
+<topicBack id="topicNext" link="gettingstarted"/>
+<topicNext id="topicBack" link="cluster"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
