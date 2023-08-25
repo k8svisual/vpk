@@ -767,11 +767,7 @@ function setNodeContent(type, name, kind) {
 
 function showSecGraph(ns) {
     try {
-
         $("#security-ns-filter").val(ns).trigger('change');
-        //document.getElementById("security-ns-filter").value = val;
-        //$('#security-ns-filter').change();
-        //$("#select2").val(value).trigger('change');
     } catch (e) {
         // continue even if error occurs
     }
@@ -819,8 +815,6 @@ function examples() {
     // d3.select("#graph").graphviz()
     //     .attributer(attributer)
     //     .renderDot('digraph  {a -> b -> c ->d -> e}');
-
-
 }
 
 //----------------------------------------------------------

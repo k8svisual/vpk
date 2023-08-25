@@ -46,25 +46,5 @@ function buildCluster3D() {
 	// $("#resourceProps").html('')
 }
 
-// async function showSchematic(ns, fnum) {
-// 	let schematicsPromise = new Promise(function (resolve, reject) {
-// 		resolve(openNamespace(ns))
-// 	});
-
-// 	let cont = await schematicsPromise;
-
-// 	let tab = 'schematic';
-// 	$('.nav-tabs a[href="#' + tab + '"]').tab('show');
-
-// 	let element = document.getElementById("fnum-" + fnum);
-// 	if (typeof (element) != 'undefined' && element != null) {
-// 		element.scrollIntoView();
-// 	} else {
-// 		alert(`fnum-${fnum} does not exist`)
-// 	}
-
-
-// }
-
 //----------------------------------------------------------
 console.log('loaded vpkCluster.js');

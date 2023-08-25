@@ -71,12 +71,6 @@ var dsToggle = 'kind';
 var bootstrapModalCounter = 0;
 var documentationTabTopic = 'toc';
 
-// // global of which compare snapshot is selected
-// let compareSnapButton = 0;
-// let compareSnapSelected = '';
-// let compareSnap1Selected = '';
-// let compareSnap2Selected = '';
-
 // objects that contain html sections that are dnynamically shown
 let svgInfo = {};            			// tool tip pop-ups
 let workloadEventsInfo = {};			// workload events
@@ -155,10 +149,6 @@ let usageJSHeapSizeLimit = 0;
 let usageJSHeapTotal = 0;
 let usageJSHeapUsed = 0;
 
-// let xrefData = '';				// JSON struc of xref rules and names
-// let xrefSelectedRule = '';
-// let xrefSelectedRuleKey = '';
-// let xrefRuleCountFound = 0;
 
 let ownerRefLinks = '';
 let sortBy1;
@@ -176,31 +166,11 @@ let storageInfo = {};
 let storageData = '';
 let storageInfoID = 0;
 
-//let dirtyXrefMsg = 'X-Ref maintenance has changed the defined xrefs.  If a snapshot has been loaded it must be re-parsed to use the updated xrefs.'
 
 let explainInfo = [];
 
 let zoom = d3.zoom()
 	.on('zoom', handleZoom);
-
-// // color legend for security 
-// let RBAClegend = '<div class="vpkfont-md mb-2 mt-2">'
-// 	+ '<span class="pr-1 text-dark">Namespace:</span>'
-// 	+ '<span class="bg-role pl-1 pr-1">Role</span>'
-// 	+ '<span class="bg-roleBinding pl-1 pr-1">RoleBinding</span>'
-
-// 	+ '<span class="pl-3 pr-1 text-dark">Cluster:</span>'
-// 	+ '<span class="bg-clusterRole pl-1 pr-1">ClusterRole</span>'
-// 	+ '<span class="bg-clusterRoleBinding pl-1 pr-1">ClusterRoleBinding</span>'
-
-// 	+ '<span class="pl-3 pr-1 text-dark">Subjects:</span>'
-// 	+ '<span class="bg-subjectServiceAccount pl-1 pr-1">ServiceAccount</span>'
-// 	+ '<span class="bg-subjectUser pl-1 pr-1">User</span>'
-// 	+ '<span class="bg-subjectGroup pl-1 pr-1">Group</span>'
-// 	// + '<span class="bg-subjectSystemUser pl-1 pr-1">System User</span>'
-// 	// + '<span class="bg-subjectSystemGroup pl-1 pr-1">System Group</span>'
-
-// 	+ '<span class="pl-1 vpkfont-md">(click colored background text for info)</span>';
 
 let processingRequest = '<div class="row">'
 	+ '<div class="col mt-1 ml-4">'
@@ -218,7 +188,6 @@ function initZoom() {
 	d3.select('svg')
 		.call(zoom);
 }
-
 
 function getExplain(kind, api) {
 	if (typeof kind !== 'undefined') {
@@ -275,8 +244,6 @@ function collapseAction(act, type) {
 			}
 		}
 	}
-
-
 }
 
 function parseArray(data) {
@@ -391,8 +358,6 @@ function printDiv(id) {
 		frame1.remove();
 	}, 500);
 }
-
-
 
 function checkImage(kind, api) {
 	let image;
@@ -555,12 +520,7 @@ function checkImage(kind, api) {
 		}
 	}
 
-	// if (image === 'other/unk.svg') {
-	// 	console.log('Kind: ' + kind + ' API: ' + api)
-	// }
-
 	return image;
-
 }
 
 function buildOwnerSvgInfo(data) {

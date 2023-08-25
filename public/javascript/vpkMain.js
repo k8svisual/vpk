@@ -79,17 +79,9 @@ $(document).ready(function () {
     $("#storage").removeClass("show");
     $("#cluster").removeClass("active");
     $("#cluster").removeClass("show");
-    // $("#xreference").removeClass("active");
-    // $("#xreference").removeClass("show");
     $("#ownerlinks").removeClass("active");
     $("#ownerlinks").removeClass("show");
     $('#ownerlinks').hide();
-    // $("#comparesnap").removeClass("active");
-    // $("#comparesnap").removeClass("show");
-
-    // $("#firstSnap").html('&lt;not selected&gt;');
-    // $("#secondSnap").html('&lt;not selected&gt;');
-
     // get the name of selected tab and process
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (evt) {
         currentTab = $(evt.target).attr('href');
@@ -165,16 +157,6 @@ $(document).ready(function () {
             $('#cluster').hide();
             $('#clusterHdr').hide();
         }
-        // if (currentTab === "#xreference") {
-        //     px = 120;
-        //     checkIfDataLoaded();
-        //     documentationTabTopic = 'xreference';
-        //     $('#xreference').show();
-        //     $('#xreferenceHdr').show();
-        // } else {
-        //     $('#xreference').hide();
-        //     $('#xreferenceHdr').hide();
-        // }
         if (currentTab === "#ownerlinks") {
             px = 120;
             checkIfDataLoaded();
@@ -185,15 +167,6 @@ $(document).ready(function () {
             $('#ownerlinks').hide();
             $('#ownerlinksHdr').hide();
         }
-        // if (currentTab === "#comparesnap") {
-        //     px = 190;
-        //     documentationTabTopic = 'comparesnap';
-        //     $('#comparesnap').show();
-        //     $('#comparesnapHdr').show();
-        // } else {
-        //     $('#comparesnap').hide();
-        //     $('#comparesnapHdr').hide();
-        // }
 
         element = document.getElementById("banner")
         element.style['height'] = px + "px";
@@ -281,48 +254,11 @@ $(document).ready(function () {
         placeholder: "select namespace"
     });
 
-    // $('#compareInstances').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "select snapshot"
-    // });
-
-    // $('#compareInstances').on('select2:select', function (e) {
-    //     var snapDir = $('#compareInstances').select2('data');
-    //     compareSnapSelected = snapDir[0].text;
-    //     console.log('Snap selected: ' + compareSnapSelected);
-    //     $('#compareInstance').val(null)
-    // });
-
     $('#cluster-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md",
         placeholder: "select namespace(s)"
     });
-
-    // $('#xref-filter').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "select xref filter values"
-    // });
-
-    // $('#xref-type').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "select xref"
-    // });
-
-    // $('#xrefEdit-type').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "select xref"
-    // });
-
-    // $('#xrefEdit-type').on('select2:select', function (e) {
-    //     var selected = $('#xrefEdit-type option:selected').val();
-    //     pickXref(selected);
-    //     $('#xrefEdit-type').val(null)
-    // });
 
     $("#searchBtn").click(function (e) {
         e.preventDefault();
@@ -340,23 +276,6 @@ $(document).ready(function () {
         containerCssClass: "vpkfont-md",
         placeholder: "sort order"
     });
-
-    // //-- compare dropdowns
-    // $('#compareSort1').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "Namespace"
-    // });
-    // $('#compareSort2').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "Name"
-    // });
-    // $('#compareView').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "All"
-    // });
 
     $('#cluster-bar1-select').focusout(function () {
         console.log('No FOCUS')
@@ -434,16 +353,6 @@ $(document).ready(function () {
     $('[data-toggle="popover"]').popover();
 
     $('[data-toggle="tooltip"]').tooltip();
-
-    //cluster tab slideout for filter and/or legend
-
-    // $(".cluster_legend").click(function (event) {
-    //     $(".cluster_legend_box").addClass("active")
-    // });
-
-    // $(".cluster_legend_close").click(function (event) {
-    //     $(".cluster_legend_box").removeClass("active")
-    // });
 
     $("#cluster_filter").click(function (event) {
         $("#cluster_filter_box").addClass("active")
@@ -573,23 +482,6 @@ function changeDir() {
     $("#loadStatus").hide();
     $("#chgDirFooter").show();
 }
-// function getCompareSnap(which) {
-//     compareSnapButton = which;
-//     let data = { 'which': which };
-//     socket.emit('clusterDir', data);
-// }
-
-// function setCompareSnap() {
-//     if (compareSnapButton === "1" || compareSnapButton === 1) {
-//         compareSnap1Selected = compareSnapSelected;
-//         $("#firstSnap").html(compareSnap1Selected);
-//     } else if (compareSnapButton === "2" || compareSnapButton === 2) {
-//         compareSnap2Selected = compareSnapSelected;
-//         $("#secondSnap").html(compareSnap2Selected);
-//     }
-//     $("#compareModal").modal('hide');
-// }
-
 
 //...
 socket.on('clusterDirResult', function (data) {
@@ -601,44 +493,9 @@ socket.on('clusterDirResult', function (data) {
         $('#dsInstances').html(items);
         $("#chgDirModal").modal('show');
     }
-    // } else if (data.which === "1" || data.which === 1) {
-    //     $('#compareInstances').html(items);
-    //     $("#compareModal").modal('show');
-    // } else if (data.which === "2" || data.which === 2) {
-    //     $('#compareInstances').html(items);
-    //     $("#compareModal").modal('show');
-    // }
     k8cData = null;
 
 });
-//==========================================================
-
-
-// //----------------------------------------------------------
-// // snapshoit compare 
-// function compareSnapshots() {
-//     // check if snapshots are selected before running the compare
-//     if (compareSnap1Selected === '' && compareSnap1Selected === '') {
-//         showMessage('Both Snapshots must be selected before compare processing can be started. '
-//             + '<br><br>Use the Snapshot 1 and Snapshot 2 buttons to select the snapshots to be compared.'
-//             + '<br><br>Optionally set the Sorting and View Results if desired.')
-//     } else {
-//         // show processing gif and saned request for compare
-//         console.log('Snap 1: ' + compareSnap1Selected + '  Snap 2: ' + compareSnap2Selected);
-//         $("#compareDetail").empty();
-//         $("#compareDetail").html(processingRequest);
-
-//         let data = { 'snap1': compareSnap1Selected, 'snap2': compareSnap2Selected };
-//         socket.emit('compareSnapshots', data);
-//     }
-// }
-
-// //...
-// socket.on('compareSnapshotsResults', function (data) {
-//     // pass results data to the compare build UI
-//     buildCompareResults(data, compareSnap1Selected, compareSnap2Selected);
-// });
-
 //==========================================================
 
 
@@ -759,26 +616,6 @@ socket.on('objectDef', function (data) {
 //==========================================================
 
 
-// //----------------------------------------------------------
-// function getCompareFile(fn, which) {
-//     socket.emit('getCompareFile', { 'fn': fn, 'which': which });
-// }
-// //...
-// socket.on('getCompareFileResults', function (data) {
-//     // if results of first file, get second file, else show files
-//     if (data.which === '1') {
-//         compFile1 = data.content;
-//         getCompareFile2();
-//     }
-//     if (data.which === '2') {
-//         compFile2 = data.content;
-//         compareShowFiles();
-//     }
-// });
-// //==========================================================
-
-
-
 //----------------------------------------------------------
 function getFileByCid(data, secret) {
     if (typeof secret === 'undefined') {
@@ -803,23 +640,6 @@ socket.on('getFileByCidResults', function (data) {
     }
 });
 //==========================================================
-
-
-// //----------------------------------------------------------
-// // send request to server to get hierarchy data
-// function getSecurityChart(type) {
-//     hideMessage();
-//     $("#securityChartInfo").empty();
-//     $("#securityChartInfo").html('');
-//     socket.emit('getSecurityHier', { "type": type, "namespaceFilter": 'n' });
-// }
-// //...
-// socket.on('getSecurityHierResult', function (data) {
-//     console.log(JSON.stringify(data, null, 2))
-//     $("#securityCharts").removeAttr("height");
-//     $("#securityCharts").removeAttr("width");
-//     chartCollapsible(data, 's');
-// });
 
 
 //----------------------------------------------------------
@@ -1232,19 +1052,6 @@ socket.on('getServerDataResult', function (data) {
     buildStorage();
 
     showClusterTab();
-    // $("#clusterDetail").html('')
-    // buildCluster3D();
-
-
-    // if (getDataRequest === 'schematic') {
-    //     schematic();
-    // }
-    // if (getDataRequest === 'cluster3D') {
-    //     buildCluster3D();
-    // }
-    // populate storage tab
-
-    // getCluster3DInfo();
 
 });
 
@@ -1479,14 +1286,6 @@ function searchObj() {
             kindKey = true;
         }
     };
-    // // reuse options var
-    // options = $('#label-filter').select2('data');
-    // for (var i = 0; i < options.length; i++) {
-    //     var tmp = options[i].text;
-    //     tmp.trim();
-    //     labels = labels + tmp + '::';
-    //     labelKey = true;
-    // };
 
     searchValue = $("#search-value").val();
     if (typeof searchValue === 'undefined' || searchValue.length === 0) {
@@ -1560,109 +1359,12 @@ function buildSearchResults(data) {
 
 //==========================================================
 
-
-// //----------------------------------------------------------
-// function bldXrefChart(type) {
-//     hideMessage();
-//     chartType = type;
-//     let filter = '';
-//     let tmp;
-//     let data;
-//     let xref = $('#xref-type').select2('data');
-//     let options = $('#xref-type').select2('data');
-//     for (var i = 0; i < options.length; i++) {
-//         tmp = options[i].text;
-//         tmp = tmp.split(' : ');
-//         if (tmp[0] !== '') {
-//             xref = tmp[0];
-//         } else {
-//             showMessage('No xref type selected', 'warn');
-//             return;
-//         }
-//     };
-//     $("#xrefCharts").empty();
-//     $("#xrefInfo").empty();
-//     $("#xrefInfo").html(processingRequest);
-//     if (filter === '') {
-//         filter = ':all:-xref:';
-//     }
-//     data = { 'xref': xref, 'filter': filter };
-//     socket.emit('xreference', data);
-// }
-// //...
-// socket.on('xrefResult', function (data) {
-//     $("#xrefCharts2").empty();
-//     $("#xrefCharts2").html('');
-//     if (chartType === 'hierarchy') {
-//         $("#xrefCharts2").removeAttr("viewBox");
-//         chartHierarchy(data, 'x');
-//     } else if (chartType === 'collapsible') {
-//         $("#xrefCharts2").removeAttr("height");
-//         $("#xrefCharts2").removeAttr("width");
-//         chartCollapsible(data, 'x');
-//     } else if (chartType === 'circlePack') {
-//         $("#xrefCharts2").removeAttr("height");
-//         $("#xrefCharts2").removeAttr("width");
-//         chartCirclePack(data, 'x');
-//     }
-// });
-//==========================================================
-
-
-// //----------------------------------------------------------
-// function xrefGetData(tmp) {
-//     hideMessage();
-//     socket.emit('getXrefRules');
-// }
-// //...
-// socket.on('getXrefRulesResult', function (data) {
-//     xrefData = data;
-//     xrefEditModalDialog();
-// });
-//==========================================================
-
-
-// //----------------------------------------------------------
-// // send request to server to get xref list
-// function getXrefFilter(data) {
-//     socket.emit('getXrefFilter', data);
-// }
-// //...
-// socket.on('getXrefFilterResults', function (data) {
-//     console.log(JSON.stringify(data, null, 4))
-// });
-//==========================================================
-
-
-
-
 //----------------------------------------------------------
 function getConfig() {
     socket.emit('getConfigData');
 }
-//...
-//==========================================================
-
-//----------------------------------------------------------
-//...
-//==========================================================
-//==========================================================
-//==========================================================
-//==========================================================
-//==========================================================
-
-
-// //----------------------------------------------------------
-// // item was selected from xref edit dialog
-// function pickXref(tmp) {
-//     tmp = tmp.split(':');
-//     tmp = tmp[0].trim();
-//     xrefData.picked = tmp;
-//     xrefHhandleSelection();
-// }
 
 //==========================================================
-
 
 
 //----------------------------------------------------------

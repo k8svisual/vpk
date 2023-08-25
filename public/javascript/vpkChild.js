@@ -97,14 +97,6 @@ function hideVpkTooltip() {
     tooltip.style.display = "none";
 }
 
-// function getDefFnum(data) {
-//     if (data === 'missing') {
-//         $("#yamlModal").modal('show');
-//         return;
-//     }
-//     selectedDef = data;
-//     editObj();
-// }
 
 function showSecGraph(ns) {
     return;
