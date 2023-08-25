@@ -251,6 +251,12 @@ $(document).ready(function () {
         placeholder: "select snapshot"
     });
 
+    $('#schematic-ns-filter').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select namespace(s)"
+    });
+
     $('#graphic-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md",
@@ -264,6 +270,12 @@ $(document).ready(function () {
     });
 
     $('#security-ns-filter').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select namespace"
+    });
+
+    $('#ownerRef-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md",
         placeholder: "select namespace"
@@ -1058,6 +1070,7 @@ function buildNamespaceStats(stats) {
 function getSelectLists() {
     socket.emit('getSelectLists');
 }
+
 function closeGetCluster() {
     getSelectLists();
     $("#clusterModal").modal('hide');
@@ -1066,7 +1079,13 @@ function closeGetCluster() {
 //$$ Also invoked in  $(document).ready(function() $$
 //...
 socket.on('selectListsResult', function (data) {
+    k8cData = data.pods;
+    schematicKeys = data.keys;
+    svgInfo = data.info;
+    nsResourceInfo = data.nsRI;
+    workloadEventsInfo = data.evts;
     populateSelectLists(data);
+    socket.emit('getServerData');
 });
 //==========================================================
 
@@ -1077,7 +1096,7 @@ function getVersion() {
     socket.emit('getVersion');
 }
 //...
-socket.on('version', function (data) {
+socket.on('versionResult', function (data) {
     version = data.version;
     runMode = data.runMode;
     if (runMode === 'L') {
@@ -1149,10 +1168,10 @@ socket.on('resetResults', function (data) {
         $("#xrefCharts2").html('')
         $("#storageDetail").html('')
         $("#clusterDetail").html('')
-        getSelectLists('y');
+        getSelectLists();
         // Issue #17 fix
         foundNSNamesBuilt = false;
-
+        bldSchematic()
     }
 });
 //==========================================================
@@ -1195,17 +1214,18 @@ function sendShutdownS2() {
 
 //----------------------------------------------------------
 function bldSchematic() {
-    socket.emit('schematicBuild', options);
+    socket.emit('getServerData', options);
 }
 
-socket.on('schematicBuildResult', function (data) {
+socket.on('getServerDataResult', function (data) {
     k8cData = data.pods;
     schematicKeys = data.keys;
     svgInfo = data.info;
     nsResourceInfo = data.nsRI;
     workloadEventsInfo = data.evts;
+    oRefLinks = data.oRef;
     hideMessage();
-    populateSchematicList()
+    populateSchematicList();
     $("#clusterDetail").html('')
     if (getDataRequest === 'schematic') {
         schematic();
@@ -1227,9 +1247,9 @@ function getSchematic(ns, pod) {
     let namespaces = "";
     if (svgWhere === "") {
         let tmp;
-        let options = $('#schematic-ns-filter').select2('data');
-        for (var i = 0; i < options.length; i++) {
-            tmp = options[i].text;
+        let selected = $('#schematic-ns-filter').select2('data');
+        for (var i = 0; i < selected.length; i++) {
+            tmp = selected[i].text;
             tmp = tmp.trim();
             if (tmp.length === 0) {
                 namespaces = namespaces + ':all-namespaces';
@@ -1322,7 +1342,7 @@ function getCluster3DInfo() {
     $('#cluster3DView').hide();
     $("#resourceProps").html(processingRequest)
     getDataRequest = 'cluster3D';
-    socket.emit('schematicBuild');
+    socket.emit('getServerData');
 }
 
 

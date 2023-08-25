@@ -39,11 +39,11 @@ let stickColorDark = true;
 let soundFor3D = true;
 
 // global
-var version = 'Get from server';
-var runMode = 'L';
+var version = 'Get from server';  // Version of the software 
+var runMode = 'L';                // mode running, L - locally, C - container
 var socket = io.connect();
 var svgE = 0;
-var baseDir;
+var baseDir;                      // Name of directory where snapshot is located
 var validDir;
 var newDir;
 
@@ -171,6 +171,8 @@ let ownerCollapseIDs = [];
 let ownBreakID = 0;
 let ownerSvgInfo = {};            			// tool tip pop-ups
 let ownerInfoID = 0;
+
+let oRefLinks = [];
 
 let storageInfo = {};
 let storageData = '';
@@ -1210,7 +1212,7 @@ function getSecRole(key, rColor, ns) {
 
 function checkIfDataLoaded() {
 	if (rootDir === 'No snapshot connected' || rootDir === '-none-') {
-		showMessage('No previous snapshot or running cluster has been connected.', 'fail');
+		showMessage('No snapshot or running cluster has been connected.', 'fail');
 	} else {
 		hideMessage();
 	}

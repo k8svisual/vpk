@@ -22,24 +22,26 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //----------------------------------------------------------
 
 function populateSchematicList() {
-    let options = {}
-    let keys = Object.keys(nsResourceInfo);
-    let data = {};
-    for (let i = 0; i < keys.length; i++) {
-        data[keys[i]] = keys[i]
+    if (typeof nsResourceInfo !== 'undefined' && nsResourceInfo !== null) {
+        let options = {}
+        let keys = Object.keys(nsResourceInfo);
+        let data = {};
+        for (let i = 0; i < keys.length; i++) {
+            data[keys[i]] = keys[i]
+        }
+        $("#schematic-ns-filter").empty();
+        $("#schematic-ns-filter").select2({
+            data: options,
+            dropdownCssClass: "vpkfont-md",
+            containerCssClass: "vpkfont-md",
+            placeholder: "select namespace(s)"
+        });
+
+        options = bldOptions(data, 'S', 'no');
+
+        $("#schematic-ns-filter").empty();
+        $("#schematic-ns-filter").html(options);
     }
-    $("#schematic-ns-filter").empty();
-    $("#schematic-ns-filter").select2({
-        data: options,
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md"
-    });
-
-    options = bldOptions(data, 'S', 'no');
-
-    $("#schematic-ns-filter").empty();
-    $("#schematic-ns-filter").html(options);
-
 }
 
 function populateSelectLists(data) {
@@ -94,6 +96,9 @@ function populateSelectLists(data) {
 
         $("#security-ns-filter").empty();
         $("#security-ns-filter").html(options);
+
+        $("#ownerRef-ns-filter").empty();
+        $("#ownerRef-ns-filter").html(options);
 
         // filter bar2 (resource kinds)
         options = bldOptions(data.kinds, 'K', 'select2');

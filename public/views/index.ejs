@@ -69,7 +69,6 @@
                     <a href="javascript:closeVpK()">
                         <i class="fas fa-window-close fa-lg mr-3 vpkcolor"></i>
                     </a>
-
                     <a href="javascript:getDocumentation()">
                         <i class="fas fa-question mr-3 vpkcolor"></i>
                     </a>
@@ -108,12 +107,12 @@
                     class="nav-link small text-uppercase">Security</a></li>
             <li class="nav-item"><a id="tableTab" href="#tableview" data-target="#tableview" data-toggle="tab"
                     class="nav-link small text-uppercase">Table View</a></li>
-            <li class="nav-item"><a id="xreferenceTab" href="#xreference" data-target="#xreference" data-toggle="tab"
-                    class="nav-link small text-uppercase">X-Reference</a></li>
+            <!-- <li class="nav-item"><a id="xreferenceTab" href="#xreference" data-target="#xreference" data-toggle="tab"
+                    class="nav-link small text-uppercase">X-Reference</a></li> -->
             <li class="nav-item"><a id="ownerliksTab" href="#ownerlinks" data-target="#ownerlinks" data-toggle="tab"
                     class="nav-link small text-uppercase">OwnerRef Links</a></li>
-            <li class="nav-item"><a id="compareTab" href="#comparesnap" data-target="#comparesnap" data-toggle="tab"
-                    class="nav-link small text-uppercase">Compare Snapshots</a></li>
+            <!-- <li class="nav-item"><a id="compareTab" href="#comparesnap" data-target="#comparesnap" data-toggle="tab"
+                    class="nav-link small text-uppercase">Compare Snapshots</a></li> -->
         </ul>
 
         <div id="viewtop">
@@ -224,12 +223,8 @@
             </div>
 
             <div id="schematicHdr" class="vpkhidden">
-
                 <div id="filter-chart" class="vpkcolor mt-1 mr-2 ml-2 border rounded">
                     <div class="row filterBack pl-1 ml-2 mt-1">
-                        <div class="vpkfont-md mr-1 pt-1">
-                            Select namespaces
-                        </div>
                         <div id="schematic-ns-select" class="ml-1 mr-1 vpkfont-md">
                             <select id="schematic-ns-filter" multiple="multiple" style="width: 300px">
                                 <option>all-namespaces</option>
@@ -248,28 +243,28 @@
             </div>
 
             <div id="securityHdr" class="vpkhidden">
-                <div class="row ml-2 mt-1 mb-2 mr-2 border rounded">
-                    <div class="align-middle vpkfont-md vpkcolor ml-2 mr-2 mb-2 mt-2">
-                        Select information to view
-                    </div>
-                    <div class="mt-1">
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                            onclick="getSecurityViewData()">
-                            &nbsp;View selected namespace&nbsp;
-                        </button>
-
-                        <span id="security-ns-select" class="ml-1 mr-1 vpkfont-md">
-                            <select id="security-ns-filter" style="width: 300px">
-                                <option>all-namespaces</option>
-                                <option>default</option>
-                            </select>
-                        </span>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                            onclick="viewSecurityLegend()">
-                            &nbsp;Legend&nbsp;
-                        </button>
-
+                <div class="ml-2 mt-1 mb-2 mr-2 border rounded">
+                    <div class="vpkButtons mb-1 ml-1 mt-1">
+                        <div>
+                            <span>
+                                <span id="security-ns-select" class="ml-1 mr-1 vpkfont-md">
+                                    <select id="security-ns-filter" style="width: 300px">
+                                        <option>all-namespaces</option>
+                                        <option>default</option>
+                                    </select>
+                                </span>
+                                <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                    id="sec06" onclick="getSecurityViewData()">
+                                    &nbsp;View selected namespace&nbsp;
+                                </button>
+                                <span class="'vpkcolor header-right">
+                                    <button type="button"
+                                        class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
+                                        onclick="viewSecurityLegend()">Legend
+                                    </button>
+                                </span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -289,29 +284,24 @@
             </div>
 
             <div id="clusterHdr" class="vpkhidden">
-                <div class="grid mt-1 ml-2 mr-1 mb-1 border rounded">
-                    <div class="row vpkButtons mb-1 ml-1 mt-1">
+                <div class="mt-1 ml-2 mr-1 mb-1 border rounded">
+                    <div class="vpkButtons mb-1 ml-1 mt-1">
                         <div>
                             <span>
                                 <button type="button" id="c3DView"
                                     class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                    onclick="getCluster3DInfo()">Refresh 3D View
+                                    onclick="getCluster3DInfo()">View cluster
                                 </button>
-                                <!-- <button type="button" id="c3DView"
-                                    class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                    onclick="openSlideIn()">Open properties view
-                                </button> -->
-
-                                <span style="float: right;">
-                                    <a href="javascript:print3Dscene()" class="pl-4 pt-2">
-                                        <i class="fas fa-print mr-3 float-right vpkcolor vpkfont-lg"></i>
-                                    </a>
+                                <span class="'vpkcolor header-right">
+                                    <button type="button"
+                                        class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
+                                        onclick="viewClusterLegend()">Legend
+                                    </button>
+                                </span>
+                                <span class="fas fa-print fa-lg mr-1 pt-1 pr-2 vpkcolor header-right"
+                                    onclick="print3Dscene()">
                                 </span>
                             </span>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                                onclick="viewClusterLegend()">
-                                &nbsp;Legend&nbsp;
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -353,38 +343,28 @@
             </div>
 
             <div id="ownerlinksHdr" class="vpkhidden">
-                <div class="grid mt-1 ml-2 mr-2 mb-2 border rounded">
-                    <div class="row vpkButtons ml-1">
-                        <div class="vpkcolor vpkfont-md ml-2 mt-2" style="width: 75px;">
-                            Sort first by
-                        </div>
-                        <div class="ml-2 mt-1">
-                            <select id="ownerSort1" class="vpkfont-md pl-3"
-                                style="width: 100px; vertical-align:middle;">
-                                <option></option>
-                                <option>Kind</option>
-                                <option>Namespace</option>
-                                <option>Levels</option>
-                            </select>
-                        </div>
-                        <div class="vpkcolor vpkfont-md ml-4 mt-2" style="width: 90px;">
-                            Sort second by
-                        </div>
-                        <div class="ml-2 mt-1">
-                            <select id="ownerSort2" class="vpkfont-md pl-3"
-                                style="width: 100px; vertical-align:middle;">
-                                <option></option>
-                                <option>Kind</option>
-                                <option>Namespace</option>
-                                <option>Levels</option>
-                            </select>
-                        </div>
 
-                        <div class="col-md-2 mt-2 ml-4">
-                            <button type="button" class="btn btn-outline-primary vpkButtons pl-1 pr-1 vpkwhite"
-                                id="viewChart01" onclick="getOwnerRefLinks()">
-                                <span>Retrieve data</span>
-                            </button>
+                <div class="ml-2 mt-1 mb-2 mr-2 border rounded">
+                    <div class="vpkButtons mb-1 ml-1 mt-1">
+                        <div>
+                            <span>
+                                <span id="ownerRef-ns-select" class="ml-1 mr-1 vpkfont-md">
+                                    <select id="ownerRef-ns-filter" style="width: 300px">
+                                        <option>all-namespaces</option>
+                                        <option>default</option>
+                                    </select>
+                                </span>
+                                <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
+                                    id="sec06" onclick="getOwnerRefViewData()">
+                                    &nbsp;View selected namespace&nbsp;
+                                </button>
+                                <span class="'vpkcolor header-right">
+                                    <button type="button"
+                                        class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
+                                        onclick="viewOwnerRefLegend()">Legend
+                                    </button>
+                                </span>
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -460,8 +440,9 @@
 
 
     <div id="viewarea">
-        <div id="graph" style="text-align: center;"></div>
-        <!-- <div id="legend" style="text-align: center;"></div> -->
+        <div id="graph" style="text-align: center;">
+        </div>
+
         <div id="tabsContent" class="tab-content">
             <div id="instructions" class="tab-pane active show">
                 <div class="text-center vpkcolor vkpfont-lg vpk-tagline">
@@ -885,9 +866,25 @@
             <!-- Cluster Table View-->
             <div id="clusterDetail" class="mr-2">
             </div>
+
+            <div id="comparesnap" class="tab-pane">
+                <div id="compareDetail" class="mr-2 ml-2 mt-2">
+                </div>
+            </div>
+
+            <div id="ownerlinks" class="tab-pane">
+                <div id="ownerRefLinksDetail" class="mr-2">
+                </div>
+
+                <div id="oRefWrapper">
+                    <div id="oRefViz" style="text-align: center;"></div>
+                </div>
+
+            </div>
+
         </div>
 
-        <div id="comparesnap" class="tab-pane">
+        <!-- <div id="comparesnap" class="tab-pane">
             <div id="compareDetail" class="mr-2 ml-2 mt-2">
             </div>
         </div>
@@ -895,7 +892,7 @@
         <div id="ownerlinks" class="tab-pane">
             <div id="ownerRefLinksDetail" class="mr-2">
             </div>
-        </div>
+        </div> -->
     </div>
 
     <!-- ==================================== -->

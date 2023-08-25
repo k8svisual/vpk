@@ -1069,6 +1069,8 @@ function createScene() {
                                 // define the csiNode
                                 buildSphere(csiX, pY - 2, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
                                 console.log(`csiX:${csiX}  pY:${pY - 2}  pZ:${pZ} fnum:${cluster.nodes[nodePtr].csiNodes[0].fnum}`)
+                                // CSI drivers are attached to a single resource so a modifier is appended for the
+                                // slice so only a single red slice will open when the CSInode is clicked in the 3D view
                                 buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
                                 buildLine(csiX, pY - 2, pZ, 4, 'CSILine', 'ClusterLevel', cluster.nodes[nodePtr].csiNodes[0].fnum);
 

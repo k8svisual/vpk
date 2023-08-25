@@ -69,6 +69,7 @@ function buildAll() {
     buildGraphRoles(secData, ns);
     buildConnections(secData, ns);
     buildDOTData(ns);            // add and second parm and each line of DOT data will print to console
+    console.log(graphVizData)
     createGraph();
 }
 
@@ -452,46 +453,42 @@ function buildGraphSubjects(data, ns) {
     let subNS;
     let checkSubjects = {};
     for (let s = 0; s < data.length; s++) {
-        // if (typeof data[s] === 'undefined') {
-        //     continue;
-        // }
-
         // If subjectName is Missing change to create ar unique
         // name to it will graph as a single subject 
-        if (data[s].subjectName === 'Missing') {
-            missingSubjectCnt++;
-            data[s].subjectName = 'Missing' + missingSubjectCnt++;
-            if (data[s].kind === 'ClusterRoleBinding') {
-                data[s].subjectNS = 'Missing'
-                data[s].subjectKind = 'Missing'
+        if (typeof data[s] !== 'undefined') {
+            if (data[s].subjectName === 'Missing') {
+                missingSubjectCnt++;
+                data[s].subjectName = 'Missing' + missingSubjectCnt++;
+                if (data[s].kind === 'ClusterRoleBinding') {
+                    data[s].subjectNS = 'Missing'
+                    data[s].subjectKind = 'Missing'
+                }
             }
-        }
-
-
-        if (typeof checkSubjects[`${data[s].subjectNname}.${data[s].subjectKind}.${data[s].fnum}`] !== 'undefined') {
-            console.log(`Found dup subject: ${data[s].subjectName} . ${data[s].subjectKind} . ${data[s].fnum}`)
-            continue;
-        } else {
-            checkSubjects[`${data[s].subjectName}.${data[s].subjectKind}.${data[s].fnum}`] = 'Y';
-        }
-
-        if (typeof data[s].subjectNS === 'undefined') {
-            subNS = '<blank>';
-        } else {
-            subNS = data[s].subjectNS;
-        }
-
-        key = data[s].subjectName + '.' + data[s].subjectKind + '.' + subNS
-        if (typeof nodeData[key] === 'undefined') {
-            nodeNum++;
-            nodeData[key] = {
-                'node': 'S' + nodeNum,
-                //'content': setNodeContent('Subject', data[s].subjectName, data[s].subjectKind),
-                'content': setNodeContent('Subject', data[s].subjectName, data[s].subjectKind),
-                'fnum': data[s].fnum,
-                'ns': data[s].ns
+            if (typeof checkSubjects[`${data[s].subjectNname}.${data[s].subjectKind}.${data[s].fnum}`] !== 'undefined') {
+                console.log(`Found dup subject: ${data[s].subjectName} . ${data[s].subjectKind} . ${data[s].fnum}`)
+                continue;
+            } else {
+                checkSubjects[`${data[s].subjectName}.${data[s].subjectKind}.${data[s].fnum}`] = 'Y';
             }
-            addNodeFnum('S' + nodeNum, data[s].fnum);
+
+            if (typeof data[s].subjectNS === 'undefined') {
+                subNS = '<blank>';
+            } else {
+                subNS = data[s].subjectNS;
+            }
+
+            key = data[s].subjectName + '.' + data[s].subjectKind + '.' + subNS
+            if (typeof nodeData[key] === 'undefined') {
+                nodeNum++;
+                nodeData[key] = {
+                    'node': 'S' + nodeNum,
+                    //'content': setNodeContent('Subject', data[s].subjectName, data[s].subjectKind),
+                    'content': setNodeContent('Subject', data[s].subjectName, data[s].subjectKind),
+                    'fnum': data[s].fnum,
+                    'ns': data[s].ns
+                }
+                addNodeFnum('S' + nodeNum, data[s].fnum);
+            }
         }
     }
 }
