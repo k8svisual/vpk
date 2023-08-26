@@ -23,7 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 $("#cluster3DView").show();
 
-canvas = document.getElementById("renderCanvas");
+canvas = document.getElementById("clusterCanvas");
 engine = null;
 camera = null;
 scene = null;
@@ -156,6 +156,9 @@ function createScene() {
 
     // Define the Babylon scene engine, camera, lights, etc
     const scene = new BABYLON.Scene(engine);
+    const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene, null, { loop: false, autoplay: true });
+
+
 
     // set scene background
     if (sceneStars === true) {
@@ -187,8 +190,6 @@ function createScene() {
 
     const light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 50, 0));
     const light2 = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(10, -50, 0));
-
-    const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene);
 
     // build materials with colors for nodes and pods
     const mstNodeMat = new BABYLON.StandardMaterial("nMstMat", scene);
@@ -645,9 +646,10 @@ function createScene() {
     //==============================================
     // build a cylinder for the red slice when object is selected    
     function buildSlice(x, y, z, fnum, size) {
-        let slice_size = SLICE_SIZE
+        let slice_size = SLICE_SIZE;
+
         if (size === 'b' || size === 'B') {
-            slice_size = SLICE_SIZE_BIG
+            slice_size = SLICE_SIZE_BIG;
         }
         slice = BABYLON.MeshBuilder.CreateCylinder("slice", { height: SLICE_HEIGHT, diameterTop: slice_size, diameterBottom: slice_size, tessellation: 32 });
         slice.position.y = y;
@@ -702,11 +704,6 @@ function createScene() {
                 showRing()
             }
         ));
-
-        if (link === '21337.0' || link === '21336.0' || link === '21340.0') {
-            console.log('located fnum: ' + fnum)
-        }
-
         addMesh(cyl, ns, type, fnum, status)
     }
 
@@ -990,7 +987,7 @@ function createScene() {
         if (nodeCnt === 1) {
             // Ensure a full control plane circle is defined
             beginArc = 0;
-            endArc = 361;
+            endArc = 180;
         } else {
             // Define control plane arc at master nodes
             beginArc = steps * mstStart;
@@ -1003,9 +1000,36 @@ function createScene() {
             mstArc.push(new BABYLON.Vector3(pX, 0, pZ));
         }
 
-        // build the control plane
+        controlPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
+            + '<div id="sliceKey">999.9</div>'
+            + '<a href="javascript:getDefFnum(\'999.9\')">'
+            + '<img src="images/k8/k8.svg" style="width:60px;height:60px;"></a>'
+            + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
+            + '</span>'
+            + '<br><hr>'
+            + '<span class="vpkfont-slidein"><b>Cluster control plane </b>'
+            + '<br>'
+            + '<span><b>Name : &nbsp;&nbsp;</b>(no resource name)</span>'
+            + '</span></div>';
+
         controlPlane = BABYLON.MeshBuilder.CreateTube("", { path: mstArc, radius: 0.1, sideOrientation: BABYLON.Mesh.DOUBLESIDE, cap: BABYLON.Mesh.CAP_ALL }, scene);
         controlPlane.material = controlPlaneColor;
+
+        // register click event for object
+        controlPlane.actionManager = new BABYLON.ActionManager(scene);
+        controlPlane.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = controlPlaneInner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing();
+            }
+        ));
+        // addMesh(sphere, ns, type, fnum, '')
+
+        buildSlice(pX, 0, pZ, '999.9', 'n');
 
         addControlP(controlPlane, 'ControlPlane');
     }
@@ -1034,7 +1058,7 @@ function createScene() {
             let csiFnum;
             let csiInner;
             let csiX = pX;
-
+            let controlPlanInner;
 
             // "m" is a Master node, otherwise treat as worker node
             if (cluster.nodes[nodePtr].type === "m") {
@@ -1318,6 +1342,14 @@ function build3DView() {
     window.addEventListener("resize", function () {
         engine.resize();
     });
+}
+
+function buildCluster3D() {
+    build3DJSON();
+    $('#cluster3DView').show();
+    $("#clusterAttention").html('&nbsp');
+    build3DView();
+    $("#resourceProps").html('')
 }
 
 //----------------------------------------------------------

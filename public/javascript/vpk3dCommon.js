@@ -21,7 +21,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // common variables for 3d cluster
 //----------------------------------------------------------
 
-let canvas = document.getElementById("renderCanvas");
+let canvas = document.getElementById("clusterCanvas");
 var engine = null;
 var camera = null;
 var createDefaultEngine
@@ -54,6 +54,7 @@ let maxPodCount = 0;
 let maxNodeCount = 0;
 // statistics on number of located resources for each node
 let nodeStats = {};
+let slice = "x";
 
 let bn = [
     1024, //Ki

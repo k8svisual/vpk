@@ -302,6 +302,7 @@
                                     class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
                                     onclick="getCluster3DInfo()">Refresh view
                                 </button>
+                                <span id="clusterAttention"></span>
                                 <span class="'vpkcolor header-right">
                                     <button type="button"
                                         class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
@@ -472,7 +473,7 @@
                 <!-- Cluster 3D View-->
                 <div id="cluster3DView" style="display: none;">
                     <div class="cluster-content" id="canvas3D">
-                        <canvas id="renderCanvas"></canvas>
+                        <canvas id="clusterCanvas"></canvas>
                     </div>
                 </div>
 
@@ -655,7 +656,7 @@
                         <input class="form-check-input filter-checkbox" type="checkbox" value=""
                             id="clusterFilterCPULimit" name="clusterFilterCPULimit">
                         <span class="cpuLimit">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                        <label class="form-check-label" for="clusterFilterCPU">
+                        <label class="form-check-label" for="clusterFilterCPULimit">
                             Pod CPU Limit
                         </label>
                     </div>
@@ -753,7 +754,7 @@
                         </table>
 
                         <div class="form-check mt-1 vpkfont-filter">
-                            <button type="button" id="c3DView" class="btn btn-primary btn-sm vpkButtons"
+                            <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons"
                                 onclick="getCluster3DInfo()">&nbsp;Update background and refresh
                                 view&nbsp;</button>
                         </div>
