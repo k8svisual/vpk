@@ -186,11 +186,6 @@ function filter3DView() {
         }
     } else {
         for (i = 0; i < meshArray.length; i++) {
-            // If ClusterLevel show the item. 
-            // if (meshArray[i].ns === 'ClusterLevel') {
-            //     meshArray[i].obj.setEnabled(true);
-            //     continue;
-            // }
             // Search Pods by namespace and decide if shown or hidden
             tmp = ':' + meshArray[i].ns + ':';
             if (meshArray[i].type === 'Pod') {
@@ -504,14 +499,27 @@ function filter3DView() {
     // Check CPU requested
     if ($('#clusterFilterControlP').prop('checked')) {
         // Show control plane items
-        for (i = 0; i < controlPArray.length; i++) {
-            controlPArray[i].obj.setEnabled(true);
+        for (i = 0; i < controlPlaneArray.length; i++) {
+            controlPlaneArray[i].obj.setEnabled(true);
         }
+        for (i = 0; i < meshArray.length; i++) {
+            if (meshArray[i].type === 'ControlPlaneComponent') {
+                meshArray[i].obj.setEnabled(true);
+            }
+        }
+
     } else {
         // hide control plane items
-        for (i = 0; i < controlPArray.length; i++) {
-            controlPArray[i].obj.setEnabled(false);
+        for (i = 0; i < controlPlaneArray.length; i++) {
+            controlPlaneArray[i].obj.setEnabled(false);
         }
+        for (i = 0; i < meshArray.length; i++) {
+            if (meshArray[i].type === 'ControlPlaneComponent') {
+                meshArray[i].obj.setEnabled(false);
+            }
+        }
+
+
     }
 }
 

@@ -41,9 +41,10 @@ let meshArray = [];             // Array of all meshes
 let podArray = [];              // Array of displayed pods using fnum
 let sliceArray = [];            // Array of slice rings 
 let resourceArray = [];         // Array of memory and cpu info 
-let controlPArray = [];
+let controlPlaneArray = [];
 let mstCount = 0;
 let nodeSpace = {};
+let compStatus = {};
 
 let networkLinks = {};
 let pvLinks = [];              // Array of PVs that are biult

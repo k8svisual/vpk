@@ -166,6 +166,8 @@ let storageInfo = {};
 let storageData = '';
 let storageInfoID = 0;
 
+let helmData = '';
+let imageRegistryData = '';
 
 let explainInfo = [];
 

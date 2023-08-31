@@ -93,6 +93,8 @@ function createScene() {
     let WALL_HEIGHT = 0.1;                  // controls heigth of wall, not bands
     let LINEFACTOR = .55;
     let INNERFACTOR = 0.5;
+    let INGRESSHEIGHT = 9.5;
+    let INGRESSRADIUS = 2.5
     let OUTTERFACTOR = 1.0;
     let PI2 = 6.283185307179586;
     let ARC = 0.017453293;
@@ -110,6 +112,8 @@ function createScene() {
     let SLICE_HEIGHT = 0.01;
     let SLICE_SIZE = 0.50;
     let SLICE_SIZE_BIG = 1.60;
+    let CONTROLPLANE = 3.5;
+    let CLUSTERLEVELPLANE = 2.75;
 
     let aV = 0;
     let angle = 0;
@@ -128,7 +132,7 @@ function createScene() {
     let mstArc = [];
     let beginArc = 0;
     let endArc = 0;
-    let controlPlane;
+    // let controlPlane;
 
     let podArcSize = 0;
     if (maxNodeCount < 4) {
@@ -157,8 +161,6 @@ function createScene() {
     // Define the Babylon scene engine, camera, lights, etc
     const scene = new BABYLON.Scene(engine);
     const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene, null, { loop: false, autoplay: true });
-
-
 
     // set scene background
     if (sceneStars === true) {
@@ -258,6 +260,15 @@ function createScene() {
     const controlPlaneColor = new BABYLON.StandardMaterial("", scene);
     controlPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#725db7");
 
+    const controlPlaneWallColor = new BABYLON.StandardMaterial("", scene);
+    controlPlaneWallColor.diffuseColor = new BABYLON.Color3.FromHexString("#725db7");
+    controlPlaneWallColor.alpha = 0.15;
+
+    const ingressColor = new BABYLON.StandardMaterial("", scene);
+    ingressColor.diffuseColor = new BABYLON.Color3.FromHexString("#ffff00");
+    ingressColor.alpha = 0.45;
+
+
     let stickColor = new BABYLON.StandardMaterial("", scene);
     if (stickColorDark === false) {
         stickColor.diffuseColor = new BABYLON.Color3.FromHexString("#ffffff");
@@ -265,12 +276,28 @@ function createScene() {
         stickColor.diffuseColor = new BABYLON.Color3.FromHexString("#666666");
     }
 
+    const csiStickColor = new BABYLON.StandardMaterial("", scene);
+    csiStickColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
+
     // Build inner band for cluster (small circle in center of cluster)
     const band1 = BABYLON.MeshBuilder.CreateTube("band1", {
         path: [new BABYLON.Vector3(0.0, 0.0, 0.0), new BABYLON.Vector3(0.0, WALL_HEIGHT, 0.0)],
         radius: RADIUSINNER,
         sideOrientation: BABYLON.Mesh.DOUBLESIDE
     }, scene);
+
+    const registryColor = new BABYLON.StandardMaterial("", scene);
+    registryColor.diffuseColor = new BABYLON.Color3.FromHexString("#66cc33");
+
+    const clusterLevelColor = new BABYLON.StandardMaterial("", scene);
+    clusterLevelColor.diffuseColor = new BABYLON.Color3.FromHexString("#777777");
+    clusterLevelColor.alpha = 0.45;
+
+    const csiStorageWallColor = new BABYLON.StandardMaterial("", scene);
+    csiStorageWallColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
+    csiStorageWallColor.alpha = 0.15;
+
+
     bandPositions = band1.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     band1.setVerticesData(BABYLON.VertexBuffer.ColorKind, setColor(bandPositions, 0.70, 0.70, 0.70));
 
@@ -361,7 +388,7 @@ function createScene() {
     //==============================================
     // Add mesh to an array that is used to control showing the mesh object
     function addControlP(obj, id) {
-        controlPArray.push({ 'id': id, 'obj': obj });
+        controlPlaneArray.push({ 'id': id, 'obj': obj });
     }
 
 
@@ -415,10 +442,6 @@ function createScene() {
         tmpData = null;
 
         for (cCnt = 0; cCnt < podCnt; cCnt++) {
-            // let cpu;
-            // let memory;
-            // let i;
-            // let tmp;
             let size;
 
             // check if ring of node is full, if so, add new ring in node
@@ -707,6 +730,31 @@ function createScene() {
         addMesh(cyl, ns, type, fnum, status)
     }
 
+    //==============================================
+    // build a cylinder 
+    function buildControlComponent(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, link) {
+        let cyl = BABYLON.MeshBuilder.CreateCylinder("pvc", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
+        cyl.position.x = x;
+        cyl.position.y = y;
+        cyl.position.z = z;
+        cyl.material = material;
+
+        // register click event for object
+        cyl.actionManager = new BABYLON.ActionManager(scene);
+        cyl.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = inner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing()
+            }
+        ));
+        addMesh(cyl, ns, type, fnum, status)
+        addControlP(cyl, 'ControlPlane');
+    }
+
 
     //==============================================
     // build a cylinder 
@@ -766,6 +814,7 @@ function createScene() {
                 showRing();
             }
         ));
+
         addMesh(sphere, ns, type, fnum, '')
     }
 
@@ -890,11 +939,13 @@ function createScene() {
         let wallMat = new BABYLON.StandardMaterial("mat" + i, scene);
         wallMat.backFaceCulling = false;
         wallMat.diffuseColor = new BABYLON.Color3(0.725, 0.725, 0.725);
+
         //Create a custom mesh for the wall
         let customMesh = new BABYLON.Mesh("wall" + i, scene);
         //Set arrays for positions and indices
         let positions = [sX, sY, sZ, x, y, z, x, h, z, sX, h, sZ];
         let indices = [0, 1, 2, 2, 3, 0];
+
         //Empty array to contain calculated values
         var normals = [];
         var vertexData = new BABYLON.VertexData();
@@ -941,6 +992,7 @@ function createScene() {
             //createSC(scTxt, scFnum, scData)
             let adjustment = 0;
             let path;
+            let tX, tZ;
 
             // set x,y,z points for storage class icon
             if (maxRings > 4) {
@@ -949,10 +1001,28 @@ function createScene() {
             pX = (maxRings - adjustment) * Math.sin(angle);
             pY = 0;
             pZ = (maxRings - adjustment) * Math.cos(angle);
-
             // define the storage class
             buildCylinder(pX, pY - 7, pZ, 1, 1, 32, storageClassColor, 'ClusterLevel', 'StorageClass', 0, scTxt, '')
             buildSlice(pX, pY - 7, pZ, scFnum, 'b')
+
+            // connect to CSI wall
+            tX = (maxRings + 1.5) * Math.sin(angle);
+            tZ = (maxRings + 1.5) * Math.cos(angle);
+            path = [
+                new BABYLON.Vector3(pX, pY - 7, pZ),
+                new BABYLON.Vector3(tX, 0, tZ)
+            ];
+            let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            stick.material = stickColor;
+            //addMesh(stick, 'ClusterLevel', 'StorageClassLine', scFnum, '')
+            path = [
+                new BABYLON.Vector3(tX, - 7, tZ),
+                new BABYLON.Vector3(tX, 0, tZ)
+            ];
+            let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            upStick.material = stickColor;
+
+
 
             // connection lines to PVCs 
             if (typeof scData.pv[0] !== 'undefined') {
@@ -968,22 +1038,53 @@ function createScene() {
                     addMesh(stick, 'ClusterLevel', 'StorageClassLine', scData.pv[c].pFnum, '')
                 }
             }
-
             // update angle for next storage class to be defined
             angle += PI2 / max;
         }
     }
 
 
+    function buildCSIStoragePlane() {
+        let tX, tZ;
+        let csiStorageArc1 = [];
+        let csiStorageArc2 = [];
+
+        for (let i = 0; i < 361; i++) {
+            tX = (maxRings + 1.5) * Math.sin(ARC * i);
+            tZ = (maxRings + 1.5) * Math.cos(ARC * i);
+            csiStorageArc1.push(new BABYLON.Vector3(tX, 0.1, tZ));
+            csiStorageArc2.push(new BABYLON.Vector3(tX, -0.1, tZ));
+        }
+
+
+        //const lines1 = BABYLON.MeshBuilder.CreateLines("lines1", { points: clusterLevelArc2 });
+        const csiStorageWall = BABYLON.MeshBuilder.CreateRibbon(
+            "clusterLevelWall", {
+            pathArray: [csiStorageArc1, csiStorageArc2],
+            sideOrientation: BABYLON.Mesh.DOUBLESIDE
+        }
+        );
+        csiStorageWall.material = csiStorageWallColor;
+
+    }
+
+
+
     function buildControlPlane() {
         //Build Control Plane arc
-        mstArc = [];
-
+        let controlPlaneInner = ''
         let steps = 360 / nodeCnt;
+
+        mstArc = [];
+        let controlPlaneArc1 = [];
+        let controlPlaneArc2 = [];
+
+
+        let tX, tZ;
+
         if (steps === 0) {
             steps = 360;
         }
-
         if (nodeCnt === 1) {
             // Ensure a full control plane circle is defined
             beginArc = 0;
@@ -993,18 +1094,22 @@ function createScene() {
             beginArc = steps * mstStart;
             endArc = steps * (mstStop + 1);
         }
-
         for (let i = beginArc; i < endArc; i++) {
-            pX = (maxRings + 2) * Math.sin(ARC * i);
-            pZ = (maxRings + 2) * Math.cos(ARC * i);
+            pX = (maxRings + CONTROLPLANE) * Math.sin(ARC * i);
+            pZ = (maxRings + CONTROLPLANE) * Math.cos(ARC * i);
             mstArc.push(new BABYLON.Vector3(pX, 0, pZ));
+
+            tX = (maxRings + CONTROLPLANE) * Math.sin(ARC * i);
+            tZ = (maxRings + CONTROLPLANE) * Math.cos(ARC * i);
+            controlPlaneArc1.push(new BABYLON.Vector3(tX, 9.0, tZ));
+            controlPlaneArc2.push(new BABYLON.Vector3(tX, -8.0, tZ));
         }
 
         controlPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
             + '<div id="sliceKey">999.9</div>'
-            + '<a href="javascript:getDefFnum(\'999.9\')">'
-            + '<img src="images/k8/k8.svg" style="width:60px;height:60px;"></a>'
-            + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
+            + '<span>'
+            + '<img src="images/k8/control-plane.svg" style="width:60px;height:60px;"></span>'
+            + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
             + '</span>'
             + '<br><hr>'
             + '<span class="vpkfont-slidein"><b>Cluster control plane </b>'
@@ -1012,12 +1117,11 @@ function createScene() {
             + '<span><b>Name : &nbsp;&nbsp;</b>(no resource name)</span>'
             + '</span></div>';
 
-        controlPlane = BABYLON.MeshBuilder.CreateTube("", { path: mstArc, radius: 0.1, sideOrientation: BABYLON.Mesh.DOUBLESIDE, cap: BABYLON.Mesh.CAP_ALL }, scene);
-        controlPlane.material = controlPlaneColor;
-
+        let controlPlanePipe = BABYLON.MeshBuilder.CreateTube("", { path: mstArc, radius: 0.1, sideOrientation: BABYLON.Mesh.DOUBLESIDE, cap: BABYLON.Mesh.CAP_ALL }, scene);
+        controlPlanePipe.material = controlPlaneColor;
         // register click event for object
-        controlPlane.actionManager = new BABYLON.ActionManager(scene);
-        controlPlane.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        controlPlanePipe.actionManager = new BABYLON.ActionManager(scene);
+        controlPlanePipe.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
             BABYLON.ActionManager.OnPickTrigger,
             function () {
                 document.getElementById("resourceProps").innerHTML = controlPlaneInner;
@@ -1027,11 +1131,172 @@ function createScene() {
                 showRing();
             }
         ));
-        // addMesh(sphere, ns, type, fnum, '')
 
         buildSlice(pX, 0, pZ, '999.9', 'n');
+        addControlP(controlPlanePipe, 'ControlPlane');
 
-        addControlP(controlPlane, 'ControlPlane');
+        // light purple curved plane for the control plane
+        // this goes throught the control plane tube
+        let controlPlaneWall = BABYLON.MeshBuilder.CreateRibbon("controlPlaneWall", { pathArray: [controlPlaneArc1, controlPlaneArc2], sideOrientation: BABYLON.Mesh.DOUBLESIDE });
+        controlPlaneWall.material = controlPlaneWallColor;
+
+        // register click event for object
+        controlPlaneWall.actionManager = new BABYLON.ActionManager(scene);
+        controlPlaneWall.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = controlPlaneInner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing();
+            }
+        ));
+
+
+        buildSlice(pX, 0, pZ, '999.9', 'n');
+        addControlP(controlPlaneWall, 'ControlPlane');
+
+
+        // Add the control plane components to the tube and curved wall
+        buildControlPlaneComponents(beginArc, endArc)
+
+        // The cylinder aroung the spoke wheel that represents 
+        // the sotrage CSI
+        buildCSIStoragePlane(controlPlaneInner);
+    }
+
+
+    function buildControlPlaneComponents(beginArc, endArc) {
+        beginArc = parseInt(beginArc);
+        let a = beginArc + 1;
+        let tX, tZ;
+        if (compStatus.length > 0) {
+            compStatus.push({ 'name': 'API Server', 'fnum': '888.8' })
+            for (let p = 0; p < compStatus.length; p++) {
+                pX = (maxRings + CONTROLPLANE + 1) * Math.sin(angleArray[a]);
+                pZ = (maxRings + CONTROLPLANE + 1) * Math.cos(angleArray[a]);
+
+                // Add horizontal line/stick
+                tX = (maxRings + CONTROLPLANE) * Math.sin(angleArray[a]);
+                tZ = (maxRings + CONTROLPLANE) * Math.cos(angleArray[a]);
+                let epPath = [
+                    new BABYLON.Vector3(tX, 0, tZ),
+                    new BABYLON.Vector3(pX, 0, pZ)
+                ];
+                let controlPlaneStick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                controlPlaneStick.material = stickColor;
+                addControlP(controlPlaneStick, 'ControlPlane');
+
+                if (endArc === 180) {
+                    a = a + 8;
+                } else {
+                    a = a + 3;
+                }
+
+                let img = 'k8.svg';
+                let cN = compStatus[p].name;
+                if (cN.startsWith('etc')) {
+                    img = 'etcd.svg';
+                    cN = 'etcd';
+                } else if (cN.startsWith('sched')) {
+                    img = 'sched.svg';
+                    cN = 'Scheduler';
+                } else if (cN.startsWith('control')) {
+                    img = 'c-m.svg'
+                    cN = 'Controller manager'
+                } else if (cN.startsWith('API')) {
+                    img = 'api.svg'
+                    cN = 'API server'
+                } else {
+                    cN = 'Control Plane component'
+                }
+
+                let controlPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
+                    + '<div id="sliceKey">' + compStatus[p].fnum + '</div>'
+                    + '<a href="javascript:getDefFnum(\'' + compStatus[p].fnum + '\')">'
+                    + '<img src="images/k8/' + img + '" style="width:60px;height:60px;"></a>'
+                    + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
+                    + '</span>'
+                    + '<br><hr>'
+                    + '<span class="vpkfont-slidein"><b>' + cN + '</b>'
+                    + '<br>'
+                    + '<span><b>Name : &nbsp;&nbsp;</b>' + compStatus[p].name + '</span>'
+                    + '</span></div>';
+
+                buildControlComponent(pX, -1, pZ, .8, .40, 3, controlPlaneColor, 'cluster-level', 'ControlPlaneComponent', compStatus[p].fnum, controlPlaneInner, '');
+                buildSlice(pX, -1, pZ, compStatus[p].fnum, 'n');
+                buildLine(pX, -.5, pZ, 1, 'ControlPlaneComponent', 'ClusterLevel', compStatus[p].fnum);
+
+            }
+        }
+        buildRegistry(a)
+    }
+
+    function buildRegistry(a) {
+        // a = a + 5;
+        if (imageRegistryData !== '') {
+            let y = -1;
+            let yInc = -.3
+            let rFnum = 700;
+            let irKeys = Object.keys(imageRegistryData)
+            pX = (maxRings + CONTROLPLANE + 1) * Math.sin(angleArray[a]);
+            pZ = (maxRings + CONTROLPLANE + 1) * Math.cos(angleArray[a]);
+
+            // Add horizontal line/stick
+            tX = (maxRings + CONTROLPLANE) * Math.sin(angleArray[a]);
+            tZ = (maxRings + CONTROLPLANE) * Math.cos(angleArray[a]);
+            let epPath = [
+                new BABYLON.Vector3(tX, 0, tZ),
+                new BABYLON.Vector3(pX, 0, pZ)
+            ];
+            let controlPlaneStick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            controlPlaneStick.material = stickColor;
+            addControlP(controlPlaneStick, 'ControlPlane');
+
+            for (let p = 0; p < irKeys.length; p++) {
+                let img = 'k8.svg';
+                let cN = 'Registry';
+                let imageRegInner = '<div class="vpkfont vpkcolor ml-1">'
+                    + '<div id="sliceKey">' + rFnum.toString() + '</div>'
+                    + '<span>'
+                    + '<img src="images/k8/' + img + '" style="width:60px;height:60px;"></span>'
+                    + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
+                    + '</span>'
+                    + '<br><hr>'
+                    + '<span class="vpkfont-slidein"><b>' + cN + '</b>'
+                    + '<br>'
+                    + '<span><b>Name : &nbsp;&nbsp;</b>' + irKeys[p] + '</span>'
+                    + '<br>'
+                    + '<span><b>Use count : &nbsp;&nbsp;</b>' + imageRegistryData[irKeys[p]] + '</span>'
+
+                    + '</span></div>';
+
+                buildControlComponent(pX, y, pZ, .2, .40, 32, registryColor, 'cluster-level', 'ControlPlaneComponent', rFnum.toString(), imageRegInner, '');
+                buildSlice(pX, y, pZ, rFnum.toString(), 'n');
+                if (p === 0) {
+                    buildLine(pX, -.5, pZ, 1, 'ControlPlaneComponent', 'ClusterLevel', rFnum.toString());
+                }
+                y = y + yInc;
+                rFnum++;
+
+            }
+        }
+    }
+
+
+    //==============================================
+    // build line to connect CSINode to Node
+    function buildCSILine(sX, sY, sZ, eX, eY, eZ) {
+        let epPath = [
+            new BABYLON.Vector3(sX, sY, sZ),
+            new BABYLON.Vector3(eX, eY, eZ)
+        ];
+
+        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        stick.material = csiStickColor;
+
+        addMesh(stick, 'cluster-level', 'CSILine', fnum, '')
     }
 
 
@@ -1042,6 +1307,9 @@ function createScene() {
             pX = (maxRings + NODE_ICON_ADJ) * Math.sin(angle);
             pY = 0;
             pZ = (maxRings + NODE_ICON_ADJ) * Math.cos(angle);
+
+            let csiDrvX = (maxRings + NODE_ICON_ADJ + .75) * Math.sin(angle);
+            let csiDrvZ = (maxRings + NODE_ICON_ADJ + .75) * Math.cos(angle);
 
             let can = BABYLON.MeshBuilder.CreateCylinder("node" + index, { height: NODE_HEIGHT, tessellation: 4 });
             can.position.y = pY;
@@ -1058,7 +1326,7 @@ function createScene() {
             let csiFnum;
             let csiInner;
             let csiX = pX;
-            let controlPlanInner;
+            let csiHome = pX;
 
             // "m" is a Master node, otherwise treat as worker node
             if (cluster.nodes[nodePtr].type === "m") {
@@ -1069,7 +1337,6 @@ function createScene() {
                 can.material = wrkNodeMat;
                 nType = WRK_TYPE;
             }
-
 
             // CSINode information 
             if (typeof cluster.nodes[nodePtr].csiNodes !== 'undefined') {
@@ -1096,7 +1363,11 @@ function createScene() {
                                 // CSI drivers are attached to a single resource so a modifier is appended for the
                                 // slice so only a single red slice will open when the CSInode is clicked in the 3D view
                                 buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
-                                buildLine(csiX, pY - 2, pZ, 4, 'CSILine', 'ClusterLevel', cluster.nodes[nodePtr].csiNodes[0].fnum);
+                                buildCSILine(csiX, pY - 2, pZ, csiHome, pY, pZ)
+
+                                if (c === 0) {
+                                    buildCSILine(csiDrvX, 0, csiDrvZ, csiHome, pY, pZ)
+                                }
 
                                 //save the volumeAttachments
 
@@ -1229,6 +1500,7 @@ function createScene() {
             // if single node in cluster no wall is built 
             if (max !== 2) {
                 createWall(pX, pY, pZ, sX, sY, sZ, WALL_HEIGHT, index)
+                // createWall(pX, pY, pZ, sX, sY, sZ, 10, index)
                 buildWall = false;
             } else {
                 buildWall = false;
@@ -1237,6 +1509,31 @@ function createScene() {
         // update angle for next item to be defined
         angle += PI2 / max;
     }
+
+
+    //==============================================
+    // build a cylinder for the red slice when object is selected    
+    function buildIngressSlice() {
+        slice = BABYLON.MeshBuilder.CreateCylinder("slice", { height: SLICE_HEIGHT, diameterTop: INGRESSRADIUS, diameterBottom: INGRESSRADIUS, tessellation: 32 });
+        slice.position.y = INGRESSHEIGHT;
+        slice.position.x = 0;
+        slice.position.z = 0;
+        slice.material = ingressColor;
+
+        // register click event for object
+        slice.actionManager = new BABYLON.ActionManager(scene);
+        slice.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = '<p class="mt-3">One or more Ingress are defined</p>';
+                //hideRing()
+            }
+        ));
+        slice.setEnabled(true);          // always hide the slice when built
+        // addSlice(slice, fnum);
+    }
+
+
 
     //==============================================
     // End of common functions
@@ -1300,6 +1597,10 @@ function createScene() {
     // build storage classes
     buildSCs();
 
+
+    //---------------------------------------------------
+    // Ingress related
+    buildIngressSlice();
     // return the newly built scene to the calling function
 
     return scene;

@@ -1046,6 +1046,8 @@ socket.on('getServerDataResult', function (data) {
     workloadEventsInfo = data.evts;
     oRefLinks = data.oRef;
     storageData = data.stor;
+    helmData = data.helm;
+    imageRegistryData = data.registry;
 
     hideMessage();
     populateSchematicList();
