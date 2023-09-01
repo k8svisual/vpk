@@ -1005,24 +1005,28 @@ function createScene() {
             buildCylinder(pX, pY - 7, pZ, 1, 1, 32, storageClassColor, 'ClusterLevel', 'StorageClass', 0, scTxt, '')
             buildSlice(pX, pY - 7, pZ, scFnum, 'b')
 
-            // connect to CSI wall
+            // connect StorageClass icon to CSI Storage Wall
             tX = (maxRings + 1.5) * Math.sin(angle);
             tZ = (maxRings + 1.5) * Math.cos(angle);
             path = [
                 new BABYLON.Vector3(pX, pY - 7, pZ),
-                new BABYLON.Vector3(tX, 0, tZ)
+                new BABYLON.Vector3(tX, -7, tZ)
             ];
-            let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-            stick.material = stickColor;
-            //addMesh(stick, 'ClusterLevel', 'StorageClassLine', scFnum, '')
-            path = [
-                new BABYLON.Vector3(tX, - 7, tZ),
-                new BABYLON.Vector3(tX, 0, tZ)
-            ];
-            let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-            upStick.material = stickColor;
 
+            // If the StorageClass provisioner is the name of a CSIDriver draw the lines
+            if (foundCSINames.includes(scData.prov)) {
+                let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                stick.material = csiStickColor;
+                addMesh(stick, 'ClusterLevel', 'csiStorageLine', scFnum, '')
 
+                path = [
+                    new BABYLON.Vector3(tX, - 7, tZ),
+                    new BABYLON.Vector3(tX, -0.85, tZ)
+                ];
+                let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                upStick.material = csiStickColor;
+                addMesh(stick, 'ClusterLevel', 'csiStorageLine', scFnum, '')
+            }
 
             // connection lines to PVCs 
             if (typeof scData.pv[0] !== 'undefined') {
@@ -1045,27 +1049,48 @@ function createScene() {
 
 
     function buildCSIStoragePlane() {
+        // Build the pale read band to link the CSI related items
         let tX, tZ;
         let csiStorageArc1 = [];
         let csiStorageArc2 = [];
-
         for (let i = 0; i < 361; i++) {
             tX = (maxRings + 1.5) * Math.sin(ARC * i);
             tZ = (maxRings + 1.5) * Math.cos(ARC * i);
-            csiStorageArc1.push(new BABYLON.Vector3(tX, 0.1, tZ));
-            csiStorageArc2.push(new BABYLON.Vector3(tX, -0.1, tZ));
+            csiStorageArc1.push(new BABYLON.Vector3(tX, -0.66, tZ));
+            csiStorageArc2.push(new BABYLON.Vector3(tX, -0.85, tZ));
         }
 
-
-        //const lines1 = BABYLON.MeshBuilder.CreateLines("lines1", { points: clusterLevelArc2 });
-        const csiStorageWall = BABYLON.MeshBuilder.CreateRibbon(
-            "clusterLevelWall", {
-            pathArray: [csiStorageArc1, csiStorageArc2],
-            sideOrientation: BABYLON.Mesh.DOUBLESIDE
-        }
-        );
+        let csiStorageWall = BABYLON.MeshBuilder.CreateRibbon("csiStorageWall",
+            {
+                pathArray: [csiStorageArc1, csiStorageArc2],
+                sideOrientation: BABYLON.Mesh.DOUBLESIDE
+            });
         csiStorageWall.material = csiStorageWallColor;
 
+        let inner = '<div class="vpkfont vpkcolor ml-1">'
+            + '<div id="sliceKey">666</div>'
+            + '<span>'
+            + '<img src="images/k8/sc.svg" style="width:60px;height:60px;"></span>'
+            + '<span>&nbsp;'
+            + '</span>'
+            + '<br><hr>'
+            + '<span class="vpkfont-slidein""><b>CSI related -</b>'
+            + '<br>'
+            + '<span><b>Name : &nbsp;&nbsp;</b>CSI (Container Storage Interface) related CSINode, CSIDriver, and CSICapacity</span>'
+            + '</span></div>';
+
+        csiStorageWall.actionManager = new BABYLON.ActionManager(scene);
+        csiStorageWall.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = inner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing();
+            }
+        ));
+        buildSlice(tX, 0, tZ, '666', 'n');
     }
 
 
@@ -1079,12 +1104,12 @@ function createScene() {
         let controlPlaneArc1 = [];
         let controlPlaneArc2 = [];
 
-
         let tX, tZ;
 
         if (steps === 0) {
             steps = 360;
         }
+
         if (nodeCnt === 1) {
             // Ensure a full control plane circle is defined
             beginArc = 0;
@@ -1094,6 +1119,11 @@ function createScene() {
             beginArc = steps * mstStart;
             endArc = steps * (mstStop + 1);
         }
+
+        if (compStatus.length > 0) {
+            endArc = beginArc + (compStatus.length * 4) + 4;
+        }
+
         for (let i = beginArc; i < endArc; i++) {
             pX = (maxRings + CONTROLPLANE) * Math.sin(ARC * i);
             pZ = (maxRings + CONTROLPLANE) * Math.cos(ARC * i);
@@ -1112,9 +1142,9 @@ function createScene() {
             + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
             + '</span>'
             + '<br><hr>'
-            + '<span class="vpkfont-slidein"><b>Cluster control plane </b>'
+            + '<span class="vpkfont-slidein"><b>Cluster Control Plane </b>'
             + '<br>'
-            + '<span><b>Name : &nbsp;&nbsp;</b>(no resource name)</span>'
+            + '<span><b>Name : &nbsp;&nbsp;</b>&lt;no resource name&gt;</span>'
             + '</span></div>';
 
         let controlPlanePipe = BABYLON.MeshBuilder.CreateTube("", { path: mstArc, radius: 0.1, sideOrientation: BABYLON.Mesh.DOUBLESIDE, cap: BABYLON.Mesh.CAP_ALL }, scene);
@@ -1169,7 +1199,7 @@ function createScene() {
 
     function buildControlPlaneComponents(beginArc, endArc) {
         beginArc = parseInt(beginArc);
-        let a = beginArc + 1;
+        let a = beginArc + 4;
         let tX, tZ;
         if (compStatus.length > 0) {
             compStatus.push({ 'name': 'API Server', 'fnum': '888.8' })
@@ -1188,11 +1218,13 @@ function createScene() {
                 controlPlaneStick.material = stickColor;
                 addControlP(controlPlaneStick, 'ControlPlane');
 
-                if (endArc === 180) {
-                    a = a + 8;
-                } else {
-                    a = a + 3;
-                }
+                // if (endArc === 180) {
+                //     a = a + 8;
+                // } else {
+                //     a = a + 3;
+                // }
+
+                a = a + 3;
 
                 let img = 'k8.svg';
                 let cN = compStatus[p].name;
@@ -1299,6 +1331,89 @@ function createScene() {
         addMesh(stick, 'cluster-level', 'CSILine', fnum, '')
     }
 
+    //==============================================
+    // build node kubelet and kube-proxy
+    function buildKublet(x, y, z, index) {
+        let path = [
+            new BABYLON.Vector3(x, 0, z),
+            new BABYLON.Vector3(x, 1.5, z)
+        ];
+        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        stick.material = stickColor;
+
+        addControlP(stick, 'kublet-link')
+
+        // kubelet
+        y = 1.5;
+        let fnum = 500 + index;
+        let sphere1 = BABYLON.MeshBuilder.CreateSphere("k-proxy", { diameter: .25, segments: 32 }, scene);
+        sphere1.position.x = x;
+        sphere1.position.y = y;
+        sphere1.position.z = z;
+        sphere1.material = controlPlaneColor;
+        buildSlice(x, y, z, fnum.toString(), 'n');
+
+        let kubeletInner = '<div class="vpkfont vpkcolor ml-1">'
+            + '<div id="sliceKey">' + fnum + '</div>'
+            + '<span>'
+            + '<img src="images/k8/kubelet.svg" style="width:60px;height:60px;"></span>'
+            + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
+            + '</span>'
+            + '<br><hr>'
+            + '<span class="vpkfont-slidein"><b>Node kublet -</b>'
+            + '<br>'
+            + '<span><b>Name : &nbsp;&nbsp;</b>&lt;none&gt;</span>'
+            + '</span></div>';
+
+        sphere1.actionManager = new BABYLON.ActionManager(scene);
+        sphere1.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = kubeletInner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing();
+            }
+        ));
+        addControlP(sphere1, 'kublet')
+
+        // kube-proxy
+        y = .95;
+        let pnum = 400 + index;
+        let sphere2 = BABYLON.MeshBuilder.CreateSphere("k-proxy", { diameter: .25, segments: 32 }, scene);
+        sphere2.position.x = x;
+        sphere2.position.y = y;
+        sphere2.position.z = z;
+        sphere2.material = controlPlaneColor;
+        buildSlice(x, y, z, pnum.toString(), 'n');
+
+        let proxyInner = '<div class="vpkfont vpkcolor ml-1">'
+            + '<div id="sliceKey">' + pnum + '</div>'
+            + '<span>'
+            + '<img src="images/k8/k-proxy.svg" style="width:60px;height:60px;"></span>'
+            + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
+            + '</span>'
+            + '<br><hr>'
+            + '<span class="vpkfont-slidein"><b>Node kube-proxy -</b>'
+            + '<br>'
+            + '<span><b>Name : &nbsp;&nbsp;</b>&lt;none&gt;</span>'
+            + '</span></div>';
+
+        sphere2.actionManager = new BABYLON.ActionManager(scene);
+        sphere2.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            BABYLON.ActionManager.OnPickTrigger,
+            function () {
+                document.getElementById("resourceProps").innerHTML = proxyInner;
+                if ($('#clusterFilterSound').prop('checked')) {
+                    clickSound.play();
+                }
+                showRing();
+            }
+        ));
+        addControlP(sphere2, 'kube-proxy')
+    }
+
 
     function buildNodesAndWall(index) {
         let size;
@@ -1311,10 +1426,28 @@ function createScene() {
             let csiDrvX = (maxRings + NODE_ICON_ADJ + .75) * Math.sin(angle);
             let csiDrvZ = (maxRings + NODE_ICON_ADJ + .75) * Math.cos(angle);
 
-            let can = BABYLON.MeshBuilder.CreateCylinder("node" + index, { height: NODE_HEIGHT, tessellation: 4 });
+            let can = BABYLON.MeshBuilder.CreateBox("node" + index, { width: NODE_HEIGHT, height: NODE_HEIGHT, depth: NODE_HEIGHT });
             can.position.y = pY;
             can.position.x = pX;
             can.position.z = pZ;
+
+            // Find the closet angleArray value and use that position in
+            // the array as the angle in degrees
+            let faceAngle = 0;
+            for (let f = 0; f < angleArray.length; f++) {
+                if (angleArray[f] > angle) {
+                    faceAngle = f;
+                    break
+                }
+            }
+
+            // Rotate the box so side1 is facing the center of the spoke 
+            let angleInDegrees = faceAngle;
+            let angleInRadians = (angleInDegrees * Math.PI) / 180;
+            can.rotation.y = angleInRadians;
+
+            buildKublet(pX, pY, pZ, index)
+
             let nType = '';
             let storage = '';
             let storageBase = '';
@@ -1343,7 +1476,9 @@ function createScene() {
                 if (typeof cluster.nodes[nodePtr].csiNodes[0] !== 'undefined') {
                     data = cluster.nodes[nodePtr].csiNodes;
                     if (cluster.nodes[nodePtr].csiNodes[0].drivers !== null) {
+                        let yDown = -.5;
                         for (let c = 0; c < cluster.nodes[nodePtr].csiNodes[0].drivers.length; c++) {
+                            yDown = yDown + -.5;
                             if (typeof cluster.nodes[nodePtr].csiNodes[0].fnum !== 'undefined') {
                                 csiInner = '<div class="vpkfont vpkcolor ml-1">'
                                     + '<div id="sliceKey">' + cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c + '</div>'
@@ -1358,19 +1493,24 @@ function createScene() {
                                     + '</span></div>';
 
                                 // define the csiNode
-                                buildSphere(csiX, pY - 2, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
+                                //                                buildSphere(csiX, pY - 2, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
                                 //console.log(`csiX:${csiX}  pY:${pY - 2}  pZ:${pZ} fnum:${cluster.nodes[nodePtr].csiNodes[0].fnum}`)
                                 // CSI drivers are attached to a single resource so a modifier is appended for the
                                 // slice so only a single red slice will open when the CSInode is clicked in the 3D view
-                                buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
-                                buildCSILine(csiX, pY - 2, pZ, csiHome, pY, pZ)
+                                //                                buildSlice(csiX, pY - 2, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
+                                //                                buildCSILine(csiX, pY - 2, pZ, csiHome, pY, pZ)
 
+                                buildSphere(csiX, yDown, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
+                                buildSlice(csiX, yDown, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
+                                buildCSILine(csiX, yDown, pZ, csiHome, pY, pZ)
+
+
+                                // build csiLine to the csiWall
                                 if (c === 0) {
-                                    buildCSILine(csiDrvX, 0, csiDrvZ, csiHome, pY, pZ)
+                                    buildCSILine(csiDrvX, -.75, csiDrvZ, csiHome, -.75, pZ)
                                 }
 
                                 //save the volumeAttachments
-
                                 if (typeof cluster.nodes[nodePtr].csiNodes[0].drivers[c].volAtt !== 'undefined') {
                                     if (cluster.nodes[nodePtr].csiNodes[0].drivers[c].volAtt.length > 0) {
                                         for (let v = 0; v < cluster.nodes[nodePtr].csiNodes[0].drivers[c].volAtt.length; v++) {
@@ -1387,8 +1527,6 @@ function createScene() {
                                         }
                                     }
                                 }
-                                // increase csi X location for next entry
-                                csiX = csiX + .25;
                             }
                         }
                     }

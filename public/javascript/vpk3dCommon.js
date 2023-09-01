@@ -34,6 +34,7 @@ var sceneToRender = null;
 let foundServices = {};
 let foundNSNames = [];
 let foundStorageClasses = {};
+let foundCSINames = [];
 let foundPVC = {};
 let foundPVs = {};
 let cluster = {};

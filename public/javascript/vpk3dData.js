@@ -40,6 +40,7 @@ function build3DJSON() {
     nodeStats = {};
     maxPodCount = 0;
     ingressArray = [];
+    foundCSINames = [];
 
     if (typeof k8cData['0000-clusterLevel'] !== 'undefined') {
         if (typeof k8cData['0000-clusterLevel'].Node !== 'undefined') {
@@ -75,6 +76,13 @@ function build3DJSON() {
         if (typeof k8cData['0000-clusterLevel'].ComponentStatus !== 'undefined') {
             compStatus = k8cData['0000-clusterLevel'].ComponentStatus;
         }
+
+        if (typeof k8cData['0000-clusterLevel'].CSIDriver !== 'undefined') {
+            for (let i = 0; i < k8cData['0000-clusterLevel'].CSIDriver.length; i++) {
+                foundCSINames.push(k8cData['0000-clusterLevel'].CSIDriver[i].name)
+            }
+        }
+
     }
 
     // populate drop down filter with located NS values in this cluster
@@ -85,7 +93,8 @@ function build3DJSON() {
         let scKeys = Object.keys(k8cData['0000-@storageClass@']);
         for (let k = 0; k < scKeys.length; k++) {
             saveStorageClass(k8cData['0000-@storageClass@'][scKeys[k]].name,
-                k8cData['0000-@storageClass@'][scKeys[k]].fnum)
+                k8cData['0000-@storageClass@'][scKeys[k]].fnum,
+                k8cData['0000-@storageClass@'][scKeys[k]].provisioner)
         }
     }
 }
@@ -108,12 +117,12 @@ function populate3DSelectNS() {
 }
 
 
-function saveStorageClass(name, fnum) {
+function saveStorageClass(name, fnum, prov) {
     if (typeof name === 'undefined' || name === null) {
         return;
     }
     if (typeof foundStorageClasses[name] === 'undefined') {
-        foundStorageClasses[name] = { 'name': name, 'fnum': fnum, 'pv': [] }
+        foundStorageClasses[name] = { 'name': name, 'fnum': fnum, 'pv': [], 'prov': prov }
     }
 }
 
