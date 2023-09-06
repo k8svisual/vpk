@@ -41,6 +41,7 @@ function build3DJSON() {
     maxPodCount = 0;
     ingressArray = [];
     foundCSINames = [];
+    clusterOtherKeys = [];
 
     if (typeof k8cData['0000-clusterLevel'] !== 'undefined') {
         if (typeof k8cData['0000-clusterLevel'].Node !== 'undefined') {
@@ -457,6 +458,23 @@ function formatBytes(bytes, decimals = 2) {
 
 
 function addPodToNode(pod, nodeName) {
+    if (typeof nodeStats[nodeName] === 'undefined') {
+        nodeStats[nodeName] = { 'podCount': 0 }
+    }
+
+    for (let n = 0; n < cluster.nodes.length; n++) {
+        if (cluster.nodes[n].name === nodeName) {
+            if (typeof cluster.nodes[n].pods === 'undefined') {
+                cluster.nodes[n].pods = [];
+            }
+            cluster.nodes[n].pods.push(pod)
+            nodeStats[nodeName].podCount = nodeStats[nodeName].podCount + 1;
+            break;
+        }
+    }
+}
+
+function parseOther() {
     if (typeof nodeStats[nodeName] === 'undefined') {
         nodeStats[nodeName] = { 'podCount': 0 }
     }

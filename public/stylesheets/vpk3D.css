@@ -193,3 +193,27 @@
 .hideBox {
     display: none;
 }
+
+.policyPlane {
+    background-color: #66CC99
+}
+
+.authorizationPlane {
+    background-color: #CC9900
+}
+
+.authenticationPlane {
+    background-color: #CC99ff
+}
+
+.extendPlane {
+    background-color: #CCCC99
+}
+
+.clusterPlane {
+    background-color: #CC00ff
+}
+
+.otherPlane {
+    background-color: #FFCC99
+}

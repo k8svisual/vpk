@@ -496,33 +496,89 @@ function filter3DView() {
         }
     }
 
-    // Check CPU requested
+    // Check Control Plane requested
     if ($('#clusterFilterControlP').prop('checked')) {
         // Show control plane items
         for (i = 0; i < controlPlaneArray.length; i++) {
-            controlPlaneArray[i].obj.setEnabled(true);
-        }
-        for (i = 0; i < meshArray.length; i++) {
-            if (meshArray[i].type === 'ControlPlaneComponent') {
-                meshArray[i].obj.setEnabled(true);
+            if (controlPlaneArray[i].id === 'ControlPlane' ||
+                controlPlaneArray[i].id === 'ControlPlaneComponent' ||
+                controlPlaneArray[i].id === 'Kubelet' ||
+                controlPlaneArray[i].id === 'Kubelet-Link' ||
+                controlPlaneArray[i].id === 'Kube-Proxy' ||
+                controlPlaneArray[i].id === 'Registry') {
+                controlPlaneArray[i].obj.setEnabled(true);
             }
         }
-
     } else {
         // hide control plane items
         for (i = 0; i < controlPlaneArray.length; i++) {
-            controlPlaneArray[i].obj.setEnabled(false);
-        }
-        for (i = 0; i < meshArray.length; i++) {
-            if (meshArray[i].type === 'ControlPlaneComponent') {
-                meshArray[i].obj.setEnabled(false);
+            if (controlPlaneArray[i].id === 'ControlPlane' ||
+                controlPlaneArray[i].id === 'ControlPlaneComponent' ||
+                controlPlaneArray[i].id === 'Kubelet' ||
+                controlPlaneArray[i].id === 'Kubelet-Link' ||
+                controlPlaneArray[i].id === 'Kube-Proxy' ||
+                controlPlaneArray[i].id === 'Registry') {
+                controlPlaneArray[i].obj.setEnabled(false);
             }
         }
-
-
     }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterCluster').prop('checked')) {
+        changePlane('Cluster Resources', 'Show')
+    } else {
+        changePlane('Cluster Resources', 'Hide')
+    }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterOther').prop('checked')) {
+        changePlane('Other', 'Show')
+    } else {
+        changePlane('Other', 'Hide')
+    }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterPolicy').prop('checked')) {
+        changePlane('Policy', 'Show')
+    } else {
+        changePlane('Policy', 'Hide')
+    }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterAuthentication').prop('checked')) {
+        changePlane('Authentication', 'Show')
+    } else {
+        changePlane('Authentication', 'Hide')
+    }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterAuthorization').prop('checked')) {
+        changePlane('Authorization', 'Show')
+    } else {
+        changePlane('Authorization', 'Hide')
+    }
+
+    // Check Control Plane requested
+    if ($('#clusterFilterExtend').prop('checked')) {
+        changePlane('Extend', 'Show')
+    } else {
+        changePlane('Extend', 'Hide')
+    }
+
 }
 
+function changePlane(plane, action) {
+    // Show or hide other plane items
+    for (i = 0; i < controlPlaneArray.length; i++) {
+        if (controlPlaneArray[i].id === plane) {
+            if (action === 'Show') {
+                controlPlaneArray[i].obj.setEnabled(true);
+            } else {
+                controlPlaneArray[i].obj.setEnabled(false);
+            }
+        }
+    }
+}
 
 //----------------------------------------------------------
 console.log('loaded vpk3dFilter.js');

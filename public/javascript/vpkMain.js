@@ -346,6 +346,30 @@ $(document).ready(function () {
         filter3DView()
     });
 
+    $('input[name=clusterFilterCluster]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterPolicy]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterAuthentication]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterAuthorization]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterOther]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterExtend]').change(function () {
+        filter3DView()
+    });
+
     editor = ace.edit("editor");
     editorC1 = ace.edit("editorC1");
     editorC2 = ace.edit("editorC2");

@@ -46,6 +46,14 @@ let controlPlaneArray = [];
 let mstCount = 0;
 let nodeSpace = {};
 let compStatus = {};
+let clusterOtherKeys = [];
+let clusterRescPolicy = [];
+let clusterRescAuthentication = [];
+let clusterRescAuthorization = [];
+let clusterRescExtend = [];
+let clusterRescCluster = [];
+let clusterRescOther = [];
+
 
 let networkLinks = {};
 let pvLinks = [];              // Array of PVs that are biult
