@@ -1974,7 +1974,7 @@ function createScene() {
             + '<span class="vpkfont-slidein"><b>API category</b>'
             + '<br>'
             + '<span class="vpkfont-slidein"><b>- ' + type + ' Resources</b>'
-            + '</span></div>';
+            + '</span><br><br>This is a category/group of APIs. Use search to locate and view specific resource definitions.</div>';
 
         // Build plane of resources for cluster
         let otherPlaneWall = BABYLON.MeshBuilder.CreateRibbon(type, { pathArray: [otherPlaneArc1, otherPlaneArc2], sideOrientation: BABYLON.Mesh.DOUBLESIDE });
@@ -2047,7 +2047,7 @@ function createScene() {
 
                 let inner = '<div class="vpkfont vpkcolor ml-1">'
                     + '<div id="sliceKey">' + fnum + '</div>'
-                    + '<a href="javascript:getDefFnum(\'' + fnum + '\')">'
+                    //+ '<a href="javascript:getDefFnum(\'' + fnum + '\')">'
                     + '<img src="images/k8/k8.svg" style="width:60px;height:60px;"></a>'
                     + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
                     + '</span>'
@@ -2057,7 +2057,7 @@ function createScene() {
                     + '<span class="vpkfont-slidein"><b>- ' + type + ' Resources</b>'
                     + '<br>'
                     + '<span><b>Name : &nbsp;&nbsp;</b>' + data[p] + '</span>'
-                    + '</span></div>';
+                    + '</span><br><br>Use search to locate and view resource definition.</div>';
 
                 buildOtherSphere(pX, y, pZ, type, inner)
                 buildSlice(pX, y, pZ, fnum.toString(), 'n');
