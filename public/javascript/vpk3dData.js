@@ -31,7 +31,7 @@ function build3DJSON() {
     podArray = [];              // Array of displayed pods using fnum
     sliceArray = [];            // Array of slice rings 
     resourceArray = [];         // Array of memory and cpu info 
-    controlPlaneArray = [];         // Array for control plane
+    controlPlaneArray = [];     // Array for control plane
     networkLinks = [];          // Array of pods that link to existing endpoint/service
     pvcLinks = {};
     pvcBuild = {};
@@ -73,6 +73,10 @@ function build3DJSON() {
         if (typeof k8cData['0000-clusterLevel'].IngressClass !== 'undefined') {
             ingressArray.push(k8cData['0000-clusterLevel'].IngressClass);
         }
+        if (typeof k8cData['0000-clusterLevel'].Ingress !== 'undefined') {
+            ingressArray.push(k8cData['0000-clusterLevel'].Ingress);
+        }
+
 
         if (typeof k8cData['0000-clusterLevel'].ComponentStatus !== 'undefined') {
             compStatus = k8cData['0000-clusterLevel'].ComponentStatus;

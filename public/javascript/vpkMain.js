@@ -370,6 +370,14 @@ $(document).ready(function () {
         filter3DView()
     });
 
+    $('input[name=clusterFilterCSI]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterIngress]').change(function () {
+        filter3DView()
+    });
+
     editor = ace.edit("editor");
     editorC1 = ace.edit("editorC1");
     editorC2 = ace.edit("editorC2");

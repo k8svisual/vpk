@@ -515,6 +515,17 @@
                     </div>
 
                     <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterCSI"
+                            name="clusterFilterCSI" checked>
+                        <span
+                            class="csiStorage">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterCSI">
+                            CSI (Container Storage Interface)
+                        </label>
+                    </div>
+
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
                         <input class="form-check-input filter-checkbox" type="checkbox" value=""
                             id="clusterFilterStorage" name="clusterFilterStorage" checked>
                         <span class="pvc">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
@@ -532,6 +543,15 @@
                             class="service">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                         <label class="form-check-label" for="clusterFilterNetwork">
                             Network (Endpoint, Service)
+                        </label>
+                    </div>
+
+                    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+                        <input class="form-check-input filter-checkbox" type="checkbox" value=""
+                            id="clusterFilterIngress" name="clusterFilterIngress" checked>
+                        <span class="ingress">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <label class="form-check-label" for="clusterFilterIngress">
+                            Ingress
                         </label>
                     </div>
 
@@ -765,7 +785,7 @@
                     </div>
 
                     <hr style="margin-left: -10px;">
-                    <div class="form-check vpkfont-filter">
+                    <!-- <div class="form-check vpkfont-filter">
                         <span class="pt-1">BACKGROUND</span>
                     </div>
 
@@ -822,7 +842,7 @@
                                 onclick="getCluster3DInfo()">&nbsp;Update background and refresh
                                 view&nbsp;</button>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
             </div>
 

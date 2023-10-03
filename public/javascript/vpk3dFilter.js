@@ -164,6 +164,50 @@ function filter3DView() {
         meshCnt();
     }
 
+    // Determine if CSI items are shown or hidden
+    if ($('#clusterFilterCSI').prop('checked')) {
+        for (i = 0; i < meshArray.length; i++) {
+            tmp = meshArray[i].type;
+            if (tmp === 'csiStorageLine' || tmp === 'csiStorageWall' || tmp === 'CSILine' || tmp === 'CSINode' || tmp === 'CSIWall') {
+                meshArray[i].obj.setEnabled(true);
+            }
+        }
+    } else {
+        for (i = 0; i < meshArray.length; i++) {
+            tmp = meshArray[i].type;
+            if (tmp === 'csiStorageLine' || tmp === 'csiStorageWall' || tmp === 'CSILine' || tmp === 'CSINode' || tmp === 'CSIWall') {
+                meshArray[i].obj.setEnabled(false);
+            }
+        }
+    }
+
+    if (printStatFlag) {
+        console.log('After FilterCSI ===================')
+        meshCnt();
+    }
+
+    // Determine if Ingress slice shown or hidden
+    if ($('#clusterFilterIngress').prop('checked')) {
+        for (i = 0; i < meshArray.length; i++) {
+            tmp = meshArray[i].type;
+            if (tmp === 'ingress') {
+                meshArray[i].obj.setEnabled(true);
+            }
+        }
+    } else {
+        for (i = 0; i < meshArray.length; i++) {
+            tmp = meshArray[i].type;
+            if (tmp === 'ingress') {
+                meshArray[i].obj.setEnabled(false);
+            }
+        }
+    }
+
+    if (printStatFlag) {
+        console.log('After FilterIngress ===================')
+        meshCnt();
+    }
+
     // NAMESPACEs ----------------------------------------
     // Using namespace determine if pod is shown or hidden
     for (i = 0; i < options.length; i++) {
@@ -503,6 +547,7 @@ function filter3DView() {
             if (controlPlaneArray[i].id === 'ControlPlane' ||
                 controlPlaneArray[i].id === 'ControlPlaneComponent' ||
                 controlPlaneArray[i].id === 'Kubelet' ||
+                controlPlaneArray[i].id === 'KubeCTL' ||
                 controlPlaneArray[i].id === 'Kubelet-Link' ||
                 controlPlaneArray[i].id === 'Kube-Proxy' ||
                 controlPlaneArray[i].id === 'Registry') {
@@ -515,6 +560,7 @@ function filter3DView() {
             if (controlPlaneArray[i].id === 'ControlPlane' ||
                 controlPlaneArray[i].id === 'ControlPlaneComponent' ||
                 controlPlaneArray[i].id === 'Kubelet' ||
+                controlPlaneArray[i].id === 'KubeCTL' ||
                 controlPlaneArray[i].id === 'Kubelet-Link' ||
                 controlPlaneArray[i].id === 'Kube-Proxy' ||
                 controlPlaneArray[i].id === 'Registry') {

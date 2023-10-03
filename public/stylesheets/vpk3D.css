@@ -170,6 +170,14 @@
     background-color: #fa9903
 }
 
+.csiStorage {
+    background: rgba(255, 0, 0, 0.45)
+}
+
+.ingress {
+    background: rgba(255, 255, 0, 0.45)
+}
+
 .nodeMemory {
     background-color: #7b737b
 }

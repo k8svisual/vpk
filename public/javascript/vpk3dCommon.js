@@ -53,6 +53,7 @@ let clusterRescAuthorization = [];
 let clusterRescExtend = [];
 let clusterRescCluster = [];
 let clusterRescOther = [];
+let ingressArray = [];
 
 
 let networkLinks = {};
