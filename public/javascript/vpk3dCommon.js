@@ -28,9 +28,7 @@ var createDefaultEngine
 var scene = null;
 var sceneToRender = null;
 
-// var createDefaultEngine = function () {
-//     return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
-// };
+
 let foundServices = {};
 let foundNSNames = [];
 let foundStorageClasses = {};
@@ -46,14 +44,112 @@ let controlPlaneArray = [];
 let mstCount = 0;
 let nodeSpace = {};
 let compStatus = {};
+
 let clusterOtherKeys = [];
-let clusterRescPolicy = [];
+
+let clusterRescWorkload = [];
+let clusterRescService = [];
+let clusterRescConfigStorage = [];
 let clusterRescAuthentication = [];
 let clusterRescAuthorization = [];
+let clusterRescPolicy = [];
 let clusterRescExtend = [];
 let clusterRescCluster = [];
 let clusterRescOther = [];
+let clusterRescThirdPArty = [];
+
 let ingressArray = [];
+
+let rescWorkload = [
+    'ControllerRevision',
+    'HorizontialPodAutoscaler',
+    'PriorityClass',
+    'PodSchedulingContext',
+    'ReplicationController',
+    'ReplicaSet',
+    'ResourceClaim',
+    'ResourceClaimTemplate',
+    'ResourceClass'
+]
+
+let rescService = [
+
+]
+
+let rescConfigStorage = [
+    'ConfigMap',
+    'Secret',
+    'Volume',
+    'VolumeAttachment',
+]
+
+let rescAuthentication = [
+    'ServiceAccount',
+    'TokenRequest',
+    'TokenReview',
+    'CertificateSigningRequest',
+    'CertificateTrustBundle',
+    'SelfSubjectReview'
+]
+let rescAuthorization = [
+    'LocalSubjectAccessReview',
+    'SelfSubjectAccessReview',
+    'SelfSubjectRulesReview',
+    'SubjectAccessReview',
+    'ClusterRole',
+    'ClusterRoleBinding',
+    'Role',
+    'RoleBinding'
+]
+let rescPolicy = [
+    'LimitRange',
+    'ResourceQuota',
+    'NetworkPolicy',
+    'PodDistributionBudget',
+    'IPAddress'
+]
+let rescExtend = [
+    'CustomResourceDefinition',
+    'MutatingWebhookConfiguration',
+    'ValidatingWebhookConfiguration',
+    'ValidatingAdmissionPolicy'
+]
+let rescCluster = [
+    'Namespace',
+    'Event',
+    'APIService',
+    'Lease',
+    'RuntimeClass',
+    'FlowSchema',
+    'PriorityLevelConfiguration',
+    'Binding',
+    'ClusterCIDR'
+]
+
+let rescOther = [
+    'ValidatingAdmissionPolicyBinding'
+]
+
+let rescSkip = [
+    'ComponentStatus',
+    'CronJob',
+    'CSIDriver',
+    'CSINode',
+    'CSIStorageCapacity',
+    'DaemonSet',
+    'Endpoint',
+    'EndpointSlice',
+    'Ingress',
+    'IngressClass',
+    'Job',
+    'Node',
+    'PersistentVolume',
+    'PersistentVolumeClaim',
+    'Pod',
+    'PodTemplate',
+    'Service',
+    'StorageClass',
+]
 
 
 let networkLinks = {};

@@ -84,7 +84,7 @@
     top: 120px;
     /* bottom: 200px; */
     width: 300px;
-    height: 750px;
+    height: 830px;
     z-index: 1000;
     padding: 5px;
     background: #eee;
@@ -202,8 +202,16 @@
     display: none;
 }
 
-.policyPlane {
-    background-color: #66CC99
+.workloadPlane {
+    background-color: #972AFF
+}
+
+.servicePlane {
+    background-color: #88BBDD
+}
+
+.configStoragePlane {
+    background-color: #FFFFD1
 }
 
 .authorizationPlane {
@@ -211,17 +219,25 @@
 }
 
 .authenticationPlane {
-    background-color: #CC99ff
+    background-color: #FFBED7
+}
+
+.policyPlane {
+    background-color: #66CC99
 }
 
 .extendPlane {
-    background-color: #CCCC99
+    background-color: #FFABAB
 }
 
 .clusterPlane {
-    background-color: #CC00ff
+    background-color: #CCFFCC
 }
 
 .otherPlane {
-    background-color: #FFCC99
+    background-color: #CCCCCC
+}
+
+.thirdPartyPlane {
+    background-color: #FF0099
 }

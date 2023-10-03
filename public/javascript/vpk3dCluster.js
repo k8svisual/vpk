@@ -300,24 +300,24 @@ function createScene() {
     csiStorageWallColor.alpha = 0.45;
 
 
-    // Other Resouces 
-    const otherPlaneColor = new BABYLON.StandardMaterial("", scene);
-    otherPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFCC99");
-    otherPlaneColor.alpha = 0.25;
-    const otherSphereColor = new BABYLON.StandardMaterial("", scene);
-    otherSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFCC99");
+    // Resource Plane and Sphere colors
+    const workloadPlaneColor = new BABYLON.StandardMaterial("", scene);
+    workloadPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#972AFF");
+    workloadPlaneColor.alpha = 0.25;
+    const workloadSphereColor = new BABYLON.StandardMaterial("", scene);
+    workloadSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#972AFF");
 
-    const policyPlaneColor = new BABYLON.StandardMaterial("", scene);
-    policyPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
-    policyPlaneColor.alpha = 0.25;
-    const policySphereColor = new BABYLON.StandardMaterial("", scene);
-    policySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
+    const servicePlaneColor = new BABYLON.StandardMaterial("", scene);
+    servicePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#88BBDD");
+    servicePlaneColor.alpha = 0.25;
+    const serviceSphereColor = new BABYLON.StandardMaterial("", scene);
+    serviceSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#88BBDD");
 
-    const extendPlaneColor = new BABYLON.StandardMaterial("", scene);
-    extendPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCC99");
-    extendPlaneColor.alpha = 0.25;
-    const extendSphereColor = new BABYLON.StandardMaterial("", scene);
-    extendSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCC99");
+    const configStoragePlaneColor = new BABYLON.StandardMaterial("", scene);
+    configStoragePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFFFD1");
+    configStoragePlaneColor.alpha = 0.55;
+    const configStorageSphereColor = new BABYLON.StandardMaterial("", scene);
+    configStorageSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFFFD1");
 
     const authorizePlaneColor = new BABYLON.StandardMaterial("", scene);
     authorizePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC9900");
@@ -326,17 +326,42 @@ function createScene() {
     authorizeSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC9900");
 
     const authentPlaneColor = new BABYLON.StandardMaterial("", scene);
-    authentPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC99ff");
+    authentPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFBED7");
     authentPlaneColor.alpha = 0.25;
     const authentSphereColor = new BABYLON.StandardMaterial("", scene);
-    authentSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC99ff");
+    authentSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFBED7");
 
+    const policyPlaneColor = new BABYLON.StandardMaterial("", scene);
+    policyPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
+    policyPlaneColor.alpha = 0.25;
+    const policySphereColor = new BABYLON.StandardMaterial("", scene);
+    policySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
+
+    const extendPlaneColor = new BABYLON.StandardMaterial("", scene);
+    extendPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFABAB");
+    extendPlaneColor.alpha = 0.45;
+    const extendSphereColor = new BABYLON.StandardMaterial("", scene);
+    extendSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFABAB");
 
     const clusterPlaneColor = new BABYLON.StandardMaterial("", scene);
-    clusterPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC00ff");
-    clusterPlaneColor.alpha = 0.25;
+    clusterPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCFFCC");
+    clusterPlaneColor.alpha = 0.55;
     const clusterSphereColor = new BABYLON.StandardMaterial("", scene);
-    clusterSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC00ff");
+    clusterSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCFFCC");
+
+    const otherPlaneColor = new BABYLON.StandardMaterial("", scene);
+    otherPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCCCC");
+    otherPlaneColor.alpha = 0.25;
+    const otherSphereColor = new BABYLON.StandardMaterial("", scene);
+    otherSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCCCC");
+
+    const thirdPartyPlaneColor = new BABYLON.StandardMaterial("", scene);
+    thirdPartyPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FF0099");
+    thirdPartyPlaneColor.alpha = 0.25;
+    const thirdPartySphereColor = new BABYLON.StandardMaterial("", scene);
+    thirdPartySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FF0099");
+
+
 
     let stickColor = new BABYLON.StandardMaterial("", scene);
     if (stickColorDark === false) {
@@ -1809,20 +1834,27 @@ function createScene() {
         }
         beginArc = Math.round(beginArc);
 
-
-        if (clusterRescExtend.length > 0) {
+        if (clusterRescWorkload.length > 0) {
             wFnum++;
-            buildOtherPlane('Extend', calcPlaneSize(clusterRescExtend.length), wFnum)
-            buildOtherComponents('Extend', clusterRescExtend, oFnum)
-            oFnum = oFnum + clusterRescExtend.length + 1;
+            buildOtherPlane('Workload', calcPlaneSize(clusterRescWorkload.length), wFnum)
+            buildOtherComponents('Workload', clusterRescWorkload, oFnum)
+            oFnum = oFnum + clusterRescWorkload.length + 1;
             beginArc = endArc + 5;
         }
 
-        if (clusterRescPolicy.length > 0) {
+        if (clusterRescService.length > 0) {
             wFnum++;
-            buildOtherPlane('Policy', calcPlaneSize(clusterRescPolicy.length), wFnum)
-            buildOtherComponents('Policy', clusterRescPolicy, oFnum)
-            oFnum = oFnum + clusterRescPolicy.length + 1;
+            buildOtherPlane('Service', calcPlaneSize(clusterRescService.length), wFnum)
+            buildOtherComponents('Service', clusterRescService, oFnum)
+            oFnum = oFnum + clusterRescService.length + 1;
+            beginArc = endArc + 5;
+        }
+
+        if (clusterRescConfigStorage.length > 0) {
+            wFnum++;
+            buildOtherPlane('ConfigStorage', calcPlaneSize(clusterRescConfigStorage.length), wFnum)
+            buildOtherComponents('ConfigStorage', clusterRescConfigStorage, oFnum)
+            oFnum = oFnum + clusterRescConfigStorage.length + 1;
             beginArc = endArc + 5;
         }
 
@@ -1842,6 +1874,22 @@ function createScene() {
             beginArc = endArc + 5;
         }
 
+        if (clusterRescPolicy.length > 0) {
+            wFnum++;
+            buildOtherPlane('Policy', calcPlaneSize(clusterRescPolicy.length), wFnum)
+            buildOtherComponents('Policy', clusterRescPolicy, oFnum)
+            oFnum = oFnum + clusterRescPolicy.length + 1;
+            beginArc = endArc + 5;
+        }
+
+        if (clusterRescExtend.length > 0) {
+            wFnum++;
+            buildOtherPlane('Extend', calcPlaneSize(clusterRescExtend.length), wFnum)
+            buildOtherComponents('Extend', clusterRescExtend, oFnum)
+            oFnum = oFnum + clusterRescExtend.length + 1;
+            beginArc = endArc + 5;
+        }
+
         if (clusterRescCluster.length > 0) {
             wFnum++;
             buildOtherPlane('Cluster', calcPlaneSize(clusterRescCluster.length), wFnum)
@@ -1849,12 +1897,21 @@ function createScene() {
             oFnum = oFnum + clusterRescCluster.length + 1;
             beginArc = endArc + 5;
         }
+
         if (clusterRescOther.length > 0) {
             wFnum++;
             buildOtherPlane('Other', calcPlaneSize(clusterRescOther.length), wFnum)
             buildOtherComponents('Other', clusterRescOther, oFnum)
             beginArc = endArc + 5;
         }
+
+        if (clusterRescThirdParty.length > 0) {
+            wFnum++;
+            buildOtherPlane('ThirdParty', calcPlaneSize(clusterRescThirdParty.length), wFnum)
+            buildOtherComponents('ThirdParty', clusterRescThirdParty, oFnum)
+            beginArc = endArc + 5;
+        }
+
     }
 
 
@@ -1894,17 +1951,17 @@ function createScene() {
         let otherPlaneArc1 = [];
         let otherPlaneArc2 = [];
         let tX, tZ;
-        let startArc = beginArc - 1
+        let startArc = beginArc - 1;
 
         for (let i = startArc; i < endArc; i++) {
             pX = (maxRings + CLUSTERLEVELPLANE) * Math.sin(ARC * i);
             pZ = (maxRings + CLUSTERLEVELPLANE) * Math.cos(ARC * i);
-            mstArc.push(new BABYLON.Vector3(pX, 0, pZ));
+            mstArc.push(new BABYLON.Vector3(pX, .5, pZ));
 
             tX = (maxRings + CLUSTERLEVELPLANE) * Math.sin(ARC * i);
             tZ = (maxRings + CLUSTERLEVELPLANE) * Math.cos(ARC * i);
-            otherPlaneArc1.push(new BABYLON.Vector3(tX, oH, tZ));
-            otherPlaneArc2.push(new BABYLON.Vector3(tX, 0.0, tZ));
+            otherPlaneArc1.push(new BABYLON.Vector3(tX, oH + 0.5, tZ));
+            otherPlaneArc2.push(new BABYLON.Vector3(tX, .5, tZ));
         }
 
         otherPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
@@ -1914,16 +1971,21 @@ function createScene() {
             + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
             + '</span>'
             + '<br><hr>'
-            + '<span class="vpkfont-slidein"><b>Kubernetes API category group</b>'
+            + '<span class="vpkfont-slidein"><b>API category</b>'
             + '<br>'
             + '<span class="vpkfont-slidein"><b>- ' + type + ' Resources</b>'
             + '</span></div>';
 
-        // light purple curved plane for the control plane
-        // this goes throught the control plane tube
+        // Build plane of resources for cluster
         let otherPlaneWall = BABYLON.MeshBuilder.CreateRibbon(type, { pathArray: [otherPlaneArc1, otherPlaneArc2], sideOrientation: BABYLON.Mesh.DOUBLESIDE });
-        //otherPlaneWall.material = otherPlaneWallColor;
-        if (type === 'Authentication') {
+        // Set color of plane
+        if (type === 'Workload') {
+            otherPlaneWall.material = workloadPlaneColor;
+        } else if (type === 'Service') {
+            otherPlaneWall.material = servicePlaneColor;
+        } else if (type === 'ConfigStorage') {
+            otherPlaneWall.material = configStoragePlaneColor;
+        } else if (type === 'Authentication') {
             otherPlaneWall.material = authentPlaneColor;
         } else if (type === 'Authorization') {
             otherPlaneWall.material = authorizePlaneColor;
@@ -1931,10 +1993,12 @@ function createScene() {
             otherPlaneWall.material = policyPlaneColor;
         } else if (type === 'Extend') {
             otherPlaneWall.material = extendPlaneColor;
-        } else if (type === 'Other') {
-            otherPlaneWall.material = otherPlaneColor;
         } else if (type === 'Cluster') {
             otherPlaneWall.material = clusterPlaneColor;
+        } else if (type === 'Other') {
+            otherPlaneWall.material = otherPlaneColor;
+        } else if (type === 'ThirdParty') {
+            otherPlaneWall.material = thirdPartyPlaneColor;
         }
 
         // register click event for object
@@ -1949,24 +2013,11 @@ function createScene() {
                 showRing();
             }
         ));
-        buildSlice(pX, 0, pZ, wFnum.toString(), 'n');
+        buildSlice(pX, 0.5, pZ, wFnum.toString(), 'n');
         addControlP(otherPlaneWall, type);
 
+        //TODO 
         // // Build line from control plane to planes
-        // pX = (maxRings + CONTROLPLANE + 1) * Math.sin(angleArray[aa]);
-        // pZ = (maxRings + CONTROLPLANE + 1) * Math.cos(angleArray[aa]);
-
-        // // Add horizontal line/stick
-        // tX = (maxRings + CONTROLPLANE) * Math.sin(angleArray[aa]);
-        // tZ = (maxRings + CONTROLPLANE) * Math.cos(angleArray[aa]);
-        // let epPath = [
-        //     new BABYLON.Vector3(tX, 0, tZ),
-        //     new BABYLON.Vector3(pX, 0, pZ)
-        // ];
-        // let controlPlaneStick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-        // controlPlaneStick.material = cpStickColor;
-        // addControlP(controlPlaneStick, 'Registry');
-
 
     }
 
@@ -1976,7 +2027,7 @@ function createScene() {
     function buildOtherComponents(type, data, fnum) {
         //beginArc = parseInt(beginArc);
         let aa = beginArc;
-        let y = 0;
+        let y = .5;
         let oCnt = 0;
 
         if (data.length > 0) {
@@ -1985,7 +2036,7 @@ function createScene() {
                 oCnt++;
                 if (oCnt > 17) {
                     oCnt = 1;
-                    y = 0.5;
+                    y = 1.0;
                     aa = aa + 2;
                 } else {
                     y = y + 0.5;
@@ -2001,9 +2052,9 @@ function createScene() {
                     + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
                     + '</span>'
                     + '<br><hr>'
-                    + '<span class="vpkfont-slidein"><b>Kubernetes API category</b>'
+                    + '<span class="vpkfont-slidein"><b>API category</b>'
                     + '<br>'
-                    + '<span class="vpkfont-slidein"><b>' + type + ' Resources</b>'
+                    + '<span class="vpkfont-slidein"><b>- ' + type + ' Resources</b>'
                     + '<br>'
                     + '<span><b>Name : &nbsp;&nbsp;</b>' + data[p] + '</span>'
                     + '</span></div>';
@@ -2020,9 +2071,14 @@ function createScene() {
         sphere.position.x = x;
         sphere.position.y = y;
         sphere.position.z = z;
-        sphere.material = otherSphereColor;
 
-        if (type === 'Authentication') {
+        if (type === 'Workload') {
+            sphere.material = workloadSphereColor;
+        } else if (type === 'Service') {
+            sphere.material = serviceSphereColor;
+        } else if (type === 'ConfigStorage') {
+            sphere.material = configStorageSphereColor;
+        } else if (type === 'Authentication') {
             sphere.material = authentSphereColor;
         } else if (type === 'Authorization') {
             sphere.material = authorizeSphereColor;
@@ -2030,10 +2086,12 @@ function createScene() {
             sphere.material = policySphereColor;
         } else if (type === 'Extend') {
             sphere.material = extendSphereColor;
-        } else if (type === 'Other') {
-            sphere.material = otherSphereColor;
         } else if (type === 'Cluster') {
             sphere.material = clusterSphereColor;
+        } else if (type === 'Other') {
+            sphere.material = otherSphereColor;
+        } else {
+            sphere.material = thirdPartySphereColor;
         }
 
         // register click event for object
@@ -2172,37 +2230,40 @@ function buildCluster3D() {
 }
 
 function parseClusterResc() {
-    clusterOtherKeys = Object.keys(k8cData['0000-clusterLevel'])
-    clusterRescPolicy = [];
+    if (typeof k8cData !== 'undefined') {
+        if (typeof k8cData['0000-clusterLevel'] !== 'undefined') {
+            clusterOtherKeys = Object.keys(k8cData['0000-clusterLevel'])
+        }
+    } else {
+        clusterOtherKeys = [];
+    }
+
+    clusterRescWorkload = [];
+    clusterRescService = [];
+    clusterRescConfigStorage = [];
     clusterRescAuthentication = [];
     clusterRescAuthorization = [];
+    clusterRescPolicy = [];
     clusterRescExtend = [];
     clusterRescCluster = [];
     clusterRescOther = [];
+    clusterRescThirdParty = [];
 
-    let rescAuthentication = [
-        'ServiceAccount', 'TokenRequest', 'TokenReview', 'CertificateSigningRequest', 'CertificateTrustBundle'
-    ]
-    let rescAuthorization = [
-        'LocalSubjectAccessReview', 'SelefSubjectAccessReview', 'SelefSubjectRulesReview', 'SelefAccessReview',
-        'ClusterRole', 'ClusterRoleBinding', 'Role', 'RoleBinding'
-    ]
-    let rescPolicy = [
-        'LimitRange', 'ResourceQuota', 'NetworkPolicy', 'PodDistributionBudget', 'IPAddress'
-    ]
-    let rescExtend = [
-        'CustomResourceDefinition', 'MutingWebhookConfiguration', 'ValidatingWebhookConfiguration', 'ValidatingAdmissionPolicy'
-    ]
-    let rescCluster = [
-        'Namespace', 'Event', 'APIService', 'Lease', 'RuntimeClass', 'FlowSchema', 'PriorityLevelConfiguration',
-        'Binding', 'ClusterCIDR'
-    ]
-    let rescSkip = [
-        'CSINode', 'CSIDriver', 'CSIStorageCapacity', 'ComponentStatus', 'Node'
-    ]
 
     for (let i = 0; i < clusterOtherKeys.length; i++) {
         if (rescSkip.includes(clusterOtherKeys[i])) {
+            clusterOtherKeys[i] = '<na>'
+            continue;
+        } else if (rescWorkload.includes(clusterOtherKeys[i])) {
+            clusterRescWorkload.push(clusterOtherKeys[i])
+            clusterOtherKeys[i] = '<na>'
+            continue;
+        } else if (rescService.includes(clusterOtherKeys[i])) {
+            clusterRescService.push(clusterOtherKeys[i])
+            clusterOtherKeys[i] = '<na>'
+            continue;
+        } else if (rescConfigStorage.includes(clusterOtherKeys[i])) {
+            clusterRescConfigStorage.push(clusterOtherKeys[i])
             clusterOtherKeys[i] = '<na>'
             continue;
         } else if (rescAuthentication.includes(clusterOtherKeys[i])) {
@@ -2225,9 +2286,14 @@ function parseClusterResc() {
             clusterRescCluster.push(clusterOtherKeys[i])
             clusterOtherKeys[i] = '<na>'
             continue;
-        } else {
+        } else if (rescOther.includes(clusterOtherKeys[i])) {
             clusterRescOther.push(clusterOtherKeys[i])
             clusterOtherKeys[i] = '<na>'
+            continue;
+        } else {
+            clusterRescThirdParty.push(clusterOtherKeys[i])
+            clusterOtherKeys[i] = '<na>'
+            continue;
         }
     }
     console.log('Built resc arrays')

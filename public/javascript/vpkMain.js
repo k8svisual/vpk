@@ -346,11 +346,15 @@ $(document).ready(function () {
         filter3DView()
     });
 
-    $('input[name=clusterFilterCluster]').change(function () {
+    $('input[name=clusterFilterWorkload]').change(function () {
         filter3DView()
     });
 
-    $('input[name=clusterFilterPolicy]').change(function () {
+    $('input[name=clusterFilterService]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterConfigStorage]').change(function () {
         filter3DView()
     });
 
@@ -362,13 +366,26 @@ $(document).ready(function () {
         filter3DView()
     });
 
-    $('input[name=clusterFilterOther]').change(function () {
+    $('input[name=clusterFilterPolicy]').change(function () {
         filter3DView()
     });
 
     $('input[name=clusterFilterExtend]').change(function () {
         filter3DView()
     });
+
+    $('input[name=clusterFilterCluster]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterOther]').change(function () {
+        filter3DView()
+    });
+
+    $('input[name=clusterFilterThirdParty]').change(function () {
+        filter3DView()
+    });
+
 
     $('input[name=clusterFilterCSI]').change(function () {
         filter3DView()

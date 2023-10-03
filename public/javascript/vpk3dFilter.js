@@ -569,46 +569,64 @@ function filter3DView() {
         }
     }
 
-    // Check Control Plane requested
-    if ($('#clusterFilterCluster').prop('checked')) {
-        changePlane('Cluster Resources', 'Show')
+    if ($('#clusterFilterWorkload').prop('checked')) {
+        changePlane('Workload', 'Show')
     } else {
-        changePlane('Cluster Resources', 'Hide')
+        changePlane('Workload', 'Hide')
     }
 
-    // Check Control Plane requested
-    if ($('#clusterFilterOther').prop('checked')) {
-        changePlane('Other', 'Show')
+    if ($('#clusterFilterService').prop('checked')) {
+        changePlane('Service', 'Show')
     } else {
-        changePlane('Other', 'Hide')
+        changePlane('Service', 'Hide')
     }
 
-    // Check Control Plane requested
-    if ($('#clusterFilterPolicy').prop('checked')) {
-        changePlane('Policy', 'Show')
+    if ($('#clusterFilterConfigStorage').prop('checked')) {
+        changePlane('ConfigStorage', 'Show')
     } else {
-        changePlane('Policy', 'Hide')
+        changePlane('ConfigStorage', 'Hide')
     }
 
-    // Check Control Plane requested
     if ($('#clusterFilterAuthentication').prop('checked')) {
         changePlane('Authentication', 'Show')
     } else {
         changePlane('Authentication', 'Hide')
     }
 
-    // Check Control Plane requested
     if ($('#clusterFilterAuthorization').prop('checked')) {
         changePlane('Authorization', 'Show')
     } else {
         changePlane('Authorization', 'Hide')
     }
 
-    // Check Control Plane requested
+    if ($('#clusterFilterPolicy').prop('checked')) {
+        changePlane('Policy', 'Show')
+    } else {
+        changePlane('Policy', 'Hide')
+    }
+
     if ($('#clusterFilterExtend').prop('checked')) {
         changePlane('Extend', 'Show')
     } else {
         changePlane('Extend', 'Hide')
+    }
+
+    if ($('#clusterFilterCluster').prop('checked')) {
+        changePlane('Cluster', 'Show')
+    } else {
+        changePlane('Cluster', 'Hide')
+    }
+
+    if ($('#clusterFilterOther').prop('checked')) {
+        changePlane('Other', 'Show')
+    } else {
+        changePlane('Other', 'Hide')
+    }
+
+    if ($('#clusterFilterThirdParty').prop('checked')) {
+        changePlane('ThirdParty', 'Show')
+    } else {
+        changePlane('ThirdParty', 'Hide')
     }
 
 }
