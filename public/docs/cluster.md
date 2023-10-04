@@ -1,6 +1,6 @@
 <topicKey cluster/>
-<topicBack id="topicNext" link="ownerref"/>
-<topicNext id="topicBack" link="storage"/>
+<topicBack id="topicNext" link="schematics"/>
+<topicNext id="topicBack" link="snapshot"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
@@ -14,10 +14,10 @@ View resources defined in the cluster.
 
 ---
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/8LtXugxdASY">
     </iframe>
-</div>
+</div> -->
 
 ---
 
@@ -26,6 +26,6 @@ Cluster view currently provides a tabular view by resource kind.  The resource i
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

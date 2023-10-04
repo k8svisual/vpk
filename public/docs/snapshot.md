@@ -1,5 +1,5 @@
 <topicKey snapshot/>
-<topicBack id="topicNext" link="tableview"/>
+<topicBack id="topicNext" link="cluster"/>
 <topicNext id="topicBack" link="overview"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
@@ -12,9 +12,9 @@
 
 Explaining the creation of snapshots that are used by VpK.
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/7sjFh8N6FrY"></iframe>
-</div>
+</div> -->
 
 ---
 
@@ -82,6 +82,6 @@ Statistics are provided with a count for each resource kind within the cluster o
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

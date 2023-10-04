@@ -1,20 +1,20 @@
-<topicKey tableview/>
-<topicBack id="topicNext" link="graphicview"/>
-<topicNext id="topicBack" link="snapshot"/>
+<topicKey search/>
+<topicBack id="topicNext" link="ownerref"/>
+<topicNext id="topicBack" link="security"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
 <a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
 
-###### Table View
+###### Search
 
 ---
 
 Search resources.
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/_YY3190mlkw"></iframe>
-</div>
+</div> -->
 
 ---
 
@@ -26,6 +26,6 @@ __The user must press the Populate table button as the first task to view inform
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

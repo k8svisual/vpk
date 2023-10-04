@@ -11,14 +11,13 @@
 | <a href="javascript:docNextTopic('generalusage')">User Interface</a> | General usage of the UI |
 | <a href="javascript:docNextTopic('overview')">Overview</a> | &nbsp;Vpk application overview an architecture |
 | <a href="javascript:docNextTopic('snapshot')">Snapshot</a> | &nbsp;K8 data to analyze |
-| <a href="javascript:docNextTopic('tableview')">Table View</a> | &nbsp;Tabular view of K8 resources |
+| <a href="javascript:docNextTopic('cluster')">Cluster</a> | &nbsp;Cluster 3D View |
 | <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Multiple graphic views of K8 resources |
-| <a href="javascript:docNextTopic('schematics')">Schematics</a> | &nbsp;Schematic graphs of workloads |
-| <a href="javascript:docNextTopic('security')">Security</a> | &nbsp;Roles, bindings, and subjects |
+| <a href="javascript:docNextTopic('schematics')">Workload Schematics</a> | &nbsp;Schematic graphs of workloads |
 | <a href="javascript:docNextTopic('storage')">Storage</a> | &nbsp;StorageClass, PV and PVC |
-| <a href="javascript:docNextTopic('cluster')">Cluster</a> | &nbsp;Cluster level reaources |
+| <a href="javascript:docNextTopic('security')">Security</a> | &nbsp;Roles, bindings, and subjects |
+| <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search K8 resources |
 | <a href="javascript:docNextTopic('ownerref')">OwnerRef</a> | &nbsp;OwnerReference links |
-
 ---
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>

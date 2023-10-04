@@ -1,6 +1,6 @@
 <topicKey security/>
-<topicBack id="topicNext" link="storage"/>
-<topicNext id="topicBack" link="schematics"/>
+<topicBack id="topicNext" link="search"/>
+<topicNext id="topicBack" link="storage"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
@@ -12,10 +12,10 @@
 
 Color coded views of roles, bindings, and subjects defined for RBAC.
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/zqzGLhoS1VY">
     </iframe>
-</div>
+</div> -->
 
 ---
 
@@ -27,6 +27,6 @@ RBAC Usage provides a views of all bindings and subjects for where the role is d
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

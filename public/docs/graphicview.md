@@ -1,6 +1,6 @@
 <topicKey graphicview/>
-<topicBack id="topicNext" link="schematics"/>
-<topicNext id="topicBack" link="tableview"/>
+<topicBack id="topicNext" link="storage"/>
+<topicNext id="topicBack" link="schematics"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
@@ -12,10 +12,10 @@
 
 Graphical views of defined resources.
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/1_KdZJfKJVw">
     </iframe>
-</div>
+</div> -->
 
 ---
 
@@ -31,6 +31,6 @@ Circle pack chart has pop-up information and the abiltiy to click the blue dots 
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

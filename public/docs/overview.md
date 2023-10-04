@@ -12,10 +12,10 @@
 
 Overview video of VpK.  
 
-<div style="margin-left: 150px;">
+<!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/xYWIyCwp99Y">
     </iframe>
-</div>
+</div> -->
 
 ---
 
@@ -42,15 +42,15 @@ Application features include:
 
 - The locally stored K8 query results allow disconnected use of VpK once a successful retrieval of K8 resource information.
  
-- Tabular viewing of resources with the abilty to filter by namespaces, kinds, labels, and resource names.
+- Search and view Kubernetes resources with the abilty to filter by namespaces, kinds, labels, and resource names.
 
 - Fully expanded or collapsible hierarchial views of K8 resources.  
 
 - Circlepack view of K8 resouces.  
 
-- Schematic views of running workloads in the cluster.
+- Schematic views of workloads deployed in the cluster.
 
-- Views of roles, bindings, and subject used to define RBAC.
+- Views of roles, bindings, and subjects defined.
 
 - Usage of RBAC definitions.
 
@@ -58,6 +58,6 @@ Application features include:
 
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
+<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
+<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->
