@@ -3,5 +3,36 @@
         "managedFields": false,
         "statusSection": true
     },
-    "snapshotDir": "/Users/bob/snaptest"
+    "snapshotDir": "/Users/bob/snaptest",
+    "clusterFilters": {
+        "clusterFilterNodes": true,
+        "clusterFilterCSI": true,
+        "clusterFilterStorage": true,
+        "clusterFilterNetwork": true,
+        "clusterFilterIngress": true,
+        "clusterFilterControlP": true,
+        "clusterFilterWorkload": true,
+        "clusterFilterService": true,
+        "clusterFilterConfigStorage": true,
+        "clusterFilterAuthentication": true,
+        "clusterFilterAuthorization": true,
+        "clusterFilterPolicy": true,
+        "clusterFilterExtend": true,
+        "clusterFilterCluster": true,
+        "clusterFilterOther": true,
+        "clusterFilterThirdParty": true,
+        "clusterFilterRunning": true,
+        "clusterFilterWarning": true,
+        "clusterFilterFailed": true,
+        "clusterFilterSuccessful": true,
+        "clusterFilterDSPods": false,
+        "clusterFilterNodeMemory": false,
+        "clusterFilterNodeCPU": false,
+        "clusterFilterNodeStorage": false,
+        "clusterFilterMemoryLimit": false,
+        "clusterFilterMemoryRequest": false,
+        "clusterFilterCPULimit": false,
+        "clusterFilterCPURequest": false,
+        "clusterFilterSound": true
+    }
 }

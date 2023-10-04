@@ -98,7 +98,7 @@
             <li class="nav-item"><a id="clusterTab" href="#cluster" data-target="#cluster" data-toggle="tab"
                     class="nav-link small text-uppercase">Cluster</a></li>
             <li class="nav-item"><a id="schematicTab" href="#schematic" data-target="#schematic" data-toggle="tab"
-                    class="nav-link small text-uppercase">Schematics</a></li>
+                    class="nav-link small text-uppercase">Workload Schematics</a></li>
             <li class="nav-item"><a id="graphicTab" href="#graphic" data-target="#graphic" data-toggle="tab"
                     class="nav-link small text-uppercase">Graphic View</a></li>
             <li class="nav-item"><a id="storageTab" href="#storage" data-target="#storage" data-toggle="tab"
@@ -453,14 +453,6 @@
                 </div>
 
             </div>
-
-            <!-- <div id="xreference" class="tab-pane">
-                <div class="mt-2 vpkfont vpkcolor" id="xrefInfo">
-                </div>
-                <div id="prtXref" class="ml-3 mr-3">
-                    <svg id="xrefCharts2"></svg>
-                </div>
-            </div> -->
 
             <div id="storage" class="tab-pane">
                 <!-- Append the needed UI components -->
@@ -825,6 +817,10 @@
                     </div>
 
                     <hr style="margin-left: -10px;">
+                    <div class="mb-2 ml-3">
+                        <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons pd-2"
+                            onclick="saveClusterFilters()">Save filters</button>
+                    </div>
                     <!-- <div class="form-check vpkfont-filter">
                         <span class="pt-1">BACKGROUND</span>
                     </div>
@@ -927,12 +923,15 @@
     <!-- ==================================== -->
     <!-- Tool tips are shown here             -->
     <!-- ==================================== -->
+    <!-- <div id="tooltip" display="none" style="position: absolute;  -->
     <div id="tooltip" display="none" style="position: absolute; 
             display: none; 
             background-color: #ddd; 
             padding: 5px; 
             border-radius: 10px; 
-            border-style: double;">
+            border-style: double;
+            z-index: 1;
+            ">
     </div>
 
     </div>

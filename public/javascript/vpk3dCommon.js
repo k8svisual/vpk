@@ -58,6 +58,9 @@ let clusterRescCluster = [];
 let clusterRescOther = [];
 let clusterRescThirdPArty = [];
 
+let configMapsFound = false;
+let secretsFound = false;
+
 let ingressArray = [];
 
 let rescWorkload = [
@@ -80,7 +83,7 @@ let rescConfigStorage = [
     'ConfigMap',
     'Secret',
     'Volume',
-    'VolumeAttachment',
+    'VolumeAttachment'
 ]
 
 let rescAuthentication = [
@@ -123,7 +126,8 @@ let rescCluster = [
     'FlowSchema',
     'PriorityLevelConfiguration',
     'Binding',
-    'ClusterCIDR'
+    'ClusterCIDR',
+    'VolumeSnapshotClass'
 ]
 
 let rescOther = [

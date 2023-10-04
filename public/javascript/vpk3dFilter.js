@@ -83,13 +83,6 @@ function filter3DView() {
     let tmp;
     let i;
 
-    // Pod display options
-    let podDaemonSet = $('#clusterFilterDSPods').prop('checked');
-    let podRunning = $('#clusterFilterRunning').prop('checked');
-    let podFailed = $('#clusterFilterFailed').prop('checked');
-    let podWarning = $('#clusterFilterWarning').prop('checked');
-    let podSuccessful = $('#clusterFilterSuccessful').prop('checked');
-
     let parentPods = [];
     let printStatFlag = false;
 
@@ -643,6 +636,374 @@ function changePlane(plane, action) {
         }
     }
 }
+
+
+function saveClusterFilters() {
+    let filter = {};
+    if ($('#clusterFilterNodes').prop('checked')) {
+        filter.clusterFilterNodes = true
+    } else {
+        filter.clusterFilterNodes = false
+    }
+
+    if ($('#clusterFilterCSI').prop('checked')) {
+        filter.clusterFilterCSI = true
+    } else {
+        filter.clusterFilterCSI = false
+    }
+
+    if ($('#clusterFilterStorage').prop('checked')) {
+        filter.clusterFilterStorage = true
+    } else {
+        filter.clusterFilterStorage = false
+    }
+
+    if ($('#clusterFilterNetwork').prop('checked')) {
+        filter.clusterFilterNetwork = true
+    } else {
+        filter.clusterFilterNetwork = false
+    }
+
+    if ($('#clusterFilterIngress').prop('checked')) {
+        filter.clusterFilterIngress = true
+    } else {
+        filter.clusterFilterIngress = false
+    }
+
+    if ($('#clusterFilterControlP').prop('checked')) {
+        filter.clusterFilterControlP = true
+    } else {
+        filter.clusterFilterControlP = false
+    }
+
+    if ($('#clusterFilterWorkload').prop('checked')) {
+        filter.clusterFilterWorkload = true
+    } else {
+        filter.clusterFilterWorkload = false
+    }
+
+    if ($('#clusterFilterService').prop('checked')) {
+        filter.clusterFilterService = true
+    } else {
+        filter.clusterFilterService = false
+    }
+
+    if ($('#clusterFilterConfigStorage').prop('checked')) {
+        filter.clusterFilterConfigStorage = true
+    } else {
+        filter.clusterFilterConfigStorage = false
+    }
+
+    if ($('#clusterFilterAuthentication').prop('checked')) {
+        filter.clusterFilterAuthentication = true
+    } else {
+        filter.clusterFilterAuthentication = false
+    }
+
+    if ($('#clusterFilterAuthorization').prop('checked')) {
+        filter.clusterFilterAuthorization = true
+    } else {
+        filter.clusterFilterAuthorization = false
+    }
+
+    if ($('#clusterFilterPolicy').prop('checked')) {
+        filter.clusterFilterPolicy = true
+    } else {
+        filter.clusterFilterPolicy = false
+    }
+
+    if ($('#clusterFilterExtend').prop('checked')) {
+        filter.clusterFilterExtend = true
+    } else {
+        filter.clusterFilterExtend = false
+    }
+
+    if ($('#clusterFilterCluster').prop('checked')) {
+        filter.clusterFilterCluster = true
+    } else {
+        filter.clusterFilterCluster = false
+    }
+
+    if ($('#clusterFilterOther').prop('checked')) {
+        filter.clusterFilterOther = true
+    } else {
+        filter.clusterFilterOther = false
+    }
+
+    if ($('#clusterFilterThirdParty').prop('checked')) {
+        filter.clusterFilterThirdParty = true
+    } else {
+        filter.clusterFilterThirdParty = false
+    }
+
+    if ($('#clusterFilterRunning').prop('checked')) {
+        filter.clusterFilterRunning = true
+    } else {
+        filter.clusterFilterRunning = false
+    }
+
+    if ($('#clusterFilterWarning').prop('checked')) {
+        filter.clusterFilterWarning = true
+    } else {
+        filter.clusterFilterWarning = false
+    }
+
+    if ($('#clusterFilterFailed').prop('checked')) {
+        filter.clusterFilterFailed = true
+    } else {
+        filter.clusterFilterFailed = false
+    }
+
+    if ($('#clusterFilterSuccessful').prop('checked')) {
+        filter.clusterFilterSuccessful = true
+    } else {
+        filter.clusterFilterSuccessful = false
+    }
+
+    if ($('#clusterFilterDSPods').prop('checked')) {
+        filter.clusterFilterDSPods = true
+    } else {
+        filter.clusterFilterDSPods = false
+    }
+
+    if ($('#clusterFilterNodeMemory').prop('checked')) {
+        filter.clusterFilterNodeMemory = true
+    } else {
+        filter.clusterFilterNodeMemory = false
+    }
+
+    if ($('#clusterFilterNodeCPU').prop('checked')) {
+        filter.clusterFilterNodeCPU = true
+    } else {
+        filter.clusterFilterNodeCPU = false
+    }
+
+    if ($('#clusterFilterNodeStorage').prop('checked')) {
+        filter.clusterFilterNodeStorage = true
+    } else {
+        filter.clusterFilterNodeStorage = false
+    }
+
+    if ($('#clusterFilterMemoryLimit').prop('checked')) {
+        filter.clusterFilterMemoryLimit = true
+    } else {
+        filter.clusterFilterMemoryLimit = false
+    }
+
+    if ($('#clusterFilterMemoryRequest').prop('checked')) {
+        filter.clusterFilterMemoryRequest = true
+    } else {
+        filter.clusterFilterMemoryRequest = false
+    }
+
+    if ($('#clusterFilterCPULimit').prop('checked')) {
+        filter.clusterFilterCPULimit = true
+    } else {
+        filter.clusterFilterCPULimit = false
+    }
+
+    if ($('#clusterFilterCPURequest').prop('checked')) {
+        filter.clusterFilterCPURequest = true
+    } else {
+        filter.clusterFilterCPURequest = false
+    }
+
+    if ($('#clusterFilterSound').prop('checked')) {
+        filter.clusterFilterSound = true
+    } else {
+        filter.clusterFilterSound = false
+    }
+
+    //console.log(JSON.stringify(filter, null, 4))
+
+    socket.emit('saveClusterFilters', filter);
+}
+
+
+// Pod display options
+let podDaemonSet = $('#clusterFilterDSPods').prop('checked');
+let podRunning = $('#clusterFilterRunning').prop('checked');
+let podFailed = $('#clusterFilterFailed').prop('checked');
+let podWarning = $('#clusterFilterWarning').prop('checked');
+let podSuccessful = $('#clusterFilterSuccessful').prop('checked');
+
+function setClusterFilters() {
+
+    if (clusterFilters.clusterFilterNodes === true) {
+        $('#clusterFilterNodes').prop('checked', true)
+    } else {
+        $('#clusterFilterNodes').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterCSI === true) {
+        $('#clusterFilterCSI').prop('checked', true)
+    } else {
+        $('#clusterFilterCSI').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterStorage === true) {
+        $('#clusterFilterStorage').prop('checked', true)
+    } else {
+        $('#clusterFilterStorage').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterNetwork === true) {
+        $('#clusterFilterNetwork').prop('checked', true)
+    } else {
+        $('#clusterFilterNetwork').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterIngress === true) {
+        $('#clusterFilterIngress').prop('checked', true)
+    } else {
+        $('#clusterFilterIngress').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterControlP === true) {
+        $('#clusterFilterControlP').prop('checked', true)
+    } else {
+        $('#clusterFilterControlP').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterWorkload === true) {
+        $('#clusterFilterWorkload').prop('checked', true)
+    } else {
+        $('#clusterFilterWorkload').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterService === true) {
+        $('#clusterFilterService').prop('checked', true)
+    } else {
+        $('#clusterFilterService').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterConfigStorage === true) {
+        $('#clusterFilterConfigStorage').prop('checked', true)
+    } else {
+        $('#clusterFilterConfigStorage').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterAuthentication === true) {
+        $('#clusterFilterAuthentication').prop('checked', true)
+    } else {
+        $('#clusterFilterAuthentication').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterAuthorization === true) {
+        $('#clusterFilterAuthorization').prop('checked', true)
+    } else {
+        $('#clusterFilterAuthorization').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterPolicy === true) {
+        $('#clusterFilterPolicy').prop('checked', true)
+    } else {
+        $('#clusterFilterPolicy').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterExtend === true) {
+        $('#clusterFilterExtend').prop('checked', true)
+    } else {
+        $('#clusterFilterExtend').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterCluster === true) {
+        $('#clusterFilterCluster').prop('checked', true)
+    } else {
+        $('#clusterFilterCluster').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterOther === true) {
+        $('#clusterFilterOther').prop('checked', true)
+    } else {
+        $('#clusterFilterOther').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterThirdParty === true) {
+        $('#clusterFilterThirdParty').prop('checked', true)
+    } else {
+        $('#clusterFilterThirdParty').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterRunning === true) {
+        $('#clusterFilterRunning').prop('checked', true)
+    } else {
+        $('#clusterFilterRunning').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterWarning === true) {
+        $('#clusterFilterWarning').prop('checked', true)
+    } else {
+        $('#clusterFilterWarning').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterFailed === true) {
+        $('#clusterFilterFailed').prop('checked', true)
+    } else {
+        $('#clusterFilterFailed').prop('checked', true)
+    }
+
+    if (clusterFilters.clusterFilterSuccessful === true) {
+        $('#clusterFilterSuccessful').prop('checked', true)
+    } else {
+        $('#clusterFilterSuccessful').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterDSPods === true) {
+        $('#clusterFilterDSPods').prop('checked', true)
+    } else {
+        $('#clusterFilterDSPods').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterNodeMemory === true) {
+        $('#clusterFilterNodeMemory').prop('checked', true)
+    } else {
+        $('#clusterFilterNodeMemory').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterNodeCPU === true) {
+        $('#clusterFilterNodeCPU').prop('checked', true)
+    } else {
+        $('#clusterFilterNodeCPU').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterNodeStorage === true) {
+        $('#clusterFilterNodeStorage').prop('checked', true)
+    } else {
+        $('#clusterFilterNodeStorage').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterMemoryLimit === true) {
+        $('#clusterFilterMemoryLimit').prop('checked', true)
+    } else {
+        $('#clusterFilterMemoryLimit').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterMemoryRequest === true) {
+        $('#clusterFilterMemoryRequest').prop('checked', true)
+    } else {
+        $('#clusterFilterMemoryRequest').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterCPULimit === true) {
+        $('#clusterFilterCPULimit').prop('checked', true)
+    } else {
+        $('#clusterFilterCPULimit').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterCPURequest === true) {
+        $('#clusterFilterCPURequest').prop('checked', true)
+    } else {
+        $('#clusterFilterCPURequest').prop('checked', false)
+    }
+
+    if (clusterFilters.clusterFilterSound === true) {
+        $('#clusterFilterSound').prop('checked', true)
+    } else {
+        f$('#clusterFilterSound').prop('checked', false)
+    }
+}
+
 
 //----------------------------------------------------------
 console.log('loaded vpk3dFilter.js');

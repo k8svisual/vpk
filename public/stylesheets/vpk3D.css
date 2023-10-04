@@ -84,7 +84,7 @@
     top: 120px;
     /* bottom: 200px; */
     width: 300px;
-    height: 830px;
+    height: 880px;
     z-index: 1000;
     padding: 5px;
     background: #eee;
@@ -171,7 +171,7 @@
 }
 
 .csiStorage {
-    background: rgba(255, 0, 0, 0.45)
+    background: rgba(255, 0, 0, 0.55)
 }
 
 .ingress {
@@ -211,7 +211,7 @@
 }
 
 .configStoragePlane {
-    background-color: #FFFFD1
+    background-color: #ff4500
 }
 
 .authorizationPlane {
@@ -231,7 +231,7 @@
 }
 
 .clusterPlane {
-    background-color: #CCFFCC
+    background-color: #BAEEE5
 }
 
 .otherPlane {

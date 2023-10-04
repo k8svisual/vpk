@@ -53,7 +53,7 @@ function build3DJSON() {
             cluster.nodes = [];
 
             console.log('Cluster node count: ' + maxNodeCount)
-            console.log('Cluster node arc: ' + cluster.nodeArc)
+            //console.log('Cluster node arc: ' + cluster.nodeArc)
 
             // Worker nodes
             for (let i = 0; i < nData.length; i++) {

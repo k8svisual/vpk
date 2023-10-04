@@ -171,9 +171,8 @@ function buildStorageSVG() {
 
         fnum = storageData.StorageClass[scKeys[s]].fnum;
         rtn = rtn + '<svg id="sc' + storCnt + '" width="1200" height="50">'
-            + '<image x="10" y="5"  width="40" height="40" href="images/k8/sc.svg" onmousemove="showStorageTooltip(evt,\''
-            + buildStorageInfo(name, 'SC')
-            + '\');" onmouseout="hideVpkTooltip()"  onclick="getDefFnum(\'' + fnum + '\')"/>'
+            + '<image x="10" y="5"  width="40" height="40" href="images/k8/sc.svg" '
+            + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
 
             + '<text x="60" y="42" fill="black" class="vpkfont" data-toggle="collapse" '
             + ' onclick="toggleStorage(\'sc' + storCnt + 'pv\')">StorageClass: </text>'
@@ -234,9 +233,8 @@ function buildPVLine(storCnt, sc, lastSC) {
             }
 
             rtn = rtn + '<svg id="pv' + p + '" width="1200" height="100">'
-                + '<image x="70" y="5"  width="35" height="35" href="images/k8/pv.svg" onmousemove="showStorageTooltip(evt,\''
-                + buildStorageInfo(name, 'PV')
-                + '\')" onmouseout="hideVpkTooltip()" onclick="getDefFnum(\'' + fnum + '\')"/>'
+                + '<image x="70" y="5"  width="35" height="35" href="images/k8/pv.svg" '
+                + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
                 + '<text x="145"  y="20" fill="black" class="vpkfont" onclick="getDefFnum(\'' + fnum + '\')">' + storageData.PVinfo[pvKeys[p]][0].fmtSpc + '</text>'
                 + '<text x="145"  y="34" fill="black" class="vpkfont-sm">PV name:</text>'
                 + '<text x="205"  y="34" fill="black" class="vpkfont">' + name + '</text>'
@@ -250,9 +248,7 @@ function buildPVLine(storCnt, sc, lastSC) {
                 if (storageData.PVCinfo[pvcKeys[v]][0].name === pvcName) {
                     if (storageData.PVCinfo[pvcKeys[v]][0].namespace === pvcNS) {
                         rtn = rtn + '<image x="100" y="40"  width="35" height="35" href="images/k8/pvc.svg" '
-                            + ' onmousemove="showStorageTooltip(evt,\''
-                            + buildStorageInfo(pvcName, 'PVC')
-                            + '\')" onmouseout="hideVpkTooltip()" onclick="getDefFnum(\'' + pvcKeys[v] + '\')"/>'
+                            + ' onclick="getDefFnum(\'' + pvcKeys[v] + '\')"/>'
                             + '<text x="145" y="66" fill="black" class="vpkfont">' + storageData.PVCinfo[pvcKeys[v]][0].fmtSpc + '</text>'
                             + '<text x="145" y="80" fill="black" class="vpkfont-sm">PVC name:</text>'
                             + '<text x="205" y="80" fill="black" class="vpkfont">' + pvcName + '</text>'

@@ -181,6 +181,8 @@ let processingRequest = '<div class="row">'
 	+ '  </div>'
 	+ '</div>';
 
+let clusterFilters = {};
+
 function handleZoom(e) {
 	d3.select('svg g')
 		.attr('transform', e.transform);
@@ -560,25 +562,25 @@ function buildStorageInfo(data, type) {
 }
 
 
-function buildSvgInfo(data, fnum, type) {
-	let id = fnum + '.' + type;
-	let tName = type;
-	if (typeof svgInfo[id] === 'undefined') {
-		svgInfo[id] = [];
-	}
-	let content = buildTipContent(data, type, fnum)
-	if (type === 'Phase') {
-		tName = 'Pod Phase / IPs'
-	}
-	if (type === 'CRD') {
-		tName = 'CustomResourceDefinition'
-	}
-	// check if an entry already exists, if so skip
-	if (typeof svgInfo[id][0] === 'undefined') {
-		svgInfo[id].push('<span style="font-size: 0.80rem; text-decoration: underline;">' + tName + '</span><br><span style="font-size: 0.70rem;">' + content + '</span>');
-	}
-	return id;
-}
+// function XXXbuildSvgInfo(data, fnum, type) {
+// 	let id = fnum + '.' + type;
+// 	let tName = type;
+// 	if (typeof svgInfo[id] === 'undefined') {
+// 		svgInfo[id] = [];
+// 	}
+// 	let content = buildTipContent(data, type, fnum)
+// 	if (type === 'Phase') {
+// 		tName = 'Pod Phase / IPs'
+// 	}
+// 	if (type === 'CRD') {
+// 		tName = 'CustomResourceDefinition'
+// 	}
+// 	// check if an entry already exists, if so skip
+// 	if (typeof svgInfo[id][0] === 'undefined') {
+// 		svgInfo[id].push('<span style="font-size: 0.80rem; text-decoration: underline;">' + tName + '</span><br><span style="font-size: 0.70rem;">' + content + '</span>');
+// 	}
+// 	return id;
+// }
 
 
 function buildTipContent(data, type, fnum) {
@@ -1001,45 +1003,20 @@ function formatBytes(bytes, decimals = 2) {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-function showStorageTooltip(evt, text) {
-	let tooltip = document.getElementById("tooltip");
-	let html = 'No information available';
-	if (typeof storageInfo[text] !== 'undefined') {
-		info = storageInfo[text];
-		html = info.html;
-	}
 
-	let pageY = evt.pageY;
-	let offTop = $("#storageDetail").offset().top;
-	let tipX = evt.pageX + 45;
-	// adjust for fixed portion of page
-	if (offTop < 0) {
-		offTop = offTop * -1;
-		offTop = offTop + 150;
-	} else {
-		offTop = 149 - offTop;
-	}
-
-	let tipY = offTop + pageY;
-	tipY = tipY - 149;
-
-	//-----------------------
-	tooltip.innerHTML = html;
-	tooltip.style.display = "block";
-	tooltip.style.left = tipX + 'px';
-	tooltip.style.top = tipY + 'px';
-
-}
-
-function showVpkTooltip(evt, text) {
+function showVpkTooltip(evt, key) {
 	let tooltip = document.getElementById("tooltip");
 	let info = 'No information available';
-	if (typeof svgInfo[text] !== 'undefined') {
-		info = svgInfo[text]
+	if (typeof svgInfo[key] !== 'undefined') {
+		info = svgInfo[key]
 	}
-	if (text === '0000.RBAC Security') {
+
+	if (key === '0000.RBAC Security') {
 		info = '<span style="font-size: 0.80rem; text-decoration: underline;">Security</span><br><span style="font-size: 0.70rem;">RBAC security graph</span>';
 	}
+
+	// Set the text of the tooltip
+	tooltip.innerHTML = info;
 
 	let pageY = evt.pageY;
 	let offTop = $("#schematicDetail").offset().top;
@@ -1055,42 +1032,19 @@ function showVpkTooltip(evt, text) {
 	let tipY = offTop + pageY;
 	tipY = tipY - 149;
 
-	//-----------------------
-	tooltip.innerHTML = info;
+	// Adjust for the scrollable area
+	const scrollableSection = document.getElementById('schematicDetail');
+	const rect = scrollableSection.getBoundingClientRect();
+	if (rect.top < 1) {
+		tipY = tipY + rect.top
+	}
+
 	tooltip.style.display = "block";
 	tooltip.style.left = tipX + 'px';
 	tooltip.style.top = tipY + 'px';
 
 }
 
-function showOwnerRefTooltip(evt, text) {
-	let tooltip = document.getElementById("tooltip");
-	let info = 'No information available';
-	if (typeof ownerSvgInfo[text] !== 'undefined') {
-		info = ownerSvgInfo[text].html
-	}
-
-	let pageY = evt.pageY;
-	let offTop = $("#ownerRefLinksDetail").offset().top;
-	let tipX = evt.pageX + 45;
-	// adjust for fixed portion of page
-	if (offTop < 0) {
-		offTop = offTop * -1;
-		offTop = offTop + 150;
-	} else {
-		offTop = 149 - offTop;
-	}
-
-	let tipY = offTop + pageY;
-	tipY = tipY - 149;
-
-	//-----------------------
-	tooltip.innerHTML = info;
-	tooltip.style.display = "block";
-	tooltip.style.left = tipX + 'px';
-	tooltip.style.top = tipY + 'px';
-
-}
 
 function hideOwnerRefTooltip() {
 	hideVpkTooltip();

@@ -938,25 +938,26 @@ function buildNamespaceStats(stats) {
 
 //----------------------------------------------------------
 function getSelectLists() {
-    socket.emit('getSelectLists');
+    //socket.emit('getSelectLists');
+    socket.emit('getServerData');
 }
 
 function closeGetCluster() {
     getSelectLists();
     $("#clusterModal").modal('hide');
 }
-//$$
-//$$ Also invoked in  $(document).ready(function() $$
-//...
-socket.on('selectListsResult', function (data) {
-    k8cData = data.pods;
-    schematicKeys = data.keys;
-    svgInfo = data.info;
-    nsResourceInfo = data.nsRI;
-    workloadEventsInfo = data.evts;
-    populateSelectLists(data);
-    socket.emit('getServerData');
-});
+// //$$
+// //$$ Also invoked in  $(document).ready(function() $$
+// //...
+// socket.on('selectListsResult', function (data) {
+//     k8cData = data.pods;
+//     schematicKeys = data.keys;
+//     svgInfo = data.info;
+//     nsResourceInfo = data.nsRI;
+//     workloadEventsInfo = data.evts;
+//     populateSelectLists(data);
+//     //socket.emit('getServerData');
+// });
 //==========================================================
 
 
@@ -1016,32 +1017,13 @@ function reload() {
 
 //$$ also client.emit('selectListsResult', result) when reload is sent to server
 //...
-socket.on('resetResults', function (data) {
+socket.on('reloadResults', function (data) {
     if (data.validDir === false) {
         setBaseDir(data.baseDir);
         $("#chgDirModal").modal('hide');
         showMessage('Failed to connect to datasource', 'fail');
     } else {
-        setBaseDir(data.baseDir);
-        rootDir = data.baseDir;
-        baseDir = data.baseDir;
-        $("#loadStatus").hide();
-        $("#chgDirFooter").show();
-        $("#chgDirModal").modal('hide');
-        showMessage('Data snapshot connected', 'pass');
-        // clear display areas of old data
-        $("#chartInfo").html('')
-        $("#graphicCharts2").html('')
-        $("#schematicDetail").html('')
-        $("#securityDetail").html('')
-        $("#xrefInfo").html('')
-        $("#xrefCharts2").html('')
-        $("#storageDetail").html('')
-        $("#clusterDetail").html('')
-        getSelectLists();
-        // Issue #17 fix
-        foundNSNamesBuilt = false;
-        bldSchematic()
+        socket.emit('getServerData');
     }
 });
 //==========================================================
@@ -1083,11 +1065,17 @@ function sendShutdownS2() {
 
 
 //----------------------------------------------------------
-function bldSchematic() {
-    socket.emit('getServerData');
-}
+// function bldSchematic() {
+//     //socket.emit('getServerData');
+// }
 
 socket.on('getServerDataResult', function (data) {
+
+
+    setBaseDir(data.baseDir);
+    rootDir = data.baseDir;
+    baseDir = data.baseDir;
+
     k8cData = data.pods;
     schematicKeys = data.keys;
     svgInfo = data.info;
@@ -1098,11 +1086,36 @@ socket.on('getServerDataResult', function (data) {
     helmData = data.helm;
     imageRegistryData = data.registry;
 
+    configMapsFound = data.configMapsFound;
+    secretsFound = data.secretsFound;
+
+    if (typeof data.filters !== 'undefined') {
+        clusterFilters = data.filters;
+        setClusterFilters()
+    }
+
     hideMessage();
+    populateSelectLists(data);
     populateSchematicList();
     buildStorage();
-
     showClusterTab();
+    //bldSchematic()
+
+    $("#loadStatus").hide();
+    $("#chgDirFooter").show();
+    $("#chgDirModal").modal('hide');
+    showMessage('Data snapshot connected', 'pass');
+    // clear display areas of old data
+    $("#chartInfo").html('')
+    $("#graphicCharts2").html('')
+    $("#schematicDetail").html('')
+    $("#securityDetail").html('')
+    $("#xrefInfo").html('')
+    $("#xrefCharts2").html('')
+    $("#storageDetail").html('')
+    $("#clusterDetail").html('')
+
+    foundNSNamesBuilt = false;
 
 });
 
@@ -1213,7 +1226,7 @@ function getCluster3DInfo() {
     $('#cluster3DView').hide();
     // $("#resourceProps").html(processingRequest)
     getDataRequest = 'cluster3D';
-    socket.emit('getServerData');
+    //socket.emit('getServerData');
 }
 
 

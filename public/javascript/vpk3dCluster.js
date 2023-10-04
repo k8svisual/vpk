@@ -283,7 +283,10 @@ function createScene() {
 
     const ingressColor = new BABYLON.StandardMaterial("", scene);
     ingressColor.diffuseColor = new BABYLON.Color3.FromHexString("#ffff00");
-    ingressColor.alpha = 0.45;
+    ingressColor.alpha = 0.35;
+
+    const ingressItemColor = new BABYLON.StandardMaterial("", scene);
+    ingressItemColor.diffuseColor = new BABYLON.Color3.FromHexString("#ffff00");
 
     const csiStickColor = new BABYLON.StandardMaterial("", scene);
     csiStickColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
@@ -314,10 +317,10 @@ function createScene() {
     serviceSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#88BBDD");
 
     const configStoragePlaneColor = new BABYLON.StandardMaterial("", scene);
-    configStoragePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFFFD1");
+    configStoragePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff4500");
     configStoragePlaneColor.alpha = 0.55;
     const configStorageSphereColor = new BABYLON.StandardMaterial("", scene);
-    configStorageSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFFFD1");
+    configStorageSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff4500");
 
     const authorizePlaneColor = new BABYLON.StandardMaterial("", scene);
     authorizePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC9900");
@@ -344,10 +347,10 @@ function createScene() {
     extendSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFABAB");
 
     const clusterPlaneColor = new BABYLON.StandardMaterial("", scene);
-    clusterPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCFFCC");
+    clusterPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#BAEEE5");
     clusterPlaneColor.alpha = 0.55;
     const clusterSphereColor = new BABYLON.StandardMaterial("", scene);
-    clusterSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCFFCC");
+    clusterSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#BAEEE5");
 
     const otherPlaneColor = new BABYLON.StandardMaterial("", scene);
     otherPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCCCC");
@@ -1388,8 +1391,9 @@ function createScene() {
             let yInc = -.3
             let rFnum = 700;
             let irKeys = Object.keys(imageRegistryData)
-            pX = (maxRings + CONTROLPLANE + 1) * Math.sin(angleArray[aa]);
-            pZ = (maxRings + CONTROLPLANE + 1) * Math.cos(angleArray[aa]);
+
+            pX = (maxRings + CONTROLPLANE + 4) * Math.sin(angleArray[aa]);
+            pZ = (maxRings + CONTROLPLANE + 4) * Math.cos(angleArray[aa]);
 
             // Add horizontal line/stick
             tX = (maxRings + CONTROLPLANE) * Math.sin(angleArray[aa]);
@@ -1803,20 +1807,64 @@ function createScene() {
         ingSlice.position.x = 0;
         ingSlice.position.z = 0;
         ingSlice.material = ingressColor;
-
         // register click event for object
-        ingSlice.actionManager = new BABYLON.ActionManager(scene);
-        ingSlice.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
-            BABYLON.ActionManager.OnPickTrigger,
-            function () {
-                document.getElementById("resourceProps").innerHTML = '<p class="mt-3">One or more Ingress are defined</p>';
-                //hideRing()
-            }
-        ));
-        //ingSlice.setEnabled(true);          // always hide the slice when built
-        //addSlice(slice, 'NA');
+        // ingSlice.actionManager = new BABYLON.ActionManager(scene);
+        // ingSlice.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+        //     BABYLON.ActionManager.OnPickTrigger,
+        //     function () {
+        //         document.getElementById("resourceProps").innerHTML = '<p class="mt-3">One or more Ingress are defined</p>';
+        //     }
+        // ));
         addMesh(ingSlice, 'ClusterLevel', 'ingress', 'na', 'na')
-        //TODO: Add selection slice for Ingress
+        let iArc = 0;
+        let iData;
+        for (let i = 0; i < ingressArray.length; i++) {
+            iArc = iArc + 30;
+            iData = ingressArray[i];
+            let ns = iData[0].namespace;
+            let inner = '<div class="vpkfont vpkcolor ml-1">'
+
+                + '<div id="sliceKey">' + iData[0].fnum + '</div>'
+                + '<a href="javascript:getDefFnum(\'' + iData[0].fnum + '\')">'
+                + '<img src="images/k8/ing.svg" style="width:60px;height:60px;"></a>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
+                + '</span>'
+                + '<br><hr>'
+                + '<span><b>Name : &nbsp;&nbsp;</b>' + iData[0].name + '</span>'
+                + '<br>'
+                + '<span><b>Kind : &nbsp;&nbsp;</b>' + iData[0].kind + '</span>'
+                + '</div>';
+
+            let sphere = BABYLON.MeshBuilder.CreateSphere("other", { diameter: 0.35, segments: 32 }, scene);
+
+            pX = (INGRESSRADIUS - 1.2) * Math.sin(angleArray[iArc]);
+            pZ = (INGRESSRADIUS - 1.2) * Math.cos(angleArray[iArc]);
+
+            sphere.position.x = pX;
+            sphere.position.y = INGRESSHEIGHT;
+            sphere.position.z = pZ;
+            sphere.material = ingressItemColor;
+
+
+            // register click event for object
+            sphere.actionManager = new BABYLON.ActionManager(scene);
+            sphere.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+                BABYLON.ActionManager.OnPickTrigger,
+                function () {
+                    document.getElementById("resourceProps").innerHTML = inner;
+                    if ($('#clusterFilterSound').prop('checked')) {
+                        clickSound.play();
+                    }
+                    showRing();
+                }
+            ));
+            addMesh(sphere, ns, 'ingress', iData[0].fnum, 'na')
+            let tFnum = iData[0].fnum;
+            tFnum = tFnum.toString();
+            buildSlice(pX, INGRESSHEIGHT, pZ, tFnum, 'n');
+        }
+
+
     }
 
 
@@ -2296,7 +2344,15 @@ function parseClusterResc() {
             continue;
         }
     }
-    console.log('Built resc arrays')
+    // add configMaps and secrets if they exist
+    if (configMapsFound === true) {
+        clusterRescConfigStorage.push('ConfigMaps')
+    }
+    if (secretsFound === true) {
+        clusterRescConfigStorage.push('Secrets')
+    }
+
+    console.log('Built API Resource arrays')
 }
 
 
