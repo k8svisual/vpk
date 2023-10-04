@@ -33,6 +33,10 @@ createDefaultEngine = function () {
     return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
 };
 
+function k8sDocSite() {
+    window.open('https://kubernetes.io/docs/reference/kubernetes-api/', '_blank');
+}
+
 function print3Dscene() {
     if (engine !== null) {
         BABYLON.Tools.CreateScreenshot(engine, camera, { width: 1250, height: 700 },
@@ -2015,7 +2019,11 @@ function createScene() {
         otherPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
             + '<div id="sliceKey">' + wFnum + '</div>'
             + '<span>'
-            + '<img src="images/k8/k8.svg" style="width:60px;height:60px;"></span>'
+            + '<a href="javascript:k8sDocSite()">'
+            + '<img src="images/k8/k8.svg" style="width:60px;height:60px;"></a>'
+            + '<span class="vpkfont-sm">(Press to view K8s API docs)'
+            + '</span>'
+            + '</span>'
             + '<span class="pl-2 pb-2 vpkfont-sm">&nbsp;'
             + '</span>'
             + '<br><hr>'
