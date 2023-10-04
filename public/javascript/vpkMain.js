@@ -100,7 +100,7 @@ $(document).ready(function () {
         if (currentTab === "#tableview") {
             px = 255;
             checkIfDataLoaded();
-            documentationTabTopic = 'tableview';
+            documentationTabTopic = 'search';
             $('#tableview').show();
             $('#tableviewHdr').show();
         } else {
