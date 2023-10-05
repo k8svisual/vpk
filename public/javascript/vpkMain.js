@@ -87,8 +87,10 @@ $(document).ready(function () {
         currentTab = $(evt.target).attr('href');
         let px;
         let element;
+        hideVpkTooltip()
         // take action based on what tab was shown
         if (currentTab === "#instructions") {
+
             px = 75;
             documentationTabTopic = 'overview';
             $('#instructions').show();

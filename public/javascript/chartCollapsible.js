@@ -1,6 +1,6 @@
 // Build collapsible hierarchy chart
 const chartCollapsible = (input, chType) => {
-
+    hideVpkTooltip()
     let eCount = 0;
     let nodeValue;
 

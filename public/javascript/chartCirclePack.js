@@ -1,5 +1,6 @@
 // Build circle pack chart
 const chartCirclePack = (input, chType) => {
+    hideVpkTooltip()
     const render = (data) => {
         let leafCnt = 0;
         let clipCnt = 0;
@@ -14,46 +15,27 @@ const chartCirclePack = (input, chType) => {
                 (d3.hierarchy(data)
                     .sum(d => d.value)
                     .sort((a, b) => b.value - a.value));
-            // type g: general chart, type  x: x-reference chart 
-            if (chType === 'g') {
-                $("#chartInfo").empty();
-                $("#chartInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view resource definition.<span>'
-                    + '<div class="header-right">'
-                    + '<a href="javascript:printDiv(\'prtGraphic\')">'
-                    + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-                    + '</a>'
-                    + '</div>');
 
-            } else if (chType === 'x') {
-                $("#xrefInfo").empty();
-                $("#xrefInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view resource definition.<span>'
-                    + '<div class="header-right">'
-                    + '<a href="javascript:printDiv(\'prtXref\')">'
-                    + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-                    + '</a>'
-                    + '</div>');
-            }
+            $("#chartInfo").empty();
+            $("#chartInfo").html('<span class="vpkfont-md pl-3">View additional informaiton by placing cursor over item. Blue dots can be clicked to view resource definition.<span>'
+                + '<div class="header-right">'
+                + '<a href="javascript:printDiv(\'prtGraphic\')">'
+                + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
+                + '</a>'
+                + '</div>');
+
             return payload;
         }
 
         const margin = { 'left': 100, 'top': 50 }
         const root = pack(data);
         let svg;
-        if (chType === 'g') {
-            svg = d3.select('#graphicCharts2')
-                .attr("viewBox", [0, 0, width, height])
-                .style("font", "10px sans-serif")
-                .style("overflow", "visible")
-                .attr("text-anchor", "middle")
-                .call(zoom);
-        } else if (chType === 'x') {
-            svg = d3.select('#xrefCharts2')
-                .attr("viewBox", [0, 0, width, height])
-                .style("font", "10px sans-serif")
-                .style("overflow", "visible")
-                .attr("text-anchor", "middle")
-                .call(zoom);
-        }
+        svg = d3.select('#graphicCharts2')
+            .attr("viewBox", [0, 0, width, height])
+            .style("font", "10px sans-serif")
+            .style("overflow", "visible")
+            .attr("text-anchor", "middle")
+            .call(zoom);
 
         const node = svg.append("g")
             .attr("pointer-events", "all")
@@ -112,7 +94,7 @@ var lastMove;
 var elapsed;
 
 function handleCPMouseOver(d, i) {
-    // elapsed = Date.now() - lastMove;
+    elapsed = Date.now() - lastMove;
     if (elapsed < 300) {
         return;
     }
@@ -151,17 +133,6 @@ function handleCPMouseOver(d, i) {
             }
         }
 
-        // handle the xref chart
-        if (chartT === 'x') {
-            if (text.length === 2) {
-                if (typeof text[1] !== 'undefined') {
-                    show = true;
-                    tip = '<b>Xref value: </b>' + text[1] + '<br>Click blue dot to view info about occurrence'
-                }
-            }
-        }
-
-
         if (show === true) {
 
             let pageY = d.clientY;
@@ -169,12 +140,10 @@ function handleCPMouseOver(d, i) {
             let offTop;
             if (chartT === 'g') {
                 offTop = $("#prtGraphic").offset().top;
-            } else {
-                offTop = $("#prtXref").offset().top;
             }
-            //let offTop  = window.pageYOffset;
+
             //console.log(offTop)
-            let tipX = d.clientX - 100;
+            let tipX = d.clientX + 20;
             // adjust for fixed portion of page
             if (offTop < 0) {
                 offTop = offTop * -1;
@@ -192,17 +161,18 @@ function handleCPMouseOver(d, i) {
             tooltip.style.display = "block";
             tooltip.style.left = tipX + 'px';
             tooltip.style.top = tipY + 'px';
+
         }
     }
     lastMove = Date.now();
 }
 
 function handleCPMouseOut(d, i) {
-    hideVpkTooltip();
+    //console.log('tooltip hidden')
+    //hideVpkTooltip();
 }
 
-function handleCPClick(d, i, ct) {
-    // ct is the chart type
+function handleCPClick() {
     let cid = '';
     let chartT = '';
     let secret = false;
@@ -214,21 +184,8 @@ function handleCPClick(d, i, ct) {
         cid = cid.split('$');
         chartT = cid[2];
     }
+    getFileByCid(cid, secret)
 
-    if (chartT === 'g') {
-        getFileByCid(cid, secret)
-    } else if (chartT === 'x') {
-        let tmp = cid[1].split('::');
-        let fp = tmp.indexOf(':');
-        if (fp > -1) {
-            tmp = tmp.substring(0, fp);
-        }
-        if (secret === true) {
-            getDefSec(tmp[2]);
-        } else {
-            getDefFnum(tmp[2])
-        }
-    }
 }
 
 

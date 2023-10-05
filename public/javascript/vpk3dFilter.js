@@ -48,6 +48,7 @@ function meshCnt() {
 
 
 function showRing() {
+    $("#slideIn").addClass("active")
     let id = document.getElementById("sliceKey").innerHTML
     for (let i = 0; i < sliceArray.length; i++) {
         if (sliceArray[i].id === id) {

@@ -1007,6 +1007,7 @@ function formatBytes(bytes, decimals = 2) {
 function showVpkTooltip(evt, key) {
 	let tooltip = document.getElementById("tooltip");
 	let info = 'No information available';
+	let yAdj = 80;
 	if (typeof svgInfo[key] !== 'undefined') {
 		info = svgInfo[key]
 	}
@@ -1020,23 +1021,24 @@ function showVpkTooltip(evt, key) {
 
 	let pageY = evt.pageY;
 	let offTop = $("#schematicDetail").offset().top;
-	let tipX = evt.pageX + 45;
+	let tipX = evt.pageX + 5;
 	// adjust for fixed portion of page
 	if (offTop < 0) {
 		offTop = offTop * -1;
-		offTop = offTop + 150;
+		offTop = offTop + 200;
 	} else {
-		offTop = 149 - offTop;
+		offTop = 199 - offTop;
 	}
 
 	let tipY = offTop + pageY;
-	tipY = tipY - 149;
+	tipY = tipY - yAdj;
 
 	// Adjust for the scrollable area
 	const scrollableSection = document.getElementById('schematicDetail');
 	const rect = scrollableSection.getBoundingClientRect();
 	if (rect.top < 1) {
 		tipY = tipY + rect.top
+		tipY = tipY - (yAdj + 40);
 	}
 
 	tooltip.style.display = "block";
