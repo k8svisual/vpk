@@ -7,22 +7,10 @@ const chartCollapsible = (input, chType) => {
     const render = data => {
 
         const width = 1250;
-        //const dx = 16;
-        //const dy = width / 9;
-
         let dx;
         let dy;
-        // type g: general chart, type  x: x-reference chart 
-        if (chType === 'g') {
-            dx = 16;
-            dy = width / 9;
-        } else if (chType === 's') {
-            dx = 16;
-            dy = width / 5.5;
-        } else if (chType === 'x') {
-            dx = 16;
-            dy = width / 2.75;
-        }
+        dx = 16;
+        dy = width / 9;
 
         const margin = { top: 10, right: 120, bottom: 10, left: 70 };
 
@@ -31,31 +19,14 @@ const chartCollapsible = (input, chType) => {
             .y(d => { return d.x });
 
         const tree = (root) => {
-            if (chType === 'g') {
-                $("#chartInfo").empty();
-                $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
-                    + '<div class="header-right">'
-                    + '<a href="javascript:printDiv(\'prtGraphic\')">'
-                    + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-                    + '</a>'
-                    + '</div>');
-            } else if (chType === 's') {
-                $("#securityChartInfo").empty();
-                $("#securityChartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
-                    + '<div class="header-right">'
-                    + '<a href="javascript:printDiv(\'prtGraphic\')">'
-                    + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-                    + '</a>'
-                    + '</div>');
-            } else if (chType === 'x') {
-                $("#xrefInfo").empty();
-                $("#xrefInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
-                    + '<div class="header-right">'
-                    + '<a href="javascript:printDiv(\'prtXref\')">'
-                    + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-                    + '</a>'
-                    + '</div>');
-            }
+            $("#chartInfo").empty();
+            $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Click blue dot to expand or collapse.  Red dot is final point of branch. Click red dot to view resource definition.</span>'
+                + '<div class="header-right">'
+                + '<a href="javascript:printDiv(\'prtGraphic\')">'
+                + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
+                + '</a>'
+                + '</div>');
+
             return d3.tree().nodeSize([dx, dy])(root);
         }
 
@@ -71,22 +42,10 @@ const chartCollapsible = (input, chType) => {
         });
 
         let svg;
-        if (chType === 'g') {
-            svg = d3.select('#graphicCharts2')
-                .attr("viewBox", [-margin.left, -margin.top, width, dx])
-                .style("font", "11px sans-serif")
-                .style("user-select", "none");
-        } else if (chType === 's') {
-            svg = d3.select('#securityCharts')
-                .attr("viewBox", [-margin.left, -margin.top, width, dx])
-                .style("font", "11px sans-serif")
-                .style("user-select", "none");
-        } else if (chType === 'x') {
-            svg = d3.select('#xrefCharts2')
-                .attr("viewBox", [-margin.left, -margin.top, width, dx])
-                .style("font", "11px sans-serif")
-                .style("user-select", "none");
-        }
+        svg = d3.select('#graphicCharts2')
+            .attr("viewBox", [-margin.left, -margin.top, width, dx])
+            .style("font", "11px sans-serif")
+            .style("user-select", "none");
 
         const gLink = svg.append("g")
             .attr("fill", "none")
@@ -230,12 +189,8 @@ const chartCollapsible = (input, chType) => {
 
 }
 
-const handleCollapseClick = (d, i, ct) => {
-    // ct is the chType
+const handleCollapseClick = (d) => {
     let cid = '';
-    let chartT = '';
-    let text = '';
-    let fnum = '';
     if (typeof d.currentTarget !== 'undefined') {
         if (typeof d.currentTarget.attributes !== 'undefined') {
             if (typeof d.currentTarget.attributes['fill'] !== 'undefined') {
@@ -247,25 +202,7 @@ const handleCollapseClick = (d, i, ct) => {
                             cid = d.currentTarget.attributes['cid'].nodeValue;
                             cid = cid.split('$');
                             chartT = cid[2];
-                            if (chartT === 's') {
-                                if (cid[3] === 'none') {
-                                    showMessage('No information available for selected item.')
-                                } else {
-                                    getDefFnum(cid[3]);
-                                }
-                            } else if (chartT === 'g') {
-                                getFileByCid(cid);
-                            } else if (chartT = 'x') {
-                                text = cid[1];
-                                text = text.split('::');
-                                if (text.length > 1) {
-                                    fnum = text[text.length - 1];
-                                    fnum = fnum.split(':')
-                                    if (typeof fnum[0] !== 'undefined') {
-                                        getDefFnum(fnum[0]);
-                                    }
-                                }
-                            }
+                            getFileByCid(cid);
                         } else {
                             return
                         }

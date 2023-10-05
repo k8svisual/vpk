@@ -6,35 +6,18 @@ const chartHierarchy = (input, chType) => {
     let height = 500;
     let svg;
 
-    // type g: general chart, type  x: x-reference chart 
-    if (chType === 'x') {
+    $("#chartInfo").empty();
+    $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Expanded hierarchy (click red dot to view resource)</span>'
+        + '<div class="header-right">'
+        + '<a href="javascript:printDiv(\'prtGraphic\')">'
+        + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
+        + '</a>'
+        + '</div>');
 
-        $("#xrefInfo").empty();
-        $("#xrefInfo").html('<span class="vpkfont-md pl-3 pb-3">Expanded hierarchy (click red dot to view resource)</span>'
-            + '<div class="header-right">'
-            + '<a href="javascript:printDiv(\'prtXref\')">'
-            + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-            + '</a>'
-            + '</div>');
-
-        svg = d3.select('#xrefCharts2')
-            .style("font", "11px sans-serif")
-            .style("overflow", "visible")
-            .attr("text-anchor", "middle");
-    } else {
-        $("#chartInfo").empty();
-        $("#chartInfo").html('<span class="vpkfont-md pl-3 pb-3">Expanded hierarchy (click red dot to view resource)</span>'
-            + '<div class="header-right">'
-            + '<a href="javascript:printDiv(\'prtGraphic\')">'
-            + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
-            + '</a>'
-            + '</div>');
-
-        svg = d3.select('#graphicCharts2')
-            .style("font", "11px sans-serif")
-            .style("overflow", "visible")
-            .attr("text-anchor", "middle");
-    }
+    svg = d3.select('#graphicCharts2')
+        .style("font", "11px sans-serif")
+        .style("overflow", "visible")
+        .attr("text-anchor", "middle");
 
     const tree = data => {
         const root = d3.hierarchy(data);
@@ -111,12 +94,8 @@ const chartHierarchy = (input, chType) => {
 }
 
 
-const handleHierarchyClick = (d, i, ct) => {
-    // ct is the chType
+const handleHierarchyClick = (d) => {
     let cid = '';
-    let chartT = '';
-    let text = '';
-    let fnum = '';
     if (typeof d.currentTarget !== 'undefined') {
         if (typeof d.currentTarget.attributes !== 'undefined') {
             if (typeof d.currentTarget.attributes['fill'] !== 'undefined') {
@@ -128,19 +107,7 @@ const handleHierarchyClick = (d, i, ct) => {
                             cid = d.currentTarget.attributes['cid'].nodeValue;
                             cid = cid.split('$');
                             chartT = cid[2];
-                            if (chartT === 'g') {
-                                getFileByCid(cid);
-                            } else if (chartT = 'x') {
-                                text = cid[1];
-                                text = text.split('::');
-                                if (text.length > 1) {
-                                    fnum = text[text.length - 1];
-                                    fnum = fnum.split(':')
-                                    if (typeof fnum[0] !== 'undefined') {
-                                        getDefFnum(fnum[0]);
-                                    }
-                                }
-                            }
+                            getFileByCid(cid);
                         } else {
                             return
                         }

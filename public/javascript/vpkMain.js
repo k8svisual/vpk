@@ -1114,7 +1114,7 @@ socket.on('getServerDataResult', function (data) {
     $("#securityDetail").html('')
     $("#xrefInfo").html('')
     $("#xrefCharts2").html('')
-    $("#storageDetail").html('')
+    //$("#storageDetail").html('')
     $("#clusterDetail").html('')
 
     foundNSNamesBuilt = false;
@@ -1299,18 +1299,18 @@ socket.on('getOwnerRefLinksResult', function (data) {
 //==========================================================
 
 
-//----------------------------------------------------------
-function getStorageInfo() {
-    hideMessage();
-    $("#storageDetail").html(processingRequest)
-    socket.emit('getStorage');
-}
-//...
-socket.on('getStorageResult', function (data) {
-    storageData = data.info;
-    buildStorage();
-});
-//==========================================================
+// //----------------------------------------------------------
+// function getStorageInfo() {
+//     hideMessage();
+//     $("#storageDetail").html(processingRequest)
+//     socket.emit('getStorage');
+// }
+// //...
+// socket.on('getStorageResult', function (data) {
+//     storageData = data.info;
+//     buildStorage();
+// });
+// //==========================================================
 
 
 //----------------------------------------------------------
