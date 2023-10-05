@@ -438,20 +438,20 @@ function sendChildSvg() {
 //----------------------------------------------------------
 //----------------------------------------------------------
 function saveConfig(what) {
-    if (typeof what === 'undefined') {
-        let sFlds = document.getElementById('statusFlds').checked;
-        let mFlds = document.getElementById('mgmFlds').checked;
+    //    if (typeof what === 'undefined') {
+    let sFlds = document.getElementById('statusFlds').checked;
+    let mFlds = document.getElementById('mgmFlds').checked;
 
-        if (typeof sFlds === 'undefined') {
-            sFlds = false;
-        }
-        if (typeof mFlds === 'undefined') {
-            mFlds = false;
-        }
-        socket.emit('saveConfig', { "managedFields": mFlds, "statusSection": sFlds });
-    } else {
-        socket.emit('saveConfig', { "xrefData": xrefData });
+    if (typeof sFlds === 'undefined') {
+        sFlds = false;
     }
+    if (typeof mFlds === 'undefined') {
+        mFlds = false;
+    }
+    socket.emit('saveConfig', { "managedFields": mFlds, "statusSection": sFlds });
+    // } else {
+    //     socket.emit('saveConfig', { "xrefData": xrefData });
+    // }
 }
 //...
 socket.on('saveConfigResult', function (data) {
@@ -754,7 +754,7 @@ function getChart(type, what) {
     socket.emit('getHierarchy', { "namespaceFilter": namespaces });
 }
 //...
-socket.on('hierarchyResult', function (data) {
+socket.on('getHierarchyResult', function (data) {
     $("#graphicCharts2").empty();
     $("#graphicCharts2").html('');
     if (chartType === 'hierarchy') {
@@ -922,7 +922,6 @@ function buildNamespaceStats(stats) {
 
 //----------------------------------------------------------
 function getSelectLists() {
-    //socket.emit('getSelectLists');
     socket.emit('getServerData');
 }
 
@@ -1067,7 +1066,9 @@ socket.on('getServerDataResult', function (data) {
     $("#loadStatus").hide();
     $("#chgDirFooter").show();
     $("#chgDirModal").modal('hide');
-    showMessage('Data snapshot connected', 'pass');
+    if (baseDir !== '-none-') {
+        showMessage('Data snapshot connected', 'pass');
+    }
 
     // clear display areas of old data
     $("#chartInfo").html('')
@@ -1108,7 +1109,7 @@ function getSchematic(ns, pod) {
     } else {
         namespaces = ":" + ns;
     }
-    socket.emit('schematicGetSvg', namespaces);
+    socket.emit('getSchematicSvg', namespaces);
 }
 //...
 socket.on('schematicGetSvgResult', function (data) {
@@ -1278,7 +1279,7 @@ function searchObj() {
         "namespaceFilter": namespaces,
         "kindFilter": kinds
     }
-    socket.emit('search', data);
+    socket.emit('searchK8Data', data);
 }
 //...
 socket.on('searchResult', function (data) {
@@ -1422,7 +1423,9 @@ function viewClusterLegend() {
 
 // Switch to the Cluster tab and refresh the 3D view
 function showClusterTab() {
-    // $("#clusterDetail").html('')
+    if (baseDir === '-none-') {
+        return;
+    }
     $('.nav-tabs a[href="#cluster"]').tab('show');
     buildCluster3D();
 }
