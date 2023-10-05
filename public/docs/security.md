@@ -18,7 +18,7 @@
 </div> -->
 
 
-Security provides a view of the security role, subject, and binding for resources in the selected namespace.  
+Security provides a view of the role, subject, and binding for resources in the cluster level or selected namespace.  
 
 From the namespace drop-down select a single namespace.  Once a namespace has been selected press the __View selected namespace__ button. 
 

@@ -1151,7 +1151,7 @@ function bldXrefRulesTable() {
 	let picked = xrefData.picked;
 	let rules;
 	let divSection = '<hr><table style="width:100%">';
-	let header = '<tr class="rulesList vpkfont"><th class="text-center">K8 Kind</th>'
+	let header = '<tr class="rulesList vpkfont"><th class="text-center">k8s Kind</th>'
 		+ '<th class="text-center">Path</th><th class="text-center">Enabled</th></tr>'
 		+ '<td width="10%">' + hrLow + '</td>'
 		+ '<td width="80%">' + hrLow + '</td>'

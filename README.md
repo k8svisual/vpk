@@ -92,7 +92,7 @@ Follow the instructions in the snapshot repository for how to build and install 
 
 VpK was created as the result of wanting a tool to aid in understanding what is defined in Kubernetes.   
 
-VpK is comprised of a server and browser components.  The server component is a node.js application that communictes with running instances of K8 using the kubectl CLI application.  When using K8 versions that require a custom CLI tool to query Kubernets, e.g. OpenShift, MicroK8s, etc. the associated tool is used to query the cluster.  Using the kubectl api-resource command, a list of all known resources can be obtained.  Using this information all K8 resources support the 'get' verb are quired using kubectl get.  The output from the get requests used to create a seperate file for each unique resource.  These files are created on the user laptop.  At this point VpK no longer communicates with the K8 instance. 
+VpK is comprised of a server and browser components.  The server component is a node.js application that communictes with running instances of k8s using the kubectl CLI application.  When using k8s versions that require a custom CLI tool to query Kubernets, e.g. OpenShift, MicroK8s, etc. the associated tool is used to query the cluster.  Using the kubectl api-resource command, a list of all known resources can be obtained.  Using this information all k8s resources support the 'get' verb are quired using kubectl get.  The output from the get requests used to create a seperate file for each unique resource.  These files are created on the user laptop.  At this point VpK no longer communicates with the k8s instance. 
 
 The user interface (UI), browser component, provides graphical and tabular views of resources defined and deployed in the cluster.
 
@@ -102,23 +102,29 @@ What is VpK?
 
 - Vpk provides the ability to view the captured snapshot in a disconnected fashion.  Once the snapshot is created the user no longer needs to be connected to the cluster.
 
-- Vpk will __not__ modify a K8 cluster.  It is designed as read-only.
+- Vpk will __not__ modify a Kubernetes cluster.  It is designed as read-only.
 
-- VpK is __not__ a realtime monitoring tool. 
+- VpK is __not__ a realtime monitoring tool.
 
-- Access running K8 instances via CLI and saving results in locally stored directory.
+- Access a Kubernetes instance via CLI and save results (__snapshot__) in local directory. This information can be reused.
 
-- The locally stored K8 query results allow disconnected use of VpK once a successful retrieval of K8 resource information.
+- The locally stored __snapshot__ allows disconnected use of VpK once a successful retrieval of k8s resource information.
  
-- Tabular viewing of resources with the abilty to filter by namespaces, kinds, labels, and resource names.
+- 3D interactive view of the k8s cluster.
 
-- Fully expanded or collapsible hierarchial views of K8 resources.  
+- Schematic views of workloads deployed in the cluster.  Interact with the schematic and view detail resource definitions.
 
-- Circlepack view of K8 resouces.  
+- View fully expanded or collapsible hierarchical graphs of k8s resources for the cluster or selected namespaces.  
 
-- Schematic views of running workloads in the cluster.
+- View a Circlepack graph of k8s resouces for the cluster or selected namespaces.
 
-- Views of roles, bindings, and subject used to define RBAC.
+- Views requested storage for StorageClass, Persistent Volume, and Persistent Volume Claims.
+
+- View defined security roles, bindings, and subjects for the cluster or namespaces.
+
+- Search k8s resources with the abilty to filter by namespaces, kinds, labels, resource names, and annotations.
+
+- View Owner References for the cluster or namespaces.
   
 
 <br><br>

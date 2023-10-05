@@ -6,11 +6,10 @@
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
 <a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
 
-###### Overview and architecture
+#### VpK Overview and Architecture
 
----
 
-Overview video of VpK.  
+<!-- Overview video of VpK.   -->
 
 <!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/xYWIyCwp99Y">
@@ -18,46 +17,55 @@ Overview video of VpK.
 </div> -->
 
 ---
+##### What is VpK? 
 
-VpK was created as the result of wanting a tool to aid in understanding what is defined in Kubernetes.   
+VpK (Visually presented Kubernetes) was created to aid in understanding what is defined in a specific Kubernetes cluster.   
 
-VpK is comprised of a server and browser components.  The server component is a node.js application that communictes with running instances of K8 using the kubectl CLI application.  When using K8 versions that require a custom CLI tool to query Kubernets, e.g. OpenShift, MicroK8s, etc. the associated tool is used to query the cluster.  Using the kubectl api-resource command, a list of all known resources can be obtained.  Using this information all K8 resources support the 'get' verb are quired using kubectl get.  The output from the get requests used to create a seperate file for each unique resource.  These files are created on the user laptop.  At this point VpK no longer communicates with the K8 instance. 
+VpK is comprised of a server and browser components.  The server component is a node.js application that communictes with running instances of K8s using the __kubectl__ CLI.  The use of other CLI tools other than __kubectl__ is supported.  
 
-The user interface (UI), browser component, provides graphical and tabular views of resources defined and deployed in the cluster.
+To obtain the k8s resource information the user must connect to the desired Kubernetes cluster with the CLI before retrieving the data.  If no Kubernetes connection has been established no data will be obtained.
 
-What is VpK? 
+When getting data from the cluster the kubectl CLI (or other configured CLI ) is used to get the defined api-resources.  Using this list of defined Kubernetes api resources, the CLI will use the 'get' option to obtain the k8s data for each resource type. The output from the get request is used to create a file (__snapshot__) that is saved and can be reused without connecting to the k8s cluster for this and future sessions.  View the next topic in the documentation for how the snapshots are 
+
+At this point VpK no longer requires any communication with the Kubernetes cluster. 
 
 - VpK is designed to capture a point-in-time snapshot of the cluster.
 - Vpk provides the ability to view the captured snapshot in a disconnected fashion.  Once the snapshot is created the user no longer needs to be connected to the cluster.
-- Vpk will __not__ modify a K8 cluster.  It is designed as read-only.
+- Vpk will __not__ modify a Kubernetes cluster.  It is designed as read-only.
 - VpK is __not__ a realtime monitoring tool.  
 
+
+##### Application features
+
+- Access a Kubernetes instance via CLI and save results (__snapshot__) in local directory. This information can be reused.
+
+- The locally stored __snapshot__ allows disconnected use of VpK once a successful retrieval of k8s resource information.
+ 
+- 3D interactive view of the k8s cluster.
+
+- Schematic views of workloads deployed in the cluster.  Interact with the schematic and view detail resource definitions.
+
+- View fully expanded or collapsible hierarchical graphs of k8s resources for the cluster or selected namespaces.  
+
+- View a Circlepack graph of k8s resouces for the cluster or selected namespaces.
+
+- Views requested storage for StorageClass, Persistent Volume, and Persistent Volume Claims.
+
+- View defined security roles, bindings, and subjects for the cluster or namespaces.
+
+- Search k8s resources with the abilty to filter by namespaces, kinds, labels, resource names, and annotations.
+
+- View Owner References for the cluster or namespaces.
+  
+<br>
+
+##### Overview diagram
+
+<br>
 
 <img style="float: center;" src="docs/docimages/architecture.png" width="1024" height="542">
 
 
-Application features include:
-
-- Access running K8 instances via CLI and saving results in locally stored directory.
-
-- The locally stored K8 query results allow disconnected use of VpK once a successful retrieval of K8 resource information.
- 
-- Search and view Kubernetes resources with the abilty to filter by namespaces, kinds, labels, and resource names.
-
-- Fully expanded or collapsible hierarchial views of K8 resources.  
-
-- Circlepack view of K8 resouces.  
-
-- Schematic views of workloads deployed in the cluster.
-
-- Views of roles, bindings, and subjects defined.
-
-- Usage of RBAC definitions.
-
-- Create and view custom cross reference information of K8 resource elements.
 
 ---
 
-<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
-<a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->

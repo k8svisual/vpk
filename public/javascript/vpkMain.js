@@ -1182,14 +1182,6 @@ function formatSingleSVG(data, pod) {
     return '';
 }
 
-
-function getCluster3DInfo() {
-    hideMessage();
-    $('#cluster3DView').hide();
-    getDataRequest = 'cluster3D';
-}
-
-
 //==========================================================
 
 

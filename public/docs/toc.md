@@ -10,13 +10,13 @@
 | <a href="javascript:docNextTopic('gettingstarted')">Getting started</a> | Vpk installation and initial use |
 | <a href="javascript:docNextTopic('generalusage')">User Interface</a> | General usage of the UI |
 | <a href="javascript:docNextTopic('overview')">Overview</a> | &nbsp;Vpk application overview an architecture |
-| <a href="javascript:docNextTopic('snapshot')">Snapshot</a> | &nbsp;K8 data to analyze |
+| <a href="javascript:docNextTopic('snapshot')">Snapshot</a> | &nbsp;k8s data to analyze |
 | <a href="javascript:docNextTopic('cluster')">Cluster</a> | &nbsp;Cluster 3D View |
 | <a href="javascript:docNextTopic('schematics')">Workload Schematics</a> | &nbsp;Schematic graphs of workloads |
-| <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Multiple graphic views of K8 resources |
+| <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Multiple graphic views of k8s resources |
 | <a href="javascript:docNextTopic('storage')">Storage</a> | &nbsp;StorageClass, PV and PVC |
 | <a href="javascript:docNextTopic('security')">Security</a> | &nbsp;Roles, bindings, and subjects |
-| <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search K8 resources |
+| <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search k8s resources |
 | <a href="javascript:docNextTopic('ownerref')">OwnerRef Links</a> | &nbsp;OwnerReference links |
 ---
 

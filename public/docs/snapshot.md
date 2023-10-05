@@ -6,11 +6,11 @@
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
 <a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>
 
-###### Snapshot
+#### Snapshot
 
 ---
 
-Explaining the creation of snapshots that are used by VpK.
+Snapshots used by VpK
 
 <!-- <div style="margin-left: 150px;">
     <iframe width="700" height="390" src="https://www.youtube.com/embed/7sjFh8N6FrY"></iframe>
@@ -18,7 +18,7 @@ Explaining the creation of snapshots that are used by VpK.
 
 ---
 
-Viewing any infomation within VpK requires the user to connect to a snapshot of K8 information.  This should be the first task any time the application is started.  Using the dropdown with the _"Select snapshot"_ value shown select the desired option.  
+Viewing any infomation within VpK requires the user to connect to a snapshot of Kubernetes information.  This should be the first task any time the application is started.  At the top of the screen from drop-down with the __"Select option"__ value shown select the desired option to create or obtain a snapshot.  
 
 <br>
 
@@ -26,19 +26,28 @@ Viewing any infomation within VpK requires the user to connect to a snapshot of 
 
 <br><br>
 
-First time usage of VpK will have no existing snapshots.  The __Running cluster__ option must be selected to create a snapahot. Once selected the user must choose how to connect to connect to the running K8 instance.  It is __strongly__ recommended to use an existing kubectl connection.  The user must connect to the cluster outside of the VpK application.  Once the connection is established the snapshot can be created.  Choose the __Existing kubectl connection__ option.    
+First time usage of VpK will have no existing snapshots.  The __Running cluster__ option must be selected to create a snapahot. 
+Once selected the user provides information to connect to the Kubernetes cluster.  Input fields are:
+
+
+| Field | Description | Default |
+|---|---|:---:|
+| Snapshot prefix | This value is appended to the directory name that is created to store the snapshot. | __vpk__ |
+| kubectl or other command | The command that is used to communicate with the k8s cluster. | __kubectl__ |
+| Namespace | A single namespace or the valute __<all>__ to limit what is obtained from the k8s cluster.  | __&lt;all&gt;__ |
+
 
 <br>
 
-<img style="float: center;" src="docs/docimages/clusterTypeDataSource.png" width="700" height="237">
+<img style="float: center;" src="docs/docimages/clusterConnect.png" width="700" height="334">
 
 <br><br>
 
-Once the connection is established the snapshot can be created by pressing the __Connect__ button.  The cluster snapshot is created and stored in a local directory.  The base location for all snapshots is a directory named __cluster__ within the same location where the software is installed.  A new snapshot directory within the base 'cluster' directroy is created for each new snapshot.  The new snapshot directory will use the value provided for the "snapshot_prefix" field along with date and time appended.  
+Once the information is provided press the __Connect__ button to begin retrieving the k8s data.  The cluster snapshot is created and stored in a local directory.  The base location for all snapshots is a directory named __cluster__ within the same location where the software is installed.  A new snapshot directory within the base 'cluster' directroy is created for each new snapshot.  The new snapshot directory will use the value provided in the __Snapshot prefix__ field along with date and time appended.  
 
 <br>
 
-__Example snapshot directory name:__ kube-2020-11-27-14h-16m-46s
+__Example snapshot directory name:__ vpk-2020-11-27-14h-16m-46s
 
 <br>
 
@@ -47,8 +56,7 @@ __Example snapshot directory name:__ kube-2020-11-27-14h-16m-46s
 <br><br>
 
 
-When accessing a running Kubernetes cluster a series of processing messages will be displayed.  The count message will have matching values once processing is complete.  Returning to the main screen requires closing the modal dialog by pressing the _Close_ button.
-
+When accessing a running Kubernetes cluster a series of processing messages will be displayed.  The count message will have matching values once processing is complete.  Returning to the main screen requires closing the dialog by pressing the __Close__ button.
 
 
 <br>
@@ -59,7 +67,7 @@ When accessing a running Kubernetes cluster a series of processing messages will
 
 
 
-When returned to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed path can be selected or clicked to view statistics regarding the snapshot.
+When returned to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed path is a button that can be pressed to view statistics for the snapshot.
 
 <br>
 
@@ -79,9 +87,4 @@ Statistics are provided with a count for each resource kind within the cluster o
 
 <br><br>
 
-
 ---
-
-<!-- <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
-<a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a> -->
