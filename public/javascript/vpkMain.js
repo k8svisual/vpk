@@ -413,7 +413,7 @@ $(document).ready(function () {
         $("#slideIn").addClass("active")
     });
 
-    //clearDisplay();
+    // clearDisplay();
     getSelectLists();
     getConfig();
 
@@ -654,11 +654,7 @@ function editObj() {
     //console.log(selectedDef)
     socket.emit('getDef', selectedDef);
 }
-function browseObj() {
-    $("#viewTypeModal").modal('hide');
-    selectedAction = 'browse';
-    socket.emit('getDef', selectedDef);
-}
+
 //...
 socket.on('objectDef', function (data) {
     // always edit, no longer provide browse 
@@ -692,20 +688,6 @@ socket.on('getFileByCidResults', function (data) {
 });
 //==========================================================
 
-
-//----------------------------------------------------------
-// send request to server to get security rules data
-function getSecurityRules() {
-    hideMessage();
-    let parms = { 'vset': [], 'rsc': [], 'apiG': [], 'ns': ['kube-system'] };
-    socket.emit('getSecurityRules', parms);
-}
-//...
-socket.on('getSecurityRulesResult', function (data) {
-    console.log('SecurityRules data received');
-    $("#secTable").bootstrapTable('load', data)
-    $("#secTable").bootstrapTable('hideColumn', 'fnum');
-});
 
 //----------------------------------------------------------
 // send request to server to get hierarchy data
@@ -948,18 +930,7 @@ function closeGetCluster() {
     getSelectLists();
     $("#clusterModal").modal('hide');
 }
-// //$$
-// //$$ Also invoked in  $(document).ready(function() $$
-// //...
-// socket.on('selectListsResult', function (data) {
-//     k8cData = data.pods;
-//     schematicKeys = data.keys;
-//     svgInfo = data.info;
-//     nsResourceInfo = data.nsRI;
-//     workloadEventsInfo = data.evts;
-//     populateSelectLists(data);
-//     //socket.emit('getServerData');
-// });
+
 //==========================================================
 
 
@@ -1002,8 +973,6 @@ function reload() {
     var newDir = $('#dsInstances').select2('data');
     newDir = newDir[0].text;
     $("#searchResults").hide();
-    $("#graphicCharts").empty();
-    $("#graphicCharts").html('<svg width="950" height="5000"></svg>');
     $("#svgResults").empty();
     $("#svgResults").html('');
     $("#schematicDetail").empty();
@@ -1017,8 +986,6 @@ function reload() {
     socket.emit('reload', newDir);
 }
 
-//$$ also client.emit('selectListsResult', result) when reload is sent to server
-//...
 socket.on('reloadResults', function (data) {
     if (data.validDir === false) {
         setBaseDir(data.baseDir);
@@ -1029,6 +996,7 @@ socket.on('reloadResults', function (data) {
     }
 });
 //==========================================================
+
 function closeVpK() {
     $("#closeVpKModal").modal('show');
 }
@@ -1067,17 +1035,12 @@ function sendShutdownS2() {
 
 
 //----------------------------------------------------------
-// function bldSchematic() {
-//     //socket.emit('getServerData');
-// }
 
 socket.on('getServerDataResult', function (data) {
-
-
+    // Process the returned data
     setBaseDir(data.baseDir);
     rootDir = data.baseDir;
     baseDir = data.baseDir;
-
     k8cData = data.pods;
     schematicKeys = data.keys;
     svgInfo = data.info;
@@ -1087,7 +1050,6 @@ socket.on('getServerDataResult', function (data) {
     storageData = data.stor;
     helmData = data.helm;
     imageRegistryData = data.registry;
-
     configMapsFound = data.configMapsFound;
     secretsFound = data.secretsFound;
 
@@ -1101,25 +1063,22 @@ socket.on('getServerDataResult', function (data) {
     populateSchematicList();
     buildStorage();
     showClusterTab();
-    //bldSchematic()
 
     $("#loadStatus").hide();
     $("#chgDirFooter").show();
     $("#chgDirModal").modal('hide');
     showMessage('Data snapshot connected', 'pass');
+
     // clear display areas of old data
     $("#chartInfo").html('')
     $("#graphicCharts2").html('')
     $("#schematicDetail").html('')
-    $("#securityDetail").html('')
-    $("#xrefInfo").html('')
-    $("#xrefCharts2").html('')
-    //$("#storageDetail").html('')
-    $("#clusterDetail").html('')
 
     foundNSNamesBuilt = false;
 
 });
+
+//==========================================================
 
 
 //----------------------------------------------------------
@@ -1226,61 +1185,10 @@ function formatSingleSVG(data, pod) {
 function getCluster3DInfo() {
     hideMessage();
     $('#cluster3DView').hide();
-    // $("#resourceProps").html(processingRequest)
     getDataRequest = 'cluster3D';
-    //socket.emit('getServerData');
 }
 
 
-//==========================================================
-
-
-//----------------------------------------------------------
-function bldSecurity() {
-    hideMessage();
-    $("#securityDetail").html(processingRequest)
-    console.log(typeof k8cData);
-    if (typeof k8cData === 'undefined' || k8cData === null) {
-        socket.emit('security');
-    } else {
-        console.log('k8cData exists')
-        hideMessage();
-        buildSecArrays();
-        securityDefinitions();
-    }
-}
-//...
-socket.on('securityResult', function (data) {
-    k8cData = data.data;
-    hideMessage();
-    buildSecArrays();
-    securityDefinitions();
-});
-//==========================================================
-
-
-//----------------------------------------------------------
-function bldSecurityUsage() {
-    hideMessage();
-    $("#securityDetail").html(processingRequest)
-    socket.emit('securityUsage');
-
-    if (typeof k8cData === 'undefined' || k8cData === null) {
-        socket.emit('securityUsage');
-    } else {
-        console.log('k8cData exists')
-        hideMessage();
-        buildSecArrays();
-        securityUsage();
-    }
-}
-//...
-socket.on('securityUsageResult', function (data) {
-    k8cData = data.data;
-    hideMessage();
-    buildSecArrays();
-    securityUsage();
-});
 //==========================================================
 
 
@@ -1297,20 +1205,6 @@ socket.on('getOwnerRefLinksResult', function (data) {
     buildOwnerRefLinks();
 });
 //==========================================================
-
-
-// //----------------------------------------------------------
-// function getStorageInfo() {
-//     hideMessage();
-//     $("#storageDetail").html(processingRequest)
-//     socket.emit('getStorage');
-// }
-// //...
-// socket.on('getStorageResult', function (data) {
-//     storageData = data.info;
-//     buildStorage();
-// });
-// //==========================================================
 
 
 //----------------------------------------------------------
@@ -1434,7 +1328,7 @@ function getConfig() {
 
 
 //----------------------------------------------------------
-// used by search section of main UI
+// used by storage section of main UI
 function toggleStorage(id) {
 
     id = '#' + id;
@@ -1458,7 +1352,6 @@ function getCluster() {
         keyboard: false
     });
     $("#clusterRunning").hide();
-
     $("#clusterModalFooter").show();
     $("#clusterModal").modal('show');
     $("#clusterStatus").empty();
@@ -1529,7 +1422,7 @@ function viewClusterLegend() {
 
 // Switch to the Cluster tab and refresh the 3D view
 function showClusterTab() {
-    $("#clusterDetail").html('')
+    // $("#clusterDetail").html('')
     $('.nav-tabs a[href="#cluster"]').tab('show');
     buildCluster3D();
 }

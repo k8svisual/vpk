@@ -38,7 +38,7 @@ function getDef(def) {
 }
 
 function noDefInfo() {
-    alert('Unable to view resource definition in this window.  Use Workload Schematics to view the definition.');
+    alert('Unable to view resource definition in this window.  Select the Workload Schematics tab to view the definition.');
 }
 
 function getDef2(def) {
