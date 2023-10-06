@@ -2113,7 +2113,7 @@ function createScene() {
                     + '<span class="vpkfont-slidein"><b>- ' + type + ' Resources</b>'
                     + '<br>'
                     + '<span><b>Name : &nbsp;&nbsp;</b>' + data[p] + '</span>'
-                    + '</span><br><br>Use search to locate and view resource definition.</div>';
+                    + '</span><br><br>Use Search tab to locate and view resource definition(s).</div>';
 
                 buildOtherSphere(pX, y, pZ, type, inner)
                 buildSlice(pX, y, pZ, fnum.toString(), 'n');
