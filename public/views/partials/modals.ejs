@@ -656,19 +656,19 @@
 
                         <g>
                             <circle cx="45" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#0000ef" />
-                            <circle cx="45" cy="25" r="20" fill="url(#highlight)" />
+                            <circle cx="45" cy="25" r="10" fill="url(#highlight)" />
                             <text text-anchor="middle" x="45" y="58" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Endpoint</text>
                         </g>
                         <g>
                             <circle cx="130" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#80bfbf" />
-                            <circle cx="130" cy="25" r="20" fill="url(#highlight)" />
+                            <circle cx="130" cy="25" r="10" fill="url(#highlight)" />
                             <text text-anchor="middle" x="130" y="58" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Service</text>
                         </g>
                         <g>
                             <circle cx="215" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#ffff00" />
-                            <circle cx="215" cy="25" r="20" fill="url(#highlight)" />
+                            <circle cx="215" cy="25" r="10" fill="url(#highlight)" />
                             <text text-anchor="middle" x="215" y="58" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Ingress &</text>
                             <text text-anchor="middle" x="215" y="78" font-family="Times 100" font-size="12.00"
@@ -740,9 +740,15 @@
                 </div>
 
 
-                <div class="mt-1 pl-3 vpkfont">Control Plane (open cylinder plane and triangle cubes)</div>
+                <div class="mt-1 pl-3 vpkfont">Control Plane (open cylinder plane, triangle cube, and sphere)</div>
                 <div class="pl-3 pt-2">
                     <svg width="700" height="95">
+                        <defs>
+                            <radialGradient id="highlight" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" style="stop-color:white; stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:white; stop-opacity:0" />
+                            </radialGradient>
+                        </defs>
                         <g>
                             <rect x="25" y="1" width="40" height="40" fill="#725db7" fill-opacity="0.25"
                                 style="stroke: #ffffff; stroke-width:2" />
@@ -750,6 +756,21 @@
                                 fill="#000000">Control</text>
                             <text text-anchor="middle" x="40" y="80" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Plane</text>
+                        </g>
+                        <g>
+                            <polygon points="108,10 133,1 138,10 108,10"
+                                style=" fill:#725db7; fill-opacity: 0.25; stroke: #ffffff; stroke-width:2" />
+                            <rect x="108" y="10" width="30" height="30" fill="#725db7" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="120" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Component</text>
+                        </g>
+                        <g>
+                            <circle cx="205" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#725db7"
+                                fill-opacity="0.25" />
+                            <circle cx="205" cy="25" r="10" fill="url(#highlight)" />
+                            <text text-anchor="middle" x="205" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">kubectl</text>
                         </g>
                     </svg>
                     <hr>
@@ -765,7 +786,6 @@
                                 <stop offset="100%" style="stop-color:white; stop-opacity:0" />
                             </radialGradient>
                         </defs>
-
                         <g>
                             <rect x="25" y="1" width="40" height="40" fill="#972AFF" fill-opacity="0.25"
                                 style="stroke: #ffffff; stroke-width:2" />
@@ -814,7 +834,7 @@
                             <text text-anchor="middle" x="380" y="80" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Plane</text>
                             <circle cx="385" cy="20" r="10" fill="#FFBED7" />
-                            <circle cx="385" cy="20" r="10" fill="url(#highlight)" />
+                            <circle cx="385" cy="20" r="6" fill="url(#highlight)" />
                         </g>
 
                         <!--- Second Row -->
@@ -847,7 +867,7 @@
                             <text text-anchor="middle" x="210" y="180" font-family="Times 100" font-size="12.00"
                                 fill="#000000">Plane</text>
                             <circle cx="215" cy="120" r="10" fill="#BAEEE5" />
-                            <circle cx="215" cy="120" r="10" fill="url(#highlight)" />
+                            <circle cx="215" cy="120" r="4" fill="url(#highlight)" />
                         </g>
                         <g>
                             <rect x="280" y="100" width="40" height="40" fill="#CCCCCC" fill-opacity="0.25"

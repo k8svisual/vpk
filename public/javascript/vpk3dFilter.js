@@ -84,6 +84,13 @@ function filter3DView() {
     let tmp;
     let i;
 
+    // Pod display options
+    let podDaemonSet = $('#clusterFilterDSPods').prop('checked');
+    let podRunning = $('#clusterFilterRunning').prop('checked');
+    let podFailed = $('#clusterFilterFailed').prop('checked');
+    let podWarning = $('#clusterFilterWarning').prop('checked');
+    let podSuccessful = $('#clusterFilterSuccessful').prop('checked');
+
     let parentPods = [];
     let printStatFlag = false;
 
@@ -819,14 +826,6 @@ function saveClusterFilters() {
 
     socket.emit('saveClusterFilters', filter);
 }
-
-
-// Pod display options
-let podDaemonSet = $('#clusterFilterDSPods').prop('checked');
-let podRunning = $('#clusterFilterRunning').prop('checked');
-let podFailed = $('#clusterFilterFailed').prop('checked');
-let podWarning = $('#clusterFilterWarning').prop('checked');
-let podSuccessful = $('#clusterFilterSuccessful').prop('checked');
 
 function setClusterFilters() {
 
