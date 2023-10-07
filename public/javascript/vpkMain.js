@@ -32,6 +32,13 @@ $(document).ready(function () {
     // get version from server
     getVersion();
 
+    // Vpk splash modal, hide after 3.0 seconds
+    $("#splashVpKModal").modal('show');
+    setTimeout(function () {
+        $("#splashVpKModal").modal('hide');
+    }, 3500);
+
+
     // Listen for messages from the child window
     window.addEventListener('message', function (event) {
         // This indicates the child window is open, now send the
@@ -1071,6 +1078,7 @@ socket.on('getServerDataResult', function (data) {
     $("#chgDirFooter").show();
     $("#chgDirModal").modal('hide');
     if (baseDir !== '-none-') {
+        $("#splashVpKModal").modal('hide');
         showMessage('Data snapshot connected', 'pass');
     }
 
