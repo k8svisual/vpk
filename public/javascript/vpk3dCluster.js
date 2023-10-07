@@ -1651,7 +1651,7 @@ function createScene() {
                                     + '</span></div>';
 
                                 // define the csiNode
-                                buildSphere(csiX, yDown, pZ, .175, 32, csiNodeColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
+                                buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
                                 buildSlice(csiX, yDown, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
                                 buildCSILine(csiX, yDown, pZ, csiHome, pY, pZ)
 
@@ -1771,7 +1771,7 @@ function createScene() {
                 size = size / 10000;
                 size = size / 50;
                 size = size * -1;
-                buildMemCPUResource(pX, pY - .45, pZ, size, 0.25, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', fnum, nTxt)
+                buildMemCPUResource(pX, pY - .45, pZ, size, 0.10, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', fnum, nTxt)
             }
 
             buildWall = true;
