@@ -1,11 +1,10 @@
-#FROM mhart/alpine-node:16
+# Docker build file for VpK
 FROM node:18.17.1
 LABEL maintainer="k8svisual"
 
 RUN mkdir /vpk
 RUN mkdir /vpk/cluster
 RUN mkdir /vpk/usage
-RUN mkdir /vpk/userconfig
 
 WORKDIR /vpk
 COPY lib/ ./lib
@@ -14,6 +13,7 @@ COPY LICENSE .
 COPY package.json .
 COPY server.js .
 COPY vpkconfig.json .
+COPY README.md .
 
 #Install kubectl inside image
 RUN apt-get install -y  curl \
@@ -26,5 +26,5 @@ EXPOSE 4200/tcp
 
 #EXAMPLE docker commands
 #docker run -it k8svisual/vpk sh
-#docker run -v /Users/bob/snaptest/:/vpk/cluster -v /Users/bob/userconfig/:/vpk/userconfig -p 4500:4200 k8svisual/vpk
+#docker run -v /Users/bob/snaptest/:/vpk/cluster -p 4500:4200 k8svisual/vpk
 #docker tag k8svisual/vpk:5.2.0 k8svisual/vpk:latest

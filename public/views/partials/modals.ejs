@@ -38,8 +38,9 @@
                 <div id="size-sm" class="container  p-1 mb-1">
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor">
-                            <p>Display the <b>"managedFields"</b> portion of k8s resource view.
-                                &nbsp;&nbsp;If set to On the "managedFields" for the k8s resource will be shown.</p>
+                            <p>Display the <b>"managedFields"</b> portion of k8s resource view when viewing
+                                resource definition. If set to On the "managedFields" for the k8s resource will be
+                                shown.</p>
                         </div>
                         <div class="col-2 px-3 py-2 col-md-auto">
                             <input id="mgmFlds" type="checkbox" data-style="w-40" data-toggle="toggle" data-size="sm">
@@ -48,18 +49,39 @@
 
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
-                            <p>Display the <b>"status"</b> section of k8s resource view.
-                                &nbsp;'On' the status information will be shown.</p>
+                            <p>Display the <b>"status"</b> section of k8s resource view when viewing
+                                resource definition. If set to On the "status" of the k8s resource will be shown.</p>
                         </div>
                         <div class="col-2 py-2">
                             <input id="statusFlds" type="checkbox" data-style="w-40" data-toggle="toggle"
                                 data-size="sm">
                         </div>
                     </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>View machine architectures, memory, CPU, network, software versions, and copyright
+                                informaiton
+                                for VpK application and server. Click the "i" button to view the data.
+                            </p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <a href="javascript:about()">
+                                <i class="fas fa-info-circle fa-lg ml-2 mt-1 vpkcolor"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-1">
+                    <div class="col-10 px-3 py-1 mt-5 vpkfont vpkcolor ">
+                        <p>Press the "Save configuration" button if settings have been changed.
+                        </p>
+                    </div>
                 </div>
 
                 <div class="mt-2 float-left">
-                    <button id="configBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="saveConfig()"
+                    <button id="configBtn" type="button" class="btn btn-primary btn-sm" onclick="saveConfig()"
                         style="margin: 5px;">
                         Save configuration
                     </button>
@@ -82,7 +104,7 @@
             </div>
             <div class="modal-body docBackground">
                 <div class="vpkfont vpkcolor">
-                    <p>Press the 'Shutdown' button below to stop running the VpK application.</p>
+                    <p>Press the 'Shutdown' button below to stop running the VpK application and server.</p>
                 </div>
                 <div class="text-center">
                     <span>
@@ -268,7 +290,7 @@
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h6 class="modal-title vpkcolor">Documentation</h6>
+                <h6 class="modal-title vpkcolor vpkfont-lg">VpK Documentation</h6>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>

@@ -60,20 +60,18 @@ docker pull k8svisual/vpk
 
 The container hosts a web application at the default port 4200.
 
-The container requires a volume parameter to identify the direcotyr that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
-
-Optionally a second volume parameter can be defined to point to a common user configuration file, usercongi.json. Use of this optional parameter will ensure any settings or user defined x-references are available to the container instance of VpK.
+The container requires a volume parameter to identify the directory that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
 
 Once the image is pulled it can be run by using a command similar to the following.  For the required volume replace "SNAPDIR" with the directory for the local stored snapshots. 
 
-Required volume:
+Parameter for mapping Snapshot volume:
 ```
 -v SNAPDIR:/vpk/cluster
 ```
+Change the value __SNAPDIR__ to the location on the local machine where the snapshot files are located.
 
 
-Example with both volumes defined and mapping local port 4200 to the default port:
-
+Example Docker run command with parameters for snapshot data directory and mapping local port 4200 to the default port:
 ```
 docker run -v /data/snapshot:/vpk/cluster -p 4200:4200 k8svisual/vpk
 ```
