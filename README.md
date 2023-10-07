@@ -198,7 +198,7 @@ View ownership chains of resources in the cluster.
 
 
 
-### YouTube videos on how to use VpK
+<!-- ### YouTube videos on how to use VpK
 
 To assist in understanding YouTube videos are available that discuss many of the features of the product.
 Videos are sorted alpha by topic.
@@ -214,7 +214,7 @@ Videos are sorted alpha by topic.
 [https://youtu.be/7sjFh8N6FrY](https://youtu.be/7sjFh8N6FrY) - Snapshots (creating and using)  
 [https://youtu.be/zgJlWk5QqBM](https://youtu.be/zgJlWk5QqBM) - Storage view  
 [https://youtu.be/_YY3190mlkw](https://youtu.be/_YY3190mlkw) - Table view  
-[https://youtu.be/nwm5IFHbR34](https://youtu.be/nwm5IFHbR34) - User interface basics  
+[https://youtu.be/nwm5IFHbR34](https://youtu.be/nwm5IFHbR34) - User interface basics   -->
 
 <br><br>
 
