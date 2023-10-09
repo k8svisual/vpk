@@ -27,4 +27,5 @@ EXPOSE 4200/tcp
 #EXAMPLE docker commands
 #docker run -it k8svisual/vpk sh
 #docker run -v /Users/bob/snaptest/:/vpk/cluster -p 4500:4200 k8svisual/vpk
+#docker run -v /Users/bob/snaptest/:/vpk/cluster -v /-p 4500:4200 k8svisual/vpk
 #docker tag k8svisual/vpk:5.2.0 k8svisual/vpk:latest

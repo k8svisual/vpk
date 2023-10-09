@@ -3,7 +3,7 @@
         "managedFields": false,
         "statusSection": true
     },
-    "snapshotDir": "/Users/bob/snaptest",
+    "snapshotDir": "/Users/bob/snaptestz",
     "clusterFilters": {
         "clusterFilterNodes": true,
         "clusterFilterCSI": true,
