@@ -117,13 +117,6 @@ if (typeof options.port !== 'undefined' && options.port !== null) {
 if (typeof options.snapshot !== 'undefined' && options.snapshot !== null) {
     snapshot = options.snapshot;
     vpk.snapshotDir = snapshot;
-    // Validation moved to utl module
-    // if (fs.existsSync(snapshot)) {
-    //     startMsg.push('vpkMNL100 - Located startup parameter snapshot directory: ' + snapshot);
-    // } else {
-    //     utl.logMsg('vpkMNL101 - Did not locate snapshot directory: ' + snapshot);
-    //     process.exit(-1);
-    // }
 } else {
     vpk.snapshotDir = "none";
 }

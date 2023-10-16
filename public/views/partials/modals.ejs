@@ -189,6 +189,55 @@
                         <input id="k8_namespace" type="text" class="form-control col-sm-8" value="<all>"
                             style="margin-bottom: 5px;">
                     </div>
+
+                    <div id="sshInfo" class="vpkhidden vpkcolor">
+                        <hr>
+                        <div class="vpkcolor vpkfont mb-4 mt-4">
+                            The following parameters are used with commands sshpass and ssh to enable the container
+                            to run the above 'kubectl or other command' on the host machine to create the
+                            snapshot files.
+                        </div>
+
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_ip" style="padding-top: 15px;">
+                                Host-IP (required)</label>
+                            <input id="host_ip" type="text" class="form-control col-sm-8" value=""
+                                placeholder="host IP address for ssh" style="margin-bottom: 5px;">
+                        </div>
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_user" style="padding-top: 15px;">
+                                User (required)</label>
+                            <input id="host_user" type="text" class="form-control col-sm-8" value=""
+                                placeholder="user name for ssh" style="margin-bottom: 5px;">
+                        </div>
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_password"
+                                style="padding-top: 15px;">
+                                Password (required)</label>
+                            <input id="host_password" type="password" class="form-control col-sm-8" value=""
+                                placeholder="password for ssh user" style="margin-bottom: 5px;">
+                        </div>
+
+                        <div class="vpkcolor mb-2 mt-4">
+                            <span class="vpkfont-md">Example sshpass and ssh commands:</span>
+                        </div>
+                        <div class="vpkcolor mt-2 ml-4">
+                            <p class="vpkfont">
+                                sshpass -p <span class="vpk-font-bold-italic ">
+                                    'password'
+                                </span>
+                                &nbsp;&nbsp;ssh -o StrictHostKeyChecking=no &nbsp;&nbsp;
+                                <span class="vpk-font-bold-italic">
+                                    user@host-ip
+                                </span>
+                                &nbsp;&nbsp;
+                                <span class="vpk-font-bold-italic">
+                                    'kubectl parms'
+                                </span>
+                            </p>
+                        </div>
+                        <hr>
+                    </div>
                     <div id="clusterButton">
                         <div style="padding-top: 20px;">
                             <button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm"

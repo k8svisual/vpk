@@ -1645,7 +1645,7 @@ function createScene() {
                                     + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
                                     + '</span>'
                                     + '<br><hr>'
-                                    + '<span class="vpkfont-slidein"><b>CSINode (Container Storage Interface Node) -</b>'
+                                    + '<span class="vpkfont-slidein"><b>CSINode <br>(Container Storage Interface Node) -</b>'
                                     + '<br>'
                                     + '<span><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[nodePtr].csiNodes[0].drivers[c].name + '</span>'
                                     + '</span></div>';

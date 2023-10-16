@@ -1076,10 +1076,10 @@ function showMessage(msg, level) {
 	$("#messageModal").modal('show');
 }
 
-function showDirtyXrefMsg() {
-	$('#messageDiv').addClass('show');
-	$('#messageText').html(dirtyXrefMsg);
-}
+// function showDirtyXrefMsg() {
+// 	$('#messageDiv').addClass('show');
+// 	$('#messageText').html(dirtyXrefMsg);
+// }
 
 function hideMessage() {
 	$("#messageModal").modal('hide');

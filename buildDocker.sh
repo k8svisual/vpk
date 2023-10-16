@@ -34,7 +34,7 @@ else
     echo "  Using provided tag             : $TAG"
 fi
 
-# default target docker repository
+# TR = target repository
 if [ -z "$3" ]; then
     TR="docker.io/k8svisual"
     echo "  Using default image repository : $TR"

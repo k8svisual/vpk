@@ -164,7 +164,20 @@ div {
 }
 
 .vpkhidden {
-    display: none
+    display: none;
+}
+
+.vpk-not-visable {
+    visibility: hidden;
+}
+
+.vpk-font-italic {
+    font-style: italic;
+}
+
+.vpk-font-bold-italic {
+    font-weight: bold;
+    font-style: italic;
 }
 
 .text-vm {

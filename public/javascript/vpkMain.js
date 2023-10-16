@@ -565,15 +565,38 @@ socket.on('clusterDirResult', function (data) {
 // process cluster info input and pass to server 
 function dynamic() {
     $("#clusterRunning").show();
-    var kinfo = {};
+    let kinfo = {};
+    let k8n;
     kinfo.snapshot_prefix = document.getElementById("snapshot_prefix").value;
     kinfo.command = document.getElementById("get_cmd").value;
-    var k8n = document.getElementById("k8_namespace").value;
+    k8n = document.getElementById("k8_namespace").value;
     if (k8n === "<all>") {
         kinfo.namespace = "";
     } else {
         kinfo.namespace = k8n;
     }
+
+    let host_fnd = 0;
+    if (document.getElementById("host_ip").value !== "") {
+        host_fnd++;
+        if (document.getElementById("host_user").value !== "") {
+            host_fnd++;
+            if (document.getElementById("host_password").value !== "") {
+                host_fnd++;
+                kinfo.host_ip = document.getElementById("host_ip").value;
+                kinfo.host_user = document.getElementById("host_user").value;
+                kinfo.host_pswd = document.getElementById("host_password").value;
+            }
+        }
+    }
+    if (host_fnd === 0 || host_fnd === 3) {
+        // all is fine
+    } else {
+        // display message modal that all data is not provided
+        showMessage('All parameters for SSH command not provided', 'fail')
+        return;
+    }
+
 
     socket.emit('connectK8', kinfo);
     $("#clusterStatus").empty();
@@ -591,12 +614,12 @@ socket.on('getKStatus', function (data) {
     }
     // If the number processed is equal to the total
     // change msg to indicated processing is done
-    if (msg.startsWith("Processed count")) {
+    if (msg.startsWith("K8s resource processed count")) {
         let tmp = msg.split(' of ');
         let fNum = tmp[0].split('count');
         let sNum = tmp[1].split(' - ');
         if (fNum[1].trim() === sNum[0].trim()) {
-            msg = "Processing completed"
+            msg = "Processing completed. Use 'Close' button' to close window."
         }
     }
     let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
@@ -949,7 +972,7 @@ function closeGetCluster() {
 function getVersion() {
     socket.emit('getVersion');
 }
-//...
+//... 
 socket.on('versionResult', function (data) {
     version = data.version;
     runMode = data.runMode;
@@ -963,6 +986,12 @@ socket.on('versionResult', function (data) {
         var link = document.getElementById('runLocal');
         link.style.display = 'none'; //or
         link.style.visibility = 'hidden';
+
+        var link = document.getElementById('sshInfo');
+        link.style.display = 'block'; //or
+        //link.style.visibility = 'hidden';
+
+
     } else {
         var link = document.getElementById('runContainer');
         link.style.display = 'none'; //or
