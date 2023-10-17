@@ -8,7 +8,6 @@ LABEL maintainer="k8svisual"
 RUN mkdir /vpk
 RUN mkdir /vpk/cluster
 RUN mkdir /vpk/usage
-RUN mkdir /vpk/ssh
 
 # Copy files to container image
 WORKDIR /vpk
@@ -48,7 +47,11 @@ EXPOSE 4200/tcp
 
 #EXAMPLE docker command to run VpK and map volume and port
 #docker run -v /Users/bob/snaptest/:/vpk/cluster -p 4500:4200 k8svisual/vpk
-#docker run -e HOST_IP=$(ifconfig | grep 'inet ' | grep -v '127.0.0.1' | head -n 1 | awk '{print $2}') -v /Users/bob/snaptest/:/vpk/cluster -v /Users/bob/.ssh:/ssh -p 4500:4200 k8svisual/vpk
 
-#EXAMPLE docker command to open shell
+#EXAMPLE docker command to open shell via exec
+# docker ps
+# copy k8svisual/vpk CONTAINER ID to clip board
+#docker exec -it (paste Containe ID) sh
+
+#EXAMPLE docker command to run command in vpk container
 #docker run -it k8svisual/vpk sh

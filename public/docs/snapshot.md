@@ -36,10 +36,32 @@ Once selected the user provides information to connect to the Kubernetes cluster
 | kubectl or other command | The command that is used to communicate with the k8s cluster. | __kubectl__ |
 | Namespace | A single namespace or the valute __<all>__ to limit what is obtained from the k8s cluster.  | __&lt;all&gt;__ |
 
+<br><br>
+
+If VpK is started with the '-c' parameter to indicate the application is running from a Docker container three additional fields will
+be shown.  These fields are used to enable the container the ability to run commands on the host machine.  This is accomplished using the
+sshpass and ssh commands.  The host machine must have ssh enabled for this feature to successfully work.
+
+| SSH Field | Description |
+|---|---|
+| Host-IP | IP address of the host machine where the Docker container has been started. |
+| User | An existing user on the host machine that is allowed to execute the 'kubectl' or other command. |
+| Password | The password of the user that is provided.  |
+
+<br><br>
+
+__Example sshpass and ssh command:__
+```
+sshpass -p 'password'   ssh -o StrictHostKeyChecking=no  user@host-ip  'kubectl (along with parameters)'
+```
+
+<br><br>
+
+The dashed outlined section shown below is only shown if VpK is run from a Docker container.
 
 <br>
 
-<img style="float: center;" src="docs/docimages/clusterConnect.png" width="700" height="334">
+<img style="float: center;" src="docs/docimages/ssh-parms.png" width="700" height="700">
 
 <br><br>
 
@@ -47,27 +69,18 @@ Once the information is provided press the __Connect__ button to begin retrievin
 
 <br>
 
-__Example snapshot directory name:__ vpk-2020-11-27-14h-16m-46s
+Example snapshot directory name: __vpk-2020-11-27-14h-16m-46s__
 
 <br>
 
-<img style="float: center;" src="docs/docimages/snapshotClusterInfo.png" width="700" height="320">
+<!-- <img style="float: center;" src="docs/docimages/snapshotClusterInfo.png" width="700" height="320">
 
-<br><br>
-
-
-When accessing a running Kubernetes cluster a series of processing messages will be displayed.  The count message will have matching values once processing is complete.  Returning to the main screen requires closing the dialog by pressing the __Close__ button.
+<br><br> -->
 
 
-<br>
+When accessing a running Kubernetes cluster a series of processing messages will be displayed in the bottom portion of the dialog.  Returning to the main screen requires closing the dialog by pressing the __Close__ button.
 
-<img style="float: center;" src="docs/docimages/snapshotDone.png" width="700" height="320">
-
-<br><br>
-
-
-
-When returned to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed path is a button that can be pressed to view statistics for the snapshot.
+On return to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed path is a button that can be pressed to view statistics for the snapshot.
 
 <br>
 

@@ -80,6 +80,37 @@ function build3DJSON() {
 
         if (typeof k8cData['0000-clusterLevel'].ComponentStatus !== 'undefined') {
             compStatus = k8cData['0000-clusterLevel'].ComponentStatus;
+
+            // console.log('============================')
+            // console.log(JSON.stringify(k8cData['0000-clusterLevel'].ComponentStatus, null, 4))
+            // console.log('============================')
+
+            // Example ComponentStatus structure:
+            // [
+            //     {
+            //         "name": "scheduler",
+            //         "fnum": "1139.0",
+            //         "namespace": "clusterLevel",
+            //         "kind": "ComponentStatus",
+            //         "api": "v1"
+            //     },
+            //     {
+            //         "name": "controller-manager",
+            //         "fnum": "1138.0",
+            //         "namespace": "clusterLevel",
+            //         "kind": "ComponentStatus",
+            //         "api": "v1"
+            //     },
+            //     {
+            //         "name": "etcd-0",
+            //         "fnum": "1137.0",
+            //         "namespace": "clusterLevel",
+            //         "kind": "ComponentStatus",
+            //         "api": "v1"
+            //     }
+            // ]
+
+
         }
 
         if (typeof k8cData['0000-clusterLevel'].CSIDriver !== 'undefined') {
