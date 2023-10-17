@@ -43,7 +43,7 @@ EXPOSE 4200/tcp
 #EXAMPLE docker commands build and tag
 #docker build .
 #docker build ---- use buildDocker.sh shell ----
-#docker tag k8svisual/vpk:6.1.0 k8svisual/vpk:latest
+#docker tag k8svisual/vpk:latest  k8svisual/vpk:6.1.0
 
 #EXAMPLE docker command to run VpK and map volume and port
 #docker run -v /Users/bob/snaptest/:/vpk/cluster -p 4500:4200 k8svisual/vpk
