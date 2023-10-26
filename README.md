@@ -132,7 +132,22 @@ cluster.
 
 ### VpK - Snapshots
 
-Viewing any infomation within VpK requires the user to connect to a snapshot of Kubernetes information.  This should be the first task any time the application is started.  At the top of the screen from drop-down with the __"Select option"__ value shown select the desired option to create or obtain a snapshot.  
+Viewing any infomation within VpK requires the user to connect to a snapshot of Kubernetes information.  
+
+Three methods exist to create a VpK Snapshot.  These are:
+
+- From a local install connect to a running k8s cluster
+- From a Docker container install ssh to host machine and connect to a running k8s cluster
+- Use standalone program 'Snapshot' to connect to a running k8s cluster
+
+
+__NOTE:__ All three above options require the user to have connected to a running cluster with the kubectl CLI (or other CLI tool) as VpK will issue the kubectl command with the needed parameters to connect to the k8s cluster. 
+
+
+A snapshot is required to view any of the k8s resources so the creation of the snapshot, or connecting to an existing snapshot, should be the first task any time the application is started.  
+
+
+At the top of the screen from drop-down with the __"Select option"__ value shown select the desired option to create or obtain a snapshot.  
 
 <br>
 
@@ -169,11 +184,11 @@ __Example sshpass and ssh command:__
 sshpass -p 'password'   ssh -o StrictHostKeyChecking=no  user@host-ip  'kubectl (along with parameters)'
 ```
 
-<br><br>
+<br>
 
 The dashed outlined section shown below is only shown if VpK is run from a Docker container.
 
-<br><br>
+<br>
 
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/ssh-parms.png" width="700" height="700">
 
@@ -208,6 +223,14 @@ Statistics are provided with a count for each resource kind within the cluster o
 <br>
 
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/snapshotStatsNS.png" width="700" height="268">
+
+<br><br>
+
+Information for using the standalone program to create the VpK snapshot is available in the 'snapshot' repository:
+
+```
+http://github.com/k8svisual/snapshot.git/ 
+```
 
 <br><br>
 
