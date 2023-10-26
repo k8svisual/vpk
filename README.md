@@ -1,11 +1,13 @@
-<img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/vpk.png" width="70" height="70">
+<img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/vpk.png" width="70" height="70">
+
+
 
 ## VpK - Visually presented Kubernetes
 
 An application that presents Kubernetes resources and configurations in a visual and graphic fashion.
 VpK can be installed and run on a local computer (requires Node.js and NPM) or run from a Docker container.  Refer to the appropriate section for installing the software.  
 
-## VpK described
+## VpK - Described
 
 VpK was created as the result of wanting a tool to aid in understanding what is defined in Kubernetes.   
 
@@ -46,13 +48,14 @@ What is VpK?
 
 <br><br>
 
+---
 
-## Installation
+## VpK - Installation
 
 This software can be installed locally or run from a conatiner.  When running from a conatiner there is an additional application, VpKSnapShot that is
 required.  VpKSnapShot is needed to create a snapshot of a Kubernetes cluster that will be shown by VpK.
 
-## Local installation
+### Local installation
 	
 For local installation __node.js__ and __npm__ are required to build, from source code and execute this application.
 
@@ -76,7 +79,7 @@ Once the above has successfully completed the application can be started by usin
 	
 <br><br>
 
-## Docker Container
+### Docker Container installation
 	
 VpK is available as a container image on the dockerhub web site: 
 https://hub.docker.com/repository/docker/k8svisual/viewk8s/general . 
@@ -90,35 +93,35 @@ docker pull k8svisual/vpk
 
 The container hosts a web application at the default port 4200.
 
-The container requires a volume parameter to identify the directory that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
+When running the container a volume parameter is required to identify the directory that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
 
 Once the image is pulled it can be run by using a command similar to the following.  For the required volume replace "SNAPDIR" with the directory for the local stored snapshots. 
 
 Parameter for mapping Snapshot volume:
+
 ```
 -v SNAPDIR:/vpk/cluster
 ```
+
 Change the value __SNAPDIR__ to the location on the local machine where the snapshot files are located.
 
 
 Example Docker run command with parameters for snapshot data directory and mapping local port 4200 to the default port:
+
 ```
 docker run -v /data/snapshot:/vpk/cluster -p 4200:4200 k8svisual/vpk
 ```
 
+Refer to the following section VpK - Snapshots for more information about creating the snapshot of the Kubernetes
+cluster.
 
-The cluster snapshot files to be used with the container are created using another progarm available from this same github account.  The repository is for this application is:
-
-git clone https://github.com/k8svisual/snapshot.git/ 
-
-Follow the instructions in the snapshot repository for how to build and install the snapshot application.
 
 <br>
 
+---
 
 
-
-### VpK Architecture
+### VpK - Architecture
 
 ![Architecture](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/architecture.png)
 
@@ -127,10 +130,7 @@ Follow the instructions in the snapshot repository for how to build and install 
 
 ---
 
-
-### VpK Snapshots
-
-
+### VpK - Snapshots
 
 Viewing any infomation within VpK requires the user to connect to a snapshot of Kubernetes information.  This should be the first task any time the application is started.  At the top of the screen from drop-down with the __"Select option"__ value shown select the desired option to create or obtain a snapshot.  
 
@@ -173,7 +173,7 @@ sshpass -p 'password'   ssh -o StrictHostKeyChecking=no  user@host-ip  'kubectl 
 
 The dashed outlined section shown below is only shown if VpK is run from a Docker container.
 
-<br>
+<br><br>
 
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/ssh-parms.png" width="700" height="700">
 
@@ -183,18 +183,15 @@ Once the information is provided press the __Connect__ button to begin retrievin
 
 <br>
 
+```
 Example snapshot directory name: __vpk-2020-11-27-14h-16m-46s__
-
+```
 <br>
-
-<!-- <img style="float: center;" src="docs/docimages/snapshotClusterInfo.png" width="700" height="320">
-
-<br><br> -->
 
 
 When accessing a running Kubernetes cluster a series of processing messages will be displayed in the bottom portion of the dialog.  Returning to the main screen requires closing the dialog by pressing the __Close__ button.
 
-On return to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed path is a button that can be pressed to view statistics for the snapshot.
+On return to the home screen the newly connect snapshot is shown in the top portion of the screen.  The complete directory path is shown.  The displayed snapshot path is also a button that can be pressed to view statistics for the snapshot.
 
 <br>
 
@@ -202,7 +199,7 @@ On return to the home screen the newly connect snapshot is shown in the top port
 
 <br><br>
 
-Statistics are provided with a count for each resource kind within the cluster or count of resource kind within a namespace.
+Statistics are provided with a count for each resource kind within the cluster or count of resource kinds within a namespace.
 
 <br>
 
@@ -214,9 +211,9 @@ Statistics are provided with a count for each resource kind within the cluster o
 
 <br><br>
 
+---
 
-
-### VpK UI
+### VpK - UI
 
 VpK user interface is comprised of multiple tabs. The following sections are screen captures of portions of the tabs.
 
@@ -237,7 +234,7 @@ Kubernetes resources associated with a Pod are shown in a schematic similar to t
 
 <br>
 
-### Graphic tab
+#### Graphic tab
 
 Select cluster or namespace level graphic views of defined resources in the cluster or namespace.
 
@@ -245,7 +242,7 @@ Select cluster or namespace level graphic views of defined resources in the clus
 
 <br>
 
-### Storage tab
+#### Storage tab
 
 View defined storage resources include PersistentVolumeClaim, PersistentVolume, and StorageClass.
 
@@ -253,7 +250,7 @@ View defined storage resources include PersistentVolumeClaim, PersistentVolume, 
 
 <br>
 
-### Security tab
+#### Security tab
 
 Graphical view of security definitons shown by cluster or namespace level.
 
@@ -261,7 +258,7 @@ Graphical view of security definitons shown by cluster or namespace level.
 
 <br>
 
-### Table View tab
+#### Table View tab
 
 View all resources in the cluster and filter as desired.
 
@@ -269,9 +266,9 @@ View all resources in the cluster and filter as desired.
 
 <br>
 
-### OwnerRef Links tab
+#### OwnerRef Links tab
 
-View ownership chains of resources in the cluster.
+View Owner Reference chains of resources in the cluster.
 
 ![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-ownerref.png)
 
@@ -299,12 +296,13 @@ Videos are sorted alpha by topic.
 
 <br><br>
 
-## Contributors
+---
+
+## VpK - Contributors
 
 Dave Weilert   
 VJ Landon   
 Dave Krier   
-
 
 
 
