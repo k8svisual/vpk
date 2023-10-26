@@ -31,6 +31,6 @@ The __Hierarchy__ chart has grey and red dots.  Red dots can be clicked to view 
 
 The __Collapsible__ chart has blue and red dots.  The blue dots can be clicked on to expand or collapse the view. Red dots can be clicked to view the associated resource definition.
 
-The __Circle Pack__ chart has pop-up information and the abiltiy to click the blue dots to view the resource definition.
+The __Circle Pack__ chart has pop-up information and the ability to click the blue dots to view the resource definition.
 
 ---

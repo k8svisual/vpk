@@ -107,7 +107,7 @@ VpK has the following start parameters.  Default values will be used is no start
 
 | &nbsp;Start Parameter&nbsp; | Usage description | Default | Example |
 |:---:|---|---|---|
-| c | Indicate the VpK server/application is running in a container. <br> This enables the abilty to send commands from the UI to the container. | &lt;blank&gt; | -c Yes |
+| c | Indicate the VpK server/application is running in a container. <br> This enables the ability to send commands from the UI to the container and use the ssh feature to communicate with the container host to create a k8s snapshot. | &lt;blank&gt; | -c Yes |
 | p | Control the port where the server can be accessed from a browser. | 4200 | -p 5400 |
 | s | Control the location of snapshot directories and files | &lt;blank&gt; | -s /Users/snap |
 

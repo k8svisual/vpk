@@ -29,7 +29,7 @@ If the button is yellow the namespace has no deployed and running pods.
 
 Mouse over each of the icons in the schematic for summary information for associated resources.  
 
-Click the icon to view the resource definition.  If more than one resource is defined for the icon a selection dialog is shown to allow selecting the individual resources defintions.
+Click the icon to view the resource definition.  If more than one resource is defined for the icon a selection dialog is shown to allow selecting the individual resources definitions.
 
 For resource kind _Secret_ there will be a screen allowing the ability to view the Secret yaml or the base64 information decoded.
 

@@ -27,6 +27,6 @@ From the namespace drop-down select a single namespace.  Once a namespace has be
 
 If there is no selected namespace a warning message is displayed. 
 
-The results are a graph of the relationships with the Owner at the highest level in the graph.  Click on any of the displayed color retangles and the associated resource definition will be displayed.
+The results are a graph of the relationships with the Owner at the highest level in the graph.  Click on any of the displayed color rectangles and the associated resource definition will be displayed.
 
 ---

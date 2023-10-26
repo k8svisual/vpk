@@ -18,11 +18,11 @@ View of requested space.
 
 ---
 
-Storage provides a view of the defined StorageClasses, Persistent Volumes, and Persistent Volume Claims along with the amount of space .  
+Storage provides a view of the defined StorageClasses, Persistent Volumes, and Persistent Volume Claims along with the amount of space requested for each.  
 
 The bars shown in the view use colors to represent the measurement of space, e.g KB, MD, GB, TB.
 
-Click on any of the resource icons to view the definition.
+Click on any of the resource icons to view the definitions.
 
 ---
 

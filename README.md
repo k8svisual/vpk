@@ -188,7 +188,7 @@ Once the information is provided press the __Connect__ button to begin retrievin
 <br>
 
 ```
-Example snapshot directory name: __vpk-2020-11-27-14h-16m-46s__
+Example snapshot directory name: vpk-2022-10-26-14h-16m-46s
 ```
 <br>
 
