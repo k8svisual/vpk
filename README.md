@@ -1,7 +1,6 @@
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/vpk.png" width="70" height="70">
 
 
-
 ## VpK - Visually presented Kubernetes
 
 An application that presents Kubernetes resources and configurations in a visual and graphic fashion.
@@ -11,7 +10,7 @@ VpK can be installed and run on a local computer (requires Node.js and NPM) or r
 
 VpK was created as the result of wanting a tool to aid in understanding what is defined in Kubernetes.   
 
-VpK is comprised of a server and browser components.  The server component is a node.js application that communictes with running instances of k8s using the kubectl CLI application.  When using k8s versions that require a custom CLI tool to query Kubernets, e.g. OpenShift, MicroK8s, etc. the associated tool is used to query the cluster.  Using the kubectl api-resource command, a list of all known resources can be obtained.  Using this information all k8s resources support the 'get' verb are quired using kubectl get.  The output from the get requests used to create a seperate file for each unique resource.  These files are created on the user laptop.  At this point VpK no longer communicates with the k8s instance. 
+VpK is comprised of a server and browser components.  The server component is a node.js application that communicates with running instances of k8s using the kubectl CLI application.  When using k8s versions that require a custom CLI tool to query Kubernetes, e.g., OpenShift, MicroK8s, etc. the associated tool is used to query the cluster.  Using the kubectl api-resource command, a list of all known resources can be obtained.  Using this information all k8s resources support the 'get' verb are quired using kubectl get.  The output from the get requests used to create a separate file for each unique resource.  These files are created on the user laptop.  At this point VpK no longer communicates with the k8s instance. 
 
 The user interface (UI), browser component, provides graphical and tabular views of resources defined and deployed in the cluster.
 
@@ -23,7 +22,7 @@ What is VpK?
 
 - VpK will __not__ modify a Kubernetes cluster.  It is designed as read-only.
 
-- VpK is __not__ a realtime monitoring tool.
+- VpK is __not__ a real-time monitoring tool.
 
 - Access a Kubernetes instance via CLI and save results (__snapshot__) in local directory. This information can be reused.
 
@@ -35,13 +34,13 @@ What is VpK?
 
 - View fully expanded or collapsible hierarchical graphs of k8s resources for the cluster or selected namespaces.  
 
-- View a Circlepack graph of k8s resouces for the cluster or selected namespaces.
+- View a CirclePack graph of k8s resources for the cluster or selected namespaces.
 
 - Views requested storage for StorageClass, Persistent Volume, and Persistent Volume Claims.
 
 - View defined security roles, bindings, and subjects for the cluster or namespaces.
 
-- Search k8s resources with the abilty to filter by namespaces, kinds, labels, resource names, and annotations.
+- Search k8s resources with the ability to filter by namespaces, kinds, labels, resource names, and annotations.
 
 - View Owner References for the cluster or namespaces.
   
@@ -52,39 +51,38 @@ What is VpK?
 
 ## VpK - Installation
 
-This software can be installed locally or run from a conatiner.  When running from a conatiner there is an additional application, VpKSnapShot that is
-required.  VpKSnapShot is needed to create a snapshot of a Kubernetes cluster that will be shown by VpK.
+This software can be installed locally or run from a container.  When running from a container there is an optional application, VpK Snapshot that can be used to create a snapshot.  Refer to the GitHub k8svisual/snapshot repository for more information.
 
 ### Local installation
-	
+    
 For local installation __node.js__ and __npm__ are required to build, from source code and execute this application.
 
 You cannot install and run this application without first installing node.js and npm.  After the prerequisites, node.js and npm, are installed proceed to the next step. 
 
-Download the source files and place in a directory.  The source files are available on github and can be downloaded using the following command:
+Download the source files and place in a directory.  The source files are available on GitHub and can be downloaded using the following command:
 
 git clone http://github.com/k8svisual/viewk8s.git/ 
 
 (OR) 
 
-Retireve the files from GitHub in a zip file format.  If using the zip file be sure to extract the source code from the zip file.
+Retrieve the files from GitHub in a zip file format.  If using the zip file be sure to extract the source code from the zip file.
 
 Change to the directory where the files were placed. Run the following command to install the required Node modules:
 
-	npm install
+    npm install
 
 Once the above has successfully completed the application can be started by using 
 
-	npm start
-	
+    npm start
+    
 <br><br>
 
 ### Docker Container installation
-	
-VpK is available as a container image on the dockerhub web site: 
+    
+VpK is available as a container image on the docker hub web site: 
 https://hub.docker.com/repository/docker/k8svisual/viewk8s/general . 
 
-Select the vpk image from dockerhub.
+Select the vpk image from docker hub.
 
 Example docker pull command: 
 ```
@@ -93,18 +91,17 @@ docker pull k8svisual/vpk
 
 The container hosts a web application at the default port 4200.
 
-When running the container a volume parameter is required to identify the directory that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
+When running the container, a volume parameter is required to identify the directory that will contain cluster snapshots along with port parameter to allow accessing the user interface via a browser.  
 
-Once the image is pulled it can be run by using a command similar to the following.  For the required volume replace "SNAPDIR" with the directory for the local stored snapshots. 
+To run container image a volume parameter is required to indicate the directory for the locally stored snapshots. 
 
-Parameter for mapping Snapshot volume:
+Example of the volume parameter:
 
 ```
 -v SNAPDIR:/vpk/cluster
 ```
 
-Change the value __SNAPDIR__ to the location on the local machine where the snapshot files are located.
-
+Change the value __SNAPDIR__ to the location on the local machine where the snapshot files are located.  If this is the first time VpK is run create a directory and use the fully qualified directory name.
 
 Example Docker run command with parameters for snapshot data directory and mapping local port 4200 to the default port:
 
@@ -112,19 +109,15 @@ Example Docker run command with parameters for snapshot data directory and mappi
 docker run -v /data/snapshot:/vpk/cluster -p 4200:4200 k8svisual/vpk
 ```
 
-Refer to the following section VpK - Snapshots for more information about creating the snapshot of the Kubernetes
-cluster.
-
+Refer to the following section VpK - Snapshots for more information about creating the snapshot of the Kubernetes cluster.
 
 <br>
 
 ---
 
-
 ### VpK - Architecture
 
 ![Architecture](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/architecture.png)
-
 
 <br>
 
@@ -132,7 +125,7 @@ cluster.
 
 ### VpK - Snapshots
 
-Viewing any infomation within VpK requires the user to connect to a snapshot of Kubernetes information.  
+Viewing any information within VpK requires the user to connect to a snapshot of Kubernetes information.  
 
 Three methods exist to create a VpK Snapshot.  These are:
 
@@ -140,12 +133,9 @@ Three methods exist to create a VpK Snapshot.  These are:
 - From a Docker container install ssh to host machine and connect to a running k8s cluster
 - Use standalone program 'Snapshot' to connect to a running k8s cluster
 
-
-__NOTE:__ All three above options require the user to have connected to a running cluster with the kubectl CLI (or other CLI tool) as VpK will issue the kubectl command with the needed parameters to connect to the k8s cluster. 
-
+__NOTE:__ All three above options require the user to have connected to a running cluster with the kubectl CLI (or other CLI tool) as VpK will issue the kubectl command (or other command) with the needed parameters to connect to the k8s cluster. 
 
 A snapshot is required to view any of the k8s resources so the creation of the snapshot, or connecting to an existing snapshot, should be the first task any time the application is started.  
-
 
 At the top of the screen from drop-down with the __"Select option"__ value shown select the desired option to create or obtain a snapshot.  
 
@@ -155,21 +145,20 @@ At the top of the screen from drop-down with the __"Select option"__ value shown
 
 <br><br>
 
-First time usage of VpK will have no existing snapshots.  The __Running cluster__ option must be selected to create a snapahot. 
+First time usage of VpK will have no existing snapshots.  The __Running cluster__ option must be selected to create a snapshot. 
 Once selected the user provides information to connect to the Kubernetes cluster.  Input fields are:
-
 
 | Field | Description | Default |
 |---|---|:---:|
 | Snapshot prefix | This value is appended to the directory name that is created to store the snapshot. | __vpk__ |
 | kubectl or other command | The command that is used to communicate with the k8s cluster. | __kubectl__ |
-| Namespace | A single namespace or the valute __<all>__ to limit what is obtained from the k8s cluster.  | __&lt;all&gt;__ |
+| Namespace | A single namespace or the value __<all>__ to limit what is obtained from the k8s cluster.  | __&lt;all&gt;__ |
 
 <br><br>
 
 If VpK is started with the '-c' parameter to indicate the application is running from a Docker container three additional fields will
 be shown.  These fields are used to enable the container the ability to run commands on the host machine.  This is accomplished using the
-sshpass and ssh commands.  The host machine must have ssh enabled for this feature to successfully work.
+__sshpass__ and __ssh__ commands.  The host machine must have ssh enabled for this feature to successfully work.
 
 | SSH Field | Description |
 |---|---|
@@ -194,7 +183,7 @@ The dashed outlined section shown below is only shown if VpK is run from a Docke
 
 <br><br>
 
-Once the information is provided press the __Connect__ button to begin retrieving the k8s data.  The cluster snapshot is created and stored in a local directory.  The base location for all snapshots is a directory named __cluster__ within the same location where the software is installed.  A new snapshot directory within the base 'cluster' directroy is created for each new snapshot.  The new snapshot directory will use the value provided in the __Snapshot prefix__ field along with date and time appended.  
+Once the information is provided press the __Connect__ button to begin retrieving the k8s data.  The cluster snapshot is created and stored in a local directory.  The base location for all snapshots is a directory named __cluster__ within the same location where the software is installed.  A new snapshot directory within the base 'cluster' directory is created for each new snapshot.  The new snapshot directory will use the value provided in the __Snapshot prefix__ field along with date and time appended.  
 
 <br>
 
@@ -202,7 +191,6 @@ Once the information is provided press the __Connect__ button to begin retrievin
 Example snapshot directory name: __vpk-2020-11-27-14h-16m-46s__
 ```
 <br>
-
 
 When accessing a running Kubernetes cluster a series of processing messages will be displayed in the bottom portion of the dialog.  Returning to the main screen requires closing the dialog by pressing the __Close__ button.
 
@@ -240,7 +228,6 @@ http://github.com/k8svisual/snapshot.git/
 
 VpK user interface is comprised of multiple tabs. The following sections are screen captures of portions of the tabs.
 
-
 #### Cluster tab
 
 Cluster view provides a 3D view of the cluster showing Nodes (master and worker), Pods (Running, Warning, Failed, Successful, DaemonSet), Network Services, Storage (PVC, PV, and Storage Class), and resource for memory, cpu, and storage.
@@ -251,7 +238,7 @@ Cluster view provides a 3D view of the cluster showing Nodes (master and worker)
 
 #### Schematic tab
 
-Kubernetes resources associated with a Pod are shown in a schematic similar to the following diagram.
+Kubernetes resources associated with a Pod are shown in a schematic like the following diagram.
 
 ![schematicTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-schematic.png)
 
@@ -275,7 +262,7 @@ View defined storage resources include PersistentVolumeClaim, PersistentVolume, 
 
 #### Security tab
 
-Graphical view of security definitons shown by cluster or namespace level.
+Graphical view of security definitions shown by cluster or namespace level.
 
 ![storage](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-security2.png)
 
@@ -296,7 +283,6 @@ View Owner Reference chains of resources in the cluster.
 ![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-ownerref.png)
 
 <br>
-
 
 
 <!-- ### YouTube videos on how to use VpK
@@ -328,7 +314,6 @@ VJ Landon
 Dave Krier   
 
 
-
 ## License
 
 Copyright (c) 2018-2023 k8sVisual
@@ -338,9 +323,11 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
 
-The above copyright notice and this permission notice shall beincluded in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
