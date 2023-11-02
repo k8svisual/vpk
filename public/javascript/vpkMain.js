@@ -627,6 +627,14 @@ socket.on('getKStatus', function (data) {
 
 });
 
+//...
+socket.on('getsDone', function (data) {
+    let msg = data.msg
+    let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
+    $("#clusterStatus").html(resp);
+
+});
+
 socket.on('parseStatus', function (data) {
     let msg;
     if (typeof data.msg !== 'undefined') {
