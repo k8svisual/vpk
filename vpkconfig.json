@@ -1,6 +1,6 @@
 {
     "defaults": {
-        "managedFields": false,
+        "managedFields": true,
         "statusSection": true
     },
     "snapshotDir": "/Users/bob/snaptest",

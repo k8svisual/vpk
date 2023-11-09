@@ -26,11 +26,8 @@ function closeChgDir() {
     $("#chgDirModal").modal('hide')
 }
 
-function compareShowFiles() {
-    editDef(compFile1, '1')
-    editDef(compFile2, '2')
-    $("#compareFilesModal").modal('show')
-}
+
+
 
 function getNsTable(ns) {
     $("#schemHeader").html('Resources for namespace: <span class="font-weight-bold">' + ns + '</span>');

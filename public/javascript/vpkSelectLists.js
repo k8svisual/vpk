@@ -44,12 +44,36 @@ function populateSchematicList() {
     }
 }
 
+function populateORefKinds(oRefKinds) {
+    let listArray = [];
+    let id = 0;
+    oRefKinds.sort();
+
+    for (let i = 0; i < oRefKinds.length; i++) {
+        if (i === 0) {
+            id++;
+            listArray.push({ id: id, text: 'all-kinds' });
+        }
+        id++;
+        listArray.push({ id: id, text: oRefKinds[i] });
+    }
+
+    $("#ownerRef-kind-filter").empty();
+    $("#ownerRef-kind-filter").select2({
+        data: listArray,
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select kind(s), default is ALL kinds"
+    });
+}
+
+
 function populateSelectLists(data) {
     // reset indicator for 3d selection dropdown built process
     foundNSNamesBuilt = false;
 
     popCnt++;
-    var options;
+    let options;
 
     // populate only if valid datasource
     if (data.validDir === false) {
@@ -111,13 +135,15 @@ function populateSelectLists(data) {
             containerCssClass: "vpkfont-md"
         });
 
-        populateXrefLists(data);
+        // populateXrefLists(data);
 
         populateExplains(data);
 
         populateSchematicList();
     }
 }
+
+
 
 function populateExplains(data) {
     if (typeof data.explains !== 'undefined') {
@@ -170,42 +196,42 @@ function populateExplains(data) {
 }
 
 
-function populateXrefLists(data) {
-    // xref-type dropdown
-    if (typeof data.xRefs !== 'undefined') {
-        options = buildXrefType(data.xRefs);
+// function populateXrefLists(data) {
+//     // xref-type dropdown
+//     if (typeof data.xRefs !== 'undefined') {
+//         options = buildXrefType(data.xRefs);
 
-        $("#xref-type").empty();
-        $("#xref-type").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
-        });
+//         $("#xref-type").empty();
+//         $("#xref-type").select2({
+//             data: options,
+//             dropdownCssClass: "vpkfont-md",
+//             containerCssClass: "vpkfont-md"
+//         });
 
-        // Populate xrefEdit-type with the same content as xref-type
-        $("#xrefEdit-type").empty();
-        $("#xrefEdit-type").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
-        });
-    }
-}
+//         // Populate xrefEdit-type with the same content as xref-type
+//         $("#xrefEdit-type").empty();
+//         $("#xrefEdit-type").select2({
+//             data: options,
+//             dropdownCssClass: "vpkfont-md",
+//             containerCssClass: "vpkfont-md"
+//         });
+//     }
+// }
 
 
-function buildXrefType(data) {
-    // "secrets" : {"desc": "Secrets defined in the environment"},
-    let listitem = '';
-    let keys = Object.keys(data);
-    let listArray = [];
-    listArray.push(listitem);
-    keys.sort();
-    for (let i = 0; i < keys.length; i++) {
-        listitem = { 'id': keys[i], 'text': keys[i] + ' : ' + data[keys[i]].desc };
-        listArray.push(listitem);
-    }
-    return listArray;
-}
+// function buildXrefType(data) {
+//     // "secrets" : {"desc": "Secrets defined in the environment"},
+//     let listitem = '';
+//     let keys = Object.keys(data);
+//     let listArray = [];
+//     listArray.push(listitem);
+//     keys.sort();
+//     for (let i = 0; i < keys.length; i++) {
+//         listitem = { 'id': keys[i], 'text': keys[i] + ' : ' + data[keys[i]].desc };
+//         listArray.push(listitem);
+//     }
+//     return listArray;
+// }
 
 function buildStatsToggle() {
     if (dsToggle === 'kind') {

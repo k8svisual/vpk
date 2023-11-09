@@ -23,9 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Global vars 
 
-// Schematic related
-let collapseNamespaces = {};
-let schematicKeys = {};
+
 
 // 3D view related
 let clusterPanelIsClosed = true;
@@ -209,46 +207,7 @@ function getExplain(kind, api) {
 	}
 }
 
-// Open a collapse section using namespace
-function openNamespace(ns) {
-	let id;
-	if (collapseNamespaces[ns] !== undefined) {
-		id = '#collid-' + collapseNamespaces[ns];
-		$(id).collapse("show");
-	}
-}
 
-function openAll(type) {
-	collapseAction('O', type)
-}
-
-function closeAll(type) {
-	collapseAction('C', type)
-}
-
-function collapseAction(act, type) {
-	let id;
-	if (type = 'collid-') {
-		for (let c = 0; c < collapseIDs.length; c++) {
-			id = '#' + type + collapseIDs[c];
-			if (act === 'O') {
-				$(id).collapse("show");
-			} else {
-				$(id).collapse("hide");
-			}
-		}
-	}
-	if (type = 'ownref-') {
-		for (let c = 0; c < ownerCollapseIDs.length; c++) {
-			id = '#' + type + ownerCollapseIDs[c];
-			if (act === 'O') {
-				$(id).collapse("show");
-			} else {
-				$(id).collapse("hide");
-			}
-		}
-	}
-}
 
 function parseArray(data) {
 	nData = '';
@@ -1145,62 +1104,62 @@ function setBaseDir(dir) {
 	$("#tableL").bootstrapTable('removeAll')
 }
 
-function bldXrefRulesTable() {
-	xrefRuleCountFound = 0;
-	let ruleCnt = 0;
-	let picked = xrefData.picked;
-	let rules;
-	let divSection = '<hr><table style="width:100%">';
-	let header = '<tr class="rulesList vpkfont"><th class="text-center">k8s Kind</th>'
-		+ '<th class="text-center">Path</th><th class="text-center">Enabled</th></tr>'
-		+ '<td width="10%">' + hrLow + '</td>'
-		+ '<td width="80%">' + hrLow + '</td>'
-		+ '<td width="10%">' + hrLow + '</td>'
-		+ '</tr>';
+// function bldXrefRulesTable() {
+// 	xrefRuleCountFound = 0;
+// 	let ruleCnt = 0;
+// 	let picked = xrefData.picked;
+// 	let rules;
+// 	let divSection = '<hr><table style="width:100%">';
+// 	let header = '<tr class="rulesList vpkfont"><th class="text-center">k8s Kind</th>'
+// 		+ '<th class="text-center">Path</th><th class="text-center">Enabled</th></tr>'
+// 		+ '<td width="10%">' + hrLow + '</td>'
+// 		+ '<td width="80%">' + hrLow + '</td>'
+// 		+ '<td width="10%">' + hrLow + '</td>'
+// 		+ '</tr>';
 
-	let tbl = divSection + header;
-	let ruleKeys = Object.keys(xrefData.rules);
-	let rKey;
-	let item;
-	let nsHtml = '';
-	let onOff;
-	try {
-		for (let r = 0; r < ruleKeys.length; r++) {
-			rKey = ruleKeys[r];
-			rules = xrefData.rules[rKey];
-			for (let x = 0; x < rules.length; x++) {
-				if (rules[x].xrk === picked) {
-					ruleCnt++;
-					if (rules[x].xon === true) {
-						onOff = 'true';
-					} else {
-						onOff = 'false'
-					}
-					item = '<tr>'
-						+ '<td width="10%" class="pl-5 pr-5 text-center vpkfont">' + rKey + '</td>'
-						+ '<td width="80%" class="ml-4 vpkfont" onclick="xrefEditPathRule(\'' + rKey + ':' + x + '\')">' + rules[x].xrw + '</td>'
-						+ '<td width="10%" class="ml-4 text-center vpkfont">' + onOff + '</td>'
-						+ '</tr>';
-					nsHtml = nsHtml + item
+// 	let tbl = divSection + header;
+// 	let ruleKeys = Object.keys(xrefData.rules);
+// 	let rKey;
+// 	let item;
+// 	let nsHtml = '';
+// 	let onOff;
+// 	try {
+// 		for (let r = 0; r < ruleKeys.length; r++) {
+// 			rKey = ruleKeys[r];
+// 			rules = xrefData.rules[rKey];
+// 			for (let x = 0; x < rules.length; x++) {
+// 				if (rules[x].xrk === picked) {
+// 					ruleCnt++;
+// 					if (rules[x].xon === true) {
+// 						onOff = 'true';
+// 					} else {
+// 						onOff = 'false'
+// 					}
+// 					item = '<tr>'
+// 						+ '<td width="10%" class="pl-5 pr-5 text-center vpkfont">' + rKey + '</td>'
+// 						+ '<td width="80%" class="ml-4 vpkfont" onclick="xrefEditPathRule(\'' + rKey + ':' + x + '\')">' + rules[x].xrw + '</td>'
+// 						+ '<td width="10%" class="ml-4 text-center vpkfont">' + onOff + '</td>'
+// 						+ '</tr>';
+// 					nsHtml = nsHtml + item
 
-					item = '<tr>'
-						+ '<td width="10%">' + hrLow + '</td>'
-						+ '<td width="80%">' + hrLow + '</td>'
-						+ '<td width="10%">' + hrLow + '</td>'
-						+ '</tr>';
-					nsHtml = nsHtml + item
-				}
-			}
-		}
-		tbl = tbl + nsHtml + '</table>';
+// 					item = '<tr>'
+// 						+ '<td width="10%">' + hrLow + '</td>'
+// 						+ '<td width="80%">' + hrLow + '</td>'
+// 						+ '<td width="10%">' + hrLow + '</td>'
+// 						+ '</tr>';
+// 					nsHtml = nsHtml + item
+// 				}
+// 			}
+// 		}
+// 		tbl = tbl + nsHtml + '</table>';
 
-		$("#xrefTable").html(tbl);
-		xrefRuleCountFound = ruleCnt;
+// 		$("#xrefTable").html(tbl);
+// 		xrefRuleCountFound = ruleCnt;
 
-	} catch (err) {
-		console.log('Error building xrefRulesTable: ' + err);
-	}
-}
+// 	} catch (err) {
+// 		console.log('Error building xrefRulesTable: ' + err);
+// 	}
+// }
 
 
 //----------------------------------------------------------

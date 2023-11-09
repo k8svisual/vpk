@@ -188,6 +188,10 @@ div {
     width: 150px;
 }
 
+.filterWidthORef {
+    width: 70px;
+}
+
 /* buttons */
 .vpkButtons {
     font-size: 0.75rem;

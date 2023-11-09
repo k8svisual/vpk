@@ -21,6 +21,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // create the 3d view for the cluster
 //----------------------------------------------------------
 
+let ownerRefButton;
+let ownerRefFnum;
+let ownerRefName;
+let ownerRefNS;
+
 $("#cluster3DView").show();
 
 canvas = document.getElementById("clusterCanvas");
@@ -35,6 +40,20 @@ createDefaultEngine = function () {
 
 function k8sDocSite() {
     window.open('https://kubernetes.io/docs/reference/kubernetes-api/', '_blank');
+}
+
+function checkOwnerRef(chkFnum, chkNS, chkKind) {
+
+    if (typeof ownerRefExist[chkFnum] !== 'undefined') {
+        return '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
+            + ' onclick="showOwnRef(\'' + chkFnum + '\',\'' + chkNS + '\',\'' + chkKind + '\')">View ownerRef</button>&nbsp;'
+    } else {
+        return '';
+    }
+    // if ()
+    //     + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
+    //         + ' onclick="showOwnRef(\'' + cluster.nodes[node].pods[cCnt].name + '\',\'' + podFnum + '\',\'' + ns + '\')">View ownerRef</button>&nbsp;'
+
 }
 
 function print3Dscene() {
@@ -556,7 +575,13 @@ function createScene() {
                 + '<span><b>' + RES_STATUS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].phase + '</span>'
                 + '<br>'
                 + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\')"> &nbsp;View pod schematic&nbsp;</button>&nbsp;'
+                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\')">View schematic</button>&nbsp;'
+                + checkOwnerRef(podFnum, ns, 'Pod')
+
+
+            // + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
+            // + ' onclick="showOwnRef(\'' + podFnum + '\',\'' + ns + '\',\'' + 'Pod' + '\')">View ownerRef</button>&nbsp;'
+
 
             // build Pod and save the center cords for use with network and storage    
             podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
@@ -606,7 +631,9 @@ function createScene() {
                     + '<span><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
                     + '<br>'
                     + '<span><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
-                    + '</span></div>';
+                    + '</span>'
+                    + checkOwnerRef(cluster.nodes[node].pods[cCnt].services[0].fnum, ns, 'Service')
+                    + '</div>';
 
                 // Create a fully qualified name using service name and namespace    
                 serviceName = cluster.nodes[node].pods[cCnt].services[0].name + '::' + cluster.nodes[node].pods[cCnt].services[0].namespace;
@@ -648,6 +675,8 @@ function createScene() {
                         + '<span><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].name + '</span>'
                         + '<br>'
                         + '<span><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span>'
+                        + checkOwnerRef(epFnum, ns, 'EndpointSlice')
+                        + checkOwnerRef(epFnum, ns, 'Endpoints')
                         + '</span></div>';
                 }
 
@@ -672,7 +701,9 @@ function createScene() {
                     + '<span><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].name + '</span>'
                     + '<br>'
                     + '<span><b>' + RES_NS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].ns + '</span>'
-                    + '</span></div>';
+                    + '</span><br>'
+                    + checkOwnerRef(cluster.nodes[node].pods[cCnt].pvc[0].fnum, cluster.nodes[node].pods[cCnt].ns, 'PersistentVolumeClaim')
+                    + '</div>';
 
                 if (typeof cluster.nodes[node].pods[cCnt].pvc[0].pvName !== 'undefined') {
                     pvName = '<div class="vpkfont vpkcolor ml-1">'
@@ -685,7 +716,9 @@ function createScene() {
                         + '<span class="vpkfont-slidein"><b>PersistentVolume (PV) -</b>'
                         + '<br>'
                         + '<span><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].pvc[0].pvName + '</span>'
-                        + '</span></div>';
+                        + '</span><br>'
+                        + checkOwnerRef(cluster.nodes[node].pods[cCnt].pvc[0].pvFnum, 'ClusterLevel', 'PersistentVolume')
+                        + '</div>';
 
                 } else {
                     pvName = '';
@@ -1064,7 +1097,14 @@ function createScene() {
                 + '<span class="vpkfont-slidein""><b>StorageClass (SC) -</b>'
                 + '<br>'
                 + '<span><b>Name : &nbsp;&nbsp;</b>' + scData.name + '</span>'
-                + '</span></div>';
+                + '</span></div>'
+
+                + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
+                + ' onclick="showSC(\'' + scData.name + '\',\'' + scFnum + '\')">View Storage Class</button>&nbsp;'
+
+                + '<br>' + checkOwnerRef(scFnum, 'cluster-level', 'StorageClass')
+
+
 
             //createSC(scTxt, scFnum, scData)
             let adjustment = 0;
@@ -1648,7 +1688,9 @@ function createScene() {
                                     + '<span class="vpkfont-slidein"><b>CSINode <br>(Container Storage Interface Node) -</b>'
                                     + '<br>'
                                     + '<span><b>Name : &nbsp;&nbsp;</b>' + cluster.nodes[nodePtr].csiNodes[0].drivers[c].name + '</span>'
-                                    + '</span></div>';
+                                    + '</span>'
+                                    + '<br>' + checkOwnerRef(cluster.nodes[nodePtr].csiNodes[0].fnum, 'cluster-level', 'CSINode')
+                                    + '</div>';
 
                                 // define the csiNode
                                 buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
@@ -1737,7 +1779,9 @@ function createScene() {
                 + '<span><b>Memory:</b>&nbsp;' + memory + '</span>'
                 + '<br>'
                 + '<span><b>Storage:</b>&nbsp;' + storage + '</span>'
-                + '</span></div>';
+                + '</span>'
+                + '<br>' + checkOwnerRef(cluster.nodes[nodePtr].fnum, 'cluster-level', 'Node')
+                + '</div>';
 
             // register click event for each node;
             can.actionManager = new BABYLON.ActionManager(scene);

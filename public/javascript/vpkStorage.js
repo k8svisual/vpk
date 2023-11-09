@@ -17,6 +17,8 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+let scArray = {};
+
 //----------------------------------------------------------
 // build svg data for ownerRef links
 //----------------------------------------------------------
@@ -26,6 +28,7 @@ function initStorageVars() {
     storCollapseID = [];
     storBreakID = 0;
     storageInfo = {};
+    scArray = {};
 }
 
 function buildStorage() {
@@ -170,6 +173,13 @@ function buildStorageSVG() {
 
 
         fnum = storageData.StorageClass[scKeys[s]].fnum;
+
+        if (typeof scArray[name] === 'undefined') {
+            scArray[name] = {};
+            scArray[name].id = 'sc' + storCnt;
+            scArray[name].fnum = fnum;
+        }
+
         rtn = rtn + '<svg id="sc' + storCnt + '" width="1200" height="50">'
             + '<image x="10" y="5"  width="40" height="40" href="images/k8/sc.svg" '
             + ' onclick="getDefFnum(\'' + fnum + '\')"/>'

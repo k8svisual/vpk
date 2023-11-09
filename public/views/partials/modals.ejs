@@ -107,7 +107,7 @@
             <div class="modal-body">
                 <table id="splashTable">
                     <tr>
-                        <td><img src="images/vpk.png" width="200" height="200"></td>
+                        <td><img src="images/vpk.png" alt="vpk icon" width="200" height="200"></td>
                         <td style="width: 40px;">&nbsp;</td>
                         <td>
                             <div style="display: inline" class="text-center vpkcolor">
@@ -276,7 +276,7 @@
                             <textarea id="commandInput" rows="3" class="form-control"></textarea>
                             <p class="vpkfont-md">Output</p>
                             <textarea id="commandOutput" rows="10" class="form-control vpkfont-decode"
-                                style="font-family: 'Courier New', monospace;">
+                                style="font-family: 'Courier New', monospace;" aria-labelledby="Output">
                             </textarea>
                         </div>
                     </form>
@@ -309,7 +309,8 @@
             </div>
             <div class="modal-body docBackground">
                 <!-- need to add logic to dynamically change the cols value based on size of browser window -->
-                <textarea id="decode" rows="33" cols="162" class="vpkfont-decode">
+
+                <textarea id="decode" rows="33" cols="162" class="vpkfont-decode" aria-labelledby="Decoded value">
                     <!-- content here -->
                 </textarea>
 
@@ -416,7 +417,7 @@
                     </button>
                     <div id="loadStatus" class="row ml-4 mt-2">
                         <!-- <div class="col mt-1 ml-1"> -->
-                        <img style="float:left" src="images/loading.gif" width="40" height="40" />
+                        <img style="float:left" src="images/loading.gif" alt="loading" width="40" height="40" />
                         <div class="vpkfont-md vpkcolor ml-2 mt-2">
                             <span>&nbsp;&nbsp;Processing connect request </span>
                             <!-- </div> -->
@@ -500,7 +501,7 @@
                     </div>
 
                     <div id="usageRunning" class="row ml-4">
-                        <img style="float:left" src="images/loading.gif" width="40" height="40" />
+                        <img style="float:left" src="images/loading.gif" alt="loading" width="40" height="40" />
                         <div class="vpkfont vpkcolor ml-2 mt-2">
                             <span>&nbsp;&nbsp;Retrieving usage information</span>
                         </div>
@@ -629,53 +630,7 @@
     </div>
 </div>
 
-<!-- ==================================== -->
-<!-- Many Bindings Modal section          -->
-<!-- ==================================== -->
-<div class="modal fade" id="manyBindingsModal" tabindex="-1" role="dialog" data-keyboard="false" data-backdrop="static">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h6 class="modal-title vpkcolor">Bindings filter</h6>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body docBackground">
-                <div class="vpkfont vpkcolor">
-                    <p>
-                        <scan id="bindingsCnt"></scan> RoleBindings and/or ClusterRoleBindings exist, if you would like
-                        to filter the view select one or more binding names and then press the filter bindings button.
-                    </p>
-                </div>
-                <div id="filter-bindings" class="row filterBack pl-1 mt-1">
-                    <div class="vpkfont-md mt-2 filterWidth">
-                        Binding names
-                    </div>
-                    <div id="bindings-select" class="ml-1 mr-1 mt-1 vpkfont-md">
-                        <select id="bindings-filter" multiple="multiple" style="width: 550px" id="bar1-options">
-                            <option>all-namespaces</option>
-                            <option>&lt;cluster-level&gt;</option>
-                            <option>openshift</option>
-                            <option>default</option>
-                            <option>team01</option>
-                            <option>team02</option>
-                        </select>
-                    </div>
-                </div>
-                <button id="configBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="reduceBindings()"
-                    style="margin: 5px;">
-                    Filter bindings
-                </button>
-            </div>
-            <div id="manyBindingsModalFooter" class="modal-footer">
-                <button type="button" class="btn btn-sm btn-primary" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">Close</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- ==================================== -->
 <!-- Cluster Legend Modal section          -->
@@ -1098,7 +1053,7 @@
                             <polygon points="0,20 20,1 120,1 140,20 120,40 20,40 0,20"
                                 style="fill:#dec4f7; stroke: #000000; stroke-width:1" />
                             <text text-anchor="middle" x="70" y="24" font-family="Times 100" font-size="12.00"
-                                fill="ffffff">ClusterRole</text>
+                                fill="#ffffff">ClusterRole</text>
                         </g>
                         <g>
                             <polygon points="150,20 170,1 270,1 290,20 270,40 170,40 150,20"
@@ -1278,47 +1233,268 @@
 </div> <!-- End of editor Modal -->
 
 <!-- ==================================== -->
-<!-- compare Modal section                 -->
+<!-- schematic filter Modal section       -->
 <!-- ==================================== -->
-<div class="modal fade" id="compareFilesModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="schematicFilterModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <div id="compareTitle" class="ml-2">
-                    <h6 class="modal-title vpkcolor">Snapshot file(s) content</h6>
+                <div class="ml-2 vkpfont vpkcolor">
+                    Workload schematic filter
                 </div>
+
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body pb-0 docBackground">
-                <div class="dualUp">
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applySchematicFilter()">Apply
+                        filter
+                    </button>
+                    <span class="ml-3">Select one or more Pods to filter the Workload view.</span>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2"
+                            onclick="clearAllSchematicFilters()">Clear all filters
+                        </button>
+                    </span </div>
 
                     <div class="panel panel-default">
-                        <span id="snapTitle1" class="ml-2 mt-2 mb-2 vpkcolor vpkfont-sm">Snapshot 1</span>
-                        <div id="compareTitle1" class="ml-2 mb-2">
-                        </div>
                         <div class="panel-body">
-                            <div id="file-content" style="display: none;"></div>
-                            <div id="editorC1" style="height: 600px; width: 550px"></div>
-                        </div>
-                    </div>
-
-                    <div class="panel panel-default" style="height: 450px; width: 40px;">&nbsp;</div>
-
-                    <div class="panel panel-default">
-                        <span id="snapTitle2" class="ml-2 mt-2 mb-2 vpkcolor vpkfont-sm">Snapshot 2</span>
-                        <div id="compareTitle2" class="ml-2 mb-2">
-                        </div>
-                        <div class="panel-body">
-                            <div id="file-content" style="display: none;"></div>
-                            <div id="editorC2" style="height: 600px; width: 550px"></div>
+                            <!-- Workload schematic keys table-->
+                            <div id="WSResults" class="ml-2 mr-2 mt-1">
+                                <table id="tableWS" class="table table-bordered table-sm" data-buttons-class="primary"
+                                    data-buttons-prefix="btn-sm btn" data-icon-size="sm"
+                                    data-loading-template="loadingTemplate" data-maintain-meta-data="true"
+                                    data-page-list="[10, 25, 50, 100, 200, All]" data-pagination="true"
+                                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                                    data-show-columns="false" data-show-export="false" data-show-fullscreen="false"
+                                    data-show-print="false" data-show-refresh="false" data-show-toggle="false"
+                                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false"
+                                    data-toggle="table" data-visible="true" data-click-to-select="true">
+                                    <thead class='thead-light'>
+                                        <tr>
+                                            <th data-field="state" data-checkbox="true"></th>
+                                            <th data-field="ns" data-sortable="true">Namespace</th>
+                                            <th data-field="pod" data-sortable="true">Pod Name</th>
+                                            <th data-field="id" data-sortable="true">Fnum</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer mt-0 pt-1">
+                <div class="modal-footer mt-0 pt-1">
+                </div>
             </div>
         </div>
-    </div>
-</div> <!-- End of editor Modal -->
+    </div> <!-- End of schematic filter Modal -->
+</div>
+
+
+<!-- ==================================== -->
+<!-- Owner Referrnce filter Modal section       -->
+<!-- ==================================== -->
+<div class="modal fade" id="ownerRefFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="ml-2 vkpfont-lg vpkcolor">
+                    OwnerRef filter -
+                    <span class="ml-2 vpkfont vpkcolor">for selected namespace: <span id="oRefSelectedNS"
+                            style="font-weight: bold;">none</span></span>
+                    <!-- <span>Select kind(s) and or resourece names to filter view.</span> -->
+                </div>
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applyOwnerRefFilter()">Apply
+                        filter
+                    </button>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2"
+                            onclick="clearAllOwnerRefFilters()">Clear all filters
+                        </button>
+                    </span>
+                    <hr>
+                    <div id="oRef-filter" class="row filterBack pl-1 mt-1">
+                        <!-- <div class="vpkfont vpkcolor mt-2 ml-2">
+                            <span>Selected namespace: <span id="oRefSelectedNS"
+                                    style="font-weight: bold;"></span></span>
+                        </div> -->
+                        <div class="vpkfont vpkcolor mt-2 ml-2 filterWidthORef">
+                            Kind(s):
+                        </div>
+                        <div id="bar1-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                            <select id="ownerRef-kind-filter" multiple="multiple" style="width: 250px">
+                                <option>No namespace selected</option>
+                            </select>
+                        </div>
+                        <div class="mt-1">
+                            <button type="button" class="btn btn-sm btn-primary ml-2" onclick="findORefNames()">Populate
+                                resource names information
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div id="oRef-message">
+                        <span class="mt-2 mb-2 ml-2" style="color: red; display: none;">Message goes here</span>
+                    </div>
+
+
+                    <div class="vpkfont vpkcolor ml-2 ">
+                        Resource names:
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <!-- Workload schematic keys table-->
+                            <div id="ORefResults" class="ml-2 mr-2 mt-1">
+                                <table id="tableORef" class="table table-bordered table-sm" data-buttons-class="primary"
+                                    data-buttons-prefix="btn-sm btn" data-icon-size="sm"
+                                    data-loading-template="loadingTemplate" data-maintain-meta-data="true"
+                                    data-page-list="[10, 25, 50, 100, 200, All]" data-pagination="true"
+                                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                                    data-show-columns="false" data-show-export="false" data-show-fullscreen="false"
+                                    data-show-print="false" data-show-refresh="false" data-show-toggle="false"
+                                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false"
+                                    data-toggle="table" data-visible="true" data-click-to-select="true">
+                                    <thead class='thead-light'>
+                                        <tr>
+                                            <th data-field="state" data-checkbox="true"></th>
+                                            <th data-field="kind" data-sortable="true">Kind</th>
+                                            <th data-field="name" data-sortable="true">Name</th>
+                                            <th data-field="id" data-sortable="true">Fnum</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mt-0 pt-1">
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of schematic filter Modal -->
+</div>
+
+
+
+<!-- ==================================== -->
+<!-- Security filter Modal section       -->
+<!-- ==================================== -->
+<div class="modal fade" id="securityFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="ml-2 vkpfont-lg vpkcolor">
+                    Security filter -
+                    <span class="ml-2 vpkfont vpkcolor">for selected namespace: <span id="oRefSelectedNS"
+                            style="font-weight: bold;">none</span></span>
+                    <!-- <span>Select kind(s) and or resourece names to filter view.</span> -->
+                </div>
+
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div>
+
+
+
+
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applySecurityFilter()">Apply
+                        filter
+                    </button>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2" onclick="clearSecurityFilters()">Clear
+                            all filters
+                        </button>
+                    </span>
+                    <hr>
+
+
+                    <div class="vpkfont vpkcolor">
+                        <div class="vpkfont vpkcolor mb-3 ml-1">
+                            <span>Select Resource type to filter by:</span>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="filterSecurityTopic"
+                                id="filterSecuritySubject">
+                            <label class="form-check-label" for="filterSecuritySubject">
+                                Subject
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="filterSecurityTopic"
+                                id="filterSecurityBinding" checked>
+                            <label class="form-check-label" for="filterSecurityBinding">
+                                RoleBinding or ClusterRoleBinding
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="filterSecurityTopic"
+                                id="filterSecurityRole" checked>
+                            <label class="form-check-label" for="filterSecurityRole">
+                                Role or ClusterRole
+                            </label>
+                        </div>
+
+                        <div class="mt-1">
+                            <button type="button" class="btn btn-sm btn-primary ml-2"
+                                onclick="checkSelectedCategory()">Populate resource names information
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="vpkfont vpkcolor ml-2 ">
+                        Resource names information:
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <!-- Security filter names table-->
+                            <div id="securityResults" class="ml-2 mr-2 mt-1">
+                                <table id="tableSecurity" class="table table-bordered table-sm"
+                                    data-buttons-class="primary" data-buttons-prefix="btn-sm btn" data-icon-size="sm"
+                                    data-loading-template="loadingTemplate" data-maintain-meta-data="true"
+                                    data-page-list="[10, 25, 50, 100, 200, All]" data-pagination="true"
+                                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                                    data-show-columns="false" data-show-export="false" data-show-fullscreen="false"
+                                    data-show-print="false" data-show-refresh="false" data-show-toggle="false"
+                                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false"
+                                    data-toggle="table" data-visible="true" data-click-to-select="true">
+                                    <thead class='thead-light'>
+                                        <tr>
+                                            <th data-field="state" data-checkbox="true"></th>
+                                            <th data-field="name" data-sortable="true">Name</th>
+                                            <th data-field="kind" data-sortable="true">Kind</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mt-0 pt-1">
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of schematic filter Modal -->
+</div>
+
+
+
+
+<!-- End of Modal definitions -->

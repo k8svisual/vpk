@@ -34,7 +34,8 @@
         <div id="header-bar" class="header ml-1 mr-0 pt-1 pb-1">
             <!-- <span onclick="printDiv()"> -->
             <span>
-                <img class="vpk-vert-mid" src='images/vpk.png' width='30' height='30' onclick="getDocumentation('toc')">
+                <img class="vpk-vert-mid" src='images/vpk.png' alt="vpk icon" width='30' height='30'
+                    onclick="getDocumentation('toc')">
 
                 <div class="vpkcolor vpkfont pl-1 vpkinline vpk-vert-mid" onclick="getDocumentation('toc')">
                     <span class="vpkfont-lg">V</span><span class="vpkfont">isually </span>
@@ -155,7 +156,7 @@
                                 <!-- k8s resource kind name -->
                             </div>
                             <div id="bar3-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
-                                <input type="text" class="form-control vpkfont-md" id="search-value"
+                                <input type="text" class="form-control vpkfont-md" id="search-value-field"
                                     placeholder="partial or complete name resource name">
                             </div>
                             <!-- Information blue DOT -->
@@ -230,8 +231,11 @@
                         <div>
                             <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
                                 id="getSchematic" onclick="getSchematic()">
-                                &nbsp;View Schematic(s)&nbsp;
+                                &nbsp;Retrieve Schematic(s)&nbsp;
                             </button>
+                            <span class="vpkfont-sm vpkcolor ml-t">Once data is retrieved press the blue and/or yellow
+                                buttons shown below to toggle the view for the identifed namespace.
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -325,7 +329,7 @@
                                     </select>
                                 </span>
                                 <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                    id="sec06" onclick="getOwnerRefViewData()">
+                                    id="sec06" onclick="getOwnerRefData()">
                                     &nbsp;View selected namespace&nbsp;
                                 </button>
                                 <span class="'vpkcolor header-right">
@@ -345,10 +349,13 @@
 
 
     <div id="viewarea">
+
+
         <div id="graph" style="text-align: center;">
         </div>
 
         <div id="tabsContent" class="tab-content">
+            <!-- Tab: OVERVIEW  -->
             <div id="instructions" class="tab-pane active show">
                 <div class="text-center vpkcolor vkpfont-lg vpk-tagline">
                     <span>"VpK&nbsp;&nbsp;visualizing what's inside of Kubernetes"</span>
@@ -370,26 +377,26 @@
                     <!-- The slideshow -->
                     <div class="carousel-inner centerImage">
                         <div class="carousel-item mb-5 mt-4 active">
-                            <img src="images/wow/pic-cluster.png" width="600" height="419">
+                            <img src="images/wow/pic-cluster.png" alt="cluster" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-schematic.png" width="600" height="419">
+                            <img src="images/wow/pic-schematic.png" alt="schematic" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-graphic.png" width="600" height="419">
+                            <img src="images/wow/pic-graphic.png" alt="graphic" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-storage.png" width="600" height="419">
+                            <img src="images/wow/pic-storage.png" alt="storage" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-security2.png" width="600" height="419">
+                            <img src="images/wow/pic-security2.png" alt="security" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
                             <!-- on UI tab renamed to search -->
-                            <img src="images/wow/pic-tableview.png" width="600" height="419">
+                            <img src="images/wow/pic-tableview.png" alt="search" width="600" height="419">
                         </div>
                         <div class="carousel-item mb-5 mt-4">
-                            <img src="images/wow/pic-ownerref.png" width="600" height="419">
+                            <img src="images/wow/pic-ownerref.png" alt="ownerref" width="600" height="419">
                         </div>
                     </div>
                 </div>
@@ -401,60 +408,7 @@
                 </div>
             </div>
 
-            <div id="tableview" class="tab-pane">
-                <div id="searchResults" class="ml-2 mr-2 mt-1">
-                    <table id="tableL" class="table table-bordered table-sm" data-buttons-class="primary"
-                        data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
-                        data-maintain-meta-data="true" data-page-list="[10, 25, 50, 100, 200, All]"
-                        data-pagination="true" data-pagination-v-align="both" data-search="true"
-                        data-search-highlight="true" data-show-columns="true" data-show-export="true"
-                        data-show-fullscreen="true" data-show-print="true" data-show-refresh="true"
-                        data-show-toggle="true" data-sort-class="table-active" data-sortable="true"
-                        data-trim-on-search="false" data-toggle="table" data-visible="true">
-                        <thead class='thead-light'>
-                            <tr>
-                                <th data-field="namespace" data-sortable="true">Namespace</th>
-                                <th data-field="kind" data-sortable="true">Kind</th>
-                                <th data-field="value" data-sortable="true">Kind Name</th>
-                                <th data-field="src">Fnum</th>
-                            </tr>
-                        </thead>
-                    </table>
-                </div>
-                <div class="col-md-12 ml-2 mt-2 mb-3 p-0">
-                    <span class="mr-2 vpkfont-md vpkcolor">
-                        Click table row to view the resource yaml
-                    </span>
-                </div>
-            </div>
-
-            <div id="graphic" class="tab-pane">
-                <div class="mt-2 vpkfont vpkcolor" id="chartInfo">
-                </div>
-                <div id="prtGraphic" class="ml-3 mr-3">
-                    <svg id="graphicCharts2"></svg>
-                </div>
-            </div>
-
-            <div id="schematic" class="tab-pane">
-                <div id="schematicDetail" class="vpkfont">
-                </div>
-            </div>
-
-            <div id="security" class="tab-pane">
-                <div id="vizWrapper">
-                    <div id="secViz" style="text-align: center;"></div>
-                </div>
-
-            </div>
-
-            <div id="storage" class="tab-pane">
-                <!-- Append the needed UI components -->
-                <div id="storageDetail" class="ml-2 mt-1">
-
-                </div>
-            </div>
-
+            <!-- Tab: CLUSTER  -->
             <div id="cluster" class="tab-pane">
                 <!-- Cluster 3D View-->
                 <div id="cluster3DView" style="display: none;">
@@ -816,111 +770,163 @@
                             onclick="saveClusterFilters()">Save filters as default</button>
                     </div>
                     <!-- <div class="form-check vpkfont-filter">
-                        <span class="pt-1">BACKGROUND</span>
-                    </div>
+                    <span class="pt-1">BACKGROUND</span>
+                </div>
 
-                    <div>
-                        <span class="form-check vpkfont-filter">Click color or
-                            image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
+                <div>
+                    <span class="form-check vpkfont-filter">Click color or
+                        image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
 
-                        <table class="ml-1" style="width: 250px; border: 1px solid black;">
-                            <tr>
-                                <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
-                                    onclick="set3dBackColor('255','255','255','White')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
-                                    onclick="set3dBackColor('242','242','242','Grey')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
-                                    onclick="set3dBackColor('220','208','255','Lavender')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
-                                    onclick="set3dBackColor('234','219','200','Straw')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
-                                    onclick="set3dBackColor('32','178','170','Teal')">
-                                </td>
+                    <table class="ml-1" style="width: 250px; border: 1px solid black;">
+                        <tr>
+                            <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
+                                onclick="set3dBackColor('255','255','255','White')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
+                                onclick="set3dBackColor('242','242','242','Grey')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
+                                onclick="set3dBackColor('220','208','255','Lavender')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
+                                onclick="set3dBackColor('234','219','200','Straw')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
+                                onclick="set3dBackColor('32','178','170','Teal')">
+                            </td>
 
-                                <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
-                                    onclick="set3dBackColor('72','61','139','Purple')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
-                                    onclick="set3dBackColor('154','185','115','Olive')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
-                                    onclick="set3dBackColor('131','105','83','Brown')">
-                                </td>
-                                <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
-                                    onclick="set3dBackColor('0','0','0', 'Black')">
-                                </td>
-                            </tr>
-                        </table>
+                            <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
+                                onclick="set3dBackColor('72','61','139','Purple')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
+                                onclick="set3dBackColor('154','185','115','Olive')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
+                                onclick="set3dBackColor('131','105','83','Brown')">
+                            </td>
+                            <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
+                                onclick="set3dBackColor('0','0','0', 'Black')">
+                            </td>
+                        </tr>
+                    </table>
 
-                        <table class="ml-1" style="width: 250px;">
-                            <tr>
-                                <td onclick="set3dBackColor('0','0','0', 'Stars')">
-                                    <img style="float:left" src="images/stars.jpg" width="125" height="30" />
-                                </td>
-                                <td onclick="set3dBackColor('0','0','0', 'Clouds')">
-                                    <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
-                                </td>
-                            </tr>
-                        </table>
+                    <table class="ml-1" style="width: 250px;">
+                        <tr>
+                            <td onclick="set3dBackColor('0','0','0', 'Stars')">
+                                <img style="float:left" src="images/stars.jpg" width="125" height="30" />
+                            </td>
+                            <td onclick="set3dBackColor('0','0','0', 'Clouds')">
+                                <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
+                            </td>
+                        </tr>
+                    </table>
 
-                    </div> -->
+                </div> -->
                 </div>
             </div>
 
-            <!-- Cluster 3d screen shot-->
+            <!-- Function on Tab: CLUSTER - 3d screen shot-->
             <div id="clusterPicture" class="text-center mr-2" style="display: none;">
                 <div class="text-center vpkfont-lg mt-1 mb-1">VpK Cluster 3D view</div>
                 <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
             </div>
 
-            <!-- Cluster Table View-->
-            <!-- <div id="clusterDetail" class="mr-2">
-            </div> -->
-
-            <!-- <div id="comparesnap" class="tab-pane">
-                <div id="compareDetail" class="mr-2 ml-2 mt-2">
+            <!-- Tab: WORKLOAD SCHEMATICS  -->
+            <div id="schematic" class="tab-pane">
+                <div id="schematic_border">
+                    <div id="schematicDetail" class="vpkfont">
+                    </div>
                 </div>
-            </div> -->
 
+                <!-- FILTER on left of screen-->
+                <span id="schematic_filter">Filter view</span>
+
+            </div>
+
+            <!-- Tab: GRAPHIC VIEW  -->
+            <div id="graphic" class="tab-pane">
+                <div class="mt-2 vpkfont vpkcolor" id="chartInfo">
+                </div>
+                <div id="prtGraphic" class="ml-3 mr-3">
+                    <svg id="graphicCharts2"></svg>
+                </div>
+            </div>
+
+            <!-- Tab: STROAGE  -->
+            <div id="storage" class="tab-pane">
+                <!-- Append the needed UI components -->
+                <div id="storageDetail" class="ml-2 mt-1">
+
+                </div>
+            </div>
+
+            <!-- Tab: SECURITY  -->
+            <div id="security" class="tab-pane">
+                <div id="schematic_border">
+                    <div id="vizWrapper">
+                        <div id="secViz" style="text-align: center;"></div>
+                    </div>
+                </div>
+                <!-- FILTER on left of screen-->
+                <span id="security_filter">Filter view</span>
+
+            </div>
+
+            <!-- Tab: SEARCH  -->
+            <div id="tableview" class="tab-pane">
+                <div id="searchResults" class="ml-2 mr-2 mt-1">
+                    <table id="tableL" class="table table-bordered table-sm" data-buttons-class="primary"
+                        data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
+                        data-maintain-meta-data="true" data-page-list="[10, 25, 50, 100, 200, All]"
+                        data-pagination="true" data-pagination-v-align="both" data-search="true"
+                        data-search-highlight="true" data-show-columns="true" data-show-export="true"
+                        data-show-fullscreen="true" data-show-print="true" data-show-refresh="true"
+                        data-show-toggle="true" data-sort-class="table-active" data-sortable="true"
+                        data-trim-on-search="false" data-toggle="table" data-visible="true">
+                        <thead class='thead-light'>
+                            <tr>
+                                <th data-field="namespace" data-sortable="true">Namespace</th>
+                                <th data-field="kind" data-sortable="true">Kind</th>
+                                <th data-field="value" data-sortable="true">Kind Name</th>
+                                <th data-field="src">Fnum</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+                <div class="col-md-12 ml-2 mt-2 mb-3 p-0">
+                    <span class="mr-2 vpkfont-md vpkcolor">
+                        Click table row to view the resource yaml
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tab: OWNERREF LINKS  -->
             <div id="ownerlinks" class="tab-pane">
-                <div id="ownerRefLinksDetail" class="mr-2">
+                <div id="schematic_border">
+                    <div id="ownerRefLinksDetail" class="mr-2">
+                    </div>
+
+                    <div id="oRefWrapper">
+                        <div id="oRefViz" style="text-align: center;"></div>
+                    </div>
+
+                    <!-- FILTER on left of screen-->
+                    <span id="ownerRef_filter">Filter view</span>
                 </div>
-
-                <div id="oRefWrapper">
-                    <div id="oRefViz" style="text-align: center;"></div>
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- <div id="comparesnap" class="tab-pane">
-            <div id="compareDetail" class="mr-2 ml-2 mt-2">
             </div>
         </div>
-
-        <div id="ownerlinks" class="tab-pane">
-            <div id="ownerRefLinksDetail" class="mr-2">
-            </div>
-        </div> -->
     </div>
 
     <!-- ==================================== -->
     <!-- Tool tips are shown here             -->
     <!-- ==================================== -->
-    <!-- <div id="tooltip" display="none" style="position: absolute;  -->
     <div id="tooltip" display="none" style="position: absolute; 
             display: none; 
             background-color: #ddd; 
             padding: 5px; 
             border-radius: 10px; 
             border-style: double;
-            z-index: 1;
-            ">
+            z-index: 1;">
     </div>
 
     </div>

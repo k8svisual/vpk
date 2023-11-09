@@ -36,12 +36,28 @@ let graphsPrintData = false;
 let graphsPrintRawData = true;
 let graphNamespaces = {};
 let secData;
+let secDataOrig;
 let secNS = '';
+
+
+let securityNamesData = [];
+let securityCheckedRows = [];
+let securitySelectedNameData = [];
 
 //=========================================
 
 function buildSecGraph(content) {
+    reset();
+    // Save original data for use with filterig
+    secDataOrig = content.data;
 
+    secData = content.data;
+    secNS = content.ns;
+
+    buildAll();
+}
+
+function reset() {
     nodeNum = 0;
     digraphClusterCnt = 0;
     graphVizData = '';
@@ -50,10 +66,6 @@ function buildSecGraph(content) {
     connections = [];
     graphvNodeToFnum = {};
     missingSubjectCnt = 0;   // gets appended to subject Missing to create a unique subject name
-
-    secData = content.data;
-    secNS = content.ns;
-    checkBindingCount();
 
 }
 
@@ -73,64 +85,51 @@ function buildAll() {
     createGraph();
 }
 
-function checkBindingCount() {
-    let bindKeys = Object.keys(secData);
-    if (bindKeys.length < 6) {
-        buildAll();
-    } else {
-        $("#bindingsCnt").html(bindKeys.length);
-        let listArray = [];
-        for (let i = 0; i < bindKeys.length; i++) {
-            listArray.push({ id: secData[i].name, text: secData[i].name });
-        }
-        listArray.sort();
-        $("#bindings-filter").empty();
-        $("#bindings-filter").select2({
-            data: listArray,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md",
-            placeholder: "select all bindings"
-        });
-        $("#manyBindingsModal").modal('show');
-    }
-}
 
-function reduceBindings() {
-    let options = $('#bindings-filter').select2('data');
-    if (options.length === 0) {
-        buildAll();
-    }
-    let picked = [];
-    for (let i = 0; i < options.length; i++) {
-        picked.push(options[i].text);
-    }
-    let bindKeys = Object.keys(secData);
-    for (let i = 0; i < bindKeys.length; i++) {
-        if (picked.includes(secData[bindKeys[i]].name)) {
-            console.log(`keep binding ${secData[bindKeys[i]].name}`)
-            continue;
-        } else {
-            console.log(`delete binding ${secData[bindKeys[i]].name}`)
-            delete secData[bindKeys[i]]
-        }
-    }
-    // If anything was deleted the array must be reindexed
-    if (picked.length > 0) {
-        let newD = [];
-        for (let i = 0; i < secData.length; i++) {
-            if (typeof secData[bindKeys[i]] !== 'undefined') {
-                if (typeof secData[bindKeys[i]].name !== 'undefined') {
-                    newD.push(secData[bindKeys[i]]);
-                }
+function getSecurityNames(category) {
+    let keys = Object.keys(secDataOrig);
+    let data;
+    let kind;
+    let ns;
+    let option = $('#security-ns-filter').select2('data');
+    let added = [];
+    let addKey;
+
+    securityNamesData = [];
+
+    ns = option[0].text;
+    ns = ns.trim();
+
+    for (let i = 0; i < keys.length; i++) {
+        if (secDataOrig[keys[i]].ns === ns) {
+            if (category === 'S') {
+                data = secDataOrig[keys[i]].subjectName
+                kind = secDataOrig[keys[i]].subjectKind
+            } else if (category === 'B') {
+                data = secDataOrig[keys[i]].name
+                kind = secDataOrig[keys[i]].kind
+            } else if (category === 'R') {
+                data = secDataOrig[keys[i]].roleName
+                kind = secDataOrig[keys[i]].roleKind
+            }
+            addKey = data + '.' + kind;
+            if (added.includes[addKey]) {
+                // Do nothing
+            } else {
+                added.push(data + '.' + kind);
+                securityNamesData.push({ 'state': '', 'name': data, 'kind': kind, 'id': secDataOrig[keys[i]].fnum })
             }
         }
-        let nd = JSON.stringify(newD);
-        secData = JSON.parse(nd);
-        nd = null;
     }
-    $("#manyBindingsModal").modal('hide');
-    buildAll();
+
+    // securityNamesData.sort();
+
+    // Populate names table with data for the selected category
+    $("#tableSecurity").bootstrapTable('load', securityNamesData)
+    $("#tableSecurity").bootstrapTable('hideColumn', 'id');
+
 }
+
 
 function buildDOTData(ns) {
     // build the DOT data array
@@ -161,7 +160,6 @@ function buildDOTData(ns) {
         }
         graphVizData = graphVizData + '   ' + graphsData[p];
     }
-
 }
 
 //-------------------------------------------------------------------------
@@ -236,9 +234,7 @@ function buildRules(data) {
 		  <td align="left">${u}</td>
 	    </tr>`)
     }
-    rule.push(`
-    </table>>,
-    penwidth="1.0",shape="note"]`)
+    rule.push(`</table>>, penwidth="1.0", shape="note"]`)
 
 
     for (let x = 0; x < rule.length; x++) {
@@ -677,7 +673,6 @@ function addGraphvizOnClick() {
 //-------------------------------------------------------------------------
 // create the node information for subject, binding, and role
 function setNodeContent(type, name, kind) {
-
     let color;
     let fill;
     let shape;
@@ -775,47 +770,62 @@ function showSecGraph(ns) {
     getSecurityViewData(ns);
 }
 
-
-function examples() {
-
-    let source = `https://stackoverflow.com/questions/67626414/scale-and-center-d3-graphviz-graph`
-    // https://stackoverflow.com/questions/67626414/scale-and-center-d3-graphviz-graph
-    // function attributer(datum, index, nodes) {
-    //     var selection = d3.select(this);
-    //     if (datum.tag == "svg") {
-    //         datum.attributes = {
-    //             ...datum.attributes,
-    //             width: '100%',
-    //             height: '100%',
-    //         };
-    //         // svg is constructed by hpcc-js/wasm, which uses pt instead of px, so need to convert
-    //         const px2pt = 3 / 4;
-
-    //         // get graph dimensions in px. These can be grabbed from the viewBox of the svg
-    //         // that hpcc-js/wasm generates
-    //         const graphWidth = datum.attributes.viewBox.split(' ')[2] / px2pt;
-    //         const graphHeight = datum.attributes.viewBox.split(' ')[3] / px2pt;
-
-    //         // new viewBox width and height
-    //         const w = graphWidth / scale;
-    //         const h = graphHeight / scale;
-
-    //         // new viewBox origin to keep the graph centered
-    //         const x = -(w - graphWidth) / 2;
-    //         const y = -(h - graphHeight) / 2;
-
-    //         const viewBox = `${x * px2pt} ${y * px2pt} ${w * px2pt} ${h * px2pt}`;
-    //         selection.attr('viewBox', viewBox);
-    //         datum.attributes.viewBox = viewBox;
-    //     }
-    // }
-
-    // <div id="graph" style="width: 300px; height: 300px; border: 1px solid black"></div>
-
-    // d3.select("#graph").graphviz()
-    //     .attributer(attributer)
-    //     .renderDot('digraph  {a -> b -> c ->d -> e}');
+function securityFilterShow() {
+    if (typeof secData === 'undefined') {
+        showMessage('Filtering requires a selected namespace it cannot be blank.')
+        return;
+    } else {
+        $("#securityFilterModal").modal('show')
+    }
 }
+
+function checkSelectedCategory() {
+    let category = ''
+    if ($("#filterSecuritySubject").is(":checked")) {
+        category = 'S'
+    } else if ($("#filterSecurityBinding").is(":checked")) {
+        category = 'B'
+    } else if ($("#filterSecurityRole").is(":checked")) {
+        category = 'R'
+    }
+    console.log(category)
+
+    getSecurityNames(category)
+}
+
+function applySecurityFilter() {
+    securitySelectedNameData = [];
+    let pickedData = [];
+    try {
+        for (let i = 0; i < securityNamesData.length; i++) {
+            if (securityNamesData[i].state === true) {
+                securitySelectedNameData.push(securityNamesData[i].id)
+            }
+        }
+        for (let i = 0; i < secDataOrig.length; i++) {
+            if (securitySelectedNameData.includes(secDataOrig[i].fnum)) {
+                pickedData.push(secDataOrig[i])
+            }
+        }
+
+        reset();
+        secData = pickedData;
+        $("#securityFilterModal").modal('hide')
+        buildAll();
+
+    } catch (e) {
+
+    }
+}
+
+function clearSecurityFilters() {
+    reset();
+    secData = secDataOrig;
+    $("#securityFilterModal").modal('hide')
+    buildAll();
+}
+
+
 
 //----------------------------------------------------------
 console.log('loaded vpkSecGraph.js');

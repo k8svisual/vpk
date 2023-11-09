@@ -58,11 +58,11 @@
 
 #cluster_filter {
     position: fixed;
-    left: -36px;
+    left: -40px;
     top: 182px;
     background: #bbbbbb;
     color: #fff;
-    padding: 10px 22px;
+    padding: 6px 21px;
     box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
     cursor: pointer;
     transition: all 0.3s ease-in-out;
@@ -100,7 +100,94 @@
     transform: translateX(0%);
 }
 
+/* ---------------- */
 
+#schematic_filter {
+    position: fixed;
+    left: -40px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#schematic_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#schematic_border {
+    margin-left: 35px;
+}
+
+
+/* ---------------- */
+
+#ownerRef_filter {
+    position: fixed;
+    left: -40px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#ownerRef_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#ownerRef_border {
+    margin-left: 35px;
+}
+
+
+/* ---------------- */
+
+#security_filter {
+    position: fixed;
+    left: -40px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#security_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#security_border {
+    margin-left: 35px;
+}
+
+
+/* ------------ */
 
 .filter-checkbox {
     margin-top: 1px;
