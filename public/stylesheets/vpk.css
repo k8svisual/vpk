@@ -370,6 +370,13 @@ div {
     color: black;
 }
 
+.evtMsgsFormat {
+    margin-left: 5px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: black;
+}
+
 .eventBar {
     margin-left: 30px;
     margin-bottom: 5px;
@@ -693,7 +700,6 @@ tr.border_bottom td {
     display: flex;
 }
 
-
 .vpk-tagline {
     margin-top: 20px;
     margin-bottom: 10px;
@@ -724,4 +730,8 @@ tr.border_bottom td {
     border-radius: 10px;
     border-width: 1px;
     background-color: white;
+}
+
+#schemModal {
+    overflow-y: scroll;
 }

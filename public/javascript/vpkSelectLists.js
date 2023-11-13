@@ -72,7 +72,7 @@ function populateSelectLists(data) {
     // reset indicator for 3d selection dropdown built process
     foundNSNamesBuilt = false;
 
-    popCnt++;
+    //popCnt++;
     let options;
 
     // populate only if valid datasource

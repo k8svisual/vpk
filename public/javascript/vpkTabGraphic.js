@@ -25,6 +25,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //----------------------------------------------------------
 // send request to server to get graphic hierarchy and circle 
 // pack data
+
+let processingRequest = '<div class="row">'
+    + '<div class="col mt-1 ml-4">'
+    + '  <img style="float:left" src="images/loading.gif" width="30" height="30"/>'
+    + '  <div class="vpkfont-md vpkcolor mt-2"><span>&nbsp;&nbsp;Processing request</span>'
+    + '  </div>'
+    + '</div>';
+
 function getChart(type, what) {
     hideMessage();
     chartType = type;

@@ -310,10 +310,11 @@ socket.on('versionResult', function (data) {
 //----------------------------------------------------------
 // send request to load new directory
 function reload() {
+    var newDir;
     $("#validateBtn").hide();
     $("#chgDirFooter").hide();
     $("#loadStatus").show();
-    var newDir = $('#dsInstances').select2('data');
+    newDir = $('#dsInstances').select2('data');
     newDir = newDir[0].text;
     $("#searchResults").hide();
     $("#svgResults").empty();
@@ -360,6 +361,7 @@ socket.on('getServerDataResult', function (data) {
     imageRegistryData = data.registry;
     configMapsFound = data.configMapsFound;
     secretsFound = data.secretsFound;
+    eventsInfo = data.events;
 
 
     if (typeof data.filters !== 'undefined') {
@@ -434,13 +436,16 @@ function openRunCommand() {
     $("#commandModal").modal('show');
 }
 
-// function getProvider(selected) {
-//     for (var p = 0; p < clusterProviders.length; p++) {
-//         if (clusterProviders[p].name === selected) {
-//             return clusterProviders[p].fields;
-//         }
-//     }
-// }
+function pickData(what) {
+    what.trim();
+    if (what === 'Running cluster') {
+        getCluster();
+    } else if (what === 'Previous captured snapshot') {
+        changeDir();
+    } else if (what === 'Run command in container') {
+        openRunCommand();
+    }
+}
 
 
 //----------------------------------------------------------

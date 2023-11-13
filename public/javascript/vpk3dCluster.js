@@ -38,24 +38,22 @@ createDefaultEngine = function () {
     return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true, disableWebGL2Support: false });
 };
 
+// External link to open K8s API documentation
 function k8sDocSite() {
     window.open('https://kubernetes.io/docs/reference/kubernetes-api/', '_blank');
 }
 
+// If ownerRef exists for this resource create the view OwnerRef button
 function checkOwnerRef(chkFnum, chkNS, chkKind) {
-
     if (typeof ownerRefExist[chkFnum] !== 'undefined') {
         return '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-            + ' onclick="showOwnRef(\'' + chkFnum + '\',\'' + chkNS + '\',\'' + chkKind + '\')">View ownerRef</button>&nbsp;'
+            + ' onclick="showOwnRef(\'' + chkFnum + '\',\'' + chkNS + '\',\'' + chkKind + '\',\'Cluster\')">View ownerRef</button>&nbsp;'
     } else {
         return '';
     }
-    // if ()
-    //     + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-    //         + ' onclick="showOwnRef(\'' + cluster.nodes[node].pods[cCnt].name + '\',\'' + podFnum + '\',\'' + ns + '\')">View ownerRef</button>&nbsp;'
-
 }
 
+// Print the existing 3D Babylon screen 
 function print3Dscene() {
     if (engine !== null) {
         BABYLON.Tools.CreateScreenshot(engine, camera, { width: 1250, height: 700 },
@@ -101,9 +99,6 @@ function set3dBackColor(r, g, b, title) {
     }
 }
 
-function setBackground() {
-
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // Function to define the cluster usng Babylon
@@ -575,12 +570,9 @@ function createScene() {
                 + '<span><b>' + RES_STATUS + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].phase + '</span>'
                 + '<br>'
                 + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\')">View schematic</button>&nbsp;'
+                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\',\'Cluster\')">View schematic</button>&nbsp;'
+
                 + checkOwnerRef(podFnum, ns, 'Pod')
-
-
-            // + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-            // + ' onclick="showOwnRef(\'' + podFnum + '\',\'' + ns + '\',\'' + 'Pod' + '\')">View ownerRef</button>&nbsp;'
 
 
             // build Pod and save the center cords for use with network and storage    
@@ -1488,7 +1480,8 @@ function createScene() {
         let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         stick.material = csiStickColor;
 
-        addMesh(stick, 'ClusterLevel', 'CSILine', fnum, '')
+        // FNUM FIX
+        addMesh(stick, 'ClusterLevel', 'CSILine', '0000.0', '')
     }
 
     //==============================================
@@ -1802,12 +1795,14 @@ function createScene() {
             if (memoryBase > 0) {
                 size = memoryBase;
                 size = (memoryBase / 10000) / 1000;
-                buildMemCPUResource(pX - 0.14, pY + .65, pZ + 0.14, size, 0.25, 3, nodeMemoryColor, 'ClusterLevel', 'NodeMemory', fnum, nTxt)
+                //buildMemCPUResource(pX - 0.14, pY + .65, pZ + 0.14, size, 0.25, 3, nodeMemoryColor, 'ClusterLevel', 'NodeMemory', fnum, nTxt)
+                buildMemCPUResource(pX - 0.14, pY + .65, pZ + 0.14, size, 0.25, 3, nodeMemoryColor, 'ClusterLevel', 'NodeMemory', '0000.0', nTxt)
             }
 
             if (cpuBase > 0) {
                 size = cpu / 2
-                buildMemCPUResource(pX + 0.14, pY + .65, pZ - 0.14, size, 0.25, 3, nodeCPUColor, 'ClusterLevel', 'NodeCPU', fnum, nTxt)
+                //buildMemCPUResource(pX + 0.14, pY + .65, pZ - 0.14, size, 0.25, 3, nodeCPUColor, 'ClusterLevel', 'NodeCPU', fnum, nTxt)
+                buildMemCPUResource(pX + 0.14, pY + .65, pZ - 0.14, size, 0.25, 3, nodeCPUColor, 'ClusterLevel', 'NodeCPU', '0000.0', nTxt)
             }
 
             if (storageBase > 0) {
@@ -1815,7 +1810,8 @@ function createScene() {
                 size = size / 10000;
                 size = size / 50;
                 size = size * -1;
-                buildMemCPUResource(pX, pY - .45, pZ, size, 0.10, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', fnum, nTxt)
+                //buildMemCPUResource(pX, pY - .45, pZ, size, 0.10, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', fnum, nTxt)
+                buildMemCPUResource(pX, pY - .45, pZ, size, 0.10, 3, nodeStorageColor, 'ClusterLevel', 'NodeStorage', '0000.0', nTxt)
             }
 
             buildWall = true;

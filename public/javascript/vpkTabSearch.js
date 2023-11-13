@@ -111,7 +111,7 @@ socket.on('searchResult', function (data) {
 function buildSearchResults(data) {
     var tmp;
     var a, b, c, d;
-    newData = [];
+    let newData = [];
     id = 0;
 
     //Parse data and build JSON object for display table
@@ -132,8 +132,8 @@ function buildSearchResults(data) {
         })
     }
     // build the table
-    $("#tableL").bootstrapTable('load', newData)
-    $("#tableL").bootstrapTable('hideColumn', 'src');
+    $("#tableSearch").bootstrapTable('load', newData)
+    $("#tableSearch").bootstrapTable('hideColumn', 'src');
 }
 
 //==========================================================

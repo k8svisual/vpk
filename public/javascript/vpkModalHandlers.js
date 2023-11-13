@@ -27,8 +27,6 @@ function closeChgDir() {
 }
 
 
-
-
 function getNsTable(ns) {
     $("#schemHeader").html('Resources for namespace: <span class="font-weight-bold">' + ns + '</span>');
     if (typeof nsResourceInfo[ns] !== 'undefined') {

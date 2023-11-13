@@ -104,5 +104,6 @@ function initAceEditor(rtn) {
     editor.renderer.scrollToRow(1);
 }
 
+
 //----------------------------------------------------------
 console.log('loaded vpkEdit.js');

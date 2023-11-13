@@ -272,7 +272,7 @@ Graphical view of security definitions shown by cluster or namespace level.
 
 View all resources in the cluster and filter as desired.
 
-![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-tableview.png)
+![rbac](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-searchview.png)
 
 <br>
 

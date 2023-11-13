@@ -33,12 +33,14 @@ let singleSchematicData = "";
 let schematicClusterView = false;
 let svgWhere = "";
 
+
 //----------------------------------------------------------
 /* 
     Called from Properties button push to display schematic for 
     the selected Pod in the 3d view.
 */
-function showSchematic(ns, podId) {
+function showSchematic(ns, podId, where) {
+    returnWhere = where;
     schematicClusterView = true;
     schematicWKeys = [];
 
@@ -63,9 +65,6 @@ function openTabSchecmatics() {
     $('[href="#schematic"]').tab('show');
 }
 
-function returnToCluster() {
-    $('[href="#cluster"]').tab('show');
-}
 
 function applySchematicFilter() {
     $("#schematicFilterModal").modal('hide')
@@ -302,66 +301,23 @@ function formatSingleSVG(data, pod) {
     let nsKeys = Object.keys(data);
     let podKeys;
 
+
+
     for (let i = 0; i < nsKeys.length; i++) {
         podKeys = Object.keys(data[nsKeys[i]]);
         for (let p = 0; p < podKeys.length; p++) {
             if (podKeys[p] !== pod) {
                 continue;
             } else {
-                return '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
+                return '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">' + returnWhere + ' tab selected view - '
                     + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-                    + ' onclick="returnToCluster()">&nbsp;Return&nbsp</button></div>'
+                    + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
                     + data[nsKeys[i]][podKeys[p]];
             }
         }
     }
     return '';
 }
-
-
-////////////////////////// Not sure code is still needed
-
-// // Open a collapse section using namespace
-// function openNamespace(ns) {
-//     let id;
-//     if (collapseNamespaces[ns] !== undefined) {
-//         id = '#collid-' + collapseNamespaces[ns];
-//         $(id).collapse("show");
-//     }
-// }
-
-// function openAll(type) {
-//     collapseAction('O', type)
-// }
-
-// function closeAll(type) {
-//     collapseAction('C', type)
-// }
-
-// function collapseAction(act, type) {
-//     let id;
-//     if (type = 'collid-') {
-//         for (let c = 0; c < collapseIDs.length; c++) {
-//             id = '#' + type + collapseIDs[c];
-//             if (act === 'O') {
-//                 $(id).collapse("show");
-//             } else {
-//                 $(id).collapse("hide");
-//             }
-//         }
-//     }
-//     if (type = 'ownref-') {
-//         for (let c = 0; c < ownerCollapseIDs.length; c++) {
-//             id = '#' + type + ownerCollapseIDs[c];
-//             if (act === 'O') {
-//                 $(id).collapse("show");
-//             } else {
-//                 $(id).collapse("hide");
-//             }
-//         }
-//     }
-// }
-
 
 
 //----------------------------------------------------------

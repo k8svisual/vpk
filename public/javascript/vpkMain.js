@@ -23,6 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 //let childwin;
+let getFileIsSecret;
 
 // const childname = "schematicWindow";
 // const themeToggle = document.getElementById("theme-toggle");
@@ -71,24 +72,35 @@ $(document).ready(function () {
         //don't need to recalculate backdrop z-index; already handled by css
     });
 
-    $("#instructions").addClass("active");
-    $("#instructions").addClass("show");
-    $("#tableview").removeClass("active");
-    $("#tableview").removeClass("show");
+    // $("#instructions").addClass("active");
+    // $("#instructions").addClass("show");
+    $("#searchview").removeClass("active");
+    $("#searchview").removeClass("show");
+
     $("#searchResults").hide();
+
     $("#graphic").removeClass("active");
     $("#graphic").removeClass("show");
+
     $("#schematic").removeClass("active");
     $("#schematic").removeClass("show");
+
     $("#security").removeClass("active");
     $("#security").removeClass("show");
+
     $("#storage").removeClass("active");
     $("#storage").removeClass("show");
+
     $("#cluster").removeClass("active");
     $("#cluster").removeClass("show");
+
     $("#ownerlinks").removeClass("active");
     $("#ownerlinks").removeClass("show");
     $('#ownerlinks').hide();
+
+    $("#evtMsgs").removeClass("active");
+    $("#evtMsgs").removeClass("show");
+
     // get the name of selected tab and process
     $('a[data-toggle="tab"]').on('shown.bs.tab', function (evt) {
         currentTab = $(evt.target).attr('href');
@@ -97,7 +109,6 @@ $(document).ready(function () {
         hideVpkTooltip()
         // take action based on what tab was shown
         if (currentTab === "#instructions") {
-
             px = 75;
             documentationTabTopic = 'overview';
             $('#instructions').show();
@@ -106,15 +117,15 @@ $(document).ready(function () {
             $('#instructions').hide();
             $('#instructionsHdr').hide();
         }
-        if (currentTab === "#tableview") {
+        if (currentTab === "#searchview") {
             px = 255;
             checkIfDataLoaded();
             documentationTabTopic = 'search';
-            $('#tableview').show();
-            $('#tableviewHdr').show();
+            $('#searchview').show();
+            $('#searchviewHdr').show();
         } else {
-            $('#tableview').hide();
-            $('#tableviewHdr').hide();
+            $('#searchview').hide();
+            $('#searchviewHdr').hide();
         }
         if (currentTab === "#schematic") {
             px = 120;
@@ -176,6 +187,18 @@ $(document).ready(function () {
             $('#ownerlinks').hide();
             $('#ownerlinksHdr').hide();
         }
+        if (currentTab === "#evtMsgs") {
+            px = 75;
+            checkIfDataLoaded();
+            documentationTabTopic = 'evtmsgs';
+            $('#evtMsgsHdr').show();
+            $('#evtMsgs').show();
+            //$('[href="#evtMsgs"]').tab('show');
+            loadEvtMsgs();
+        } else {
+            $('#evtMsgs').hide();
+            $('#evtMsgsHdr').hide();
+        }
 
         element = document.getElementById("banner")
         element.style['height'] = px + "px";
@@ -184,12 +207,36 @@ $(document).ready(function () {
         element.style['top'] = px + "px";
     });
 
-    $("#tableL").on("click-cell.bs.table", function (field, value, row, $el) {
+    $("#tableSearch").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.src;
         if ($el.kind === 'Secret') {
             getDefSec(selectedDef);   // secret modal with decode option
         } else {
             getDefFnum(selectedDef);
+        }
+    });
+
+    $("#tableEvents").on("click-cell.bs.table", function (field, value, row, $el) {
+        let html = "";
+        let root = $el.root;
+        if (typeof root === 'undefined') {
+            evtMsgsShowSource($el.fnum);
+        } else {
+            html = '<div>'
+                + '<span class="text-center">'
+                + '<span class="mt-1 mr-4">'
+                + '<button type="button" class="btn btn-sm btn-primary ml-2" '
+                + ' onclick="evtMsgsShowSchematic(\'' + $el.namespace + '\',\'' + $el.root + '\')">View schematic for involved resource'
+                + '</button>'
+                + '</span>'
+                + '<span class="mt-1 pl-5 pr-5">'
+                + '<button type="button" class="btn btn-sm btn-primary ml-2 pl-4 pr-4" '
+                + ' onclick="evtMsgsShowSource(\'' + $el.fnum + '\')"><span pl-5 pr-5>&nbsp;&nbsp;View Event message source&nbsp;&nbsp;</span>'
+                + '</button>'
+                + '</span></span></div>'
+
+            $('#evtMsgsBody').html(html)
+            $("#evtMsgsModal").modal('show');
         }
     });
 
@@ -269,11 +316,16 @@ $(document).ready(function () {
         placeholder: "select namespace(s)"
     });
 
-
     $('#ownerRef-kind-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md",
         placeholder: "select kinds(s), default is ALL kinds"
+    });
+
+    $('#evtMsgs-sort-select').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select event message sort order"
     });
 
     $("#searchBtn").click(function (e) {
@@ -487,29 +539,6 @@ $(document).ready(function () {
     });
 
 
-    // // Event handlers for checkbox selection of Security filter table: tableSecurity
-    // $('#tableSecurity').on('check.bs.table', function (e, row) {
-    //     securityCheckedRows.push({ id: row.id, ns: row.ns, name: row.name, kind: row.kind });
-    // });
-
-    // $('#tableSecurity').on('uncheck.bs.table', function (e, row) {
-    //     $.each(securityCheckedRows, function (index, value) {
-    //         let check = true;
-    //         if (typeof value === 'undefined') {
-    //             check = false;
-    //         }
-    //         if (typeof row === 'undefined') {
-    //             check = false;
-    //         }
-    //         if (check === true) {
-    //             if (value.id === row.id) {
-    //                 securityCheckedRows.splice(index, 1);
-    //             }
-    //         }
-    //     });
-    // })
-
-
     // ACE editor linked to html id
     editor = ace.edit("editor");
 
@@ -566,7 +595,7 @@ socket.on('getDecodeResult', function (data) {
 //----------------------------------------------------------
 function editObj() {
     $("#viewTypeModal").modal('hide');
-    selectedAction = 'edit';
+    //selectedAction = 'edit';
     //console.log(selectedDef)
     socket.emit('getDef', selectedDef);
 }
