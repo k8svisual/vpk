@@ -1537,7 +1537,7 @@ function createScene() {
                     + '<br>'
                     + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
                     + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'T\')">View Repository Table</button>'
-                    + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
+                    + '<button type="button" class="ml-1 mt-1 btn btn-primary btn-sm vpkButton" '
                     + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'G\')">View Repository Graph</button>'
                     + '</div>';
 
@@ -1769,7 +1769,7 @@ function createScene() {
             nodeStorageInner = '<div class="vpkfont vpkcolor ml-1">'
                 + '<div id="sliceKey">' + '4444.' + index + '</div>'
                 + '<a href="javascript:openNodeStorageCounts(\'' + nName + '\')">'
-                + '<img src="images/3d-volume.png" width="60" height"60"></a>'
+                + '<img src="images/3d/3d-volume.png" width="60" height"60"></a>'
                 + '<span class="pl-2 pb-2 vpkfont-sm">(Press to open Storage tab view)'
                 + '</span>'
                 + '<br><hr>'

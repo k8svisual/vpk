@@ -132,7 +132,7 @@ function countsForVolume() {
         value = value.split('=')
         counts = counts + '<tr class="vpkfont">'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
-            + '<img src="images/3d-volume.png" height="20" width="20"></td>'
+            + '<img src="images/3d/3d-volume.png" height="20" width="20"></td>'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
             + volumeCountsType[keys[i]] + '</td>'
             + '<td style="padding-left: 10px;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
@@ -179,9 +179,9 @@ function countsForVolumeType(type) {
         value = value.split('::')
         if (typeof nodeTypes[value[1]] !== 'undefined') {
             if (nodeTypes[value[1]] === 'w') {
-                img = "images/3d-wrkNode.png";
+                img = "images/3d/3d-wrkNode.png";
             } else {
-                img = "images/3d-mstNode.png";
+                img = "images/3d/3d-mstNode.png";
             }
         }
         counts = counts + '<tr class="vpkfont">'
@@ -305,20 +305,20 @@ function countsForVolumeTypeNSFnum(type, node, ns) {
         podStatus = podStatusLookup[value[3]];
 
         if (typeof podStatus === 'undefined') {
-            img = 'images/3d-podMagenta.png';                     // Unknown
+            img = 'images/3d/3d-podMagenta.png';                     // Unknown
         } else {
             if (podStatus === 1 || podStatus === '1') {
-                img = 'images/3d-podGreen.png';                   // Running
+                img = 'images/3d/3d-podGreen.png';                   // Running
             } else if (podStatus === 2 || podStatus === '2') {
-                img = 'images/3d-podRed.png';                     // Failing
+                img = 'images/3d/3d-podRed.png';                     // Failing
             } else if (podStatus === 3 || podStatus === '3') {
-                img = 'images/3d-podYellow.png';                  // Warn
+                img = 'images/3d/3d-podYellow.png';                  // Warn
             } else if (podStatus === 4 || podStatus === '4') {
-                img = 'images/3d-podBlue.png';                    // Completed
+                img = 'images/3d/3d-podBlue.png';                    // Completed
             } else if (podStatus === 0 || podStatus === '0') {
-                img = 'images/3d-podGrey.png';                    // Deamon
+                img = 'images/3d/3d-podGrey.png';                    // Deamon
             } else {
-                img = 'images/3d-podMagenta.png';                 // Unknown
+                img = 'images/3d/3d-podMagenta.png';                 // Unknown
             }
         }
 
@@ -362,9 +362,9 @@ function countsForNode() {
         value = keys[i];
         if (typeof nodeTypes[value] !== 'undefined') {
             if (nodeTypes[value] === 'w') {
-                img = "images/3d-wrkNode.png";
+                img = "images/3d/3d-wrkNode.png";
             } else {
-                img = "images/3d-mstNode.png";
+                img = "images/3d/3d-mstNode.png";
             }
         }
 
@@ -414,7 +414,7 @@ function countsForNodeType(node) {
     for (let i = 0; i < keys.length; i++) {
         value = keys[i].split('::');
         value = value[1].split('=');
-        img = "images/3d-volume.png";
+        img = "images/3d/3d-volume.png";
 
         counts = counts + '<tr class="vpkfont">'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeTypeKey(\'' + node + '\',\'' + value[1] + '\')">'
@@ -549,20 +549,20 @@ function countsForNodeTypeKeyFnum(node, key, ns) {
         podStatus = podStatusLookup[value[3]];
 
         if (typeof podStatus === 'undefined') {
-            img = 'images/3d-podMagenta.png';                     // Unknown
+            img = 'images/3d/3d-podMagenta.png';                     // Unknown
         } else {
             if (podStatus === 1 || podStatus === '1') {
-                img = 'images/3d-podGreen.png';                   // Running
+                img = 'images/3d/3d-podGreen.png';                   // Running
             } else if (podStatus === 2 || podStatus === '2') {
-                img = 'images/3d-podRed.png';                     // Failing
+                img = 'images/3d/3d-podRed.png';                     // Failing
             } else if (podStatus === 3 || podStatus === '3') {
-                img = 'images/3d-podYellow.png';                  // Warn
+                img = 'images/3d/3d-podYellow.png';                  // Warn
             } else if (podStatus === 4 || podStatus === '4') {
-                img = 'images/3d-podBlue.png';                    // Completed
+                img = 'images/3d/3d-podBlue.png';                    // Completed
             } else if (podStatus === 0 || podStatus === '0') {
-                img = 'images/3d-podGrey.png';                    // Deamon
+                img = 'images/3d/3d-podGrey.png';                    // Deamon
             } else {
-                img = 'images/3d-podMagenta.png';                 // Unknown
+                img = 'images/3d/3d-podMagenta.png';                 // Unknown
             }
         }
 
@@ -614,7 +614,7 @@ function countsForNS() {
         value = keys[i];
         counts = counts + '<tr class="vpkfont">'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
-            + '<img src="images/3d-volume.png" height="20" width="20"></td>'
+            + '<img src="images/3d/3d-volume.png" height="20" width="20"></td>'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
             + volumeCountsNS[keys[i]] + '</td>'
             + '<td style="padding-left: 10px;" onclick="countsForNSType(\'' + value + '\')">'
@@ -720,20 +720,20 @@ function countsForNSTypeKey(ns, key) {
         podStatus = podStatusLookup[value[2]];
 
         if (typeof podStatus === 'undefined') {
-            img = 'images/3d-podMagenta.png';                     // Unknown
+            img = 'images/3d/3d-podMagenta.png';                     // Unknown
         } else {
             if (podStatus === 1 || podStatus === '1') {
-                img = 'images/3d-podGreen.png';                   // Running
+                img = 'images/3d/3d-podGreen.png';                   // Running
             } else if (podStatus === 2 || podStatus === '2') {
-                img = 'images/3d-podRed.png';                     // Failing
+                img = 'images/3d/3d-podRed.png';                     // Failing
             } else if (podStatus === 3 || podStatus === '3') {
-                img = 'images/3d-podYellow.png';                  // Warn
+                img = 'images/3d/3d-podYellow.png';                  // Warn
             } else if (podStatus === 4 || podStatus === '4') {
-                img = 'images/3d-podBlue.png';                    // Completed
+                img = 'images/3d/3d-podBlue.png';                    // Completed
             } else if (podStatus === 0 || podStatus === '0') {
-                img = 'images/3d-podGrey.png';                    // Deamon
+                img = 'images/3d/3d-podGrey.png';                    // Deamon
             } else {
-                img = 'images/3d-podMagenta.png';                 // Unknown
+                img = 'images/3d/3d-podMagenta.png';                 // Unknown
             }
         }
 
@@ -913,7 +913,7 @@ function buildStorageSVG() {
         }
 
         rtn = rtn + '<svg id="sc' + storCnt + '" width="1200" height="50">'
-            + '<image x="10" y="5"  width="40" height="40" href="images/3d-sc.png" '
+            + '<image x="10" y="5"  width="40" height="40" href="images/3d/3d-sc.png" '
             + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
 
             + '<text x="60" y="42" fill="black" class="vpkfont" data-toggle="collapse" '
@@ -974,7 +974,7 @@ function buildPVLine(storCnt, sc, lastSC) {
             }
 
             rtn = rtn + '<svg id="pv' + p + '" width="1200" height="100">'
-                + '<image x="70" y="5"  width="32" height="32" href="images/3d-pv.png" '
+                + '<image x="70" y="5"  width="32" height="32" href="images/3d/3d-pv.png" '
                 + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
                 + '<text x="145"  y="20" fill="black" class="vpkfont" onclick="getDefFnum(\'' + fnum + '\')">' + storageData.PVinfo[pvKeys[p]][0].fmtSpc + '</text>'
                 + '<text x="145"  y="34" fill="black" class="vpkfont-sm">PV name:</text>'
@@ -988,7 +988,7 @@ function buildPVLine(storCnt, sc, lastSC) {
             for (let v = 0; v < pvcKeys.length; v++) {
                 if (storageData.PVCinfo[pvcKeys[v]][0].name === pvcName) {
                     if (storageData.PVCinfo[pvcKeys[v]][0].namespace === pvcNS) {
-                        rtn = rtn + '<image x="100" y="40"  width="32" height="32" href="images/3d-pvc.png" '
+                        rtn = rtn + '<image x="100" y="40"  width="32" height="32" href="images/3d/3d-pvc.png" '
                             + ' onclick="getDefFnum(\'' + pvcKeys[v] + '\')"/>'
                             + '<text x="145" y="66" fill="black" class="vpkfont">' + storageData.PVCinfo[pvcKeys[v]][0].fmtSpc + '</text>'
                             + '<text x="145" y="80" fill="black" class="vpkfont-sm">PVC name:</text>'

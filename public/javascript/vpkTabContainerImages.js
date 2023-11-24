@@ -62,7 +62,6 @@ function loadRepositoryData(repository, view) {
     html = '<span class="vpkfont vpkcolor mt-1 mb-2 ml-2">' + returnWhere + ' tab selected view - '
         + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
         + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></span>'
-
     $('#containerImagesReturn').html(html)
 
     containerImagesInfo = imageRepositoryData[repository];
@@ -98,10 +97,12 @@ function graphImageTable() {
             }
         }
         buildContainerImageGraphics(repo, seletedImageTable)
+        containerImagesInfo = imageRepositoryData[repo];
+        loadContainerImagesTable();
         $('#containerImageTable').hide();
         $('#containerImageGraphic').show();
     } catch (err) {
-        console.log('Failed to process selected Container Images to graph')
+        console.log('Failed to process selected Container Images to graph, message: ' + err)
     }
 }
 
@@ -228,7 +229,7 @@ function buildContainerImageGraphics(repository, what) {
 
 function svgRepository(repository) {
     // return rtn = '<div><hr>' + '<svg id="repo-' + repository + '" width="1200" height="950">'
-    return '<image x="0" y="0"  width="30" height="30" href="images/3d-repository.png" onclick="getDefFnum(\'noData\')"/>'
+    return '<image x="0" y="0"  width="30" height="30" href="images/3d/3d-repository.png" onclick="getDefFnum(\'noData\')"/>'
         + '<text x="40" y="20" fill="black" class="vpkfont">REPOSITORY: ' + repository + '</text>'
 }
 
@@ -236,7 +237,7 @@ function svgImage(image, y) {
     let yLine = y + 15;
     let yText = y + 15
     endY = yLine;
-    return '<image x="40" y="' + y + '"  width="30" height="30" href="images/docker-image.png" onclick="getDefFnum(\'noData\')"/>'
+    return '<image x="40" y="' + y + '"  width="30" height="30" href="images/3d/3d-docker-image.png" onclick="getDefFnum(\'noData\')"/>'
         + '<text x="80" y="' + yText + '" fill="black" class="vpkfont">IMAGE: ' + image + '</text>'
         + '<line x1="15" y1="' + yLine + '" x2="37" y2="' + yLine + '" stroke="gray" stroke-width="2.0" stroke-linecap="round"/>'
 }
@@ -292,14 +293,14 @@ function svgContainer(name, type, y) {
     let cType = '';
 
     if (type === 'C') {
-        cIcon = 'docker-container.png';
+        cIcon = '3d-docker-container.png';
         cType = 'CONTAINER'
     } else {
-        cIcon = 'docker-container-init.png';
+        cIcon = '3d-docker-container-init.png';
         cType = 'INIT CONTAINER'
     }
 
-    return '<image x="160" y="' + yIcon + '"  width="30" height="30" href="images/' + cIcon + '"  onclick="getDefFnum(\'noData\')"/>'
+    return '<image x="160" y="' + yIcon + '"  width="30" height="30" href="images/3d/' + cIcon + '"  onclick="getDefFnum(\'noData\')"/>'
         + '<text x="200" y="' + yText + '" fill="black" class="vpkfont">' + cType + ': ' + name + '</text>'
         + '<line x1="135" y1="' + yLine + '" x2="156" y2="' + yLine + '" stroke="red" stroke-width="1.5" stroke-linecap="round"/>'
 }
