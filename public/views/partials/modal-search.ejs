@@ -1,0 +1,121 @@
+<!--
+        Copyright (c) 2018-2023 k8sVisual
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+
+<!-- ==================================== -->
+<!-- Search value Modal section           -->
+<!-- ==================================== -->
+<div class="modal fade" id="searchModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Search value</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="vpkfont vpkcolor">
+                    <p>The Search value input field can be used standalone or in conjunction with the Namespace(s)
+                        and/or
+                        Kind(s) inputs. The Namespace(s) and Kind(s) searches are performed before the Seach value
+                        input.
+                        <span class="vpkfont-bold">All entered information is case sensitive.</span>
+                    </p>
+                    <ul>
+                        <li>
+                            <p class="vpkfont-bold">Full search</p>
+                        </li>
+                        <span>
+                            <p> Enter any text in the input field. Kubernetes resource definitions will
+                                be searched for the value regardless of where the value is located.
+                            </p>
+                        </span>
+                        <li>
+                            <p class="vpkfont-bold">Limited searches </p>
+                        </li>
+                        <span>
+                            <p>There are three types of limited searches. Each requires a specific keyword to indicate
+                                the associated search is to be performed. Keywords are case sensitive and must be
+                                entered
+                                in lowercase.
+                            </p>
+                            <ol>
+                                <li><span class="vpkfont-bold">name</span> - search for a resource by name. Keyword -
+                                    name: </li>
+                                <li><span class="vpkfont-bold">labels</span> - search labels of the metadata section.
+                                    Keyword - labels: </li>
+                                <li><span class="vpkfont-bold">annotations</span> - search annotations of the metadata
+                                    section. Keyword - annotations: </li>
+                            </ol>
+                            <p class="pt-2">The optional parameter of "::value::" can be used with labels and
+                                annotations.
+                                If a matching label or annotation is found the value defined for the label or annotation
+                                is then compared for a matching value against this parameter.</p>
+                            <p>The ::value:: parameter can be used to locate all matching values regardless of the label
+                                or
+                                annotation name. This is accomplished by using an "*" astrick as the value for the
+                                labels: or
+                                annotations: parameters.</p>
+                    </ul>
+                    <hr>
+                    Example searches:
+                    <p class="pl-3">Search all resources for any occurrence of text 'Part=a7be5c9d'.<br>
+                        <span class="pl-5 vpkfont-bold">Part=a7be5c9d</span>
+                    </p>
+
+                    <p class="pl-3">Search for resources defined with the name 'bookinfo'.<br>
+                        <span class="pl-5 vpkfont-bold">name: bookinfo</span>
+                    </p>
+
+                    <p class="pl-3">Search resource metadata labels that match 'app.kubernetes.io'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: app.kubernetes.io</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata labels that match 'release' and have the value
+                        'production'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: release ::value:: production
+                    </p>
+                    <p class="pl-3">Search all resource metadata labels for the value 'server'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: * ::value:: server</span>
+                    </p>
+
+
+                    <p class="pl-3">Search resource metadata annotations that match 'productName'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: productName</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata annotations that match 'network' and have the value
+                        'wifi'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: network ::value:: wifi</span>
+                    </p>
+                    <p class="pl-3">Search all resource metadata annotations for the value 'click'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: * ::value:: operational-task</span>
+                    </p>
+                    </span>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>

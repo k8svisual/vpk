@@ -117,15 +117,15 @@ $(document).ready(function () {
             $('#instructions').hide();
             $('#instructionsHdr').hide();
         }
-        if (currentTab === "#searchview") {
-            px = 255;
+        if (currentTab === "#cluster") {
+            px = 110;
             checkIfDataLoaded();
-            documentationTabTopic = 'search';
-            $('#searchview').show();
-            $('#searchviewHdr').show();
+            documentationTabTopic = 'cluster';
+            $('#cluster').show();
+            $('#clusterHdr').show();
         } else {
-            $('#searchview').hide();
-            $('#searchviewHdr').hide();
+            $('#cluster').hide();
+            $('#clusterHdr').hide();
         }
         if (currentTab === "#schematic") {
             px = 120;
@@ -137,16 +137,7 @@ $(document).ready(function () {
             $('#schematic').hide();
             $('#schematicHdr').hide();
         }
-        if (currentTab === "#graphic") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'graphicview';
-            $('#graphic').show();
-            $('#graphicHdr').show();
-        } else {
-            $('#graphic').hide();
-            $('#graphicHdr').hide();
-        }
+
         if (currentTab === "#security") {
             px = 120;
             checkIfDataLoaded();
@@ -158,7 +149,7 @@ $(document).ready(function () {
             $('#securityHdr').hide();
         }
         if (currentTab === "#storage") {
-            px = 120;
+            px = 71;
             checkIfDataLoaded();
             documentationTabTopic = 'storage';
             $('#storage').show();
@@ -166,16 +157,6 @@ $(document).ready(function () {
         } else {
             $('#storage').hide();
             $('#storageHdr').hide();
-        }
-        if (currentTab === "#cluster") {
-            px = 110;
-            checkIfDataLoaded();
-            documentationTabTopic = 'cluster';
-            $('#cluster').show();
-            $('#clusterHdr').show();
-        } else {
-            $('#cluster').hide();
-            $('#clusterHdr').hide();
         }
         if (currentTab === "#ownerlinks") {
             px = 120;
@@ -188,7 +169,7 @@ $(document).ready(function () {
             $('#ownerlinksHdr').hide();
         }
         if (currentTab === "#evtMsgs") {
-            px = 75;
+            px = 71;
             checkIfDataLoaded();
             documentationTabTopic = 'evtmsgs';
             $('#evtMsgsHdr').show();
@@ -198,6 +179,37 @@ $(document).ready(function () {
         } else {
             $('#evtMsgs').hide();
             $('#evtMsgsHdr').hide();
+        }
+        if (currentTab === "#graphic") {
+            px = 120;
+            checkIfDataLoaded();
+            documentationTabTopic = 'graphicview';
+            $('#graphic').show();
+            $('#graphicHdr').show();
+        } else {
+            $('#graphic').hide();
+            $('#graphicHdr').hide();
+        }
+        if (currentTab === "#containerImages") {
+            px = 120;
+            checkIfDataLoaded();
+            documentationTabTopic = 'containerimages';
+            $('#containerImages').show();
+            $('#containerImagesHdr').show();
+            populateRepositoryList();
+        } else {
+            $('#containerImages').hide();
+            $('#containerImagesHdr').hide();
+        }
+        if (currentTab === "#searchview") {
+            px = 255;
+            checkIfDataLoaded();
+            documentationTabTopic = 'search';
+            $('#searchview').show();
+            $('#searchviewHdr').show();
+        } else {
+            $('#searchview').hide();
+            $('#searchviewHdr').hide();
         }
 
         element = document.getElementById("banner")
@@ -209,6 +221,15 @@ $(document).ready(function () {
 
     $("#tableSearch").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.src;
+        if ($el.kind === 'Secret') {
+            getDefSec(selectedDef);   // secret modal with decode option
+        } else {
+            getDefFnum(selectedDef);
+        }
+    });
+
+    $("#tableContainerImages").on("click-cell.bs.table", function (field, value, row, $el) {
+        selectedDef = $el.fnum;
         if ($el.kind === 'Secret') {
             getDefSec(selectedDef);   // secret modal with decode option
         } else {
@@ -328,22 +349,29 @@ $(document).ready(function () {
         placeholder: "select event message sort order"
     });
 
+    $('#container-images-filter').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "select repository"
+    });
+
+
     $("#searchBtn").click(function (e) {
         e.preventDefault();
         searchObj();
     });
 
-    //-- ownerRef dropdowns
-    $('#ownerSort1').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "sort order"
-    });
-    $('#ownerSort2').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "sort order"
-    });
+    // //-- ownerRef dropdowns
+    // $('#ownerSort1').select2({
+    //     dropdownCssClass: "vpkfont-md",
+    //     containerCssClass: "vpkfont-md",
+    //     placeholder: "sort order"
+    // });
+    // $('#ownerSort2').select2({
+    //     dropdownCssClass: "vpkfont-md",
+    //     containerCssClass: "vpkfont-md",
+    //     placeholder: "sort order"
+    // });
 
     $('#cluster-bar1-select').focusout(function () {
         console.log('No FOCUS')

@@ -21,14 +21,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // functions to handle get files from server
 //----------------------------------------------------------
 
-let usingChildWindow = false;
 
 // send request to server to get object definition
 function getDef(def) {
-    if (usingChildWindow === true) {
-        noDefInfo();
-        return;
-    }
     selectedDef = def;
     if (selectedDef.indexOf('undefined') > -1) {
         showMessage('Unable to locate source yaml.', 'fail');
@@ -38,14 +33,10 @@ function getDef(def) {
 }
 
 function noDefInfo() {
-    alert('Unable to view resource definition in this window.  Select the Workload Schematics tab to view the definition.');
+    showMessage('No resource data available for the selected item.', 'warn');
 }
 
 function getDef2(def) {
-    if (usingChildWindow === true) {
-        noDefInfo();
-        return;
-    }
     let parts = def.split('@');
     let data;
     let type;
@@ -81,10 +72,6 @@ function getDef2(def) {
 
 
 function getDefSec(data) {
-    if (usingChildWindow === true) {
-        noDefInfo();
-        return;
-    }
     let items = data.split('::');
     let nData = []
     let src;
@@ -100,10 +87,7 @@ function getDefSec(data) {
             'name': items[2]
         });
         multiList('Secret', nData);
-
     } else {
-
-
         nData.push({
             'fnum': data,
             'name': 'secret'
@@ -113,7 +97,7 @@ function getDefSec(data) {
 }
 
 function getDefFnum(data) {
-    if (usingChildWindow === true) {
+    if (data === 'noData') {
         noDefInfo();
         return;
     }

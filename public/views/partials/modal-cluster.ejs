@@ -1,0 +1,122 @@
+<!--
+        Copyright (c) 2018-2023 k8sVisual
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!-- ==================================== -->
+<!-- Running cluster Modal section        -->
+<!-- ==================================== -->
+<div class="modal fade" id="clusterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Cluster Information</h6>
+            </div>
+            <div class="modal-body docBackground">
+                <div id="clusterInfo">
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="snapshot_prefix"
+                            style="padding-top: 15px;">
+                            Snapshot prefix
+                        </label>
+                        <input id="snapshot_prefix" type="text" class="form-control col-sm-8" value="vpk"
+                            style="margin-bottom: 5px;">
+                    </div>
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="get_cmd" style="padding-top: 15px;">
+                            kubectl or other command</label>
+                        <input id="get_cmd" type="text" class="form-control col-sm-8" value="kubectl"
+                            style="margin-bottom: 5px;">
+                    </div>
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label vpkcolor" for="k8_namespace" style="padding-top: 15px;">
+                            Namespace</label>
+                        <input id="k8_namespace" type="text" class="form-control col-sm-8" value="<all>"
+                            style="margin-bottom: 5px;">
+                    </div>
+
+                    <div id="sshInfo" class="vpkhidden vpkcolor">
+                        <hr>
+                        <div class="vpkcolor vpkfont mb-4 mt-4">
+                            The following parameters are used with commands sshpass and ssh to enable the container
+                            to run the above 'kubectl or other command' on the host machine to create the
+                            snapshot files.
+                        </div>
+
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_ip" style="padding-top: 15px;">
+                                Host-IP (required)</label>
+                            <input id="host_ip" type="text" class="form-control col-sm-8" value=""
+                                placeholder="host IP address for ssh" style="margin-bottom: 5px;">
+                        </div>
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_user" style="padding-top: 15px;">
+                                User (required)</label>
+                            <input id="host_user" type="text" class="form-control col-sm-8" value=""
+                                placeholder="user name for ssh" style="margin-bottom: 5px;">
+                        </div>
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label vpkcolor" for="host_password"
+                                style="padding-top: 15px;">
+                                Password (required)</label>
+                            <input id="host_password" type="password" class="form-control col-sm-8" value=""
+                                placeholder="password for ssh user" style="margin-bottom: 5px;">
+                        </div>
+
+                        <div class="vpkcolor mb-2 mt-4">
+                            <span class="vpkfont-md">Example sshpass and ssh commands:</span>
+                        </div>
+                        <div class="vpkcolor mt-2 ml-4">
+                            <p class="vpkfont">
+                                sshpass -p <span class="vpk-font-bold-italic ">
+                                    'password'
+                                </span>
+                                &nbsp;&nbsp;ssh -o StrictHostKeyChecking=no &nbsp;&nbsp;
+                                <span class="vpk-font-bold-italic">
+                                    user@host-ip
+                                </span>
+                                &nbsp;&nbsp;
+                                <span class="vpk-font-bold-italic">
+                                    'kubectl parms'
+                                </span>
+                            </p>
+                        </div>
+                        <hr>
+                    </div>
+                    <div id="clusterButton">
+                        <div style="padding-top: 20px;">
+                            <button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm"
+                                onclick="dynamic()" style="margin: 5px;">Connect</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="clusterStatus" class="ml-3 mb-2">
+            </div>
+
+            <div id="clusterModalFooter" class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" onclick="closeGetCluster()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>

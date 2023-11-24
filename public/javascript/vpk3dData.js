@@ -23,7 +23,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 function build3DJSON() {
-    // initialize comman data variables
+    // initialize common data variables
     meshArray = [];
     foundNSNames = [];
     foundStorageClasses = {};
@@ -54,6 +54,12 @@ function build3DJSON() {
 
             console.log('Cluster node count: ' + maxNodeCount)
             //console.log('Cluster node arc: ' + cluster.nodeArc)
+
+            // Create object with node names and type for use in storage tab
+            for (let i = 0; i < nData.length; i++) {
+                nodeTypes[nData[i].name] = nData[i].type
+            }
+
 
             // Worker nodes
             for (let i = 0; i < nData.length; i++) {

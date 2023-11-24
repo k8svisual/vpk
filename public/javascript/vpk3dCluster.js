@@ -25,6 +25,8 @@ let ownerRefButton;
 let ownerRefFnum;
 let ownerRefName;
 let ownerRefNS;
+let CSIItems;
+let nodeEndAngles = [];
 
 $("#cluster3DView").show();
 
@@ -154,6 +156,9 @@ function createScene() {
     // let controlPlane;
 
     let podArcSize = 0;
+
+    nodeEndAngles = [];
+
     if (maxNodeCount < 4) {
         if (maxPodCount < 30) {
             podArcSize = 12;
@@ -260,6 +265,9 @@ function createScene() {
     const storageClassColor = new BABYLON.StandardMaterial("", scene);
     storageClassColor.diffuseColor = new BABYLON.Color3.FromHexString("#fa9903");
 
+    const nodeStorage = new BABYLON.StandardMaterial("", scene);
+    nodeStorage.diffuseColor = new BABYLON.Color3.FromHexString("#aaaaaa");
+
     const csiNodeColor = new BABYLON.StandardMaterial("", scene);
     csiNodeColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff9903");
 
@@ -320,65 +328,74 @@ function createScene() {
     csiStorageWallColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff0000");
     csiStorageWallColor.alpha = 0.45;
 
-
     // Resource Plane and Sphere colors
     const workloadPlaneColor = new BABYLON.StandardMaterial("", scene);
     workloadPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#972AFF");
     workloadPlaneColor.alpha = 0.25;
+
     const workloadSphereColor = new BABYLON.StandardMaterial("", scene);
     workloadSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#972AFF");
 
     const servicePlaneColor = new BABYLON.StandardMaterial("", scene);
     servicePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#88BBDD");
     servicePlaneColor.alpha = 0.25;
+
     const serviceSphereColor = new BABYLON.StandardMaterial("", scene);
     serviceSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#88BBDD");
 
     const configStoragePlaneColor = new BABYLON.StandardMaterial("", scene);
     configStoragePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff4500");
     configStoragePlaneColor.alpha = 0.55;
+
     const configStorageSphereColor = new BABYLON.StandardMaterial("", scene);
     configStorageSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#ff4500");
 
     const authorizePlaneColor = new BABYLON.StandardMaterial("", scene);
     authorizePlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC9900");
     authorizePlaneColor.alpha = 0.25;
+
     const authorizeSphereColor = new BABYLON.StandardMaterial("", scene);
     authorizeSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CC9900");
 
     const authentPlaneColor = new BABYLON.StandardMaterial("", scene);
     authentPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFBED7");
     authentPlaneColor.alpha = 0.25;
+
     const authentSphereColor = new BABYLON.StandardMaterial("", scene);
     authentSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFBED7");
 
     const policyPlaneColor = new BABYLON.StandardMaterial("", scene);
     policyPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
     policyPlaneColor.alpha = 0.25;
+
     const policySphereColor = new BABYLON.StandardMaterial("", scene);
     policySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#66CC99");
 
     const extendPlaneColor = new BABYLON.StandardMaterial("", scene);
     extendPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFABAB");
     extendPlaneColor.alpha = 0.45;
+
     const extendSphereColor = new BABYLON.StandardMaterial("", scene);
     extendSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FFABAB");
 
     const clusterPlaneColor = new BABYLON.StandardMaterial("", scene);
     clusterPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#BAEEE5");
     clusterPlaneColor.alpha = 0.55;
+
     const clusterSphereColor = new BABYLON.StandardMaterial("", scene);
     clusterSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#BAEEE5");
 
     const otherPlaneColor = new BABYLON.StandardMaterial("", scene);
     otherPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCCCC");
     otherPlaneColor.alpha = 0.25;
+
     const otherSphereColor = new BABYLON.StandardMaterial("", scene);
     otherSphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#CCCCCC");
 
     const thirdPartyPlaneColor = new BABYLON.StandardMaterial("", scene);
     thirdPartyPlaneColor.diffuseColor = new BABYLON.Color3.FromHexString("#FF0099");
     thirdPartyPlaneColor.alpha = 0.25;
+
     const thirdPartySphereColor = new BABYLON.StandardMaterial("", scene);
     thirdPartySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FF0099");
 
@@ -406,7 +423,7 @@ function createScene() {
             sideOrientation: BABYLON.Mesh.DOUBLESIDE
         }, scene);
         bandPositions = band2.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        band2.setVerticesData(BABYLON.VertexBuffer.ColorKind, setColor(bandPositions, 0.70, 0.70, 0.70));
+        band2.setVerticesData(BABYLON.VertexBuffer.ColorKind, setColor(bandPositions, 0.625, 0.625, 0.625));
     }
 
 
@@ -493,6 +510,8 @@ function createScene() {
     //==============================================
     // Build the pods to display in the cluster view for this node
     function buildResources(start, stop, node) {
+        //console.log(`------------------------------------------------------------`)
+        //console.log(`buildResources - start ${start}  stop: ${stop} node: ${node}`)
         let lc = 0;
         let nLen = (lc * LINEFACTOR) + RADIUSINNER + INNERFACTOR;
         let cPtr = start;
@@ -513,6 +532,8 @@ function createScene() {
         let endPoint;
         let epName;
         let epType;
+        let highPtr = stop;
+        let highAngle = 0;
 
         // Set node to proper location in cluster by subtracting one
         node = node - 1;
@@ -535,8 +556,18 @@ function createScene() {
         for (cCnt = 0; cCnt < podCnt; cCnt++) {
             let size;
 
+            // Build Pod and save the center cords for use with network and storage 
+            // if (cCnt === 0) {
+            //     console.log(`buildResources - angleArray at start: ${angleArray[cPtr]}  cPtr: ${cPtr}  nLen: ${nLen}`)
+            // }
+
             // check if ring of node is full, if so, add new ring in node
             if (cPtr > stop) {
+                // Save ptr if it is greater than highPtr
+                if (cPtr > highPtr) {
+                    highPtr = cPtr
+                    highAngle = angleArray[highPtr]
+                }
                 // reset pointer 
                 cPtr = start
                 // increase length counter
@@ -546,12 +577,14 @@ function createScene() {
             }
 
             ///////////////////////////////////////////////////////////////////
-            // Pod related 
+            // Pod related namespace, fnum, and status. Status is also used to set color
             ///////////////////////////////////////////////////////////////////            
             ns = cluster.nodes[node].pods[cCnt].ns;
             podFnum = cluster.nodes[node].pods[cCnt].fnum
-            // Get pod status that is used to set pod color
             podStatus = cluster.nodes[node].pods[cCnt].status;
+
+            // Save the pod status for use in the Storage tab
+            podStatusLookup[podFnum] = podStatus;
 
             podName = '<div class="vpkfont vpkcolor ml-1">'
                 + '<div id="sliceKey">' + podFnum + '</div>'
@@ -574,9 +607,7 @@ function createScene() {
 
                 + checkOwnerRef(podFnum, ns, 'Pod')
 
-
-            // build Pod and save the center cords for use with network and storage    
-            podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
+            podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum)
 
             // Memory Limit and Request resource cylinders
             size = cluster.nodes[node].pods[cCnt].memoryLimit
@@ -584,12 +615,12 @@ function createScene() {
                 size = (size / 1000) / 1000;
                 buildMemCPUResource(podCords.x - 0.03, podCords.y + .25, podCords.z, size, 0.08, 3, memoryLimitColor, ns, 'MemoryLimit', podFnum, podName)
             }
-
             size = cluster.nodes[node].pods[cCnt].memoryRequest
             if (size > 0) {
                 size = (size / 1000) / 1000;
                 buildMemCPUResource(podCords.x, podCords.y + .25, podCords.z + 0.03, size, 0.08, 3, memoryRequestColor, ns, 'MemoryRequest', podFnum, podName)
             }
+            //----
 
             // CPU Limit and Requests resource cylinders
             size = cluster.nodes[node].pods[cCnt].cpuLimit
@@ -598,13 +629,13 @@ function createScene() {
                 size = size / 2;
                 buildMemCPUResource(podCords.x + 0.03, podCords.y + .25, podCords.z, size, 0.08, 3, cpuLimitColor, ns, 'CPULimit', podFnum, podName)
             }
-            // CPULimit resource cylinder
             size = cluster.nodes[node].pods[cCnt].cpuRequest
             if (size > 0) {
                 size = (size / 1000);
                 size = size / 2;
                 buildMemCPUResource(podCords.x, podCords.y + .25, podCords.z - 0.03, size, 0.08, 3, cpuRequestColor, ns, 'CPURequest', podFnum, podName)
             }
+            //----
 
             ///////////////////////////////////////////////////////////////////
             // Network related - Service and Endpoint
@@ -746,6 +777,7 @@ function createScene() {
                 }
             }
 
+            // Calculate where the wall should be built
             // Control spacing between pods
             if (maxNodeCount > 2) {
                 if (lc > 1) {
@@ -761,6 +793,13 @@ function createScene() {
                 }
             }
         }
+
+
+        //console.log(`buildResources - high-angleArray at end: ${highAngle}  high-ptr: ${highPtr}`)
+        nodeEndAngles.push(highAngle);
+        nodeEndAngles.push('empty');
+
+
         // Update maxRings so outter band/ring is properly placed
         if (maxRings < lc) {
             maxRings = lc;
@@ -1002,7 +1041,12 @@ function createScene() {
 
     //==============================================
     // build a sphere for the pod
-    function buildPodObj(iAngle, iLen, color, name, ns, pFnum, pStatus) {
+    //            
+    // build Pod and save the center cords for use with network and storage    
+    // podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
+
+    function buildPodObj(iAngle, iLen, pStatus, name, ns, pFnum) {
+        //console.log(`buildPodObj: iAngle: ${iAngle} iLen ${iLen}`)
         let wX;
         let wY;
         let wZ;
@@ -1013,16 +1057,16 @@ function createScene() {
         wY = 0;
         wZ = iLen * Math.cos(iAngle);
 
-        // set pod color
-        if (color === 1 || color === '1') {
+        // set pod color using the status
+        if (pStatus === 1 || pStatus === '1') {
             material = podGreen;
-        } else if (color === 2 || color === '2') {
+        } else if (pStatus === 2 || pStatus === '2') {
             material = podRed;
-        } else if (color === 3 || color === '3') {
+        } else if (pStatus === 3 || pStatus === '3') {
             material = podYellow;
-        } else if (color === 4 || color === '4') {
+        } else if (pStatus === 4 || pStatus === '4') {
             material = podPurple;
-        } else if (color === 0 || color === '0') {
+        } else if (pStatus === 0 || pStatus === '0') {
             material = podGrey;
         }
 
@@ -1040,7 +1084,7 @@ function createScene() {
         //Material on front and back of custom mesh
         let wallMat = new BABYLON.StandardMaterial("mat" + i, scene);
         wallMat.backFaceCulling = false;
-        wallMat.diffuseColor = new BABYLON.Color3(0.725, 0.725, 0.725);
+        wallMat.diffuseColor = new BABYLON.Color3(0.625, 0.625, 0.625);
 
         //Create a custom mesh for the wall
         let customMesh = new BABYLON.Mesh("wall" + i, scene);
@@ -1095,7 +1139,7 @@ function createScene() {
                 + ' onclick="showSC(\'' + scData.name + '\',\'' + scFnum + '\')">View Storage Class</button>&nbsp;'
 
                 + '<br>' + checkOwnerRef(scFnum, 'cluster-level', 'StorageClass')
-
+                + '</div>'
 
 
             //createSC(scTxt, scFnum, scData)
@@ -1159,6 +1203,10 @@ function createScene() {
     //==============================================
     // Build the Container Storage Interface band     
     function buildCSIStoragePlane() {
+        // Determin if CSI wall/plane should be created
+        if (foundCSINames.length === 0) {
+            return
+        }
         // Build the pale read band to link the CSI related items
         let tX, tZ;
         let csiStorageArc1 = [];
@@ -1422,11 +1470,11 @@ function createScene() {
     // as the source for the container images     
     function buildRegistry(aa) {
         aa = aa + 2
-        if (imageRegistryData !== '') {
+        if (imageRepository !== '') {
             let y = 0;
             let yInc = -.3
             let rFnum = 700;
-            let irKeys = Object.keys(imageRegistryData)
+            let irKeys = Object.keys(imageRepository)
 
             pX = (maxRings + CONTROLPLANE + 4) * Math.sin(angleArray[aa]);
             pZ = (maxRings + CONTROLPLANE + 4) * Math.cos(angleArray[aa]);
@@ -1442,6 +1490,34 @@ function createScene() {
             controlPlaneStick.material = cpStickColor;
             addControlP(controlPlaneStick, 'Registry');
 
+            let tmpReg = [];
+            let rKey;
+            let rTmp;
+            let fp;
+            for (let p = 0; p < irKeys.length; p++) {
+                rKey = imageRepository[irKeys[p]];
+                if (rKey < 10) {
+                    rKey = '0000' + rKey
+                } else if (rKey < 100) {
+                    rKey = '000' + rKey
+                } else if (rKey < 1000) {
+                    rKey = '00' + rKey
+                } else if (rKey < 10000) {
+                    rKey = '0' + rKey
+                }
+
+                rKey = rKey + '::' + irKeys[p];
+                tmpReg.push(rKey)
+            }
+            tmpReg.sort();
+            tmpReg.reverse();
+            irKeys = [];
+            for (let p = 0; p < tmpReg.length; p++) {
+                rTmp = tmpReg[p].split('::');
+                irKeys.push(rTmp[1]);
+            }
+            tmpReg = null;
+
             for (let p = 0; p < irKeys.length; p++) {
                 let img = 'k8.svg';
                 let cN = 'Registry';
@@ -1456,8 +1532,14 @@ function createScene() {
                     + '<br>'
                     + '<span><b>Name : &nbsp;&nbsp;</b>' + irKeys[p] + '</span>'
                     + '<br>'
-                    + '<span><b>Use count : &nbsp;&nbsp;</b>' + imageRegistryData[irKeys[p]] + '</span>'
-                    + '</span></div>';
+                    + '<span><b>Use count : &nbsp;&nbsp;</b>' + imageRepository[irKeys[p]] + '</span>'
+                    + '</span>'
+                    + '<br>'
+                    + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
+                    + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'T\')">View Repository Table</button>'
+                    + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
+                    + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'G\')">View Repository Graph</button>'
+                    + '</div>';
 
                 buildControlComponent(pX, y, pZ, .2, .40, 32, registryColor, 'cluster-level', 'ControlPlaneComponent', rFnum.toString(), imageRegInner, '');
                 buildSlice(pX, y, pZ, rFnum.toString(), 'n');
@@ -1468,6 +1550,21 @@ function createScene() {
         }
     }
 
+
+    //==============================================
+    // build line to connect CSINode to Node
+    function buildNodeStorageLine(sX, sY, sZ, eX, eY, eZ) {
+        let epPath = [
+            new BABYLON.Vector3(sX, sY, sZ),
+            new BABYLON.Vector3(eX, eY, eZ)
+        ];
+
+        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        stick.material = stickColor;
+
+        // FNUM FIX
+        addMesh(stick, 'ClusterLevel', 'Node-Storage-Line', '0000.0', '')
+    }
 
     //==============================================
     // build line to connect CSINode to Node
@@ -1593,7 +1690,9 @@ function createScene() {
 
     function buildNodesAndWall(index) {
         let size;
+        let nName = cluster.nodes[nodePtr].name;
         if (buildWall === false) {
+
             // set x,y,z points for node icon
             pX = (maxRings + NODE_ICON_ADJ) * Math.sin(angle);
             pY = 0;
@@ -1602,10 +1701,10 @@ function createScene() {
             let csiDrvX = (maxRings + NODE_ICON_ADJ + .75) * Math.sin(angle);
             let csiDrvZ = (maxRings + NODE_ICON_ADJ + .75) * Math.cos(angle);
 
-            let can = BABYLON.MeshBuilder.CreateBox("node" + index, { width: NODE_HEIGHT, height: NODE_HEIGHT, depth: NODE_HEIGHT });
-            can.position.y = pY;
-            can.position.x = pX;
-            can.position.z = pZ;
+            let node = BABYLON.MeshBuilder.CreateBox("node" + index, { width: NODE_HEIGHT, height: NODE_HEIGHT, depth: NODE_HEIGHT });
+            node.position.y = pY;
+            node.position.x = pX;
+            node.position.z = pZ;
 
             // Find the closet angleArray value and use that position in
             // the array as the angle in degrees
@@ -1620,7 +1719,7 @@ function createScene() {
             // Rotate the box so side1 is facing the center of the spoke 
             let angleInDegrees = faceAngle;
             let angleInRadians = (angleInDegrees * Math.PI) / 180;
-            can.rotation.y = angleInRadians;
+            node.rotation.y = angleInRadians;
 
             // Link Node to pie slice with horizontial line
             let tX, tZ;
@@ -1635,7 +1734,6 @@ function createScene() {
             stick.material = stickColor;
             addMesh(stick, 'ClusterLevel', 'Node', 'na', 'na');
 
-
             // Build kubelet and kube-proxy items
             buildKublet(pX, pY, pZ, index)
 
@@ -1646,7 +1744,7 @@ function createScene() {
             let cpuBase = 0;
             let memory = 0;
             let memoryBase = 0;
-            let nName = cluster.nodes[nodePtr].name;
+            //let nName = cluster.nodes[nodePtr].name;
             let csiFnum;
             let csiInner;
             let csiX = pX;
@@ -1654,13 +1752,49 @@ function createScene() {
 
             // "m" is a Master node, otherwise treat as worker node
             if (cluster.nodes[nodePtr].type === "m") {
-                can.material = mstNodeMat;
+                node.material = mstNodeMat;
                 nType = MST_TYPE;
                 mstCount++;
             } else {
-                can.material = wrkNodeMat;
+                node.material = wrkNodeMat;
                 nType = WRK_TYPE;
             }
+
+            // Node related storage type
+            // define the Node storage cylinder 
+            let nodeStrgX = (maxRings + NODE_ICON_ADJ + 1.75) * Math.sin(angle);
+            let nodeStrgY = 0;
+            let nodeStrgZ = (maxRings + NODE_ICON_ADJ + 1.75) * Math.cos(angle);
+
+            nodeStorageInner = '<div class="vpkfont vpkcolor ml-1">'
+                + '<div id="sliceKey">' + '4444.' + index + '</div>'
+                + '<a href="javascript:openNodeStorageCounts(\'' + nName + '\')">'
+                + '<img src="images/3d-volume.png" width="60" height"60"></a>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press to open Storage tab view)'
+                + '</span>'
+                + '<br><hr>'
+                + '<span class="vpkfont-slidein"><b>Node storage</b>'
+                + '<br>Storage defined at node i.e. configMap, emptyDir, secret, hostPath, etc.</b></span>'
+                + '<br>'
+                + '<span class="vpkfont-slidein"><b>Node name:  </b>' + nName + '</span>'
+                + '<br>' + checkOwnerRef('4444.' + index, 'cluster-level', 'NODE-Storage')
+                + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
+                + ' onclick="openNodeStorageCounts(\'' + nName + '\')">View Node Storage information</button>'
+                + '</div>';
+
+            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'nodeStorage', '4444.' + index, nodeStorageInner, '')
+            buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + index, 'n')
+            // Connect Cylinder to the Node
+            buildNodeStorageLine(nodeStrgX, nodeStrgY, nodeStrgZ, pX, pY, pZ);
+
+            let nsPath = [
+                new BABYLON.Vector3(nodeStrgX, - 1.25, nodeStrgZ),
+                new BABYLON.Vector3(nodeStrgX, 0, nodeStrgZ)
+            ];
+            let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: nsPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            upStick.material = stickColor;
+            addMesh(upStick, 'ClusterLevel', 'nodeStorage', '4444.' + index, '')
+
 
             // CSINode information 
             if (typeof cluster.nodes[nodePtr].csiNodes !== 'undefined') {
@@ -1777,8 +1911,8 @@ function createScene() {
                 + '</div>';
 
             // register click event for each node;
-            can.actionManager = new BABYLON.ActionManager(scene);
-            can.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+            node.actionManager = new BABYLON.ActionManager(scene);
+            node.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
                 BABYLON.ActionManager.OnPickTrigger,
                 function () {
                     document.getElementById("resourceProps").innerHTML = nTxt;
@@ -1789,7 +1923,7 @@ function createScene() {
                 }
             ));
 
-            addMesh(can, 'ClusterLevel', 'Node', 'na', 'na')
+            addMesh(node, 'ClusterLevel', 'Node', 'na', 'na')
             buildSlice(pX, pY, pZ, cluster.nodes[nodePtr].fnum, 'b')
 
             if (memoryBase > 0) {
@@ -1818,7 +1952,13 @@ function createScene() {
             nodePtr++;
 
         } else {
-            // set start points for wall
+            // set start points for wall and adjust
+            if (index === 0) {
+                angle = nodeEndAngles[index] - .04
+            } else {
+                angle = nodeEndAngles[index] - .02;
+            }
+
             sX = RADIUSINNER * Math.sin(angle);
             sY = 0;
             sZ = RADIUSINNER * Math.cos(angle);
@@ -1829,7 +1969,6 @@ function createScene() {
             // if single node in cluster no wall is built 
             if (max !== 2) {
                 createWall(pX, pY, pZ, sX, sY, sZ, WALL_HEIGHT, index)
-                // createWall(pX, pY, pZ, sX, sY, sZ, 10, index)
                 buildWall = false;
             } else {
                 buildWall = false;
@@ -1867,13 +2006,12 @@ function createScene() {
             iData = ingressArray[i];
             let ns = iData[0].namespace;
             let inner = '<div class="vpkfont vpkcolor ml-1">'
-
                 + '<div id="sliceKey">' + iData[0].fnum + '</div>'
                 + '<a href="javascript:getDefFnum(\'' + iData[0].fnum + '\')">'
                 + '<img src="images/k8/ing.svg" style="width:60px;height:60px;"></a>'
-                + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)'
-                + '</span>'
+                + '<span class="pl-2 pb-2 vpkfont-sm">(Press to view resource)</span>'
                 + '<br><hr>'
+                + '<div class="vpkfont vpkcolor ml-1">'
                 + '<span><b>Name : &nbsp;&nbsp;</b>' + iData[0].name + '</span>'
                 + '<br>'
                 + '<span><b>Kind : &nbsp;&nbsp;</b>' + iData[0].kind + '</span>'
@@ -2230,7 +2368,8 @@ function createScene() {
             buildResources(start, stop, currentNode)
         } else {
             let totV = currentNode * gblCnt;
-            start = (totV - gblCnt) + 4;
+            start = (totV - gblCnt) + 3;
+            // start = (totV - gblCnt) + 4;
             stop = totV - 4;
             buildResources(start, stop, currentNode)
         }
@@ -2284,7 +2423,9 @@ function build3DView() {
         var asyncEngineCreation = async function () {
             try {
                 return createDefaultEngine();
-            } catch (e) {
+            } catch (err) {
+                console.log('Failed to create Babylon 3D default engine, error message: ' + err)
+                console.log(err.stack)
                 alert("Create 3D engine function failed. Creating the default engine instead")
                 console.log("Create 3D engine function failed. Creating the default engine instead");
                 return createDefaultEngine();

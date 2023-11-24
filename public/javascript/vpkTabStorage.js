@@ -23,7 +23,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 let scArray = {};
-//let oldBreak = '@';
 let storCnt = 0;
 let storCollapseID = [];
 let storBreakID = 0;
@@ -34,12 +33,20 @@ let storageInfo = {};
 // build svg data for ownerRef links
 //----------------------------------------------------------
 function initStorageVars() {
-    //oldBreak = '@';
     storCnt = 0;
     storCollapseID = [];
     storBreakID = 0;
     storageInfo = {};
     scArray = {};
+
+
+    if (typeof k8cData['0000-clusterLevel'] !== 'undefined') {
+        if (typeof k8cData['0000-clusterLevel'].Node !== 'undefined') {
+            for (let i = 0; i < k8cData['0000-clusterLevel'].Node.length; i++) {
+                nodeTypes[k8cData['0000-clusterLevel'].Node[i].name] = k8cData['0000-clusterLevel'].Node[i].type
+            }
+        }
+    }
 }
 
 function buildStorage() {
@@ -49,13 +56,726 @@ function buildStorage() {
     let html = buildStorageSVG();
     //If no images were built display message to inform user
     if (storCnt === 0) {
-        html = '<div class="vpkfont vpkcolor"><br><p>No storage requests located for the selected snapshot</p></div>'
+        html = '<div class="vpkfont vpkcolor"><br><p>No storage information located for the selected snapshot</p></div>'
     }
+
     //Update the browser DOM
     $("#storageDetail").html(html);
     $("#storageDetail").show();
+
+    // Build the section for Volume Type counts
+    $('#countVolType').html(sectionType());
+    $('#countVolNode').html('');
+    $('#countVolNS').html('');
+    $('#countVolFnum').html('');
+    // Build the section for Node counts
+    $('#countNodeType').html(sectionNode())
+    $('#countNodeNode').html('');
+    $('#countNodeNS').html('');
+    $('#countNodeFnum').html('');
+    // Build the section for Namespace counts
+    $('#countNSType').html(sectionNamespace())
+    $('#countNSNode').html('');
+    $('#countNSNS').html('');
+    $('#countNSFnum').html('');
+
 }
 
+
+//============================
+function sectionType() {
+    let tmp = '<div>'
+        + countsForVolume()
+        + '</div>'
+    return tmp;
+}
+
+function sectionNode() {
+    let tmp = '<div>'
+        + countsForNode()
+        + '</div>'
+    return tmp;
+}
+
+function sectionNamespace() {
+    let tmp = '<div>'
+        + countsForNS()
+        + '</div>'
+    return tmp;
+}
+
+
+//============================
+function countsForVolume() {
+    let allKeys;
+    let keys;
+    let value;
+    let counts = '<div id="volumeCount" class="volCounts">'
+        + '<div class="mt-3 vpkfont">Counts by Volume Type -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Type</th><th width=5%;>Count</th><th>Volume Type name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsType);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        if (allKeys[i].indexOf('::') < 0) {
+            keys.push(allKeys[i]);
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        value = value.split('=')
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
+            + '<img src="images/3d-volume.png" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
+            + volumeCountsType[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForVolumeType(\'' + value[1] + '\')">'
+            + value[1] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+    return counts;
+}
+
+function countsForVolumeType(type) {
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+
+    let counts = '<div id="volumeTypeNodeCount" class="volCounts">'
+        + '<div class="mt-3 vpkfont">Node counts for -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + type + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Node</th><th width=5%;>Count</th><th>Node name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsType);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 2) {
+            if (value[0].indexOf(type) > -1) {
+                keys.push(allKeys[i]);
+            }
+        }
+    }
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        // value = value.split('=')
+        value = value.split('::')
+        if (typeof nodeTypes[value[1]] !== 'undefined') {
+            if (nodeTypes[value[1]] === 'w') {
+                img = "images/3d-wrkNode.png";
+            } else {
+                img = "images/3d-mstNode.png";
+            }
+        }
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeTypeNS(\'' + type + '\',\'' + value[1] + '\')">'
+            + '    <img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeTypeNS(\'' + type + '\',\'' + value[1] + '\')">'
+            + volumeCountsType[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForVolumeTypeNS(\'' + type + '\',\'' + value[1] + '\')">' + value[1] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table></div>'
+
+    $('#countVolNode').html(counts);
+    $('#countVolNS').html('');
+    $('#countVolFnum').html('');
+}
+
+function countsForVolumeTypeNS(type, node) {
+    let allKeys;
+    let keys;
+    let value;
+
+    let counts = '<div id="volumeTypeNodeCountNS" class="volCounts">'
+        + '<div class="mt-3 vpkfont">Namespace counts for -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Node:</div>'
+        + '    <div class="col-10"><b>' + node + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + type + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Namespace</th><th width=5%;>Count</th><th>Namespace name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsType);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 3) {
+            if (value[0].indexOf(type) > -1) {
+                if (value[1] === node) {
+                    keys.push(allKeys[i]);
+                }
+            }
+        }
+    }
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        // value = value.split('=')
+        value = value.split('::')
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForVolumeTypeNSFnum(\'' + type + '\',\'' + node + '\',\'' + value[2] + '\')">'
+            + '    <img src="images/k8/ns.svg" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;"  onclick="countsForVolumeTypeNSFnum(\'' + type + '\',\'' + node + '\',\'' + value[2] + '\')">' + volumeCountsType[keys[i]]
+            + '</td>'
+            + '<td style="padding-left: 10px;"  onclick="countsForVolumeTypeNSFnum(\'' + type + '\',\'' + node + '\',\'' + value[2] + '\')">' + value[2] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table></div>'
+
+    $('#countVolNS').html(counts);
+    $('#countVolFnum').html('');
+}
+
+function countsForVolumeTypeNSFnum(type, node, ns) {
+    let allKeys;
+    let keys;
+    let value;
+    let podName;
+    let podStatus;
+    let img;
+    let counts = '<div id="volumeTypeNodeCountNSFnum" class="volCounts">'
+        + '<div class="mt-3 vpkfont">Pod counts for -<span class="pl-2">(Click table row to view resource)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Namespace:</div>'
+        + '    <div class="col-10"><b>' + ns + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Node:</div>'
+        + '    <div class="col-10"><b>' + node + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + type + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Pod</th><th width=5%;>Count</th><th>Pod name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsType);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 4) {
+            if (value[0].indexOf(type) > -1) {
+                if (value[1] === node) {
+                    if (value[2] === ns) {
+                        keys.push(allKeys[i]);
+                    }
+                }
+            }
+        }
+    }
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        // value = value.split('=')
+        value = value.split('::')
+
+        podName = k8cData[value[3]].name
+        podStatus = podStatusLookup[value[3]];
+
+        if (typeof podStatus === 'undefined') {
+            img = 'images/3d-podMagenta.png';                     // Unknown
+        } else {
+            if (podStatus === 1 || podStatus === '1') {
+                img = 'images/3d-podGreen.png';                   // Running
+            } else if (podStatus === 2 || podStatus === '2') {
+                img = 'images/3d-podRed.png';                     // Failing
+            } else if (podStatus === 3 || podStatus === '3') {
+                img = 'images/3d-podYellow.png';                  // Warn
+            } else if (podStatus === 4 || podStatus === '4') {
+                img = 'images/3d-podBlue.png';                    // Completed
+            } else if (podStatus === 0 || podStatus === '0') {
+                img = 'images/3d-podGrey.png';                    // Deamon
+            } else {
+                img = 'images/3d-podMagenta.png';                 // Unknown
+            }
+        }
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[3] + '\')">'
+            + '    <img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[3] + '\')">' + volumeCountsType[keys[i]]
+            + '</td>'
+            + '<td style="padding-left: 10px;" onclick="getDefFnum(\'' + value[3] + '\')">' + podName + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table></div>'
+    $('#countVolFnum').html(counts);
+}
+
+
+//============================
+function countsForNode() {
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let counts = '<div id="nodeCount" class="nodeCounts">'
+        + '<div class="mt-3 vpkfont">Counts by Cluster Node -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont bg-secondary">'
+        + '    <th width=10%;>Node</th><th width=5%;>Count</th><th>Node name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNode);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        if (allKeys[i].indexOf('::') < 0) {
+            keys.push(allKeys[i]);
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        if (typeof nodeTypes[value] !== 'undefined') {
+            if (nodeTypes[value] === 'w') {
+                img = "images/3d-wrkNode.png";
+            } else {
+                img = "images/3d-mstNode.png";
+            }
+        }
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeType(\'' + value + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeType(\'' + value + '\')">'
+            + volumeCountsNode[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForNodeType(\'' + value + '\')">'
+            + value + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+    return counts;
+}
+
+function countsForNodeType(node) {
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let counts = '<div id="nodeCountType" class="nodeCounts">'
+        + '<div class="mt-3 vpkfont">Type counts for -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Node:</div>'
+        + '    <div class="col-10"><b>' + node + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Type</th><th width=5%;>Count</th><th>Type name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNode);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 2) {
+            if (value[0] === node) {
+                keys.push(allKeys[i]);
+            }
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i].split('::');
+        value = value[1].split('=');
+        img = "images/3d-volume.png";
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeTypeKey(\'' + node + '\',\'' + value[1] + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeTypeKey(\'' + node + '\',\'' + value[1] + '\')">'
+            + volumeCountsNode[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForNodeTypeKey(\'' + node + '\',\'' + value[1] + '\')">'
+            + value[1] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+
+    $('#countNodeNode').html(counts);
+    $('#countNodeNS').html('');
+    $('#countNodeFnum').html('');
+}
+
+function countsForNodeTypeKey(node, key) {
+    let fullKey = 'Type=' + key;
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let cnt;
+    let counts = '<div id="nodeCountType" class="nodeCounts">'
+        + '<div class="mt-3 vpkfont">Namespace counts for -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Node:</div>'
+        + '    <div class="col-10"><b>' + node + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + key + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>NS</th><th width=5%;>Count</th><th>Type name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNode);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 3) {
+            if (value[0] === node) {
+                if (value[1] === fullKey) {
+                    keys.push(allKeys[i]);
+                }
+            }
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i].split('::');
+        //value = value[1].split('=');
+        img = "images/k8/ns.svg";
+        cnt = volumeCountsNode[keys[i]]
+        if (cnt === null) {
+            console.log('Value erron for Key: ' + keys[i]);
+            console.log(JSON.stringify(volumeCountsNode[keys[i]], null, 4))
+            continue;
+        }
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeTypeKeyFnum(\'' + node + '\',\'' + key + '\',\'' + value[2] + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNodeTypeKeyFnum(\'' + node + '\',\'' + key + '\',\'' + value[2] + '\')">'
+            + volumeCountsNode[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForNodeTypeKeyFnum(\'' + node + '\',\'' + key + '\',\'' + value[2] + '\')">'
+            + value[2] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+
+    $('#countNodeNS').html(counts);
+    $('#countNodeFnum').html('');
+}
+
+function countsForNodeTypeKeyFnum(node, key, ns) {
+    let fullKey = 'Type=' + key;
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let cnt;
+    let podName;
+    let podStatus;
+    let counts = '<div id="nodeCountType" class="nodeCounts">'
+        + '<div class="mt-3 vpkfont">Pod counts for -<span class="pl-2">(Click table row to view resource)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Node:</div>'
+        + '    <div class="col-10"><b>' + node + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + key + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Namespace:</div>'
+        + '    <div class="col-10"><b>' + ns + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Pod</th><th width=5%;>Count</th><th>Pod name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNode);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 4) {
+            if (value[0] === node) {
+                if (value[1] === fullKey) {
+                    if (value[2] === ns) {
+                        keys.push(allKeys[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+
+        value = keys[i];
+        value = value.split('::')
+        podName = k8cData[value[3]].name
+        podStatus = podStatusLookup[value[3]];
+
+        if (typeof podStatus === 'undefined') {
+            img = 'images/3d-podMagenta.png';                     // Unknown
+        } else {
+            if (podStatus === 1 || podStatus === '1') {
+                img = 'images/3d-podGreen.png';                   // Running
+            } else if (podStatus === 2 || podStatus === '2') {
+                img = 'images/3d-podRed.png';                     // Failing
+            } else if (podStatus === 3 || podStatus === '3') {
+                img = 'images/3d-podYellow.png';                  // Warn
+            } else if (podStatus === 4 || podStatus === '4') {
+                img = 'images/3d-podBlue.png';                    // Completed
+            } else if (podStatus === 0 || podStatus === '0') {
+                img = 'images/3d-podGrey.png';                    // Deamon
+            } else {
+                img = 'images/3d-podMagenta.png';                 // Unknown
+            }
+        }
+
+
+        cnt = volumeCountsNode[keys[i]]
+        if (cnt === null) {
+            console.log('Value erron for Key: ' + keys[i]);
+            console.log(JSON.stringify(volumeCountsNode[keys[i]], null, 4))
+            continue;
+        }
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[3] + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[3] + '\')">'
+            + volumeCountsNode[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="getDefFnum(\'' + value[3] + '\')">'
+            + value[2] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+
+    $('#countNodeFnum').html(counts);
+}
+
+
+//============================
+function countsForNS() {
+    let allKeys;
+    let keys;
+    let value;
+    let counts = '<div id="namespaceCount" class="namespaceCounts">'
+        + '<div class="mt-3 vpkfont">Counts by Namespace -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Namespace</th><th width=5%;>Count</th><th>Namespace name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNS);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        if (allKeys[i].indexOf('::') < 0) {
+            keys.push(allKeys[i]);
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
+            + '<img src="images/3d-volume.png" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
+            + volumeCountsNS[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForNSType(\'' + value + '\')">'
+            + value + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+    return counts;
+}
+
+function countsForNSType(ns) {
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let counts = '<div id="nodeCountType" class="namespaceCounts">'
+        + '<div class="mt-3 vpkfont">Type counts for -<span class="pl-2">(Click table row to drill down)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Namespace:</div>'
+        + '    <div class="col-10"><b>' + ns + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Namespace</th><th width=5%;>Count</th><th>Namespace name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNS);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 2) {
+            if (value[0] === ns) {
+                keys.push(allKeys[i]);
+            }
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i].split('::');
+        value = value[1].split('=');
+        img = "images/k8/ns.svg";
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSTypeKey(\'' + ns + '\',\'' + value[1] + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSTypeKey(\'' + ns + '\',\'' + value[1] + '\')">'
+            + volumeCountsNS[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="countsForNSTypeKey(\'' + ns + '\',\'' + value[1] + '\')">'
+            + value[1] + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+
+    $('#countNSNode').html(counts);
+    $('#countNSNS').html('');
+    $('#countNSFnum').html('');
+}
+
+function countsForNSTypeKey(ns, key) {
+    let fullKey = 'Type=' + key;
+    let allKeys;
+    let keys;
+    let value;
+    let img;
+    let counts = '<div id="nodeCountType" class="namespaceCounts">'
+        + '<div class="mt-3 vpkfont">Type counts for -<span class="pl-2">(Click table row to view resource)</span></div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Namespace:</div>'
+        + '    <div class="col-10"><b>' + ns + '</b></div>'
+        + '</div>'
+        + '<div class="row vpkfont ml-1">'
+        + '    <div class="col-1">Type:</div>'
+        + '    <div class="col-10"><b>' + key + '</b></div>'
+        + '</div>'
+
+        + '<div>'
+        + '<table class="vpkfont mt-1">'
+        + '<tr class="vpkfont">'
+        + '    <th width=10%;>Pod</th><th width=5%;>Count</th><th>Pod name</th>'
+        + '</tr>';
+
+    allKeys = Object.keys(volumeCountsNS);
+    keys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        value = allKeys[i].split('::')
+        if (value.length === 3) {
+            if (value[0] === ns) {
+                if (value[1] === fullKey) {
+                    keys.push(allKeys[i]);
+                }
+            }
+        }
+    }
+
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        value = keys[i];
+        value = value.split('::')
+        podName = k8cData[value[2]].name
+        podStatus = podStatusLookup[value[2]];
+
+        if (typeof podStatus === 'undefined') {
+            img = 'images/3d-podMagenta.png';                     // Unknown
+        } else {
+            if (podStatus === 1 || podStatus === '1') {
+                img = 'images/3d-podGreen.png';                   // Running
+            } else if (podStatus === 2 || podStatus === '2') {
+                img = 'images/3d-podRed.png';                     // Failing
+            } else if (podStatus === 3 || podStatus === '3') {
+                img = 'images/3d-podYellow.png';                  // Warn
+            } else if (podStatus === 4 || podStatus === '4') {
+                img = 'images/3d-podBlue.png';                    // Completed
+            } else if (podStatus === 0 || podStatus === '0') {
+                img = 'images/3d-podGrey.png';                    // Deamon
+            } else {
+                img = 'images/3d-podMagenta.png';                 // Unknown
+            }
+        }
+
+        counts = counts + '<tr class="vpkfont">'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[2] + '\')">'
+            + '<img src="' + img + '" height="20" width="20"></td>'
+            + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[2] + '\')">'
+            + volumeCountsNS[keys[i]] + '</td>'
+            + '<td style="padding-left: 10px;" onclick="getDefFnum(\'' + value[2] + '\')">'
+            + podName + '</td>'
+            + '</tr>'
+    }
+    counts = counts + '</table>'
+
+    $('#countNSFnum').html(counts);
+}
+
+
+//============================
+function openNodeStorage(section) {
+
+}
+
+function openNodeStorageCounts(node) {
+    // TODO: Should other sections be closed
+    $('#storageWrapper').collapse("hide");
+    $("#countNode").collapse("show");
+
+    countsForNodeType(node);
+
+    returnWhere = 'Cluster';
+    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
+        + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
+        + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+
+    $("#countsReturnSection").html(returnButton);
+    $("#storageReturnSection").html('');
+    $('[href="#storage"]').tab('show');
+}
+
+
+//============================
 function buildStorageSVG() {
     let scKeys = Object.keys(storageData.StorageClass)
     let scHL = scKeys.length;
@@ -64,6 +784,16 @@ function buildStorageSVG() {
     let fmtSpc = '';
     let first = true;
 
+    let name;
+    let fnum;
+    let spcLength = 9;
+    let cSec = '';
+    let tmp;
+    let fillColor;
+    let textColor;
+    let spcAbv;
+
+    // Dashed / tics at top of display area
     let rtn = '<div class="mt-0 ml-5 vpkfont-sm vpkcolor"><span pl-5></span>'
         + '</div>'
         + '<svg width="1200" height="10">'
@@ -103,14 +833,7 @@ function buildStorageSVG() {
         + '<line  x1="1200" x2="1200"  y1="1"  y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
         + '</svg>'
 
-    let name;
-    let fnum;
-    let spcLength = 9;
-    let cSec = '';
-    let tmp;
-    let fillColor;
-    let textColor;
-    let spcAbv;
+
     scKeys.sort();
     for (let s = 0; s < scKeys.length; s++) {
         storCnt++;
@@ -181,8 +904,6 @@ function buildStorageSVG() {
             textColor = "#666666";
         }
 
-
-
         fnum = storageData.StorageClass[scKeys[s]].fnum;
 
         if (typeof scArray[name] === 'undefined') {
@@ -192,7 +913,7 @@ function buildStorageSVG() {
         }
 
         rtn = rtn + '<svg id="sc' + storCnt + '" width="1200" height="50">'
-            + '<image x="10" y="5"  width="40" height="40" href="images/k8/sc.svg" '
+            + '<image x="10" y="5"  width="40" height="40" href="images/3d-sc.png" '
             + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
 
             + '<text x="60" y="42" fill="black" class="vpkfont" data-toggle="collapse" '
@@ -229,7 +950,6 @@ function buildStorageSVG() {
     return rtn;
 }
 
-
 function buildPVLine(storCnt, sc, lastSC) {
     let pvKeys = Object.keys(storageData.PVinfo);
     let pvcKeys = Object.keys(storageData.PVCinfo);
@@ -254,7 +974,7 @@ function buildPVLine(storCnt, sc, lastSC) {
             }
 
             rtn = rtn + '<svg id="pv' + p + '" width="1200" height="100">'
-                + '<image x="70" y="5"  width="35" height="35" href="images/k8/pv.svg" '
+                + '<image x="70" y="5"  width="32" height="32" href="images/3d-pv.png" '
                 + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
                 + '<text x="145"  y="20" fill="black" class="vpkfont" onclick="getDefFnum(\'' + fnum + '\')">' + storageData.PVinfo[pvKeys[p]][0].fmtSpc + '</text>'
                 + '<text x="145"  y="34" fill="black" class="vpkfont-sm">PV name:</text>'
@@ -268,7 +988,7 @@ function buildPVLine(storCnt, sc, lastSC) {
             for (let v = 0; v < pvcKeys.length; v++) {
                 if (storageData.PVCinfo[pvcKeys[v]][0].name === pvcName) {
                     if (storageData.PVCinfo[pvcKeys[v]][0].namespace === pvcNS) {
-                        rtn = rtn + '<image x="100" y="40"  width="35" height="35" href="images/k8/pvc.svg" '
+                        rtn = rtn + '<image x="100" y="40"  width="32" height="32" href="images/3d-pvc.png" '
                             + ' onclick="getDefFnum(\'' + pvcKeys[v] + '\')"/>'
                             + '<text x="145" y="66" fill="black" class="vpkfont">' + storageData.PVCinfo[pvcKeys[v]][0].fmtSpc + '</text>'
                             + '<text x="145" y="80" fill="black" class="vpkfont-sm">PVC name:</text>'
@@ -286,7 +1006,6 @@ function buildPVLine(storCnt, sc, lastSC) {
     return rtn = hdr + rtn + '</svg></div>'
 }
 
-
 // Toggle the StorageClass in the UI
 function toggleStorage(id) {
     id = '#' + id;
@@ -300,6 +1019,19 @@ function toggleStorage(id) {
 
 function showSC(name, fnum) {
     // Close all StroageClasses
+    returnWhere = 'Cluster';
+    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
+        + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
+        + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+    $("#storageReturnSection").html(returnButton);
+    $("#countsReturnSection").html('');
+
+    $("#countNode").collapse("hide");
+    $("#countVol").collapse("hide");
+    $("#countNamespace").collapse("hide");
+
+    $('#storageWrapper').collapse("show");
+
     try {
         let tID;
         let keys = Object.keys(scArray);
@@ -329,8 +1061,6 @@ function showSC(name, fnum) {
         console.log('View storage from cluster failed, error: ' + e)
     }
 }
-
-//==========================================================
 
 
 //----------------------------------------------------------

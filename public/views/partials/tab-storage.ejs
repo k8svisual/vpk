@@ -1,0 +1,123 @@
+<!--
+        Copyright (c) 2018-2023 k8sVisual
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!-- Tab: STROAGE  -->
+<div id="storage" class="tab-pane">
+
+    <div id="storageReturnSection">
+        <!-- Return button shows here if needed -->
+    </div>
+
+    <div class="col-2 mt-1 mb-1 ml-4 storage-bg" style="text-align:center"">
+                    <a href=" #storageWrapper" class="btn btn-sm mb-2 mt-2 storage-color" data-toggle="collapse">
+        Toggle Storage view section
+        </a>
+    </div>
+
+
+    <div id="storageWrapper">
+        <div class="ml-4 mt-2 vpkfont-sm vpkcolor">
+            <span pl-5>
+                &nbsp;Legend:
+            </span>
+            <span class="pl-3 pt-1">
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #F8BBD0; color: black;">KiloByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #B39DDB; color: white;">MegaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #90CAF9; color: black;">GigaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4CAF50; color: white;">TeraByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #C0CA33; color: black;">PetaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #FFA000; color: black;">ExaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #D84315; color: white;">ZettaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4E342E; color: white;">YottaByte</span>
+            </span>
+            <div class="ml-1 mt-3 vpkfont vpkcolor">
+                Click shaded bars below to view storage detail.
+            </div>
+        </div>
+
+        <div id="storageDetail" class="ml-2 mt-1 collapse">
+            <!-- Dynamically created detail goes here-->
+        </div>
+    </div>
+    <div id="countsDetail" class="ml-2 mt-1">
+        <hr>
+        <div id="countsReturnSection">
+            <!-- Return button will show here if needed. -->
+        </div>
+        <div class="vpkfont vpkcolor ml-4 mb-3">
+            View Pod 'Volume' definition statistics by <b>Volume Type</b>,
+            <b>Cluster Node</b>, or <b>Namespace</b>.
+            Once data is shown in table click any row to drill-down.
+        </div>
+        <div id="volumeCounts" class="mb-4 ml-3 mr-3">
+            <div class="row vpkfont ml-1">
+                <div class="col-2 volCounts-bg mt-1 mb-1 ml-2 mr-2" style="text-align:center">
+                    <a href="#countVol" class="btn btn-sm btn-primary mb-2 mt-2" data-toggle="collapse">
+                        Counts by Volume Types
+                    </a>
+                </div>
+                <div class="col-2 nodeCounts-bg mt-1 mb-1 ml-2 mr-2" style="text-align:center"">
+                                <a href=" #countNode" class="btn btn-sm btn-secondary mb-2 mt-2"
+                    data-toggle="collapse">
+                    Counts by Cluster Node
+                    </a>
+                </div>
+                <div class="col-2 namespaceCounts-bg mt-1 mb-1 ml-2 mr-2" style="text-align:center"">
+                                <a href=" #countNamespace" class="btn btn-sm btn-success mb-2 mt-2"
+                    data-toggle="collapse">
+                    Counts by Namespace
+                    </a>
+                </div>
+            </div>
+
+            <hr>
+
+            <div id="countVol" class="collapse volCounts-bg">
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countVolType" class="mt-2">Nothing defined</div>
+                    <div id="countVolNode" class="mt-2"></div>
+                    <div id="countVolNS" class="mt-2"></div>
+                    <div id="countVolFnum" class="mt-2"></div>
+                </div>
+
+            </div>
+            <div id="countNode" class="collapse nodeCounts-bg">
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countNodeType" class="mt-2 ">Nothing defined</div>
+                    <div id="countNodeNode" class="mt-2"></div>
+                    <div id="countNodeNS" class="mt-2"></div>
+                    <div id="countNodeFnum" class="mt-2"></div>
+                </div>
+
+            </div>
+            <div id="countNamespace" class="collapse namespaceCounts-bg">
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countNSType" class="mt-2">Nothing defined</div>
+                    <div id="countNSNode" class="mt-2"></div>
+                    <div id="countNSFnum" class="mt-2"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

@@ -44,6 +44,31 @@ function populateSchematicList() {
     }
 }
 
+function populateRepositoryList() {
+    if (typeof imageRepository !== 'undefined' && imageRepository !== null) {
+        let options = {}
+        let keys = Object.keys(imageRepository);
+        keys.sort();
+        let data = {};
+        data['  Select Repository  '] = '  selectRepository';
+        for (let i = 0; i < keys.length; i++) {
+            data[keys[i]] = keys[i]
+        }
+        $("#container-images-filter").empty();
+        $("#container-images-filter").select2({
+            data: options,
+            dropdownCssClass: "vpkfont-md",
+            containerCssClass: "vpkfont-md",
+            placeholder: "select repository"
+        });
+
+        options = bldOptions(data, 'S', 'no');
+
+        $("#container-images-filter").empty();
+        $("#container-images-filter").html(options);
+    }
+}
+
 function populateORefKinds(oRefKinds) {
     let listArray = [];
     let id = 0;

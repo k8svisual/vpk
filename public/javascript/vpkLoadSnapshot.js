@@ -21,7 +21,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // Screen handling code for loading or creating Snapshot
 //----------------------------------------------------------
 
-
+let volumeCountsType;
+let volumeCountsNode;
+let volumeCountsNS;
+let volumeCountsPod;
+let storageVolumes;
 
 //----------------------------------------------------------
 // show change directory modal 
@@ -358,10 +362,16 @@ socket.on('getServerDataResult', function (data) {
     buildOwnerRefExists()
     storageData = data.stor;
     helmData = data.helm;
-    imageRegistryData = data.registry;
+    imageRepository = data.registry;
+    imageRepositoryData = data.registryData;
     configMapsFound = data.configMapsFound;
     secretsFound = data.secretsFound;
     eventsInfo = data.events;
+    volumeCountsType = data.volumeCountsType;
+    volumeCountsNode = data.volumeCountsNode;
+    volumeCountsNS = data.volumeCountsNS;
+    volumeCountsPod = data.volumeCountsPod;
+    storageVolumes = data.storageVolumes;
 
 
     if (typeof data.filters !== 'undefined') {
@@ -373,6 +383,8 @@ socket.on('getServerDataResult', function (data) {
     populateSelectLists(data);
     populateSchematicList();
     buildStorage();
+    processimageRepositoryData();
+
     showClusterTab();
 
     $("#loadStatus").hide();
@@ -391,6 +403,35 @@ socket.on('getServerDataResult', function (data) {
     foundNSNamesBuilt = false;
 
 });
+
+function processimageRepositoryData() {
+    let keys = Object.keys(imageRepository);
+    for (let i = 0; i < keys.length; i++) {
+        sortimageRepositoryData(keys[i])
+    }
+}
+
+// Sort the idata 
+function sortimageRepositoryData(repository) {
+    let tmp = [];
+    let keys = []
+    let key = '';
+    let ptr;
+    let data = imageRepositoryData[repository];
+    for (let i = 0; i < data.length; i++) {
+        key = data[i].image + '::' + data[i].ns + '::' + data[i].kind + '::' + data[i].fnum + '::' + data[i].c_type + '::' + data[i].c_name + '::' + i;
+        keys.push(key);
+    }
+    keys.sort();
+    for (let i = 0; i < keys.length; i++) {
+        ptr = keys[i].split('::');
+        ptr = ptr[6]
+        tmp.push(data[ptr]);
+    }
+    imageRepositoryData[repository] = tmp;
+    data = null;
+}
+
 
 //==========================================================
 

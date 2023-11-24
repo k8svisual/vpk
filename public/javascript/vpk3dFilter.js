@@ -1000,7 +1000,7 @@ function setClusterFilters() {
     if (clusterFilters.clusterFilterSound === true) {
         $('#clusterFilterSound').prop('checked', true)
     } else {
-        f$('#clusterFilterSound').prop('checked', false)
+        $('#clusterFilterSound').prop('checked', false)
     }
 }
 

@@ -735,3 +735,111 @@ tr.border_bottom td {
 #schemModal {
     overflow-y: scroll;
 }
+
+.volCounts-bg {
+    background-color: rgba(0, 123, 255, .15);
+    border: 1px solid #007bff;
+}
+
+.volCounts table {
+    /*font-family: arial, sans-serif;*/
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.volCounts th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 2px;
+    background-color: #007bff;
+    color: white;
+}
+
+.volCounts tr {
+    border: 1px solid #888888;
+    text-align: left;
+    padding-left: 10px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background-color: #ffffff;
+}
+
+.volCounts tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+.nodeCounts-bg {
+    background-color: rgba(108, 117, 125, .10);
+    border: 1px solid #6c757d;
+}
+
+.nodeCounts table {
+    /*font-family: arial, sans-serif;*/
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.nodeCounts th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 2px;
+    background-color: #6c757d;
+    color: white;
+}
+
+.nodeCounts tr {
+    border: 1px solid #888888;
+    text-align: left;
+    padding-left: 10px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background-color: #ffffff;
+}
+
+.nodeCounts tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+/*     */
+
+.namespaceCounts-bg {
+    background-color: rgba(25, 135, 84, .25);
+    border: 1px solid #198754;
+}
+
+.namespaceCounts table {
+    /*font-family: arial, sans-serif;*/
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.namespaceCounts th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 2px;
+    background-color: #198754;
+    color: white;
+}
+
+.namespaceCounts tr {
+    border: 1px solid #888888;
+    text-align: left;
+    padding-left: 10px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    background-color: #ffffff;
+}
+
+.namespaceCounts tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+.storage-bg {
+    background-color: #FAEBD7;
+    border-collapse: collapse;
+    border: 1px solid #DEB887;
+}
+
+.storage-color {
+    background-color: #DEB887;
+}

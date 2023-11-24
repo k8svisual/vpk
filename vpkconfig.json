@@ -6,10 +6,10 @@
     "snapshotDir": "/Users/bob/snaptest",
     "clusterFilters": {
         "clusterFilterNodes": true,
-        "clusterFilterCSI": true,
-        "clusterFilterStorage": true,
-        "clusterFilterNetwork": true,
-        "clusterFilterIngress": true,
+        "clusterFilterCSI": false,
+        "clusterFilterStorage": false,
+        "clusterFilterNetwork": false,
+        "clusterFilterIngress": false,
         "clusterFilterControlP": true,
         "clusterFilterWorkload": false,
         "clusterFilterService": false,
@@ -33,6 +33,6 @@
         "clusterFilterMemoryRequest": false,
         "clusterFilterCPULimit": false,
         "clusterFilterCPURequest": false,
-        "clusterFilterSound": true
+        "clusterFilterSound": false
     }
 }

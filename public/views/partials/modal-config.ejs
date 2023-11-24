@@ -1,0 +1,94 @@
+<!--
+        Copyright (c) 2018-2023 k8sVisual
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<!-- ==================================== -->
+<!-- Configuration Modal section          -->
+<!-- ==================================== -->
+<div class="modal fade" id="configModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Configuration</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body docBackground">
+                <div id="size-sm" class="container  p-1 mb-1">
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor">
+                            <p>Display the <b>"managedFields"</b> portion of k8s resource view when viewing
+                                resource definition. If set to On the "managedFields" for the k8s resource will be
+                                shown.</p>
+                        </div>
+                        <div class="col-2 px-3 py-2 col-md-auto">
+                            <input id="mgmFlds" type="checkbox" data-style="w-40" data-toggle="toggle" data-size="sm">
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>Display the <b>"status"</b> section of k8s resource view when viewing
+                                resource definition. If set to On the "status" of the k8s resource will be shown.</p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <input id="statusFlds" type="checkbox" data-style="w-40" data-toggle="toggle"
+                                data-size="sm">
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>View machine architectures, memory, CPU, network, software versions, and copyright
+                                information
+                                for VpK application and server. Click the "i" button to view the data.
+                            </p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <a href="javascript:about()">
+                                <i class="fas fa-info-circle fa-lg ml-2 mt-1 vpkcolor"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-1">
+                    <div class="col-10 px-3 py-1 mt-5 vpkfont vpkcolor ">
+                        <p>Press the "Save configuration" button if settings have been changed.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-2 float-left">
+                    <button id="configBtn" type="button" class="btn btn-primary btn-sm" onclick="saveConfig()"
+                        style="margin: 5px;">
+                        Save configuration
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>

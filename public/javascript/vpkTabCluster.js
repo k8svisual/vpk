@@ -54,6 +54,10 @@ function showClusterTab() {
     buildCluster3D();
 }
 
+function showRegistry(registry, view) {
+    returnWhere = 'Cluster';
+    loadRepositoryData(registry, view)
+}
 
 //----------------------------------------------------------
 console.log('loaded vpkTabCluster.js');

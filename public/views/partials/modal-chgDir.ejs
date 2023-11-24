@@ -1,0 +1,72 @@
+<!--
+        Copyright (c) 2018-2023 k8sVisual
+
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+        NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+        LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+        OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+        WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+
+<!-- ==================================== -->
+<!-- Change directory Modal section       -->
+<!-- ==================================== -->
+<div class="modal fade" id="chgDirModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkcolor">Previous captured snapshot</h6>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body docBackground">
+
+                <!-- Drop down for existing saved cluster info instances -->
+                <div class="form-group col-4 mt-3" style="margin: -15px; padding-bottom: 15px;">
+                    <select id="dsInstances" class="vpkfont-md"
+                        style="width: 500px; height: 30px; vertical-align:middle;">
+                    </select>
+                </div>
+
+                <div class="mt-2 float-left">
+                    <button id="validateBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="reload()"
+                        style="margin: 5px;">
+                        Connect
+                    </button>
+                    <div id="loadStatus" class="row ml-4 mt-2">
+                        <!-- <div class="col mt-1 ml-1"> -->
+                        <img style="float:left" src="images/loading.gif" alt="loading" width="40" height="40" />
+                        <div class="vpkfont-md vpkcolor ml-2 mt-2">
+                            <span>&nbsp;&nbsp;Processing connect request </span>
+                            <!-- </div> -->
+                        </div>
+
+                        <div id="parseStatus" class="mt-5 vpkfont vpkcolor">
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div id="chgDirFooter" class="modal-footer">
+                <button id="closeChgDir" type="button" class="btn btn-sm btn-primary"
+                    onclick="closeChgDir()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

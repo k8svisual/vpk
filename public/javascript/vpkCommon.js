@@ -38,25 +38,29 @@ let stickColorDark = true;
 let soundFor3D = true;
 
 // global
-var version = 'Get from server';  // Version of the software 
-var runMode = 'L';                // mode running, L - locally, C - container
-var socket = io.connect();
-// var svgE = 0;
-var baseDir;                      // Name of directory where snapshot is located
-var validDir;
-//var newDir;
+let version = 'Get from server';  // Version of the software 
+let runMode = 'L';                // mode running, L - locally, C - container
+let socket = io.connect();
+// let svgE = 0;
+let baseDir;                      // Name of directory where snapshot is located
+let validDir;
+//let newDir;
 
-// var editor;
-var selectedDef;
-var chartType;
-var chartWhat;
-var currentTab = "instructions"
-var rootDir;
-var k8cData;
-var dsCounts;
-var dsToggle = 'kind';
-var bootstrapModalCounter = 0;
-var documentationTabTopic = 'toc';
+// type of nodes by name
+let nodeTypes = {};
+let podStatusLookup = {};
+
+// let editor;
+let selectedDef;
+let chartType;
+let chartWhat;
+let currentTab = "instructions"
+let rootDir;
+let k8cData;
+let dsCounts;
+let dsToggle = 'kind';
+let bootstrapModalCounter = 0;
+let documentationTabTopic = 'toc';
 
 // objects that contain html sections that are dnynamically shown
 let svgInfo = {};            			// tool tip pop-ups
@@ -68,14 +72,6 @@ let securityRoleInfo = {};				// roles
 let securityRoleBindingInfo = {};		// role bindings
 let securitySubjectInfo = {};			// subjects
 let securityArraysLoaded = false;       // indicate if data loaded in security arrays
-
-
-//let iCnt = 1;
-//let oldNS = '@';
-//let first = true;
-
-//let height = 0;
-// let fnum;
 
 // browser details
 let usageBrowserName;
@@ -91,11 +87,13 @@ let storageData = '';
 //let storageInfoID = 0;
 
 let helmData = '';
-let imageRegistryData = '';
+let imageRepositoryData = '';
+let imageRepository = '';
 
 let explainInfo = [];
 
 let eventsInfo;
+let containerImagesInfo;
 
 let clusterFilters = {};
 
@@ -116,6 +114,7 @@ function handleZoom(e) {
 function returnToWhereTab() {
 	if (returnWhere === 'Cluster') {
 		$('[href="#cluster"]').tab('show');
+		$("#storageReturnSection").html('');
 	} else if (returnWhere === 'Event') {
 		$('[href="#evtMsgs"]').tab('show');
 	}
