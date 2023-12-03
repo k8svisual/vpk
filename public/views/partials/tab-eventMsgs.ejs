@@ -1,5 +1,5 @@
 <!--
-        Copyright (c) 2018-2023 k8sVisual
+        Copyright (c) 2018-2023 Dave Weilert
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files (the
@@ -24,6 +24,20 @@
 
 <!-- Tab: EVENT MSGS  -->
 <div id="evtMsgs" class="tab-pane">
+    <div id="evtStatsGroup" style="margin-left: 40px;">
+        <div id="evtStatInfoTop" class="mt-2" style="margin-left: 20px; padding: 3px;">
+            <span class="fa-1x" style="background-color: green; color: white; padding: 3px;">Event messages by
+                minute intervals for <span id="evtRptNS"></span></span>
+        </div>
+        <div id="evtStats" class="mt-2 ml-2">
+        </div>
+        <div id="evtStatInfoBottom" class="ml-2">
+            <span class="fa-xs ml-5">Note: <span style="background-color: red; color: white;">Red</span> bars indicated
+                the number of messages exceeded top range of
+                chart.</span>
+        </div>
+    </div>
+
     <div style="margin-left: 42px; margin-right: 10px; margin-top: 5px;">
         <div class="schematic_border">
             <div id="evtMsgsDetail">
@@ -44,14 +58,47 @@
                             <th data-field="message" data-sortable="true">Message</th>
                             <th data-field="namespace" data-sortable="true">Namespace</th>
                             <th data-field="involvedKind" data-sortable="true">Kind</th>
-                            <th data-field="involvedName">Name</th>
-                            <th data-field="firstTime">First</th>
-                            <th data-field="lastTime">Last</th>
-                            <th data-field="root">Root</th>
-                            <th data-field="fnum">Fnum</th>
+                            <th data-field="involvedName" data-sortable="true">Name</th>
+                            <th data-field="firstTime" data-sortable="true">First</th>
+                            <th data-field="lastTime" data-sortable="true">Last</th>
+                            <th data-field="root" data-sortable="true">Root</th>
+                            <th data-field="fnum" data-sortable="true">Fnum</th>
                         </tr>
                     </thead>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="evtControl" class="ml-5 mr-5">
+        <div class="vpkfont">
+            <div class="row">
+                <div class="col-4">
+                    <span class="pr-2 pb-2 vpkfont vpkcolor">Viewing</span>
+                    <span class="pr-2">
+                        <a href="javascript:evtScrollPageLess()" style="text-decoration:none">
+                            <i class="fas fa-125x fa-caret-square-left vpkcolor vpkfont-lg"></i>
+                        </a>
+                    </span>
+                    <span class="vpkfont vpkcolor text-center" style="width: 40px important;">
+                        <span id="evtPage">1</span>
+                    </span>
+                    <span class="pl-2">
+                        <a href="javascript:evtScrollPageMore()" style="text-decoration:none">
+                            <i class="fas fa-125x fa-caret-square-right vpkcolor vpkfont-lg"></i>
+                        </a>
+                    </span>
+                    <span id="evtGroupCnt" class="pl-2 pb-2 vpkfont vpkcolor">of 18</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="evtSpan">
+        <div style="margin-left: 40px; margin-right: 40px; border: 2px solid orange">
+            <div id="evtLeft" style="width: 500px; float: left; background-color: #f2f2f2;">
+            </div>
+            <div id="evtRight" style="margin-left: 500px; overflow-x: scroll;">
             </div>
         </div>
     </div>

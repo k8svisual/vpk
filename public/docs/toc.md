@@ -7,19 +7,20 @@
 
 | Topic | Description |
 |---|---|
-| <a href="javascript:docNextTopic('gettingstarted')">Getting started</a> | Vpk installation and initial use |
-| <a href="javascript:docNextTopic('generalusage')">User Interface</a> | General usage of the UI |
-| <a href="javascript:docNextTopic('overview')">Overview</a> | &nbsp;Vpk application overview an architecture |
-| <a href="javascript:docNextTopic('snapshot')">Snapshot</a> | &nbsp;k8s data to analyze |
+| <a href="javascript:docNextTopic('introduction')">Introduction</a> | &nbsp;Vpk general information |
+| <a href="javascript:docNextTopic('installing')">Installing</a> | &nbsp;Installing VpK |
+| <a href="javascript:docNextTopic('snapshots')">Snapshots</a> | &nbsp;Vpk Snapshot and K8s cluster info |
+| <a href="javascript:docNextTopic('ui')">User Interface</a> | &nbsp;UI conventions and usage |
+| <a href="javascript:docNextTopic('helpcloseconfig')">Help/Close/Confiog</a> | &nbsp;VpK Help, Shutdown/Close, and Configuration|
 | <a href="javascript:docNextTopic('cluster')">Cluster</a> | &nbsp;Cluster 3D View |
 | <a href="javascript:docNextTopic('schematics')">Workload Schematics</a> | &nbsp;Schematic graphs of workloads |
-| <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Multiple graphic views of k8s resources |
 | <a href="javascript:docNextTopic('storage')">Storage</a> | &nbsp;StorageClass, PV and PVC |
 | <a href="javascript:docNextTopic('security')">Security</a> | &nbsp;Roles, bindings, and subjects |
-| <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search k8s resources |
 | <a href="javascript:docNextTopic('ownerref')">OwnerRef Links</a> | &nbsp;OwnerReference links |
+| <a href="javascript:docNextTopic('eventmsgs')">Event Messages</a> | &nbsp;K8s event messages |
+| <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Graphical views of K8s cluster |
+| <a href="javascript:docNextTopic('containerimages')">Container Images</a> | &nbsp;Images for containers |
+| <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search K8s resources |
+
 ---
 
-<a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fas fa-lg fa-arrow-right"></i></a>
-<a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>
-<a style="float: right;" href="javascript:docPrevTopic()"><i class="fas fa-lg fa-arrow-left"></i>&nbsp;Prev&nbsp;&nbsp;</a>

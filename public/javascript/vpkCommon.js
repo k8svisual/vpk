@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -92,10 +92,11 @@ let imageRepository = '';
 
 let explainInfo = [];
 
-let eventsInfo;
 let containerImagesInfo;
 
 let clusterFilters = {};
+
+let yesNoWhere = '';
 
 // Not sure if Zoom code is needed
 let zoom = d3.zoom()
@@ -109,6 +110,26 @@ function initZoom() {
 function handleZoom(e) {
 	d3.select('svg g')
 		.attr('transform', e.transform);
+}
+
+function getScreenWidth() {
+	return Math.max(
+		document.body.scrollWidth,
+		document.documentElement.scrollWidth,
+		document.body.offsetWidth,
+		document.documentElement.offsetWidth,
+		document.documentElement.clientWidth
+	);
+}
+
+function getScreenHeight() {
+	return Math.max(
+		document.body.scrollHeight,
+		document.documentElement.scrollHeight,
+		document.body.offsetHeight,
+		document.documentElement.offsetHeight,
+		document.documentElement.clientHeight
+	);
 }
 
 function returnToWhereTab() {
@@ -139,6 +160,23 @@ function setBaseDir(dir) {
 	$("#tableSearch").bootstrapTable('removeAll')
 }
 
+function processModalYesNo(action) {
+	if (yesNoWhere === 'Redact') {
+		if (action === 'Y') {
+			$("#yesNoModal").modal('hide');
+			$("#configModal").modal('hide');
+		} else {
+			$("#yesNoModal").modal('hide');
+		}
+	} else if (yesNoWhere === 'Close') {
+		if (action === 'Y') {
+			$("#yesNoModal").modal('hide');
+			$("#configModal").modal('hide');
+		} else {
+			$("#yesNoModal").modal('hide');
+		}
+	}
+}
 
 //----------------------------------------------------------
 console.log('loaded vpkCommon.js');

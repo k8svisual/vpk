@@ -1,5 +1,5 @@
 <!--
-        Copyright (c) 2018-2023 k8sVisual
+        Copyright (c) 2018-2023 Dave Weilert
 
         Permission is hereby granted, free of charge, to any person obtaining
         a copy of this software and associated documentation files (the
@@ -24,22 +24,22 @@
 <!-- ==================================== -->
 <!-- Configuration Modal section          -->
 <!-- ==================================== -->
-<div class="modal fade" id="configModal" tabindex="-1" role="dialog">
+<div class="modal fade" id="configModal" tabindex="-1" role="dialog" data-backdrop="static" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h6 class="modal-title vpkcolor">Configuration</h6>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
-                </button>
+                </button> -->
             </div>
 
             <div class="modal-body docBackground">
                 <div id="size-sm" class="container  p-1 mb-1">
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor">
-                            <p>Display the <b>"managedFields"</b> portion of k8s resource view when viewing
-                                resource definition. If set to On the "managedFields" for the k8s resource will be
+                            <p>Display the <b>"managedFields"</b> portion of K8s resource view when viewing
+                                resource definition. If set to On the "managedFields" for the K8s resource will be
                                 shown.</p>
                         </div>
                         <div class="col-2 px-3 py-2 col-md-auto">
@@ -49,14 +49,61 @@
 
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
-                            <p>Display the <b>"status"</b> section of k8s resource view when viewing
-                                resource definition. If set to On the "status" of the k8s resource will be shown.</p>
+                            <p>Display the <b>"status"</b> section of K8s resource view when viewing
+                                resource definition. If set to On the "status" of the K8s resource will be shown.</p>
                         </div>
                         <div class="col-2 py-2">
                             <input id="statusFlds" type="checkbox" data-style="w-40" data-toggle="toggle"
                                 data-size="sm">
                         </div>
                     </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>Redact (hide) the content of Kubernetes "Secrets" that are retrieved from the K8s
+                                cluster.
+                                If set to On the content of Secrets will display a message that the content has been
+                                redacted.</p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <input id="redactSecrets" type="checkbox" data-style="w-40" data-toggle="toggle"
+                                data-size="sm">
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>When selecting a Snapshot if the same Snapshot is selected force a complete reload and
+                                reparse of data.
+                                If set to On a complete reload and reparse will be performed.
+                            </p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <input id="reloadAction" type="checkbox" data-style="w-40" data-toggle="toggle"
+                                data-size="sm">
+                        </div>
+                    </div>
+
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 mt-1 vpkfont vpkcolor ">
+                            <p>Press the "Save configuration" button if settings have been changed.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <div class="float-left">
+                                <button id="configBtn" type="button" class="btn btn-primary btn-sm"
+                                    onclick="saveConfig()" style="padding: 5px;">
+                                    Save configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
 
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
@@ -73,21 +120,14 @@
                     </div>
                 </div>
 
-                <div class="row mb-1">
-                    <div class="col-10 px-3 py-1 mt-5 vpkfont vpkcolor ">
-                        <p>Press the "Save configuration" button if settings have been changed.
-                        </p>
-                    </div>
-                </div>
 
-                <div class="mt-2 float-left">
-                    <button id="configBtn" type="button" class="btn btn-primary btn-sm" onclick="saveConfig()"
-                        style="margin: 5px;">
-                        Save configuration
-                    </button>
-                </div>
+
+                <hr>
+
             </div>
-            <div class="modal-footer">
+
+            <div id="clusterModalFooter" class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" onclick="closeConfig()">Close</button>
             </div>
         </div>
     </div>

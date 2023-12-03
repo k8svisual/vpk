@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -596,7 +596,7 @@ function createScene() {
                 + '<br><hr>'
                 + '<span class="vpkfont-slidein"><b>Pod -</b>'
                 + '<br>'
-                + '<span><b>' + RES_NAME + '&nbsp;&nbsp;</b>' + cluster.nodes[node].pods[cCnt].name + '</span>'
+                + '<span>' + cluster.nodes[node].pods[cCnt].name + '</span>'
                 + '<br>'
                 + '<span><b>' + RES_NS + '&nbsp;&nbsp;</b>' + ns + '</span>'
                 + '<br>'

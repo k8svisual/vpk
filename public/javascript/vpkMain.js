@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -24,6 +24,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 //let childwin;
 let getFileIsSecret;
+// let clientXPos;
+// let clientYPos;
 
 // const childname = "schematicWindow";
 // const themeToggle = document.getElementById("theme-toggle");
@@ -38,14 +40,6 @@ $(document).ready(function () {
     setTimeout(function () {
         $("#splashVpKModal").modal('hide');
     }, 3500);
-
-
-    // // Listen for messages from the child window
-    // window.addEventListener('message', function (event) {
-    //     // This indicates the child window is open, now send the
-    //     // svg data to the child.
-    //     sendChildSvg();
-    // });
 
     $('.carousel-item', '.multi-item-carousel').each(function () {
         var next = $(this).next();
@@ -72,8 +66,7 @@ $(document).ready(function () {
         //don't need to recalculate backdrop z-index; already handled by css
     });
 
-    // $("#instructions").addClass("active");
-    // $("#instructions").addClass("show");
+
     $("#searchview").removeClass("active");
     $("#searchview").removeClass("show");
 
@@ -137,7 +130,16 @@ $(document).ready(function () {
             $('#schematic').hide();
             $('#schematicHdr').hide();
         }
-
+        if (currentTab === "#storage") {
+            px = 103;
+            checkIfDataLoaded();
+            documentationTabTopic = 'storage';
+            $('#storage').show();
+            $('#storageHdr').show();
+        } else {
+            $('#storage').hide();
+            $('#storageHdr').hide();
+        }
         if (currentTab === "#security") {
             px = 120;
             checkIfDataLoaded();
@@ -148,16 +150,7 @@ $(document).ready(function () {
             $('#security').hide();
             $('#securityHdr').hide();
         }
-        if (currentTab === "#storage") {
-            px = 71;
-            checkIfDataLoaded();
-            documentationTabTopic = 'storage';
-            $('#storage').show();
-            $('#storageHdr').show();
-        } else {
-            $('#storage').hide();
-            $('#storageHdr').hide();
-        }
+
         if (currentTab === "#ownerlinks") {
             px = 120;
             checkIfDataLoaded();
@@ -169,7 +162,7 @@ $(document).ready(function () {
             $('#ownerlinksHdr').hide();
         }
         if (currentTab === "#evtMsgs") {
-            px = 71;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'evtmsgs';
             $('#evtMsgsHdr').show();
@@ -325,6 +318,12 @@ $(document).ready(function () {
         placeholder: "select namespace"
     });
 
+    $('#events-ns-filter').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md",
+        placeholder: "all-namespaces"
+    });
+
     $('#ownerRef-ns-filter').select2({
         dropdownCssClass: "vpkfont-md",
         containerCssClass: "vpkfont-md",
@@ -361,17 +360,6 @@ $(document).ready(function () {
         searchObj();
     });
 
-    // //-- ownerRef dropdowns
-    // $('#ownerSort1').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "sort order"
-    // });
-    // $('#ownerSort2').select2({
-    //     dropdownCssClass: "vpkfont-md",
-    //     containerCssClass: "vpkfont-md",
-    //     placeholder: "sort order"
-    // });
 
     $('#cluster-bar1-select').focusout(function () {
         console.log('No FOCUS')
@@ -566,7 +554,6 @@ $(document).ready(function () {
         });
     });
 
-
     // ACE editor linked to html id
     editor = ace.edit("editor");
 
@@ -579,52 +566,12 @@ $(document).ready(function () {
 
 
 
-//----------------------------------------------------------
-// send request to decode object
-function getDefDecode(def, secret) {
-    //$("#multiModal").modal('hide');
-    selectedDef = def;
-    if (selectedDef.indexOf('undefined') > -1) {
-        showMessage('Unable to locate source yaml.', 'fail');
-    } else {
-        data = { "file": selectedDef, "secret": secret }
-        socket.emit('getDecode', data);
-    }
-}
 
-//...
-socket.on('getDecodeResult', function (data) {
-    var content = data.result;
-    var keys = Object.keys(content);
-    var key;
-    var html = '';
-    var item = '';
-
-    for (var k = 0; k < keys.length; k++) {
-        key = keys[k];
-        item = content[key];
-        if (item.type === 'JSON') {
-            value = JSON.stringify(item.value, null, 4);
-        } else {
-            value = item.value;
-        }
-        html = html + '\nKEY: ' + key + '\n' + '\n' + value + '\n' + '\n';
-    }
-
-    $("#decodeName").empty();
-    //    $("#decodeName").html('<span>' + data.secret + '</span>');
-    $("#decode").empty();
-    $("#decode").html(html);
-    $('#decodeModal').modal('show');
-});
-//==========================================================
 
 
 //----------------------------------------------------------
 function editObj() {
     $("#viewTypeModal").modal('hide');
-    //selectedAction = 'edit';
-    //console.log(selectedDef)
     socket.emit('getDef', selectedDef);
 }
 
@@ -660,6 +607,46 @@ socket.on('getFileByCidResults', function (data) {
     }
 });
 //==========================================================
+
+//----------------------------------------------------------
+// send request to decode object
+function getDefDecode(def, secret) {
+    //$("#multiModal").modal('hide');
+    selectedDef = def;
+    if (selectedDef.indexOf('undefined') > -1) {
+        showMessage('Unable to locate source yaml.', 'fail');
+    } else {
+        data = { "file": selectedDef, "secret": secret }
+        socket.emit('getDecode', data);
+    }
+}
+//...
+socket.on('getDecodeResult', function (data) {
+    var content = data.result;
+    var keys = Object.keys(content);
+    var key;
+    var html = '';
+    var item = '';
+
+    for (var k = 0; k < keys.length; k++) {
+        key = keys[k];
+        item = content[key];
+        if (item.type === 'JSON') {
+            value = JSON.stringify(item.value, null, 4);
+        } else {
+            value = item.value;
+        }
+        html = html + '\nKEY: ' + key + '\n' + '\n' + value + '\n' + '\n';
+    }
+
+    $("#decodeName").empty();
+    //    $("#decodeName").html('<span>' + data.secret + '</span>');
+    $("#decode").empty();
+    $("#decode").html(html);
+    $('#decodeModal').modal('show');
+});
+//==========================================================
+
 
 
 // Get VpK configuration data

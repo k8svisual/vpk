@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -837,9 +837,95 @@ tr.border_bottom td {
 .storage-bg {
     background-color: #FAEBD7;
     border-collapse: collapse;
-    border: 1px solid #DEB887;
+    border: 0.5px solid #DEB887;
 }
 
 .storage-color {
     background-color: #DEB887;
+}
+
+#editorModal {
+    z-index: 9999;
+}
+
+#aboutModal {
+    z-index: 9999;
+}
+
+#explainModal {
+    z-index: 99999;
+}
+
+#closeVpKModal {
+    z-index: 99999;
+}
+
+/* Event-timeline font */
+
+.evtSmall {
+    font: 14px sans-serif;
+}
+
+.evtCaret {
+    visibility: hidden;
+}
+
+.fa-xs {
+    font-size: .75em !important;
+}
+
+.fa-sm {
+    font-size: .875em !important;
+}
+
+.fa-1x {
+    font-size: 1em !important;
+}
+
+.fa-125x {
+    font-size: 1.5em !important;
+}
+
+.fa-2x {
+    font-size: 2em !important;
+}
+
+.fa-3x {
+    font-size: 3em !important;
+}
+
+.fa-4x {
+    font-size: 4em !important;
+}
+
+.fa-5x {
+    font-size: 5em !important;
+}
+
+.fa-6x {
+    font-size: 6em !important;
+}
+
+.fa-7x {
+    font-size: 7em !important;
+}
+
+.fa-8x {
+    font-size: 8em !important;
+}
+
+.fa-9x {
+    font-size: 9em !important;
+}
+
+.fa-10x {
+    font-size: 10em !important;
+}
+
+.tooltip {
+    pointer-events: none;
+}
+
+#tooltip {
+    pointer-events: none;
 }

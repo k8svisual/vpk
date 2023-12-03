@@ -22,7 +22,7 @@ Vpk is an application that can run locally on your computer as a node.js applica
 
 - browser - must support html 5 for the user interface 
 - node.js and npm - install node packages and run the VpK server component 
-- kubectl - Kubernetes command line tool or other CLI used to communicate with a k8s cluster 
+- kubectl - Kubernetes command line tool or other CLI used to communicate with a K8s cluster 
 
 
 VpK software is available from __https://github.com/k8svisual/viewk8s.git__ Clone the repo or download the zip.  If using zip file, unzip file into a directory.
@@ -107,7 +107,7 @@ VpK has the following start parameters.  Default values will be used is no start
 
 | &nbsp;Start Parameter&nbsp; | Usage description | Default | Example |
 |:---:|---|---|---|
-| c | Indicate the VpK server/application is running in a container. <br> This enables the ability to send commands from the UI to the container and use the ssh feature to communicate with the container host to create a k8s snapshot. | &lt;blank&gt; | -c Yes |
+| c | Indicate the VpK server/application is running in a container. <br> This enables the ability to send commands from the UI to the container and use the ssh feature to communicate with the container host to create a K8s snapshot. | &lt;blank&gt; | -c Yes |
 | p | Control the port where the server can be accessed from a browser. | 4200 | -p 5400 |
 | s | Control the location of snapshot directories and files | &lt;blank&gt; | -s /Users/snap |
 

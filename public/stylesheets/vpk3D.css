@@ -84,7 +84,7 @@
     top: 120px;
     /* bottom: 200px; */
     width: 300px;
-    height: 880px;
+    height: 465px;
     z-index: 1000;
     padding: 5px;
     background: #eee;
@@ -94,6 +94,7 @@
     transition: all 0.3s ease-in-out;
     min-height: 200px;
     transform: translateX(-120%);
+    overflow-y: scroll;
 }
 
 #cluster_filter_box.active {
@@ -357,4 +358,8 @@
 
 .thirdPartyPlane {
     background-color: #FF0099
+}
+
+.vpkScroll-Y {
+    overflow-y: scroll;
 }

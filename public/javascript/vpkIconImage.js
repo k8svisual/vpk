@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -34,6 +34,10 @@ function checkImage(kind, api) {
         image = 'other/ocp.svg';
     } else if (kind === 'CephCluster') {
         image = 'other/rook2.svg';
+    } else if (kind === 'Certificate') {
+        image = 'k8/cert.svg';
+    } else if (kind === 'CertificateRequest') {
+        image = 'k8/certReq.svg';
     } else if (kind === 'CertificateSigningRequest') {
         image = 'k8/k8.svg';
     } else if (kind === 'ClusterRole') {
@@ -49,9 +53,9 @@ function checkImage(kind, api) {
     } else if (kind === 'CronJob') {
         image = 'k8/cronjob.svg';
     } else if (kind === 'CSIDriver') {
-        image = 'k8/k8.svg';
+        image = 'k8/csidriver.svg';
     } else if (kind === 'CSINode') {
-        image = 'k8/k8.svg';
+        image = 'k8/csinode.svg';
     } else if (kind === 'CustomResourceDefinition' || kind === 'CRD') {
         image = 'k8/crd.svg';
     } else if (kind === 'DaemonSet') {

@@ -1,15 +1,17 @@
 {
     "defaults": {
         "managedFields": false,
-        "statusSection": true
+        "statusSection": true,
+        "redactSecrets": false,
+        "reloadAction": true
     },
     "snapshotDir": "/Users/bob/snaptest",
     "clusterFilters": {
         "clusterFilterNodes": true,
-        "clusterFilterCSI": false,
-        "clusterFilterStorage": false,
-        "clusterFilterNetwork": false,
-        "clusterFilterIngress": false,
+        "clusterFilterCSI": true,
+        "clusterFilterStorage": true,
+        "clusterFilterNetwork": true,
+        "clusterFilterIngress": true,
         "clusterFilterControlP": true,
         "clusterFilterWorkload": false,
         "clusterFilterService": false,

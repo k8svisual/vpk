@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -20,6 +20,45 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //----------------------------------------------------------
 // populate drop down options for UI
 //----------------------------------------------------------
+
+
+function populateEventNSList() {
+    if (typeof evtNs !== 'undefined' && evtNs !== null) {
+        let options = {}
+        let keys = Object.keys(evtNs);
+        keys.sort();
+        let data = {};
+        data['all-namespaces'] = 'all-namespaces'
+        //data['all-namespaces'] = keys[i]
+        for (let i = 0; i < keys.length; i++) {
+            data[keys[i]] = keys[i]
+        }
+        $("#events-ns-filter").empty();
+        $("#events-ns-filter").select2({
+            data: options,
+            dropdownCssClass: "vpkfont-md",
+            containerCssClass: "vpkfont-md",
+            placeholder: "all-namespaces"
+        });
+
+        options = bldOptions(data, 'S', 'no');
+        let tmpArray = options.split('<option>');
+        let newOptions = '';
+        for (let i = 1; i < tmpArray.length; i++) {
+            if (i === 1) {
+                //newOptions = newOptions + '<option>' + tmpArray[i];
+                newOptions = newOptions + '<option>all-namespaces</option>';
+            } else {
+                newOptions = newOptions + '<option>' + tmpArray[i];
+            }
+        }
+        options = newOptions;
+
+        $("#events-ns-filter").empty();
+        $("#events-ns-filter").html(options);
+    }
+}
+
 
 function populateSchematicList() {
     if (typeof nsResourceInfo !== 'undefined' && nsResourceInfo !== null) {

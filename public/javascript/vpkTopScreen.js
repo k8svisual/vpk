@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -21,27 +21,41 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // Top of screen handling code
 //----------------------------------------------------------
 
+let atOpenSettings = '';
+let configRedact = false;
+let configSaved = false;
 
 //----------------------------------------------------------
 function saveConfig(what) {
     //    if (typeof what === 'undefined') {
     let sFlds = document.getElementById('statusFlds').checked;
     let mFlds = document.getElementById('mgmFlds').checked;
-
-    if (typeof sFlds === 'undefined') {
-        sFlds = false;
-    }
+    let redactSec = document.getElementById('redactSecrets').checked;
+    let reloadAction = document.getElementById('reloadAction').checked;
     if (typeof mFlds === 'undefined') {
         mFlds = false;
     }
-    socket.emit('saveConfig', { "managedFields": mFlds, "statusSection": sFlds });
+    if (typeof sFlds === 'undefined') {
+        sFlds = false;
+    }
+    if (typeof redactSec === 'undefined') {
+        redactSec = false;
+    }
+    if (typeof reloadAction === 'undefined') {
+        reloadAction = false;
+    }
+    socket.emit('saveConfig', { "managedFields": mFlds, "statusSection": sFlds, "redactSecrets": redactSec, "reloadAction": reloadAction });
+    atOpenSettings = getCurrentSettings();
 
 }
 //...
 socket.on('saveConfigResult', function (data) {
-    $("#configModal").modal('hide');
     if (data.result.status !== 'PASS') {
         showMessage(data.result.message, 'fail')
+        configSaved = false;
+    } else {
+        showMessage('Configuration data saved', 'pass')
+        configSaved = true;
     }
 });
 //==========================================================
@@ -53,7 +67,12 @@ function showConfig() {
 }
 //...
 socket.on('getConfigResult', function (data) {
+    // Set screen button and save status at start 
+    atOpenSettings = '';
+    configRedact = false;
+    configSaved = false;
 
+    // Set field buttons on the screen
     if (data.config.managedFields === true) {
         $('#mgmFlds').bootstrapToggle('on');
     } else {
@@ -65,10 +84,92 @@ socket.on('getConfigResult', function (data) {
     } else {
         $('#statusFlds').bootstrapToggle('off');
     }
+
+    if (data.config.redactSecrets === true) {
+        $('#redactSecrets').bootstrapToggle('on');
+        configRedact = true;
+    } else {
+        $('#redactSecrets').bootstrapToggle('off');
+        configRedact = false;
+    }
+
+    if (data.config.reloadAction === true) {
+        $('#reloadAction').bootstrapToggle('on');
+    } else {
+        $('#reloadAction').bootstrapToggle('off');
+    }
+
+    atOpenSettings = getCurrentSettings();
+    console.log(atOpenSettings + ' : atOpenSettings')
+
     $("#configModal").modal('show');
 });
 //==========================================================
 
+function getCurrentSettings() {
+    let sFlds = document.getElementById('statusFlds').checked;
+    let mFlds = document.getElementById('mgmFlds').checked;
+    let redactSec = document.getElementById('redactSecrets').checked;
+    let reloadAction = document.getElementById('reloadAction').checked;
+    let comapreSettings = '';
+
+    if (mFlds === true) {
+        comapreSettings = 'T';
+    } else {
+        comapreSettings = 'F';
+    }
+    if (sFlds === true) {
+        comapreSettings = comapreSettings + 'T';
+    } else {
+        comapreSettings = comapreSettings + 'F';
+    }
+    if (redactSec === true) {
+        comapreSettings = comapreSettings + 'T';
+    } else {
+        comapreSettings = comapreSettings + 'F';
+    }
+    if (reloadAction === true) {
+        comapreSettings = comapreSettings + 'T';
+    } else {
+        comapreSettings = comapreSettings + 'F';
+    }
+    return comapreSettings;
+}
+
+
+function closeConfig() {
+    let redactSetting = document.getElementById('redactSecrets').checked;
+    let redactMsg = '<div class="text-center">Redact settings have changed which requires a complete re-processing of the current '
+        + '"Snapshot" before the Redact change will take effect.'
+        + '<br><br><span>Continue processing or return to configuration?</span></div>'
+    let notSavedMsg = '<div class="text-center">Configuration settings were changed and not saved.'
+        + '<br><br><span>Continue processing or return to configuration?</span></div>'
+
+    let currentSettings = getCurrentSettings();
+    console.log(currentSettings + ' : currentSettings')
+    console.log(atOpenSettings + ' : atOpenSettings')
+    console.log(configSaved + ' : configSaved')
+
+    // Are current setting the same as when Config modal was openned
+    if (currentSettings !== atOpenSettings) {
+        $('#yesNoMessageBody').html(notSavedMsg);
+        $('#yesNoMessageYes').html('Continue');
+        $('#yesNoMessageNo').html('Return');
+        yesNoWhere = 'Close';
+        $("#yesNoModal").modal('show');
+        return;
+    }
+
+    if (configRedact !== redactSetting) {
+        $('#yesNoMessageBody').html(redactMsg);
+        $('#yesNoMessageYes').html('Continue');
+        $('#yesNoMessageNo').html('Return');
+        yesNoWhere = 'Redact';
+        $("#yesNoModal").modal('show');
+    } else {
+        $("#configModal").modal('hide');
+    }
+}
 
 //----------------------------------------------------------
 function getDocumentation(data) {
@@ -91,7 +192,8 @@ socket.on('getDocumentationResult', function (data) {
     $('#docsBody').html(content)
     $("#docsModal").modal('show');
 });
-//... using functions
+
+
 function docNextTopic(link) {
     let next;
     if (typeof link === 'undefined') {
@@ -101,6 +203,7 @@ function docNextTopic(link) {
     }
     getDocumentation(next)
 }
+
 function docPrevTopic() {
     let prev = $("#topicBack").attr("link")
     getDocumentation(prev)

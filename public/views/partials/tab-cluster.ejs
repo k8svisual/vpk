@@ -2,7 +2,7 @@
 <div id="cluster" class="tab-pane">
     <!-- Cluster 3D View-->
     <div id="cluster3DView" style="display: none;">
-        <div class="cluster-content" id="canvas3D">
+        <div class="cluster-content">
             <canvas id="clusterCanvas"></canvas>
         </div>
     </div>
@@ -28,13 +28,13 @@
     <div id="cluster_filter_box">
         <div style="display: inline;">
             <div class="form-check vpkfont-filter">
-                <span>Resource Categories</span>
+                <span class="vpkcolor align-middle">Resource Categories</span>
                 <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right"
                     onclick="closeClusterFilter()">&nbsp;Close&nbsp;
                 </button>
             </div>
         </div>
-
+        <hr>
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterNodes"
                 name="clusterFilterNodes" checked>

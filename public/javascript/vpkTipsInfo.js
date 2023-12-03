@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -38,48 +38,81 @@ function getExplain(kind, api) {
     }
 }
 
+
 function showVpkTooltip(evt, key) {
     let tooltip = document.getElementById("tooltip");
     let info = 'No information available';
-    let yAdj = 80;
     if (typeof svgInfo[key] !== 'undefined') {
         info = svgInfo[key]
     }
-
     if (key === '0000.RBAC Security') {
         info = '<span style="font-size: 0.80rem; text-decoration: underline;">Security</span><br><span style="font-size: 0.70rem;">RBAC security graph</span>';
     }
-
-    // Set the text of the tooltip
     tooltip.innerHTML = info;
-
-    let pageY = evt.pageY;
+    let clientXPos = evt.clientX;
+    let clientYPos = evt.clientY;
     let offTop = $("#schematicDetail").offset().top;
-    let tipX = evt.pageX + 5;
-    // adjust for fixed portion of page
-    if (offTop < 0) {
-        offTop = offTop * -1;
-        offTop = offTop + 200;
+    if (offTop < 1) {
+        clientYPos = clientYPos + (offTop * -1);
     } else {
-        offTop = 199 - offTop;
+        clientYPos = clientYPos - offTop;
     }
-
-    let tipY = offTop + pageY;
-    tipY = tipY - yAdj;
-
-    // Adjust for the scrollable area
-    const scrollableSection = document.getElementById('schematicDetail');
-    const rect = scrollableSection.getBoundingClientRect();
-    if (rect.top < 1) {
-        tipY = tipY + rect.top
-        tipY = tipY - (yAdj + 40);
-    }
-
     tooltip.style.display = "block";
-    tooltip.style.left = tipX + 'px';
-    tooltip.style.top = tipY + 'px';
-
+    tooltip.style.left = clientXPos + 'px';
+    tooltip.style.top = clientYPos + 'px';
 }
+
+
+function showEvtTooltip(event, firstTime, duration, message) {
+    let tooltip = document.getElementById("tooltip");
+    let clientXPos = event.clientX;
+    let clientYPos = event.clientY;
+    let offTop = $("#evtSpan").offset().top;
+    let info;
+    let durTime = '';
+    if (duration < 60) {
+        durTime = duration + ' seconds'
+    } else {
+        durTime = (parseInt(duration / 60)) + ' minutes ' + (duration % 60) + ' seconds'
+    }
+    info = '<div class="fa-1x pl-2" style="width: 400px;">'
+        + '<span class="pr-2">Date:</span>' + firstTime.substring(0, 10)
+        + ' at ' + firstTime.substring(11, 19) + '<br>'
+        + '<span class="pr-2">Duration:</span>' + durTime + '<hr>'
+        + '<span class="pt-2 pr-2">Message:</span>' + message
+        + '</div>'
+    tooltip.innerHTML = info;
+    if (offTop < 1) {
+        clientYPos = clientYPos + (offTop * -1);
+    } else {
+        clientYPos = clientYPos - offTop;
+    }
+    tooltip.style.display = "block";
+    tooltip.style.left = clientXPos + 'px';
+    tooltip.style.top = clientYPos + 'px';
+}
+
+function showEvtDist(event, minute, total) {
+    let tooltip = document.getElementById("tooltip");
+    let clientXPos = event.clientX;
+    let clientYPos = event.clientY;
+    let offTop = $("#evtStats").offset().top;
+    let info;
+    info = '<div class="fa-1x pl-1" style="width: 100px;">'
+        + '<span class="pr-2">Minute:</span>' + minute + '<br>'
+        + '<span class="pr-2">Count:</span>' + total + '</span>'
+        + '</div>'
+    tooltip.innerHTML = info;
+    if (offTop < 1) {
+        clientYPos = clientYPos + (offTop * -1);
+    } else {
+        clientYPos = clientYPos - offTop;
+    }
+    tooltip.style.display = "block";
+    tooltip.style.left = clientXPos + 'px';
+    tooltip.style.top = clientYPos + 'px';
+}
+
 
 function hideOwnerRefTooltip() {
     hideVpkTooltip();
@@ -106,7 +139,6 @@ function hideMessage2() {
     $('#messageDiv').removeClass('show');
     $('#messageDiv').addClass('hide');
 }
-
 
 
 //----------------------------------------------------------

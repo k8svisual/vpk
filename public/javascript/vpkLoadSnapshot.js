@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2018-2023 k8sVisual
+Copyright (c) 2018-2023 Dave Weilert
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
 and associated documentation files (the "Software"), to deal in the Software without restriction, 
@@ -26,6 +26,13 @@ let volumeCountsNode;
 let volumeCountsNS;
 let volumeCountsPod;
 let storageVolumes;
+let evtFirstTime = 0;
+let evtLastTime = 0;
+let evtTotalDuration = 0;
+let evtMinutes;
+let evtNs;
+let evtNsSum;
+
 
 //----------------------------------------------------------
 // show change directory modal 
@@ -359,7 +366,7 @@ socket.on('getServerDataResult', function (data) {
     workloadEventsInfo = data.evts;
     oRefLinks = data.oRef;
     // Build an Object with all OwnerRef fnums
-    buildOwnerRefExists()
+    buildOwnerRefExists();
     storageData = data.stor;
     helmData = data.helm;
     imageRepository = data.registry;
@@ -373,6 +380,12 @@ socket.on('getServerDataResult', function (data) {
     volumeCountsPod = data.volumeCountsPod;
     storageVolumes = data.storageVolumes;
 
+    evtFirstTime = data.eventStats.firstTime;
+    evtLastTime = data.eventStats.lastTime;
+    evtTotalDuration = data.eventStats.totalDuration;
+    evtMinutes = data.eventStats.evtMinutes;
+    evtNs = data.eventStats.evtNs;
+    evtNsSum = data.eventStats.evtNsSum;
 
     if (typeof data.filters !== 'undefined') {
         clusterFilters = data.filters;
@@ -384,6 +397,7 @@ socket.on('getServerDataResult', function (data) {
     populateSchematicList();
     buildStorage();
     processimageRepositoryData();
+    populateEventNSList();
 
     showClusterTab();
 
