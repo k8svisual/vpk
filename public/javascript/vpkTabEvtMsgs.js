@@ -25,7 +25,7 @@ let eventsInfo;
 let evtPageNumber = 1;
 let evtInterval = 0;
 let evtTotalSeconds = 0;
-let evtRightWidth = 0;
+let timelineWidth = 0;
 let evtLeftWidth = 400;
 let evtCount = 0;
 let evtWidth;
@@ -42,47 +42,78 @@ let evtGrpCnt = 0;
 let evtNamespace = 'all-namespaces'
 let evtCurrentView = '';
 let evtTableData = [];
+let evtFirstMinuteToShow = 0;
+let offSetAdjustment = 0;
+let redBarMsg = '<span class="fa-xs ml-5">Note: <span style="background-color: red; color: white;">'
+    + 'Red</span> bars indicated the number of messages exceeded top range of chart.</span>'
+let showRedBarMsg = false;
+let evtValidMinutes = false;
 
 $('#evtStatsGroup').hide();
 $('#evtMsgsDetail').hide();
 $('#evtControl').hide();
 $('#evtSpan').hide();
+$('#evtPageToStart').val(0);
 
+function evtInvalidMinutesMsg() {
+    showMessage(`"First minute to display" is out of range. Valid range is 0 to ${evtMaxMinutes}'`);
+    return;
+}
 
 function evtShowStats() {
-    if (evtTableData.length === 0) {
-        evtGetData();
+    showRedBarMsg = false;
+    evtValidMinutes = evtNsSelection();
+    if (evtValidMinutes === true) {
+        //evtApplyNamespace();
+        if (evtTableData.length === 0) {
+            evtGetData();
+        }
+        evtCurrentView = 'stats';
+        $('#evtStatsGroup').show();
+        $('#evtMsgsDetail').hide();
+        $('#evtControl').hide();
+        $('#evtSpan').hide();
+        loadStatsByMinutes();
+    } else {
+        evtInvalidMinutesMsg()
     }
-    evtCurrentView = 'stats';
-    $('#evtStatsGroup').show();
-    $('#evtMsgsDetail').hide();
-    $('#evtControl').hide();
-    $('#evtSpan').hide();
-    loadStatsByMinutes();
 }
 
 function evtShowTable() {
-    if (evtTableData.length === 0) {
-        evtGetData();
+    evtValidMinutes = evtNsSelection();
+    if (evtValidMinutes === true) {
+
+        //evtApplyNamespace();
+        if (evtTableData.length === 0) {
+            evtGetData();
+        }
+        evtCurrentView = 'table';
+        $('#evtStatsGroup').hide();
+        $('#evtMsgsDetail').show();
+        $('#evtControl').hide();
+        $('#evtSpan').hide();
+        loadEvtMsgs();
+    } else {
+        evtInvalidMinutesMsg()
     }
-    evtCurrentView = 'table';
-    $('#evtStatsGroup').hide();
-    $('#evtMsgsDetail').show();
-    $('#evtControl').hide();
-    $('#evtSpan').hide();
-    loadEvtMsgs();
 }
 
 function evtShowTimeline() {
-    if (evtTableData.length === 0) {
-        evtGetData();
+    evtValidMinutes = evtNsSelection();
+    if (evtValidMinutes === true) {
+        //evtApplyNamespace();
+        if (evtTableData.length === 0) {
+            evtGetData();
+        }
+        evtCurrentView = 'timeline';
+        $('#evtStatsGroup').hide();
+        $('#evtMsgsDetail').hide();
+        $('#evtControl').show();
+        $('#evtSpan').show();
+        loadEvtTimeline();
+    } else {
+        evtInvalidMinutesMsg()
     }
-    evtCurrentView = 'timeline';
-    $('#evtStatsGroup').hide();
-    $('#evtMsgsDetail').hide();
-    $('#evtControl').show();
-    $('#evtSpan').show();
-    loadEvtTimeline();
 }
 
 function evtGetData() {
@@ -107,7 +138,7 @@ function evtGetData() {
     }
 }
 
-function evtApplyNamespace() {
+function evtNsSelection() {
     let ns;
     let option
     option = $('#events-ns-filter').select2('data');
@@ -118,16 +149,69 @@ function evtApplyNamespace() {
     } else {
         evtNamespace = ns;
     }
+    evtFirstMinuteToShow = $('#evtPageToStart').val();
+    if (evtFirstMinuteToShow > evtMaxMinutes) {
+        return false;
+    }
+    offSetAdjustment = (evtFirstMinuteToShow * 60);
+    return true;
+}
 
+function evtApplyNamespace() {
+    evtNsSelection();
     evtTableData = [];
+    evtFirstTime = '3000-12-30T23:59:59Z';
+    evtLastTime = '';
     if (evtNamespace !== 'all-namespaces') {
         for (let i = 0; i < eventsInfo.length; i++) {
             if (eventsInfo[i].namespace === evtNamespace) {
-                evtTableData.push(eventsInfo[i]);
+                if (evtFirstMinuteToShow > 0) {
+                    //if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                    if (eventsInfo[i].offset >= offSetAdjustment) {
+                        evtTableData.push(eventsInfo[i]);
+                    }
+
+                    if (eventsInfo[i].firstTime < evtFirstTime) {
+                        evtFirstTime = eventsInfo[i].firstTime;
+                    }
+                    if (eventsInfo[i].lastTime > evtLastTime) {
+                        evtLastTime = eventsInfo[i].lastTime;
+                    }
+                } else {
+                    evtTableData.push(eventsInfo[i]);
+                    if (eventsInfo[i].firstTime < evtFirstTime) {
+                        evtFirstTime = eventsInfo[i].firstTime;
+                    }
+                    if (eventsInfo[i].lastTime > evtLastTime) {
+                        evtLastTime = eventsInfo[i].lastTime;
+                    }
+                }
             }
         }
+        evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
     } else {
-        evtTableData = new Object(eventsInfo);
+        if (evtFirstMinuteToShow > 0) {
+            for (let i = 0; i < eventsInfo.length; i++) {
+                if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                    evtTableData.push(eventsInfo[i]);
+                    if (eventsInfo[i].firstTime < evtFirstTime) {
+                        evtFirstTime = eventsInfo[i].firstTime;
+                    }
+                    if (eventsInfo[i].lastTime > evtLastTime) {
+                        evtLastTime = eventsInfo[i].lastTime;
+                        if (evtLastTime === 0) {
+                            console.log('what')
+                        }
+                    }
+                }
+            }
+            evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
+        } else {
+            evtFirstTime = evtStatsFirstTime;
+            evtLastTime = evtStatsLastTime;
+            evtTotalDuration = evtStatsTotalDuration;
+            evtTableData = new Object(eventsInfo);
+        }
     }
 
     evtPageNumber = 1;
@@ -161,7 +245,6 @@ function loadEvtTimeline() {
     evtRight = '';
     evtWidth = getScreenWidth();
     evtWidth = evtWidth - 585;  // Subtract left side, border, and margins
-    evtRightWidth = evtWidth;
     evtGrpCnt = evtTableData.length / evtPageBreak;
 
     $('#evtPage').html(evtPageNumber);
@@ -252,17 +335,11 @@ function evtToggle(id) {
 }
 
 function calcEvtInterval() {
-    if (evtTotalDuration < evtRightWidth) {
-        evtInterval = evtRightWidth / evtTotalDuration;
-        evtInterval = evtInterval.toFixed(3);
-    } else {
-        evtInterval = 2;
-        evtRightWidth = evtTotalDuration * 2;
-    }
-    //console.log(`Screen Width: ${evtRightWidth} Total Duration (seconds): ${evtTotalDuration}  Interval (seconds): ${evtInterval}`)
+    evtInterval = 2;
 }
 
 function loadStatsByMinutes() {
+    showRedBarMsg = false;
     if (evtNamespace === 'all-namespaces') {
         $('#evtRptNS').html('all namespaces')
         evtMinutesData = evtMinutes;
@@ -271,7 +348,7 @@ function loadStatsByMinutes() {
         evtMinutesData = evtNs[evtNamespace];
     }
 
-    let maxMsgs = 0;
+    //let maxMsgs = 0;
     let maxMinutes = 0;
     let startHdr = ''
     let line = '';
@@ -286,17 +363,13 @@ function loadStatsByMinutes() {
     let xPos = 57;
     let xPosPrt = 55;
     let legendNumber = 0;
-    maxMinutes = evtMinutes.length;
+    maxMinutes = evtMinutesData.length;
+    maxMinutes = maxMinutes - evtFirstMinuteToShow;
     let maxWidth = (maxMinutes * 13) + 60;
     let prtCnt = 10;
+    //let mm = 0;
 
     if (evtMinutes.length > 0) {
-
-        for (let i = 0; i < evtMinutes.length; i++) {
-            if (evtMinutesData[i] > maxMsgs) {
-                maxMsgs = evtMinutesData[i];
-            }
-        }
         startHdr = '<div><svg xmlns="http://www.w3.org/2000/svg" width="' + maxWidth + '" height="860">'
             + '<line x1="45" y1="0" x2="' + maxWidth + '" y2="0" style="stroke:#ddd;" stroke-width="2" />';
 
@@ -307,7 +380,8 @@ function loadStatsByMinutes() {
             legendNumber = legendNumber + 100;
         }
         startHdr = startHdr + '<text text-anchor="start" x="20" y="12" fill="#aaa" class="fa-xs">' + legendNumber + '</text>'
-        for (let i = 0; i < maxMinutes; i++) {
+
+        for (let i = evtFirstMinuteToShow; i < (evtFirstMinuteToShow + maxMinutes); i++) {
             startHdr = startHdr + '<line x1="' + xPos + '" y1="804" x2="' + xPos + '" y2="814" style="stroke:#ddd;" />'
 
             if (prtCnt === 10) {
@@ -322,16 +396,19 @@ function loadStatsByMinutes() {
         }
 
         startHdr = startHdr + '<text text-anchor="middle" transform="translate(12,400) rotate(270)" fill="#888">Number of Event messages</text>'
-            + '<text text-anchor="left" x="50" y="845" fill="#aaa" class="fa-1x">Minutes starting on  '
-            + evtFirstTime.substring(0, 10) + ' at ' + evtFirstTime.substring(11, 19) + '</text > '
+        // + '<text text-anchor="left" x="50" y="845" fill="#aaa" class="fa-1x">Minutes starting on  '
+        // + evtFirstTime.substring(0, 10) + ' at ' + evtFirstTime.substring(11, 19) + '</text > '
     }
 
-    for (let i = 0; i < evtMinutes.length; i++) {
+    for (let i = evtFirstMinuteToShow; i < evtMinutes.length; i++) {
         if (evtMinutesData[i] > 0) {
             top = (200 - evtMinutesData[i]);
             top = top + 600;
             height = evtMinutesData[i];
             height = height + 3;
+            if (height > 800) {
+                showRedBarMsg = true;
+            }
         } else {
             top = 0;
             height = 0;
@@ -354,6 +431,12 @@ function loadStatsByMinutes() {
 
     $('#evtStats').html(startHdr + line + '</svg></div>');
 
+    if (showRedBarMsg === true) {
+        $('#evtStatInfoBottom').html(redBarMsg);
+    } else {
+        $('#evtStatInfoBottom').html('')
+    }
+
 }
 
 function buildEvtHeaders() {
@@ -362,17 +445,15 @@ function buildEvtHeaders() {
     let lPos = 0;
     let tPos = 0;
     let line = '';
-
+    let tickMax = (parseInt(evtStatsTotalDuration / 60)) + 3;
+    timelineWidth = tickMax * 120;
     // Right side Header
     let evtRightHdr = '<div  style="height: 25px; background-color: #ffe6e6;">';
-    let title = '<svg xmlns="http://www.w3.org/2000/svg" width="' + evtRightWidth + '" height="25">'
-        + '<rect x="0" y="0" width="' + evtRightWidth + '" height="25" fill="#e6e6e6" />';
+    let title = '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
+        + '<rect x="0" y="0" width="' + timelineWidth + '" height="25" fill="#e6e6e6" />';
     evtDashes = [];
-    max = evtTotalDuration / 60;
-    max = parseInt(max);
-    gapWidth = evtRightWidth / max;
-    gapWidth = parseInt(gapWidth);
-    for (let i = 0; i < max; i++) {
+    gapWidth = 120;
+    for (let i = evtFirstMinuteToShow; i < tickMax; i++) {
         line = '<line x1="' + lPos + '" y1="0" x2="' + lPos + '" y2="25" style="stroke:orange;" />'
         tPos = lPos + 2;
         line = line + '<text text-anchor="start" x="' + tPos + '" y="15" fill="#600" class="evtSmall" >' + i + '</text >'
@@ -399,6 +480,7 @@ function buildEvtTimeline() {
         let pStop = 0;
         let pCnt = evtPageNumber;
         let tipMessage;
+        let min;
         pStop = (evtPageBreak * pCnt);
         pStart = (pStop - evtPageBreak);
 
@@ -493,9 +575,18 @@ function buildEvtTimeline() {
                 i = i - 1;
                 evtCount++;
             } else {
+
+                if (evtTableData[i].offset > 60) {
+                    min = evtTableData[i].offset / 60;
+                    min = parseInt(min);
+                } else {
+                    min = 0;
+                }
+
+
                 tipMessage = evtTableData[i].message.replace(/["']/g, "");
                 serviceOp = formatServiceOp(evtTableData[i]);
-                evtLeft = evtLeft + buildEvtLeft(serviceOp.srv + ': ' + serviceOp.op, evtTableData[i].fnum, false, ' ');
+                evtLeft = evtLeft + buildEvtLeft(serviceOp.srv + ': ' + serviceOp.op, evtTableData[i].fnum, false, 0, min);
                 evtRight = evtRight + buildEvtRight(evtTableData[i].offset, evtTableData[i].fnum, evtTableData[i].duration, evtTableData[i].firstTime, tipMessage);
                 evtCount++;
             }
@@ -511,10 +602,9 @@ function buildEvtTimeline() {
     $('#evtRight').html(evtRight);
 }
 
-function buildEvtLeft(data, fnum, multi, len, minute) {
-    let cnt = '';
+function buildEvtLeft(data, fnum, multi, len, min) {
     let line = '<div id="evt-' + evtCount + '-hdr">'
-        + '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="25">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="550" height="25">'
 
     // If multi add the Icon to expand/collapse
     if (multi === true) {
@@ -526,18 +616,10 @@ function buildEvtLeft(data, fnum, multi, len, minute) {
             + '    <polygon points="8,7 18,7 13,15" style="stroke:#666; fill:#666" />'
             + '  </g>'
             + '</g>'
-
-        // Append count to line data
-        if (len === ' ' || len === 'Unknown') {
-            cnt = '';
-        } else {
-            cnt = ' (' + minute + ')';
-        }
     }
 
-    line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">' + data + cnt + '</text>'
-
-        + '</svg></div>'
+    line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">'
+        + data + '(' + min + ')</text></svg></div>'
     return line;
 }
 
@@ -550,11 +632,15 @@ function buildEvtLeftMulti(data) {
     let min = 0;
 
     //buildEvtLeft(data, fnum, multi, len) 
-    min = data[0].offset / 60;
-    min = parseInt(min);
+    if (data[0].offset > 60) {
+        min = data[0].offset / 60;
+        min = parseInt(min);
+    } else {
+        min = 0;
+    }
 
     if (data.length === 1) {
-        rtn = buildEvtLeft(serviceOp.srv + ' : ' + serviceOp.op, data[0].fnum, false, data.length, 0);
+        rtn = buildEvtLeft(serviceOp.srv + ' : ' + serviceOp.op, data[0].fnum, false, data.length, min);
     } else {
         rtn = buildEvtLeft(serviceOp.srv + ' : ' + serviceOp.op, data[0].fnum, true, data.length, min);
     }
@@ -562,10 +648,18 @@ function buildEvtLeftMulti(data) {
     rtn = rtn + '<div id="evt-' + evtCount + '-text" class="collapse">'
         + '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="' + height + '">'
     for (let i = 1; i < data.length; i++) {
+
+        if (data[i].offset > 60) {
+            min = data[i].offset / 60;
+            min = parseInt(min);
+        } else {
+            min = 0;
+        }
+
         yPos = (25 * (i - 1)) + 15;
         serviceOp = formatServiceOp(data[i])
         line = '<text text-anchor="start" x="25" y="' + yPos + '" class="evtSmall"  onclick="getDefFnum(\'' + data[i].fnum + '\')">'
-            + serviceOp.srv + ' : ' + serviceOp.op + '</text>'
+            + serviceOp.srv + ' : ' + serviceOp.op + '(' + min + ')</text>'
         rtn = rtn + line;
     }
     rtn = rtn + '</svg></div>';
@@ -581,11 +675,10 @@ function buildEvtRight(offset, fnum, duration, firstTime, message) {
             duration = 2;
         }
         line = '<div id="evt-' + evtCount + '-line">'
-            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + evtRightWidth + '" height="25">'
-            //+ '    <line x1="0" y1="0" x2="' + evtRightWidth + '" y2="0" style="stroke:#c6c6c6;" />'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
             + tickMarks
             + tickMarks
-            + '<rect x="' + intervalAdjustment(offset) + '" y="5" width="' + intervalAdjustment(duration) + '"'
+            + '<rect x="' + intervalOffsetAdjustment(offset) + '" y="5" width="' + intervalDurationAdjustment(duration) + '"'
             + ' height="15" rx="0" fill="green" '
             + ' onmousemove="showEvtTooltip(evt,\'' + firstTime + '\',\'' + duration + '\',\'' + message + '\')" '
             + ' onmouseout="hideVpkTooltip()" '
@@ -614,20 +707,18 @@ function buildEvtRightMulti(data) {
             dur = 2;
         }
         tipMessage = data[0].message.replace(/["']/g, "");
-        //tipData = "'" + data[0].firstTime + "','" + data[0].duration + "','" + data[0].message + "'";
         rtn = '<div id="evt-' + evtCount + '-line">'
-            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + evtRightWidth + '" height="25">'
-            //+ '    <line x1="0" y1="0" x2="' + evtRightWidth + '" y2="0" style="stroke:#c6c6c6;" />'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
             + tickMarks
             + tickMarks
-            + '<rect x="' + intervalAdjustment(data[0].offset) + '" y="5" width="' + intervalAdjustment(dur) + '"'
+            + '<rect x="' + intervalOffsetAdjustment(data[0].offset) + '" y="5" width="' + intervalDurationAdjustment(dur) + '"'
             + ' height="15" rx="0" fill="green" '
             + ' onmousemove="showEvtTooltip(evt,\'' + data[0].firstTime + '\',\'' + data[0].duration + '\',\'' + tipMessage + '\')" '
             + ' onmouseout="hideVpkTooltip()" '
             + ' onclick="getDefFnum(\'' + data[0].fnum + '\')"/>'
             + '</svg></div>'
             + '<div id="evt-' + evtCount + '-bars" class="collapse">'
-            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + evtRightWidth + '" height="' + height + '">'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="' + height + '">'
 
         line = buildTickMarks(height);
         for (let i = 1; i < data.length; i++) {
@@ -638,8 +729,7 @@ function buildEvtRightMulti(data) {
                 dur = 2;
             }
             tipMessage = data[0].message.replace(/["']/g, "");
-            //tipData = "'" + data[i].firstTime + "','" + data[i].duration + "','" + data[i].message + "'";
-            line = line + '<rect x="' + intervalAdjustment(data[i].offset) + '" y="' + yPos + '" width="' + intervalAdjustment(dur) + '"'
+            line = line + '<rect x="' + intervalOffsetAdjustment(data[i].offset) + '" y="' + yPos + '" width="' + intervalDurationAdjustment(dur) + '"'
                 + ' height="15" rx="0" fill="green"'
                 + ' onmousemove="showEvtTooltip(evt,\'' + data[i].firstTime + '\',\'' + data[i].duration + '\',\'' + tipMessage + '\')" '
                 + ' onmouseout="hideVpkTooltip()" '
@@ -702,7 +792,15 @@ function formatServiceOp(data) {
     return { 'srv': source, 'op': op }
 }
 
-function intervalAdjustment(val) {
+function intervalOffsetAdjustment(val) {
+    if (offSetAdjustment > 0) {
+        val = val - offSetAdjustment;
+
+        if (val < 0) {
+            console.log('what')
+        }
+    }
+
     if (val === 0 || val === 1) {
         if (evtInterval < 1) {
             return 1
@@ -713,6 +811,17 @@ function intervalAdjustment(val) {
 
     return val * evtInterval
 
+}
+
+function intervalDurationAdjustment(val) {
+    if (val === 0 || val === 1) {
+        if (evtInterval < 1) {
+            return 1
+        } else {
+            return evtInterval
+        }
+    }
+    return val * evtInterval
 }
 
 function setTotalSeconds(startTime, endTime) {
@@ -735,6 +844,69 @@ function setTotalSeconds(startTime, endTime) {
     }
 }
 
+function timeDiff(startTime, endTime) {
+    //------------------------------------------------------------------------------
+    // Routine to calculate the total seconds of duration from first date time to 
+    // end date time. As currently written the routine only handles maximum of
+    // two consecutive days.
+    //------------------------------------------------------------------------------
+
+    try {
+        let sTmp = startTime.split('T');
+        let eTmp = endTime.split('T');
+
+        let sDay = sTmp[0].split('-');
+        let sTime = sTmp[1].split(':');
+
+        let eDay = eTmp[0].split('-');
+        let eTime = eTmp[1].split(':');
+
+        let sYYYY = sDay[0];
+        let sMM = sDay[1];
+        let sDD = sDay[2];
+        let sHr = sTime[0];
+        let sMin = sTime[1];
+        let sSec = sTime[2].substring(0, 2);
+
+        let eYYYY = eDay[0];
+        let eMM = eDay[1];
+        let eDD = eDay[2];
+        let eHr = eTime[0];
+        let eMin = eTime[1];
+        let eSec = eTime[2].substring(0, 2);
+
+        let totalSeconds = 0;
+        let seconds = 0;
+
+        let start_date;
+        let end_date;
+
+        if (sTmp[0] !== eTmp[0]) {
+            // First day
+            start_date = new Date(sYYYY, sMM, sDD, sHr, sMin, sSec)
+            end_date = new Date(sYYYY, sMM, sDD, 23, 59, 59)
+            seconds = (end_date - start_date) / 1000;
+            timeDiffotalSeconds = seconds;
+            // Second day
+            start_date = new Date(eYYYY, eMM, eDD, 0, 0, 1)
+            end_date = new Date(eYYYY, eMM, eDD, eHr, eMin, eSec)
+            totalSeconds = (end_date - start_date) / 1000;
+            seconds = (end_date - start_date) / 1000;
+            totalSeconds = evtTotalSeconds + seconds;
+        } else {
+            start_date = new Date(sYYYY, sMM, sDD, sHr, sMin, sSec)
+            end_date = new Date(eYYYY, eMM, eDD, eHr, eMin, eSec)
+            seconds = (end_date - start_date) / 1000;
+            totalSeconds = seconds;
+        }
+        return totalSeconds;
+    } catch (err) {
+        console.log(`Error calculating time duration, message: ${err}`);
+        return 1;
+    }
+
+
+}
 
 
 //----------------------------------------------------------

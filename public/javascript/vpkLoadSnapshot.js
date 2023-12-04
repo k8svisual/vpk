@@ -28,7 +28,10 @@ let volumeCountsPod;
 let storageVolumes;
 let evtFirstTime = 0;
 let evtLastTime = 0;
+let evtStatsFirstTime = 0;
+let evtStatsLastTime = 0;
 let evtTotalDuration = 0;
+let evtMaxMinutes = 0;
 let evtMinutes;
 let evtNs;
 let evtNsSum;
@@ -383,6 +386,12 @@ socket.on('getServerDataResult', function (data) {
     evtFirstTime = data.eventStats.firstTime;
     evtLastTime = data.eventStats.lastTime;
     evtTotalDuration = data.eventStats.totalDuration;
+
+    evtStatsFirstTime = data.eventStats.firstTime;
+    evtStatsLastTime = data.eventStats.lastTime;
+    evtStatsTotalDuration = data.eventStats.totalDuration;
+
+    evtMaxMinutes = parseInt(evtTotalDuration / 60);
     evtMinutes = data.eventStats.evtMinutes;
     evtNs = data.eventStats.evtNs;
     evtNsSum = data.eventStats.evtNsSum;
@@ -398,6 +407,8 @@ socket.on('getServerDataResult', function (data) {
     buildStorage();
     processimageRepositoryData();
     populateEventNSList();
+    $('#evtMinutesRange').html(`Range 0 to ${evtMaxMinutes}`)
+    evtShowStats();
 
     showClusterTab();
 

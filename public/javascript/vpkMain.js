@@ -354,16 +354,21 @@ $(document).ready(function () {
         placeholder: "select repository"
     });
 
-
     $("#searchBtn").click(function (e) {
         e.preventDefault();
         searchObj();
     });
 
-
     $('#cluster-bar1-select').focusout(function () {
-        console.log('No FOCUS')
-        filter3DView()
+        filter3DView();
+    });
+
+    $('#events-ns-select').on("change", function () {
+        evtApplyNamespace();
+    });
+
+    $('#evtPageToStart').on("change", function () {
+        evtApplyNamespace();
     });
 
     $('input[name=clusterFilterNodes]').change(function () {

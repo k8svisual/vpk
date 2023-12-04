@@ -178,5 +178,8 @@ function processModalYesNo(action) {
 	}
 }
 
+
+
+
 //----------------------------------------------------------
 console.log('loaded vpkCommon.js');

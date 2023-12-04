@@ -159,35 +159,38 @@
                 <div>
                     <span>
                         <span>
-                            <span style="padding-right: 10px;" class="vpkfont vpkcolor">
+                            <span style="padding-right: 10px;" class="vpkfont-sm vpkcolor">
                                 Select view
                             </span>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="viewEvtStats" onclick="evtShowStats()">
-                                &nbsp;Statistics&nbsp;
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
+                                onclick="evtShowStats()">
+                                Statistics
                             </button>
-
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="viewChart02" onclick="evtShowTimeline()">
-                                &nbsp;Timeline&nbsp;
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
+                                onclick="evtShowTimeline()">
+                                Timeline
                             </button>
-
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite"
-                                id="viewChart03" onclick="evtShowTable()">
-                                &nbsp;Table view&nbsp;
+                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
+                                onclick="evtShowTable()">
+                                Table view
                             </button>
                         </span>
-
-                        <span id="events-ns-select" class="ml-1 mr-1 vpkfont-md" style="padding-left: 100px;">
+                        <span style="padding-left: 50px;" class="vpkfont-sm vpkcolor">
+                            Select namespace
+                        </span>
+                        <span id="events-ns-select" class="vpkfont-md" style="padding-left: 5px;">
                             <select id="events-ns-filter" style="width: 300px">
                                 <option>all-namespaces</option>
                             </select>
                         </span>
-
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                            onclick="evtApplyNamespace()">
-                            &nbsp;Apply namespace&nbsp;
-                        </button>
+                        <span style="padding-left: 50px; display: inline;" class="vpkfont-sm vpkcolor">
+                            First minute to display
+                            <span style="display: inline; padding-left: 5px;">
+                                <input type="text" class="vpkfont vpkcolor" style="width: 40px; height: 25px;"
+                                    id="evtPageToStart">
+                            </span>
+                            <span id="evtMinutesRange" style="padding-left: 5px; display: inline;"></span>
+                        </span>
                     </span>
                 </div>
             </div>
