@@ -32,7 +32,7 @@ function searchObj() {
     hideMessage();
     var namespaces = '::';
     var kinds = '::';
-    var labels = '::';
+    // var labels = '::';
     var searchValue = '';
     var skipU = true;
     var nsKey = false;

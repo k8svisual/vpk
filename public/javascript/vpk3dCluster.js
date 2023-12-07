@@ -2460,7 +2460,7 @@ function build3DView() {
 function buildCluster3D() {
     build3DJSON();
     $('#cluster3DView').show();
-    $("#clusterAttention").html('&nbsp');
+    // $("#clusterAttention").html('&nbsp');
     parseClusterResc();
     build3DView();
     $("#resourceProps").html('')

@@ -131,7 +131,7 @@ $(document).ready(function () {
             $('#schematicHdr').hide();
         }
         if (currentTab === "#storage") {
-            px = 103;
+            px = 120;
             checkIfDataLoaded();
             documentationTabTopic = 'storage';
             $('#storage').show();

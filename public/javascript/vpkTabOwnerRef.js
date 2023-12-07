@@ -341,9 +341,10 @@ function createGraphORef(clusterORef) {
         document.getElementById('oRefWrapper').innerHTML = '';
         if (clusterORef === true) {
             document.getElementById('oRefWrapper').innerHTML =
-                '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
-                + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-                + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+                '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
+                + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+                + ' onclick="returnToWhereTab()">Return</button>'
+                + '<span class="px-2 vpkfont">to Cluster tab</span></div>'
                 + '<div id="oRefViz" style="text-align: center;"></div>'
         } else {
             document.getElementById('oRefWrapper').innerHTML = '<div id="oRefViz" style="text-align: center;"></div>'

@@ -39,7 +39,6 @@ function initStorageVars() {
     storageInfo = {};
     scArray = {};
 
-
     if (typeof k8cData['0000-clusterLevel'] !== 'undefined') {
         if (typeof k8cData['0000-clusterLevel'].Node !== 'undefined') {
             for (let i = 0; i < k8cData['0000-clusterLevel'].Node.length; i++) {
@@ -396,7 +395,7 @@ function countsForNodeType(node) {
         + '<div>'
         + '<table class="vpkfont mt-1">'
         + '<tr class="vpkfont">'
-        + '    <th width=10%;>Type</th><th width=5%;>Count</th><th>Type name</th>'
+        + '    <th width=10%;>Type</th><th width=5%;>Count</th><th>Volume Type name</th>'
         + '</tr>';
 
     allKeys = Object.keys(volumeCountsNode);
@@ -453,7 +452,7 @@ function countsForNodeTypeKey(node, key) {
         + '<div>'
         + '<table class="vpkfont mt-1">'
         + '<tr class="vpkfont">'
-        + '    <th width=10%;>NS</th><th width=5%;>Count</th><th>Type name</th>'
+        + '    <th width=10%;>NS</th><th width=5%;>Count</th><th>Volume Type name</th>'
         + '</tr>';
 
     allKeys = Object.keys(volumeCountsNode);
@@ -579,7 +578,7 @@ function countsForNodeTypeKeyFnum(node, key, ns) {
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="getDefFnum(\'' + value[3] + '\')">'
             + volumeCountsNode[keys[i]] + '</td>'
             + '<td style="padding-left: 10px;" onclick="getDefFnum(\'' + value[3] + '\')">'
-            + value[2] + '</td>'
+            + podName + '</td>'
             + '</tr>'
     }
     counts = counts + '</table>'
@@ -614,7 +613,7 @@ function countsForNS() {
         value = keys[i];
         counts = counts + '<tr class="vpkfont">'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
-            + '<img src="images/3d/3d-volume.png" height="20" width="20"></td>'
+            + '<img src="images/k8/ns.svg" height="20" width="20"></td>'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSType(\'' + value + '\')">'
             + volumeCountsNS[keys[i]] + '</td>'
             + '<td style="padding-left: 10px;" onclick="countsForNSType(\'' + value + '\')">'
@@ -640,7 +639,7 @@ function countsForNSType(ns) {
         + '<div>'
         + '<table class="vpkfont mt-1">'
         + '<tr class="vpkfont">'
-        + '    <th width=10%;>Namespace</th><th width=5%;>Count</th><th>Namespace name</th>'
+        + '    <th width=10%;>Type</th><th width=5%;>Count</th><th>Volume Type name</th>'
         + '</tr>';
 
     allKeys = Object.keys(volumeCountsNS);
@@ -658,7 +657,7 @@ function countsForNSType(ns) {
     for (let i = 0; i < keys.length; i++) {
         value = keys[i].split('::');
         value = value[1].split('=');
-        img = "images/k8/ns.svg";
+        img = "images/3d/3d-volume.png";
 
         counts = counts + '<tr class="vpkfont">'
             + '<td style="text-align: center; border: 1px solid #888888;" onclick="countsForNSTypeKey(\'' + ns + '\',\'' + value[1] + '\')">'
@@ -765,9 +764,11 @@ function openNodeStorageCounts(node) {
     countsForNodeType(node);
 
     returnWhere = 'Cluster';
-    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
-        + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-        + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
+        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+        + ' onclick="returnToWhereTab()">Return</button>'
+        + '<span class="px-2">to Cluster tab</span>'
+        + '</div>'
 
     $("#countsReturnSection").html(returnButton);
     $("#storageReturnSection").html('');
@@ -797,7 +798,7 @@ function buildStorageSVG() {
     let rtn = '<div class="mt-0 ml-5 vpkfont-sm vpkcolor"><span pl-5></span>'
         + '</div>'
         + '<svg width="1200" height="10">'
-        + '<line  x1="30"  x2="190"  y1="10" y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
+        // + '<line  x1="30"  x2="190"  y1="10" y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
         + '<line  x1="200"  x2="1200"  y1="10" y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
 
         + '<line  x1="200"  x2="200"   y1="1"  y2="10" stroke="black" stroke-width="0.5" stroke-linecap="round"/>'
@@ -931,7 +932,7 @@ function buildStorageSVG() {
             + '<text x="60" y="19" fill="' + textColor + '" class="vpkfont" '
             + ' onclick="toggleStorage(\'sc' + storCnt + 'pv\')">' + fmtSpc + '</text>'
 
-            + '<line x1="30" x2="1200" y1="50" y2="50" stroke="gray" stroke-width="0.5" stroke-linecap="round"/>'
+        //+ '<line x1="30" x2="1200" y1="50" y2="50" stroke="gray" stroke-width="0.5" stroke-linecap="round"/>'
 
         if (first === false) {
             rtn = rtn + '<line  x1="1"  x2="1200" y1="1" y2="1" stroke="lightgray" stroke-width="0.5" stroke-linecap="round"/>'
@@ -1020,9 +1021,11 @@ function toggleStorage(id) {
 function showSC(name, fnum) {
     // Close all StroageClasses
     returnWhere = 'Cluster';
-    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">Cluster tab selected view - '
-        + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-        + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
+        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+        + ' onclick="returnToWhereTab()">Return</button>'
+        + '<span class="px-2 vpkfont">to Cluster tab</span>'
+        + '</div>'
     $("#storageReturnSection").html(returnButton);
     $("#countsReturnSection").html('');
 

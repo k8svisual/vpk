@@ -134,12 +134,5 @@ function hideMessage() {
     $("#messageModal").modal('hide');
 }
 
-function hideMessage2() {
-    $('#messageText').html('');
-    $('#messageDiv').removeClass('show');
-    $('#messageDiv').addClass('hide');
-}
-
-
 //----------------------------------------------------------
 console.log('loaded vpkTipsInfo.js');

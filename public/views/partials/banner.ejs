@@ -22,8 +22,7 @@
 -->
 
 
-<div id="header-bar" class="header ml-1 mr-0 pt-1 pb-1">
-    <!-- <span onclick="printDiv()"> -->
+<div id="header-bar" class="header ml-1 mr-0 pt-1 pb-1" style="background-color: #f2f2f2;">
     <span>
         <img class="vpk-vert-mid" src='images/vpk.png' alt="vpk icon" width='30' height='30'
             onclick="getDocumentation('toc')">
@@ -50,15 +49,12 @@
                     <option>Run command in container</option>
                 </select>
             </div>
-
             <button class="btn btn-sm btn-outline-primary vpkfont-md ml-2" onclick="dirStats()">
                 <span id="baseDir" class="float-left"></span>
             </button>
         </div>
 
         <div class="header-right">
-            <!-- <button id="theme-toggle">Toggle Theme</button> -->
-
             <a href="javascript:getDocumentation()">
                 <i class="fas fa-question mr-3 vpkcolor"></i>
             </a>
@@ -68,15 +64,6 @@
             <a href="javascript:closeVpK()">
                 <i class="fas fa-window-close fa-lg mr-3 vpkcolor"></i>
             </a>
-        </div>
-
-        <div id="messageDiv" class="collapse hide mt-0 mb-0 vpkfont-md">
-            <div id="messageType" class="alert alert-warning fade show pt-2 pb-2" role="alert">
-                <span id="messageText"></span>
-                <button type="button" class="close pt-0" onclick="hideMessage2()">
-                    <span>&times;</span>
-                </button>
-            </div>
         </div>
     </span>
 </div>

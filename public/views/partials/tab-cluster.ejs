@@ -26,15 +26,22 @@
     <!-- FILTER on left of screen-->
     <span id="cluster_filter">Filter view</span>
     <div id="cluster_filter_box">
-        <div style="display: inline;">
-            <div class="form-check vpkfont-filter">
-                <span class="vpkcolor align-middle">Resource Categories</span>
-                <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right"
-                    onclick="closeClusterFilter()">&nbsp;Close&nbsp;
+        <div style="display: inline;" class="mb-1 text-center">
+            <div class="form-check mb-1">
+                <span class="vpkcolor vkpfont-md align-left" style="margin-bottom: 5px;">Filter 3D view</span>
+                <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right vpkfont-filter"
+                    onclick="closeClusterFilter()" style="margin-bottom: 5px;">&nbsp;Close&nbsp;
                 </button>
             </div>
         </div>
-        <hr>
+
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+        <div class="form-check vpkfont-filter">
+            <span class="vpkcolor">Node, Storage, Network</span>
+        </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
+
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterNodes"
                 name="clusterFilterNodes" checked>
@@ -83,6 +90,13 @@
                 Ingress/IngressControl
             </label>
         </div>
+
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+        <div class="form-check vpkfont-filter">
+            <span class="vpkcolor">Control Plane & etcd Planes</span>
+        </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
 
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterControlP"
@@ -186,11 +200,11 @@
         </div>
 
 
-
-        <hr style="margin-left: -10px;">
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span>Pods</span>
+            <span class="vpkcolor">Pods</span>
         </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterRunning"
@@ -237,10 +251,11 @@
             </label>
         </div>
 
-        <hr style="margin-left: -10px;">
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span>Resource CPU & Memory</span>
+            <span class="vpkcolor">Resource CPU & Memory</span>
         </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterNodeMemory"
@@ -305,11 +320,12 @@
             </label>
         </div>
 
-        <hr style="margin-left: -10px;">
+
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span>NAMESPACES</span>&nbsp;&nbsp;
-            <span class="vpkfont-filter">(default: all-namespaces)</span>
+            <span class="vpkcolor">Namespace (default: all-namespace)</span>
         </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
             <select id="cluster-ns-filter" multiple="multiple" style="width: 250px" id="cluster-bar1-options">
@@ -319,10 +335,11 @@
             </select>
         </div>
 
-        <hr style="margin-left: -10px;">
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span>SOUND</span>
+            <span class="vpkcolor">Sound</span>
         </div>
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterSound" checked>
@@ -332,10 +349,11 @@
             </label>
         </div>
 
-        <hr style="margin-left: -10px;">
-        <div class="mb-2 ml-3">
-            <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons pd-2"
-                onclick="saveClusterFilters()">Save filters as default</button>
+
+        <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+        <div class="mb-2 mt-2 text-center">
+            <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons px-2"
+                onclick="saveClusterFilters()">Save current filter settings as default</button>
         </div>
         <!-- <div class="form-check vpkfont-filter">
                     <span class="pt-1">BACKGROUND</span>

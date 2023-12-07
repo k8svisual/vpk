@@ -43,7 +43,7 @@ function getRepositoryData() {
         return;
     } else {
         containerImagesInfo = imageRepositoryData[repository];
-        let html = '<div class="vpkfont vpkcolor ml-1">Viewing repository:<b> ' + repository + '</b></div>'
+        let html = '<div class="vpkfont vpkcolor px-2">Viewing repository:<b> ' + repository + '</b></div>'
         $('#selectedRepository').html(html);
         $('#containerImagesReturn').html('')
         loadContainerImagesTable();
@@ -59,9 +59,11 @@ function loadRepositoryData(repository, view) {
     let html = '<span class="vpkfont vpkcolor ml-1">Viewing repository: <b>' + repository + '</b></span>'
     $('#selectedRepository').html(html);
 
-    html = '<span class="vpkfont vpkcolor mt-1 mb-2 ml-2">' + returnWhere + ' tab selected view - '
-        + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-        + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></span>'
+    html = '<span class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
+        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+        + ' onclick="returnToWhereTab()">Return</button>'
+        + '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
+        + '</span > '
     $('#containerImagesReturn').html(html)
 
     containerImagesInfo = imageRepositoryData[repository];

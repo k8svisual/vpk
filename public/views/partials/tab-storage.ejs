@@ -22,16 +22,17 @@
 -->
 
 <!-- Tab: STROAGE  -->
-<div id="storage" class="tab-pane" style="background-color: white important;">
+<div id="storage" class="tab-pane">
 
     <div id="storageReturnSection">
         <!-- Return button shows here if needed -->
     </div>
 
-    <div id="storageWrapper">
+    <div id="storageWrapper" class="collapse">
+        <!-- <hr style="margin-top: 2px;"> -->
         <div class="ml-4 mt-2 vpkfont-sm vpkcolor">
-            <span pl-5>
-                &nbsp;Legend:
+            <span px-4>
+                Legend:
             </span>
             <span class="pl-3 pt-1">
                 <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #F8BBD0; color: black;">KiloByte</span>
@@ -53,12 +54,12 @@
         </div>
     </div>
     <div id="countsDetail" class="ml-2 mt-1">
-        <hr>
         <div id="countsReturnSection">
             <!-- Return button will show here if needed. -->
         </div>
 
         <div id="volumeCounts" class="mb-4 ml-3 mr-3">
+            <!-- Blue -->
             <div id="countVol" class="collapse volCounts-bg">
                 <div class="vpkfont vpkcolor ml-4">
                     Click icons in any row to drill-down.
@@ -70,6 +71,7 @@
                     <div id="countVolFnum" class="mt-2"></div>
                 </div>
             </div>
+            <!-- Grey -->
             <div id="countNode" class="collapse nodeCounts-bg">
                 <div class="vpkfont vpkcolor ml-4">
                     Click icons in any row to drill-down.
@@ -81,6 +83,7 @@
                     <div id="countNodeFnum" class="mt-2"></div>
                 </div>
             </div>
+            <!-- Green -->
             <div id="countNamespace" class="collapse namespaceCounts-bg">
                 <div class="vpkfont vpkcolor ml-4">
                     Click icons in any row to drill-down.

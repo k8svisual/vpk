@@ -309,9 +309,11 @@ function formatSingleSVG(data, pod) {
             if (podKeys[p] !== pod) {
                 continue;
             } else {
-                return '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">' + returnWhere + ' tab selected view - '
-                    + '<button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2" '
-                    + ' onclick="returnToWhereTab()">&nbsp;Return&nbsp</button></div>'
+                return '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
+                    + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+                    + ' onclick="returnToWhereTab()">Return</button>'
+                    + '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
+                    + '</div>'
                     + data[nsKeys[i]][podKeys[p]];
             }
         }
