@@ -21,16 +21,11 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-
-
 body {
     /* Disable scrollbars and ensure that the body fills the window */
     overflow: hidden;
     width: 100%;
     height: 100%;
-}
-
-body {
     margin: 0;
 }
 
@@ -38,17 +33,6 @@ body,
 div {
     margin: 0;
     padding: 0;
-}
-
-
-#secViz svg {
-    height: auto;
-    width: 100%;
-    overflow: auto;
-}
-
-#secViz {
-    overflow: auto;
 }
 
 /* font sizes */
@@ -86,19 +70,9 @@ div {
     font-size: 0.90rem;
 }
 
-/* .vpkfontI {
-    font-size: 0.90rem;
-    font-style: normal;
-    background-color: #ddd;
-} */
-
 .vpkfont-lg {
     font-size: 1.25rem;
 }
-
-/* .vpkfont-xl {
-    font-size: 1.50rem;
-} */
 
 .vpkfont-giant {
     font-size: 3.00rem;
@@ -113,32 +87,14 @@ div {
     color: rgb(0, 123, 255);
 }
 
-/* .vpkcolorRed {
-    color: red;
-} */
-
 .vpkwhite {
     background-color: rgb(255, 255, 255);
     color: rgb(0, 123, 255);
 }
 
-/* .vpkfont-phase {
-    font-weight: 700;
-    font-size: .60rem;
-} */
-
-/* .vpkcount {
-    background-color: green;
-    color: white;
-} */
-
 .vpkinline {
     display: inline;
 }
-
-/* .vpkunderline {
-    text-decoration: underline;
-} */
 
 .vpk-hdr-mid {
     display: inline;
@@ -150,30 +106,14 @@ div {
     vertical-align: middle;
 }
 
-/* .vpkhr {
-    padding: 0px;
-} */
-
 .vpkhidden {
     display: none;
 }
-
-/* .vpk-not-visable {
-    visibility: hidden;
-} */
-
-/* .vpk-font-italic {
-    font-style: italic;
-} */
 
 .vpk-font-bold-italic {
     font-weight: bold;
     font-style: italic;
 }
-
-/* .text-vm {
-    vertical-align: middle;
-} */
 
 .filterWidth {
     width: 150px;
@@ -183,55 +123,45 @@ div {
     width: 70px;
 }
 
-/* buttons */
 .vpkButtons {
     font-size: 0.75rem;
     margin-right: 2px;
     padding: 1px;
 }
 
-/* .datasource {
-    width: 350px !important;
-} */
-
-/* .hr-width {
-    width: 320px !important;
-    padding: 0px;
-    margin: 0px;
-} */
-
-/* chart info bar */
-/* .chartInfo {
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-bottom: 20px;
-    font-size: .8rem;
-} */
-
-/* font awsome icons */
-.fa {
-    color: white;
-}
-
-.fa-plus-circle {
-    color: #999;
-    padding: 1px;
-}
-
-.fa-minus-circle {
-    color: #999;
-    padding: 1px;
-}
-
-.fa-cog {
-    color: rgb(0, 123, 255);
-    padding: 2px;
-}
-
 /* filter bars */
 .filterBack {
     /*background-color: rgba(0, 123, 255, 0.2);*/
     margin: 0px;
+}
+
+.vpkButtonBottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+hr.hrLine {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: -10px;
+    margin-right: -16px;
+    border-top: 1px dashed rgb(0, 123, 255);
+}
+
+img.icon {
+    width: 40px;
+    height: 40px;
+}
+
+#secViz svg {
+    height: auto;
+    width: 100%;
+    overflow: auto;
+}
+
+#secViz {
+    overflow: auto;
 }
 
 #tableSearch,
@@ -252,6 +182,81 @@ div {
     font-size: 0.75rem;
     padding: 1px;
 }
+
+#tooltip {
+    background: cornsilk;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 10px;
+    padding-bottom: 20px;
+    z-index: 50;
+}
+
+#decodeModal {
+    z-index: 2000;
+}
+
+#docsModal {
+    z-index: 2000;
+}
+
+#banner {
+    overflow: auto;
+    position: absolute;
+    width: 100%;
+    height: 75px;
+    background-color: #ffffff;
+}
+
+#docsBody pre {
+    border: darkgray;
+    background-color: #fcf2d4;
+    margin-left: 40px;
+    margin-right: 40px;
+}
+
+#viewarea {
+    overflow: auto;
+    position: absolute;
+    width: 100%;
+    top: 76px;
+    bottom: 0;
+    background-color: #ffffff;
+}
+
+#explainModal {
+    z-index: 3000;
+}
+
+
+#schemModal {
+    overflow-y: scroll;
+}
+
+
+#editorModal {
+    z-index: 9999;
+}
+
+#aboutModal {
+    z-index: 9999;
+}
+
+#explainModal {
+    z-index: 99999;
+}
+
+#closeVpKModal {
+    z-index: 99999;
+}
+
+#tooltip {
+    pointer-events: none;
+}
+
+
 
 .bootstrap-table .fixed-table-toolbar .bs-bars,
 .bootstrap-table .fixed-table-toolbar .columns,
@@ -308,17 +313,6 @@ div {
     }
 }
 
-*/ #tooltip {
-    background: cornsilk;
-    border: 1px solid black;
-    border-radius: 5px;
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-top: 10px;
-    padding-bottom: 20px;
-    z-index: 50;
-}
-
 .workloadText {
     margin-left: 10px;
     font-size: 0.85rem;
@@ -329,12 +323,6 @@ div {
     font-size: 0.75rem;
     color: rgb(0, 123, 255);
 }
-
-/* .breakHeader {
-    margin-left: 10px;
-    font-size: 0.75rem;
-    color: rgb(0, 123, 255);
-} */
 
 .breakBar hr {
     margin-top: 2px;
@@ -382,13 +370,6 @@ div {
     background-color: #d4d4d4;
     color: black;
 }
-
-/* .partsBar {
-    margin-left: 30px;
-    margin-bottom: 15px;
-    margin-top: 15px;
-    font-size: 0.75rem;
-} */
 
 .partsList {
     font-size: 0.75rem;
@@ -449,30 +430,11 @@ div {
     box-shadow: 0 0 0 .2rem rgba(38, 143, 255, .5)
 }
 
-/* .roleRBAC {
-    background-color: lightgrey;
-    color: black;
-} */
-
-/* .noSubject {
-    background-color: black;
-    color: white;
-} */
 
 .modal {
-    /* modal background: rgba(0, 0, 128, 0.2);  */
     background: rgba(2, 117, 216, 0.4)
 }
 
-#decodeModal {
-    /* sequence this modal to the top of other modals */
-    z-index: 2000;
-}
-
-#docsModal {
-    /* sequence this modal to the top of other modals */
-    z-index: 2000;
-}
 
 table.docsTable {
     border: 0.5px solid black;
@@ -494,104 +456,6 @@ table.docsTable td {
     padding-right: 10px;
     ;
 }
-
-#docsBody pre {
-    border: darkgray;
-    background-color: #fcf2d4;
-    margin-left: 40px;
-    margin-right: 40px;
-}
-
-/* .bg-copyright {
-    background-color: #ededed;
-    color: black;
-} */
-
-/* .rulesList {
-    font-size: 1.0 rem;
-    background-color: #b4b4b4;
-    color: white;
-}
-
-.rulesText {
-    font-size: 1.0rem;
-    background-color: #ffffff;
-    color: black;
-} */
-
-/* RBAC colors */
-/* .bg-role {
-    background-color: #3ad35d;
-    color: black;
-}
-
-.bg-roleBinding {
-    background-color: #016601;
-    color: white;
-}
-
-.bg-clusterRole {
-    background-color: #dec4f7;
-    color: black;
-}
-
-.bg-clusterRoleBinding {
-    background-color: #6e03d3;
-    color: #fff;
-}
-
-.bg-roleBindingUnk {
-    background-color: #525252;
-    color: white;
-}
-
-.bg-unknown {
-    background-color: #525252;
-    color: white;
-}
-
-.bg-subjectServiceAccount {
-    background-color: #17a2b8;
-    color: white
-}
-
-.bg-subjectUser {
-    background-color: #dc3545;
-    color: white;
-}
-
-.bg-subjectGroup {
-    background-color: #f0ad4e;
-    color: black;
-}
-
-.bg-subjectSystemUser {
-    background-color: #6c757d;
-    color: white;
-}
-
-.bg-subjectSystemGroup {
-    background-color: #007bff;
-    color: white;
-} */
-
-
-
-/* .text-black {
-    color: #000000;
-} */
-
-/* .text-white {
-    color: #ffffff;
-} */
-
-/* .text-gray {
-    color: #949494;
-} */
-
-/* .aligncenter {
-    text-align: center;
-} */
 
 .multi-item-carousel {
     overflow: hidden;
@@ -633,29 +497,8 @@ table.docsTable td {
     width: 33.33333333%;
 }
 
-#banner {
-    overflow: auto;
-    position: absolute;
-    width: 100%;
-    height: 75px;
-    background-color: #ffffff;
-}
-
-#viewarea {
-    overflow: auto;
-    position: absolute;
-    width: 100%;
-    top: 76px;
-    bottom: 0;
-    background-color: #ffffff;
-}
-
 .docBackground {
     background-color: #ebebeb;
-}
-
-#explainModal {
-    z-index: 3000;
 }
 
 .explainWidth {
@@ -663,30 +506,9 @@ table.docsTable td {
     margin-top: 50px;
 }
 
-/* .paleGreen {
-    background-color: #98fb98;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.paleRed {
-    background-color: #ffcccb;
-    text-align: center;
-    vertical-align: middle;
-} */
-
-/* .centerText {
-    text-align: center;
-    vertical-align: middle;
-} */
-
 tr.border_bottom td {
     border-bottom: 0.5px solid gray;
 }
-
-/* .dualUp {
-    display: flex;
-} */
 
 .vpk-tagline {
     margin-top: 20px;
@@ -719,10 +541,8 @@ tr.border_bottom td {
     background-color: white;
 }
 
-#schemModal {
-    overflow-y: scroll;
-}
 
+/*  Blue  */
 .volCounts-bg {
     background-color: rgba(0, 123, 255, .15);
     border: 1px solid #007bff;
@@ -755,13 +575,13 @@ tr.border_bottom td {
     background-color: #dddddd;
 }
 
+/*  Grey  */
 .nodeCounts-bg {
     background-color: rgba(108, 117, 125, .10);
     border: 1px solid #6c757d;
 }
 
 .nodeCounts table {
-    /*font-family: arial, sans-serif;*/
     border-collapse: collapse;
     width: 100%;
 }
@@ -787,7 +607,7 @@ tr.border_bottom td {
     background-color: #dddddd;
 }
 
-/*     */
+/*  Green  */
 
 .namespaceCounts-bg {
     background-color: rgba(25, 135, 84, .25);
@@ -831,21 +651,6 @@ tr.border_bottom td {
     background-color: #DEB887;
 }
 
-#editorModal {
-    z-index: 9999;
-}
-
-#aboutModal {
-    z-index: 9999;
-}
-
-#explainModal {
-    z-index: 99999;
-}
-
-#closeVpKModal {
-    z-index: 99999;
-}
 
 /* Event-timeline font */
 
@@ -857,6 +662,12 @@ tr.border_bottom td {
     visibility: hidden;
 }
 
+/* Tooltip */
+.tooltip {
+    pointer-events: none;
+}
+
+/* Overrides and new definition for font awesome */
 .fa-xs {
     font-size: .75em !important;
 }
@@ -873,46 +684,22 @@ tr.border_bottom td {
     font-size: 1.5em !important;
 }
 
-.fa-2x {
-    font-size: 2em !important;
+/* font awsome icons */
+.fa {
+    color: white;
 }
 
-.fa-3x {
-    font-size: 3em !important;
+.fa-plus-circle {
+    color: #999;
+    padding: 1px;
 }
 
-.fa-4x {
-    font-size: 4em !important;
+.fa-minus-circle {
+    color: #999;
+    padding: 1px;
 }
 
-.fa-5x {
-    font-size: 5em !important;
-}
-
-.fa-6x {
-    font-size: 6em !important;
-}
-
-.fa-7x {
-    font-size: 7em !important;
-}
-
-.fa-8x {
-    font-size: 8em !important;
-}
-
-.fa-9x {
-    font-size: 9em !important;
-}
-
-.fa-10x {
-    font-size: 10em !important;
-}
-
-.tooltip {
-    pointer-events: none;
-}
-
-#tooltip {
-    pointer-events: none;
+.fa-cog {
+    color: rgb(0, 123, 255);
+    padding: 2px;
 }

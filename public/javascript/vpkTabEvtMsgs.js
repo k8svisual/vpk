@@ -363,6 +363,9 @@ function loadStatsByMinutes() {
     let xPos = 57;
     let xPosPrt = 55;
     let legendNumber = 0;
+    if (typeof evtMinutesData === 'undefined') {
+        return;
+    }
     maxMinutes = evtMinutesData.length;
     maxMinutes = maxMinutes - evtFirstMinuteToShow;
     let maxWidth = (maxMinutes * 13) + 60;

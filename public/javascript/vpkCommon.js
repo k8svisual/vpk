@@ -136,6 +136,7 @@ function returnToWhereTab() {
 	if (returnWhere === 'Cluster') {
 		$('[href="#cluster"]').tab('show');
 		$("#storageReturnSection").html('');
+		$('#searchReturn').html('');
 	} else if (returnWhere === 'Event') {
 		$('[href="#evtMsgs"]').tab('show');
 	}
@@ -178,7 +179,27 @@ function processModalYesNo(action) {
 	}
 }
 
+function openSearch(val) {
 
+	$('#kind-filter').val(val);
+	$('#kind-filter').trigger('change')
+
+	var data = {
+		"searchValue": '',
+		"namespaceFilter": '::all-namespaces::',
+		"kindFilter": val
+	}
+	socket.emit('searchK8Data', data);
+	returnWhere = 'Cluster'
+	let rtn = '<div class="vpkfont vpkcolor mt-1 mb-1" style="background-color: #eeeeee;"><hr style="margin-top: 3px; margin-bottom: 3px;">'
+		+ '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
+		+ ' onclick="returnToWhereTab()">Return</button>'
+		+ '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
+		+ '<hr style="margin-top: 3px; margin-bottom: 3px;"></div>'
+	$('#searchReturn').html(rtn);
+
+	$('[href="#searchview"]').tab('show');
+}
 
 
 //----------------------------------------------------------
