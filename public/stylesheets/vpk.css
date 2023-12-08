@@ -149,6 +149,14 @@ hr.hrLine {
     border-top: 1px dashed rgb(0, 123, 255);
 }
 
+hr.tipLine {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: -10px;
+    margin-right: -3px;
+    border-top: 1px dashed rgb(123, 123, 123);
+}
+
 img.icon {
     width: 40px;
     height: 40px;

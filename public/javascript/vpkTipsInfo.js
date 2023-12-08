@@ -75,18 +75,24 @@ function showEvtTooltip(event, firstTime, duration, message) {
     } else {
         durTime = (parseInt(duration / 60)) + ' minutes ' + (duration % 60) + ' seconds'
     }
-    info = '<div class="fa-1x pl-2" style="width: 400px;">'
-        + '<span class="pr-2">Date:</span>' + firstTime.substring(0, 10)
-        + ' at ' + firstTime.substring(11, 19) + '<br>'
-        + '<span class="pr-2">Duration:</span>' + durTime + '<hr>'
-        + '<span class="pt-2 pr-2">Message:</span>' + message
-        + '</div>'
+    info = '<div class="fa-1x pl-2" style="width: 400px;"><table>'
+        + '<tr><td><b>Date:</b></td><td><span class="pl-2">' + firstTime.substring(0, 10) + ' at ' + firstTime.substring(11, 19) + '</span></td></tr>'
+        + '<tr><td><b>Duration:</b></td><td><span class="pl-2">' + durTime + '</span></td></tr>'
+        // + '<tr><td><b>Message:</b></td><td><span class="pl-2">' + message + '</span></td></tr>'
+        // + '</table></div>'
+
+        + '</table><hr class="tipLine">'
+        + '<span class="pt-2"><b>Message:</b></span><br><span style="word-break: break-word;">' + message
+        + '</span></div>'
     tooltip.innerHTML = info;
     if (offTop < 1) {
         clientYPos = clientYPos + (offTop * -1);
     } else {
         clientYPos = clientYPos - offTop;
     }
+
+    clientXPos = clientXPos + 10;
+    clientYPos = clientYPos + 20;
     tooltip.style.display = "block";
     tooltip.style.left = clientXPos + 'px';
     tooltip.style.top = clientYPos + 'px';
@@ -108,6 +114,7 @@ function showEvtDist(event, minute, total) {
     } else {
         clientYPos = clientYPos - offTop;
     }
+    clientXPos = clientXPos + 10;
     tooltip.style.display = "block";
     tooltip.style.left = clientXPos + 'px';
     tooltip.style.top = clientYPos + 'px';

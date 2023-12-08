@@ -214,6 +214,8 @@ function evtApplyNamespace() {
         }
     }
 
+    evtTableData.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1);
+
     evtPageNumber = 1;
     evtGrpCnt = 0;
     $('#evtPage').html(evtPageNumber)
@@ -240,7 +242,9 @@ function loadEvtMsgs() {
 }
 
 function loadEvtTimeline() {
-    evtLeft = '<div id="hdr-text" style="height: 25px;  background-color: #e6e6e6; padding-left: 15px;">Service : Operation (#) <span class="fa-xs">first minute of data</span></div>';
+    evtLeft = '<div id="hdr-text" style="height: 25px; background-color: #e6e6e6; padding-left: 25px; color: #600;" class="vpkfont">Component'
+        + '<span style="color: #aaaaaa; padding-left: 97px;" class="pr-1">- Reason</span>'
+        + '<span style="color: #aaaaaa;" class="vpkfont">(first minute of data)</span></div>';
 
     evtRight = '';
     evtWidth = getScreenWidth();
@@ -531,9 +535,6 @@ function buildEvtTimeline() {
         for (let i = pStart; i < pStop; i++) {
             m = 0;
             if (typeof evtTableData[i].multiCnt !== 'undefined') {
-                if (typeof evtTableData[i].involvedName === 'undefined') {
-                    console.log('debug')
-                }
                 key = evtTableData[i].namespace + '.' + evtTableData[i].involvedName;
                 multiArray = [];
                 multiCnt = evtTableData[i].multiCnt;
@@ -566,7 +567,7 @@ function buildEvtTimeline() {
                 }
 
                 // Sort array by key of firstTime
-                multiArray.sort((a, b) => (a.firstTime > b.firstTime) ? 1 : -1)
+                multiArray.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1)
                 // Process left side of screen
                 mLine = buildEvtLeftMulti(multiArray);
                 evtLeft = evtLeft + mLine;
@@ -589,7 +590,7 @@ function buildEvtTimeline() {
 
                 tipMessage = evtTableData[i].message.replace(/["']/g, "");
                 serviceOp = formatServiceOp(evtTableData[i]);
-                evtLeft = evtLeft + buildEvtLeft(serviceOp.srv + ': ' + serviceOp.op, evtTableData[i].fnum, false, 0, min);
+                evtLeft = evtLeft + buildEvtLeft(serviceOp.srv, serviceOp.op, evtTableData[i].fnum, false, 0, min);
                 evtRight = evtRight + buildEvtRight(evtTableData[i].offset, evtTableData[i].fnum, evtTableData[i].duration, evtTableData[i].firstTime, tipMessage);
                 evtCount++;
             }
@@ -605,9 +606,9 @@ function buildEvtTimeline() {
     $('#evtRight').html(evtRight);
 }
 
-function buildEvtLeft(data, fnum, multi, len, min) {
+function buildEvtLeft(srv, op, fnum, multi, len, min) {
     let line = '<div id="evt-' + evtCount + '-hdr">'
-        + '<svg xmlns="http://www.w3.org/2000/svg" width="550" height="25">'
+        + '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="25">'
 
     // If multi add the Icon to expand/collapse
     if (multi === true) {
@@ -621,8 +622,13 @@ function buildEvtLeft(data, fnum, multi, len, min) {
             + '</g>'
     }
 
-    line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">'
-        + data + '(' + min + ')</text></svg></div>'
+    // line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">'
+    //     + data + '(' + min + ')</text></svg></div>'
+
+    line = line + '<g><text text-anchor="start" x="25"  y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">' + srv + '</text>'
+        + '<text text-anchor="start" x="200" y="15" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')"> - ' + op + '(' + min + ')</text>'
+        + '</g></svg></div>'
+
     return line;
 }
 
@@ -634,7 +640,6 @@ function buildEvtLeftMulti(data) {
     let serviceOp = formatServiceOp(data[0]);
     let min = 0;
 
-    //buildEvtLeft(data, fnum, multi, len) 
     if (data[0].offset > 60) {
         min = data[0].offset / 60;
         min = parseInt(min);
@@ -643,9 +648,9 @@ function buildEvtLeftMulti(data) {
     }
 
     if (data.length === 1) {
-        rtn = buildEvtLeft(serviceOp.srv + ' : ' + serviceOp.op, data[0].fnum, false, data.length, min);
+        rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, false, data.length, min);
     } else {
-        rtn = buildEvtLeft(serviceOp.srv + ' : ' + serviceOp.op, data[0].fnum, true, data.length, min);
+        rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, true, data.length, min);
     }
 
     rtn = rtn + '<div id="evt-' + evtCount + '-text" class="collapse">'
@@ -661,8 +666,14 @@ function buildEvtLeftMulti(data) {
 
         yPos = (25 * (i - 1)) + 15;
         serviceOp = formatServiceOp(data[i])
-        line = '<text text-anchor="start" x="25" y="' + yPos + '" class="evtSmall"  onclick="getDefFnum(\'' + data[i].fnum + '\')">'
-            + serviceOp.srv + ' : ' + serviceOp.op + '(' + min + ')</text>'
+        // line = '<text text-anchor="start" x="25" y="' + yPos + '" class="evtSmall"  onclick="getDefFnum(\'' + data[i].fnum + '\')">'
+        //     + serviceOp.srv + ' : ' + serviceOp.op + '(' + min + ')</text>'
+
+        line = '<g>'
+            + '<text text-anchor="start" x="25"  y="' + yPos + '" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')">' + serviceOp.srv + '</text>'
+            + '    <text text-anchor="start" x="200" y="' + yPos + '" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')"> - ' + serviceOp.op + '(' + min + ')</text>'
+            + '</g>'
+
         rtn = rtn + line;
     }
     rtn = rtn + '</svg></div>';
