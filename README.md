@@ -244,9 +244,9 @@ Kubernetes resources associated with a Pod are shown in a schematic like the fol
 
 <br>
 
-#### Graphic tab
+#### Statics tab
 
-Select cluster or namespace level graphic views of defined resources in the cluster or namespace.
+Select the desired information.
 
 ![graphicTab](https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/images/wow/pic-graphic.png)
 

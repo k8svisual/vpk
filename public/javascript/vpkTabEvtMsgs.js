@@ -44,10 +44,15 @@ let evtCurrentView = '';
 let evtTableData = [];
 let evtFirstMinuteToShow = 0;
 let offSetAdjustment = 0;
-let redBarMsg = '<span class="fa-xs ml-5">Note: <span style="background-color: red; color: white;">'
-    + 'Red</span> bars indicated the number of messages exceeded top range of chart.</span>'
 let showRedBarMsg = false;
 let evtValidMinutes = false;
+let evtLimitUid = ''
+let evtShowTextZero = false;
+let evtScrollFnum = 0;
+
+const evtNoDataMsg = '<div><span class="vpkfont vpkblue">No Snapshot data loaded</span></></div>';
+const redBarMsg = '<span class="fa-xs ml-5">Note: <span style="background-color: red; color: white;">'
+    + 'Red</span> bars indicated the number of messages exceeded top range of chart.</span>'
 
 $('#evtStatsGroup').hide();
 $('#evtMsgsDetail').hide();
@@ -55,16 +60,75 @@ $('#evtControl').hide();
 $('#evtSpan').hide();
 $('#evtPageToStart').val(0);
 
+function evtClearFilter() {
+    evtLimitUid = '';
+    evtApplyNamespace();
+}
+
+function timelineForUid(uid, ns, fnum) {
+    returnWhere = 'Workload';
+    evtLimitUid = uid;
+    evtCurrentView = 'timeline'
+    evtNamespace = ns;
+    evtScrollFnum = fnum;
+
+    // Set the associated Namespace in the drop down
+    let dropdown = document.getElementById("events-ns-filter");
+    for (var i = 0; i < dropdown.options.length; i++) {
+        if (dropdown.options[i].text === ns) {
+            dropdown.selectedIndex = i;
+            break;
+        }
+    }
+    // Trigger a change event to notify any listeners (like event listeners or frameworks)
+    let event = new Event("change");
+    dropdown.dispatchEvent(event);
+
+    // Filter the data
+    evtApplyNamespace();
+    // Close the modal with Event messages in Schematic tab
+    $("#schemModal").modal('hide');
+
+    $('#evtReturn').html(
+        '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2"'
+        + 'onclick="returnToWhereTab(\'Workload\',\'evtReturn\')">Return</button>'
+        + '<span class="px-2">to Workload Schematic tab</span>'
+    )
+
+    // Opent the events message tab
+    $('[href="#evtMsgs"]').tab('show');
+
+}
+
+function evtScroll(fnum) {
+    const targetElement = document.getElementById(elementId);
+
+    if (targetElement) {
+        // Scroll to the target element
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        console.log("Element not found");
+    }
+}
+
 function evtInvalidMinutesMsg() {
     showMessage(`"First minute to display" is out of range. Valid range is 0 to ${evtMaxMinutes}'`);
     return;
 }
 
 function evtShowStats() {
+    if (typeof eventsInfo === 'undefined') {
+        $('#evtStats').html(evtNoDataMsg);
+        $('#evtStatInfoTop').hide();
+        $('#evtStatsGroup').show();
+        $('#evtMsgsDetail').hide();
+        $('#evtControl').hide();
+        $('#evtSpan').hide();
+        return;
+    }
     showRedBarMsg = false;
     evtValidMinutes = evtNsSelection();
     if (evtValidMinutes === true) {
-        //evtApplyNamespace();
         if (evtTableData.length === 0) {
             evtGetData();
         }
@@ -80,10 +144,17 @@ function evtShowStats() {
 }
 
 function evtShowTable() {
+    if (typeof eventsInfo === 'undefined') {
+        $('#evtStats').html(evtNoDataMsg);
+        $('#evtStatInfoTop').hide();
+        $('#evtStatsGroup').show();
+        $('#evtMsgsDetail').hide();
+        $('#evtControl').hide();
+        $('#evtSpan').hide();
+        return;
+    }
     evtValidMinutes = evtNsSelection();
     if (evtValidMinutes === true) {
-
-        //evtApplyNamespace();
         if (evtTableData.length === 0) {
             evtGetData();
         }
@@ -99,9 +170,17 @@ function evtShowTable() {
 }
 
 function evtShowTimeline() {
+    if (typeof eventsInfo === 'undefined') {
+        $('#evtStats').html(evtNoDataMsg);
+        $('#evtStatInfoTop').hide();
+        $('#evtStatsGroup').show();
+        $('#evtMsgsDetail').hide();
+        $('#evtControl').hide();
+        $('#evtSpan').hide();
+        return;
+    }
     evtValidMinutes = evtNsSelection();
     if (evtValidMinutes === true) {
-        //evtApplyNamespace();
         if (evtTableData.length === 0) {
             evtGetData();
         }
@@ -158,59 +237,97 @@ function evtNsSelection() {
 }
 
 function evtApplyNamespace() {
+    if (evtLimitUid !== '') {
+        $('#evtFilter').show();
+    } else {
+        $('#evtFilter').hide();
+    }
+
+    // Invoked when UI events required view to be recreated
     evtNsSelection();
     evtTableData = [];
     evtFirstTime = '3000-12-30T23:59:59Z';
     evtLastTime = '';
-    if (evtNamespace !== 'all-namespaces') {
-        for (let i = 0; i < eventsInfo.length; i++) {
-            if (eventsInfo[i].namespace === evtNamespace) {
-                if (evtFirstMinuteToShow > 0) {
-                    //if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
-                    if (eventsInfo[i].offset >= offSetAdjustment) {
-                        evtTableData.push(eventsInfo[i]);
-                    }
+    evtShowTextZero = false;
+    let skipChecking = false;
 
-                    if (eventsInfo[i].firstTime < evtFirstTime) {
-                        evtFirstTime = eventsInfo[i].firstTime;
-                    }
-                    if (eventsInfo[i].lastTime > evtLastTime) {
-                        evtLastTime = eventsInfo[i].lastTime;
-                    }
-                } else {
-                    evtTableData.push(eventsInfo[i]);
-                    if (eventsInfo[i].firstTime < evtFirstTime) {
-                        evtFirstTime = eventsInfo[i].firstTime;
-                    }
-                    if (eventsInfo[i].lastTime > evtLastTime) {
-                        evtLastTime = eventsInfo[i].lastTime;
-                    }
+    if (evtLimitUid !== '') {
+        let offset = 999999;
+        for (let i = 0; i < eventsInfo.length; i++) {
+            if (eventsInfo[i].involvedUid === evtLimitUid) {
+                evtTableData.push(eventsInfo[i]);
+                if (eventsInfo[i].firstTime < evtFirstTime) {
+                    evtFirstTime = eventsInfo[i].firstTime;
+                }
+                if (eventsInfo[i].lastTime > evtLastTime) {
+                    evtLastTime = eventsInfo[i].lastTime;
+                }
+                if (eventsInfo[i].offset < offset) {
+                    offset = eventsInfo[i].offset;
                 }
             }
         }
-        evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
-    } else {
-        if (evtFirstMinuteToShow > 0) {
+        skipChecking = true;
+        offset = parseInt(offset / 60);
+
+        $('#evtPageToStart').val(offset);
+        evtShowTextZero = true;
+    }
+
+    // is everything set????
+
+    if (skipChecking === false) {
+        evtNsSelection();
+        if (evtNamespace !== 'all-namespaces') {
             for (let i = 0; i < eventsInfo.length; i++) {
-                if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
-                    evtTableData.push(eventsInfo[i]);
-                    if (eventsInfo[i].firstTime < evtFirstTime) {
-                        evtFirstTime = eventsInfo[i].firstTime;
-                    }
-                    if (eventsInfo[i].lastTime > evtLastTime) {
-                        evtLastTime = eventsInfo[i].lastTime;
-                        if (evtLastTime === 0) {
-                            console.log('what')
+                if (eventsInfo[i].namespace === evtNamespace) {
+                    if (evtFirstMinuteToShow > 0) {
+                        //if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                        if (eventsInfo[i].offset >= offSetAdjustment) {
+                            evtTableData.push(eventsInfo[i]);
+                        }
+
+                        if (eventsInfo[i].firstTime < evtFirstTime) {
+                            evtFirstTime = eventsInfo[i].firstTime;
+                        }
+                        if (eventsInfo[i].lastTime > evtLastTime) {
+                            evtLastTime = eventsInfo[i].lastTime;
+                        }
+                    } else {
+                        evtTableData.push(eventsInfo[i]);
+                        if (eventsInfo[i].firstTime < evtFirstTime) {
+                            evtFirstTime = eventsInfo[i].firstTime;
+                        }
+                        if (eventsInfo[i].lastTime > evtLastTime) {
+                            evtLastTime = eventsInfo[i].lastTime;
                         }
                     }
                 }
             }
             evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
         } else {
-            evtFirstTime = evtStatsFirstTime;
-            evtLastTime = evtStatsLastTime;
-            evtTotalDuration = evtStatsTotalDuration;
-            evtTableData = new Object(eventsInfo);
+            if (evtFirstMinuteToShow > 0) {
+                for (let i = 0; i < eventsInfo.length; i++) {
+                    if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                        evtTableData.push(eventsInfo[i]);
+                        if (eventsInfo[i].firstTime < evtFirstTime) {
+                            evtFirstTime = eventsInfo[i].firstTime;
+                        }
+                        if (eventsInfo[i].lastTime > evtLastTime) {
+                            evtLastTime = eventsInfo[i].lastTime;
+                            if (evtLastTime === 0) {
+                                console.log('what')
+                            }
+                        }
+                    }
+                }
+                evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
+            } else {
+                evtFirstTime = evtStatsFirstTime;
+                evtLastTime = evtStatsLastTime;
+                evtTotalDuration = evtStatsTotalDuration;
+                evtTableData = new Object(eventsInfo);
+            }
         }
     }
 
@@ -251,13 +368,30 @@ function loadEvtTimeline() {
     evtWidth = evtWidth - 585;  // Subtract left side, border, and margins
     evtGrpCnt = evtTableData.length / evtPageBreak;
 
-    $('#evtPage').html(evtPageNumber);
-    evtGrpCnt = parseInt(evtGrpCnt) + 1;
-    $('#evtGroupCnt').html('of ' + evtGrpCnt);
-
+    if (evtTableData.length > 0) {
+        $('#evtPage').html(evtPageNumber);
+        evtGrpCnt = parseInt(evtGrpCnt) + 1;
+        $('#evtGroupCnt').html('of ' + evtGrpCnt);
+    } else {
+        $('#evtPage').html('0');
+        $('#evtGroupCnt').html('of ' + evtGrpCnt);
+    }
     calcEvtInterval();
-    buildEvtHeaders();
-    buildEvtTimeline();
+    if (typeof evtStatsTotalDuration === 'number') {
+        buildEvtHeaders();
+        buildEvtTimeline();
+        if (evtShowTextZero === true) {
+            evtToggle('evt-0');
+        }
+    } else {
+        evtLeft = '<div><span>No Snapshot data loaded</span></></div>'
+        evtRight = '<div><span>No Snapshot data loaded</span></></div>'
+        $('#evtLeft').html('');
+        $('#evtRight').html('');
+
+        $('#evtLeft').html(evtLeft);
+        $('#evtRight').html(evtRight);
+    }
 }
 
 function evtMsgsShowSource(fnum) {
@@ -452,23 +586,31 @@ function buildEvtHeaders() {
     let lPos = 0;
     let tPos = 0;
     let line = '';
-    let tickMax = (parseInt(evtStatsTotalDuration / 60)) + 3;
-    timelineWidth = tickMax * 120;
-    // Right side Header
-    let evtRightHdr = '<div  style="height: 25px; background-color: #ffe6e6;">';
-    let title = '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
-        + '<rect x="0" y="0" width="' + timelineWidth + '" height="25" fill="#e6e6e6" />';
-    evtDashes = [];
-    gapWidth = 120;
-    for (let i = evtFirstMinuteToShow; i < tickMax; i++) {
-        line = '<line x1="' + lPos + '" y1="0" x2="' + lPos + '" y2="25" style="stroke:orange;" />'
-        tPos = lPos + 2;
-        line = line + '<text text-anchor="start" x="' + tPos + '" y="15" fill="#600" class="evtSmall" >' + i + '</text >'
-        lPos = lPos + gapWidth;
-        title = title + line;
-        evtDashes.push(tPos);
+    let tickMax;
+    let evtRightHdr = ''
+    let title = ''
+    if (typeof evtStatsTotalDuration === 'number') {
+        tickMax = (parseInt(evtStatsTotalDuration / 60)) + 3;
+        timelineWidth = tickMax * 120;
+        // Right side Header
+
+        evtRightHdr = '<div  style="height: 25px; background-color: #ffe6e6;">';
+        title = '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
+            + '<rect x="0" y="0" width="' + timelineWidth + '" height="25" fill="#e6e6e6" />';
+        evtDashes = [];
+        gapWidth = 120;
+        for (let i = evtFirstMinuteToShow; i < tickMax; i++) {
+            line = '<line x1="' + lPos + '" y1="0" x2="' + lPos + '" y2="25" style="stroke:orange;" />'
+            tPos = lPos + 2;
+            line = line + '<text text-anchor="start" x="' + tPos + '" y="15" fill="#600" class="evtSmall" >' + i + '</text >'
+            lPos = lPos + gapWidth;
+            title = title + line;
+            evtDashes.push(tPos);
+        }
+        evtRight = evtRightHdr + title + '</svg></div>';
+    } else {
+        evtRight = '<div><span>No Snapshot data loaded</span></></div>'
     }
-    evtRight = evtRightHdr + title + '</svg></div>';
 }
 
 function buildEvtTimeline() {
@@ -491,108 +633,109 @@ function buildEvtTimeline() {
         pStop = (evtPageBreak * pCnt);
         pStart = (pStop - evtPageBreak);
 
-        // Back up till a multiCnt is found;
-        if (pStart > 0) {
-            let nPtr = pStart;
-            let stay = true;
-            while (stay === true) {
-                if (typeof evtTableData[nPtr].multiCnt === 'undefined') {
-                    nPtr = nPtr - 1;
-                } else {
-                    console.log(`Page start backed up ${pStart - nPtr} records`)
-                    pStart = nPtr
-                    stay = false;
+        if (evtTableData.length > 0) {
+            // Back up till a multiCnt is found;
+            if (pStart > 0) {
+                let nPtr = pStart;
+                let stay = true;
+                while (stay === true) {
+                    if (typeof evtTableData[nPtr].multiCnt === 'undefined') {
+                        nPtr = nPtr - 1;
+                    } else {
+                        //console.log(`Page start backed up ${pStart - nPtr} records`)
+                        pStart = nPtr
+                        stay = false;
+                    }
                 }
             }
-        }
 
-        if (pStop > 0 && evtTableData.length > 500) {
-            let nPtr = pStop;
-            let stay = true;
-            while (stay === true) {
-                if (typeof evtTableData[nPtr].multiCnt !== 'undefined') {
-                    console.log(`Page stop moved forward ${nPtr - pStop} records`)
-                    pStop = nPtr
-                    stay = false;
-                } else {
-                    nPtr = nPtr + 1;
+            if (pStop > 0 && evtTableData.length > 500) {
+                let nPtr = pStop;
+                let stay = true;
+                while (stay === true) {
+                    if (typeof evtTableData[nPtr].multiCnt !== 'undefined') {
+                        //console.log(`Page stop moved forward ${nPtr - pStop} records`)
+                        pStop = nPtr
+                        stay = false;
+                    } else {
+                        nPtr = nPtr + 1;
+                    }
                 }
             }
-        }
 
-        if (pStop > 0 && evtTableData.length < 500) {
-            pStop = evtTableData.length;
-        }
+            if (pStop > 0 && evtTableData.length < 500) {
+                pStop = evtTableData.length;
+            }
 
 
-        if (pStart === 1) {
-            pStart = 0;
-        }
-        if (pStop > evtTableData.length) {
-            pStop = evtTableData.length;
-        }
+            if (pStart === 1) {
+                pStart = 0;
+            }
+            if (pStop > evtTableData.length) {
+                pStop = evtTableData.length;
+            }
 
-        for (let i = pStart; i < pStop; i++) {
-            m = 0;
-            if (typeof evtTableData[i].multiCnt !== 'undefined') {
-                key = evtTableData[i].namespace + '.' + evtTableData[i].involvedName;
-                multiArray = [];
-                multiCnt = evtTableData[i].multiCnt;
-                // Add row with multiCnt
-                multiArray.push(evtTableData[i])
+            for (let i = pStart; i < pStop; i++) {
+                m = 0;
+                if (typeof evtTableData[i].multiCnt !== 'undefined') {
+                    key = evtTableData[i].namespace + '.' + evtTableData[i].involvedName;
+                    multiArray = [];
+                    multiCnt = evtTableData[i].multiCnt;
+                    // Add row with multiCnt
+                    multiArray.push(evtTableData[i])
 
-                for (m = 1; m <= multiCnt; m++) {
-                    np = i + m;
-                    multiArray.push(evtTableData[np])
-                }
+                    for (m = 1; m <= multiCnt; m++) {
+                        np = i + m;
+                        multiArray.push(evtTableData[np])
+                    }
 
-                chkRec = true;
-                while (chkRec) {
-                    np = np + 1
-                    if (typeof evtTableData[np] !== 'undefined') {
-                        if (typeof evtTableData[np].namespace !== 'undefined') {
-                            nextRecKey = evtTableData[np].namespace + '.' + evtTableData[np].involvedName;
-                            if (key.startsWith(nextRecKey)) {
-                                multiArray.push(evtTableData[np])
-                                m = m + 1;
+                    chkRec = true;
+                    while (chkRec) {
+                        np = np + 1
+                        if (typeof evtTableData[np] !== 'undefined') {
+                            if (typeof evtTableData[np].namespace !== 'undefined') {
+                                nextRecKey = evtTableData[np].namespace + '.' + evtTableData[np].involvedName;
+                                if (key.startsWith(nextRecKey)) {
+                                    multiArray.push(evtTableData[np])
+                                    m = m + 1;
+                                } else {
+                                    chkRec = false;
+                                }
                             } else {
                                 chkRec = false;
                             }
                         } else {
                             chkRec = false;
                         }
-                    } else {
-                        chkRec = false;
                     }
-                }
 
-                // Sort array by key of firstTime
-                multiArray.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1)
-                // Process left side of screen
-                mLine = buildEvtLeftMulti(multiArray);
-                evtLeft = evtLeft + mLine;
-                // Process right side of screen
-                mLine = buildEvtRightMulti(multiArray);
-                evtRight = evtRight + mLine;
-                // Set new pointer for next record
-                i = i + m;
-                i = i - 1;
-                evtCount++;
-            } else {
-
-                if (evtTableData[i].offset > 60) {
-                    min = evtTableData[i].offset / 60;
-                    min = parseInt(min);
+                    // Sort array by key of firstTime
+                    multiArray.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1)
+                    // Process left side of screen
+                    mLine = buildEvtLeftMulti(multiArray);
+                    evtLeft = evtLeft + mLine;
+                    // Process right side of screen
+                    mLine = buildEvtRightMulti(multiArray);
+                    evtRight = evtRight + mLine;
+                    // Set new pointer for next record
+                    i = i + m;
+                    i = i - 1;
+                    evtCount++;
                 } else {
-                    min = 0;
+
+                    if (evtTableData[i].offset > 60) {
+                        min = evtTableData[i].offset / 60;
+                        min = parseInt(min);
+                    } else {
+                        min = 0;
+                    }
+
+                    //tipMessage = evtTableData[i].message.replace(/["']/g, "");
+                    serviceOp = formatServiceOp(evtTableData[i]);
+                    evtLeft = evtLeft + buildEvtLeft(serviceOp.srv, serviceOp.op, evtTableData[i].fnum, false, 0, min);
+                    evtRight = evtRight + buildEvtRight(evtTableData[i]);
+                    evtCount++;
                 }
-
-
-                tipMessage = evtTableData[i].message.replace(/["']/g, "");
-                serviceOp = formatServiceOp(evtTableData[i]);
-                evtLeft = evtLeft + buildEvtLeft(serviceOp.srv, serviceOp.op, evtTableData[i].fnum, false, 0, min);
-                evtRight = evtRight + buildEvtRight(evtTableData[i].offset, evtTableData[i].fnum, evtTableData[i].duration, evtTableData[i].firstTime, tipMessage);
-                evtCount++;
             }
         }
     } catch (err) {
@@ -680,23 +823,42 @@ function buildEvtLeftMulti(data) {
     return rtn;
 }
 
-function buildEvtRight(offset, fnum, duration, firstTime, message) {
+function buildEvtRight(data) {
     let tickMarks = buildTickMarks(25);
-
+    let message;
+    let xVal = 0;
+    let wVal = 0;
     try {
         let line = '';
-        if (duration < 2) {
-            duration = 2;
+        if (data.duration < 2) {
+            data.duration = 2;
         }
+        // Remove any single or double quotes from message
+        message = data.message.replace(/["']/g, "");
+        xVal = intervalOffsetAdjustment(data.Dateoffset);
+        if (typeof xVal !== 'number') {
+            console.log(`xVal: ${xVal} data.Dataoffset: ${data.Dateoffset}`);
+        }
+        wVal = intervalDurationAdjustment(data.duration);
+        if (typeof wVal !== 'number') {
+            console.log(`wVal: ${wVal} data.duration: ${data.duration}`);
+        }
+
         line = '<div id="evt-' + evtCount + '-line">'
             + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
             + tickMarks
             + tickMarks
-            + '<rect x="' + intervalOffsetAdjustment(offset) + '" y="5" width="' + intervalDurationAdjustment(duration) + '"'
+            + '<rect x="' + xVal + '" y="5" width="' + wVal + '"'
             + ' height="15" rx="0" fill="green" '
-            + ' onmousemove="showEvtTooltip(evt,\'' + firstTime + '\',\'' + duration + '\',\'' + message + '\')" '
+            + ' onmousemove="showEvtTooltip(evt,\'' + data.createTime
+            + '\',\'' + data.fistTime
+            + '\',\'' + data.lastTime
+            + '\',\'' + data.duration
+            + '\',\'' + data.durationFromFirst
+            + '\',\'' + message
+            + '\')" '
             + ' onmouseout="hideVpkTooltip()" '
-            + ' onclick="getDefFnum(\'' + fnum + '\')"/>'
+            + ' onclick="getDefFnum(\'' + data.fnum + '\')"/>'
             + '</svg></div>'
 
         return line;
@@ -711,8 +873,10 @@ function buildEvtRightMulti(data) {
     let height = (data.length - 1) * 25;
     let line = '';
     let dur;
-    let tipMessage;
+    let message;
     let tickMarks = buildTickMarks(height);
+    let xVal = 0;
+    let wVal = 0;
     try {
         tickMarks = buildTickMarks(25);
         dur = data[0].duration;
@@ -720,14 +884,29 @@ function buildEvtRightMulti(data) {
         if (dur < 2) {
             dur = 2;
         }
-        tipMessage = data[0].message.replace(/["']/g, "");
+        message = data[0].message.replace(/["']/g, "");
+        xVal = intervalOffsetAdjustment(data[0].offset);
+        if (typeof xVal !== 'number') {
+            console.log(`xVal: ${xVal} data[0]offset: ${data[0].offset}`);
+        }
+        wVal = intervalDurationAdjustment(dur);
+        if (typeof wVal !== 'number') {
+            console.log(`wVal: ${wVal} data[0].duration: ${dur}`);
+        }
+
         rtn = '<div id="evt-' + evtCount + '-line">'
             + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
             + tickMarks
             + tickMarks
-            + '<rect x="' + intervalOffsetAdjustment(data[0].offset) + '" y="5" width="' + intervalDurationAdjustment(dur) + '"'
+            + '<rect x="' + xVal + '" y="5" width="' + wVal + '"'
             + ' height="15" rx="0" fill="green" '
-            + ' onmousemove="showEvtTooltip(evt,\'' + data[0].firstTime + '\',\'' + data[0].duration + '\',\'' + tipMessage + '\')" '
+            + ' onmousemove="showEvtTooltip(evt,\'' + data.createTime
+            + '\',\'' + data.fistTime
+            + '\',\'' + data.lastTime
+            + '\',\'' + dur
+            + '\',\'' + data.durationFromFirst
+            + '\',\'' + message
+            + '\')" '
             + ' onmouseout="hideVpkTooltip()" '
             + ' onclick="getDefFnum(\'' + data[0].fnum + '\')"/>'
             + '</svg></div>'
@@ -742,10 +921,25 @@ function buildEvtRightMulti(data) {
             if (dur < 2) {
                 dur = 2;
             }
-            tipMessage = data[0].message.replace(/["']/g, "");
-            line = line + '<rect x="' + intervalOffsetAdjustment(data[i].offset) + '" y="' + yPos + '" width="' + intervalDurationAdjustment(dur) + '"'
+            message = data[0].message.replace(/["']/g, "");
+            xVal = intervalOffsetAdjustment(data[i].offset);
+            if (typeof xVal !== 'number') {
+                console.log(`xVal: ${xVal} data[${i}].offset: ${data[i].offset}`);
+            }
+            wVal = intervalDurationAdjustment(dur);
+            if (typeof wVal !== 'number') {
+                console.log(`wVal: ${wVal} data[${i}].duration: ${dur}`);
+            }
+
+            line = line + '<rect x="' + xVal + '" y="' + yPos + '" width="' + wVal + '"'
                 + ' height="15" rx="0" fill="green"'
-                + ' onmousemove="showEvtTooltip(evt,\'' + data[i].firstTime + '\',\'' + data[i].duration + '\',\'' + tipMessage + '\')" '
+                + ' onmousemove="showEvtTooltip(evt,\'' + data.createTime
+                + '\',\'' + data.fistTime
+                + '\',\'' + data.lastTime
+                + '\',\'' + data.duration
+                + '\',\'' + data.durationFromFirst
+                + '\',\'' + message
+                + '\')" '
                 + ' onmouseout="hideVpkTooltip()" '
                 + ' onclick="getDefFnum(\'' + data[i].fnum + '\')"/>'
             rtn = rtn + line;

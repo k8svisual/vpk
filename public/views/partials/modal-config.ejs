@@ -84,14 +84,42 @@
                         </div>
                     </div>
 
-
                     <div class="row mb-1">
-                        <div class="col-10 px-3 py-1 mt-1 vpkfont vpkcolor ">
-                            <p>Press the "Save configuration" button if settings have been changed.
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>Use light theme for viewing resource information. If set to On the light
+                                theme is used. If Off dark theme is used.
                             </p>
+                        </div>
+                        <div class="col-2 py-2">
+                            <input id="lightTheme" type="checkbox" data-style="w-40" data-toggle="toggle"
+                                data-size="sm">
                         </div>
                     </div>
 
+                    <div class="row mb-1">
+                        <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
+                            <p>Selec the 3D cluster background from the available list.
+                            </p>
+                        </div>
+                        <!-- <div class="col-2 py-2">
+                            <select id="clsuterBG" class="vpkfont-md pl-3 vpk-hdr-mid" style="width: 80px;">
+                                <option>Grey</option>
+                                <option>Stars</option>
+                                <option>Sky</option>
+                            </select>
+                        </div> -->
+                        <div class="col-2 py-2">
+                            <div id="clusterBGOutter" class="header vpkfont-md ml-3 vpk-hdr-mid vpkinline">
+                                <select id="clusterBG" class="vpkfont-md pl-3 vpk-hdr-mid" style="width: 80px;">
+                                    <option>Grey</option>
+                                    <option>Stars</option>
+                                    <option>Sky</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
                     <div class="row mb-1">
                         <div class="col-10 px-3 py-1 vpkfont vpkcolor ">
                             <div class="float-left">
@@ -99,10 +127,14 @@
                                     onclick="saveConfig()" style="padding: 5px;">
                                     Save configuration
                                 </button>
+                                <span class="px-3 vpkfont vpkcolor ">
+                                    Press the "Save configuration" button if settings have been changed.
+
+                                </span>
+
                             </div>
                         </div>
                     </div>
-
                     <hr>
 
                     <div class="row mb-1">

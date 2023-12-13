@@ -164,7 +164,7 @@
                                 Table view
                             </button>
                         </span>
-                        <span style="padding-left: 50px;" class="vpkfont-sm vpkcolor">
+                        <span style="padding-left: 20px;" class="vpkfont-sm vpkcolor">
                             Select namespace
                         </span>
                         <span id="events-ns-select" class="vpkfont-md pl-1 pr-1">
@@ -172,13 +172,20 @@
                                 <option>all-namespaces</option>
                             </select>
                         </span>
-                        <span style="padding-left: 50px; display: inline;" class="vpkfont-sm vpkcolor">
+                        <span style="padding-left: 20px;" class="vpkfont-sm vpkcolor">
                             First minute to display
                             <span style="display: inline; padding-left: 5px;">
                                 <input type="text" class="vpkfont vpkcolor" style="width: 40px; height: 25px;"
                                     id="evtPageToStart">
                             </span>
-                            <span id="evtMinutesRange" style="padding-left: 5px; display: inline;"></span>
+                            <span id="evtMinutesRange" style="padding-left: 5px;">
+                            </span>
+                        </span>
+                        <span style="padding-left: 20px;">
+                            <button id="evtFilter" type="button" class="btn btn-warning btn-sm pl-1 pr-1 vpkhidden"
+                                onclick="evtClearFilter()">
+                                Clear Workload Schematic UID filter
+                            </button>
                         </span>
                     </span>
                 </div>
@@ -186,35 +193,19 @@
         </div>
     </div>
 
-    <div id="graphicHdr" class="vpkhidden">
+    <div id="graphicHdr">
         <div class="vpkcolor mt-1 mr-2 ml-2 border rounded">
             <div class="mt-1 mr-2 ml-2 mb-1">
                 <div>
                     <span>
                         <span>
                             <span style="padding-right: 10px;" class="vpkfont-sm vpkcolor">
-                                Select view
+                                Select graph
                             </span>
                             <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="getChart('hierarchy')">
-                                Hierarchy
+                                onclick="getChart('snapshot')">
+                                Snapshot counts
                             </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="getChart('collapsible')">
-                                Collapsible
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="getChart('circlePack')">
-                                Circle Pack
-                            </button>
-                        </span>
-                        <span style="padding-left: 50px;" class="vpkfont-sm vpkcolor">
-                            Select namespace
-                        </span>
-                        <span id="grachic-ns-select" class="vpkfont-md pl-1 pr-1">
-                            <select id="graphic-ns-filter" style="width: 300px;" multiple="multiple">
-                                <option>all-namespaces</option>
-                            </select>
                         </span>
                     </span>
                 </div>
@@ -265,7 +256,7 @@
                     <div class="vpkfont-md mt-2 filterWidth">
                         Namespace(s)
                     </div>
-                    <div id="bar1-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                    <div class="ml-1 mr-1 mt-1 vpkfont-md">
                         <select id="ns-filter" multiple="multiple" style="width: 550px">
                             <option>all-namespaces</option>
                         </select>
@@ -275,7 +266,7 @@
                     <div class="vpkfont-md mt-2 filterWidth">
                         Kind(s)
                     </div>
-                    <div id="bar2-select" class="ml-1 mr-1 mt-1 vpkfont-md">
+                    <div class="ml-1 mr-1 mt-1 vpkfont-md">
                         <select id="kind-filter" multiple="multiple" style="width: 550px">
                             <option>all-kinds</option>
                         </select>

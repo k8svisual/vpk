@@ -3,15 +3,17 @@
         "managedFields": false,
         "statusSection": true,
         "redactSecrets": false,
-        "reloadAction": true
+        "reloadAction": true,
+        "lightTheme": true,
+        "clusterBackground": "Stars"
     },
     "snapshotDir": "/Users/bob/snaptest",
     "clusterFilters": {
         "clusterFilterNodes": true,
         "clusterFilterCSI": true,
         "clusterFilterStorage": true,
-        "clusterFilterNetwork": true,
-        "clusterFilterIngress": true,
+        "clusterFilterNetwork": false,
+        "clusterFilterIngress": false,
         "clusterFilterControlP": true,
         "clusterFilterWorkload": false,
         "clusterFilterService": false,

@@ -92,6 +92,13 @@ div {
     color: rgb(0, 123, 255);
 }
 
+.vpkblue {
+    width: 100%;
+    background-color: rgb(0, 123, 255);
+    color: white;
+    padding: 10px;
+}
+
 .vpkinline {
     display: inline;
 }
@@ -139,6 +146,58 @@ div {
     position: absolute;
     bottom: 0;
     left: 0;
+}
+
+.vpk-pt-5 {
+    padding-top: 5px;
+}
+
+.vpk-pt-10 {
+    padding-top: 10px;
+}
+
+.vpk-pt-15 {
+    padding-top: 15px;
+}
+
+.vpk-mt-10 {
+    margin-top: 150px;
+}
+
+.vpk-d3-tip {
+    border: 1px solid white;
+    border-radius: 5px;
+    background-color: rgb(90, 84, 84);
+    color: white;
+    padding: 5px;
+}
+
+.vpk-d3-text {
+    font-size: 0.6rem;
+    color: white;
+}
+
+.vpk-rtn-bg {
+    background-color: #cccccc;
+    color: rgb(255, 255, 255);
+}
+
+.vpk-w-100 {
+    width: 100%;
+}
+
+.vpk-ci-rtn {
+    width: 100%;
+    margin-left: -40px;
+    margin-left: -10px;
+}
+
+hr.hrDatasource {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: -16px;
+    margin-right: -16px;
+    border-top: 1px solid rgb(0, 123, 255);
 }
 
 hr.hrLine {
@@ -440,7 +499,9 @@ img.icon {
 
 
 .modal {
-    background: rgba(2, 117, 216, 0.4)
+    background: rgba(2, 117, 216, 0.15)
+        /* background: rgba(237, 212, 178, .2)  */
+        /* background: rgba(255, 252, 71, .15) */
 }
 
 

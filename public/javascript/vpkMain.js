@@ -168,6 +168,11 @@ $(document).ready(function () {
             $('#evtMsgsHdr').show();
             $('#evtMsgs').show();
             //$('[href="#evtMsgs"]').tab('show');
+            if (evtLimitUid !== '') {
+                $('#evtFilter').show();
+            } else {
+                $('#evtFilter').hide();
+            }
             loadEvtMsgs();
         } else {
             $('#evtMsgs').hide();
@@ -189,7 +194,6 @@ $(document).ready(function () {
             documentationTabTopic = 'containerimages';
             $('#containerImages').show();
             $('#containerImagesHdr').show();
-            populateRepositoryList();
         } else {
             $('#containerImages').hide();
             $('#containerImagesHdr').hide();
@@ -220,6 +224,7 @@ $(document).ready(function () {
             getDefFnum(selectedDef);
         }
     });
+
 
     $("#tableContainerImages").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.fnum;
@@ -257,6 +262,11 @@ $(document).ready(function () {
     $("#secTable").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.fnum;
         getDefFnum(selectedDef);
+    });
+
+    $('#clusterBG').select2({
+        dropdownCssClass: "vpkfont-md",
+        containerCssClass: "vpkfont-md"
     });
 
     $('#pickDataSource').select2({
@@ -359,8 +369,33 @@ $(document).ready(function () {
         searchObj();
     });
 
+    $('#dirStatMin').on("change", function () {
+        dirStats();
+    });
+
+    $('#dirStatMax').on("change", function () {
+        dirStats();
+    });
+
+    $('#dirStatLabels').on("change", function () {
+        dirStats();
+    });
+
+    $('#graphic-ns-select').on("change", function () {
+        dirStats();
+    });
+
+    $('#graphic-kind-select').on("change", function () {
+        dirStats();
+    });
+
     $('#cluster-bar1-select').focusout(function () {
         filter3DView();
+    });
+
+    $('#clusterBG').on("change", function () {
+        let selected = $('#clusterBG').select2('data');
+        set3dBackColor(selected);
     });
 
     $('#events-ns-select').on("change", function () {
@@ -567,12 +602,6 @@ $(document).ready(function () {
     getConfig();
 
 });
-
-
-
-
-
-
 
 //----------------------------------------------------------
 function editObj() {

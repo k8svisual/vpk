@@ -54,22 +54,22 @@ function getRepositoryData() {
 }
 
 // Called from Cluster tab
-function loadRepositoryData(repository, view) {
-    graphRepository = repository;
-    let html = '<span class="vpkfont vpkcolor ml-1">Viewing repository: <b>' + repository + '</b></span>'
-    $('#selectedRepository').html(html);
-
-    html = '<span class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
-        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-        + ' onclick="returnToWhereTab()">Return</button>'
-        + '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
-        + '</span > '
-    $('#containerImagesReturn').html(html)
+function loadRepositoryData(repository, view, returnTo) {
+    graphRepository = repository;   //container-images-select
+    setSelectValue('container-images-filter', repository)
+    $('#containerImagesReturn').html(
+        '<span class="vpkfont mt-1 mb-2 ml-2 px-2">'
+        + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons px-2" '
+        + ' style="margin-left: -8px;" onclick="returnToWhereTab(\'' + returnTo + '\',\'containerImagesReturn\')">Return</button>'
+        + '<span class="px-1">to</span>' + returnTo + '<span class="px-1">tab</span>'
+        + '</span>'
+    )
 
     containerImagesInfo = imageRepositoryData[repository];
     loadContainerImagesTable();
     buildContainerImageGraphics(repository);
 
+    // T = Show Table View button, otherwise show graph view
     if (view === 'T') {
         $('#containerImageTable').show();
         $('#containerImageGraphic').hide();
@@ -77,7 +77,7 @@ function loadRepositoryData(repository, view) {
         $('#containerImageTable').hide();
         $('#containerImageGraphic').show();
     }
-
+    // Open the target tab
     $('.nav-tabs a[href="#containerImages"]').tab('show');
 }
 
@@ -207,7 +207,7 @@ function buildContainerImageGraphics(repository, what) {
 
         line = '';
         if (oldContainerName !== data[i].c_name) {
-            line = line + svgContainer(data[i].c_name, data[i].c_type, cY)
+            line = line + svgContainer(data[i].c_name, data[i].c_type, cY, data[i].fnum, data[i].image)
             oldContainerName = data[i].c_name;
             containerYEnd = cY + 15;;
             // Create vertical lines for Containers
@@ -232,7 +232,7 @@ function buildContainerImageGraphics(repository, what) {
 function svgRepository(repository) {
     // return rtn = '<div><hr>' + '<svg id="repo-' + repository + '" width="1200" height="950">'
     return '<image x="0" y="0"  width="30" height="30" href="images/3d/3d-repository.png" onclick="getDefFnum(\'noData\')"/>'
-        + '<text x="40" y="20" fill="black" class="vpkfont">REPOSITORY: ' + repository + '</text>'
+        + '<text x="40" y="20" fill="black" class="vpkfont" onclick="getDefFnum(\'noData\')">REPOSITORY: ' + repository + '</text>'
 }
 
 function svgImage(image, y) {
@@ -240,7 +240,7 @@ function svgImage(image, y) {
     let yText = y + 15
     endY = yLine;
     return '<image x="40" y="' + y + '"  width="30" height="30" href="images/3d/3d-docker-image.png" onclick="getDefFnum(\'noData\')"/>'
-        + '<text x="80" y="' + yText + '" fill="black" class="vpkfont">IMAGE: ' + image + '</text>'
+        + '<text x="80" y="' + yText + '" fill="black" class="vpkfont" onclick="getDefFnum(\'noData\')">IMAGE: ' + image + '</text>'
         + '<line x1="15" y1="' + yLine + '" x2="37" y2="' + yLine + '" stroke="gray" stroke-width="2.0" stroke-linecap="round"/>'
 }
 
@@ -248,9 +248,15 @@ function svgNamespace(ns, y) {
     let yLine = y + 15;
     let yText = y + 15
     let yIcon = y - 5;
-
-    return '<image x="80" y="' + yIcon + '"  width="30" height="30" href="images/k8/ns.svg"  onclick="getDefFnum(\'noData\')"/>'
-        + '<text x="120" y="' + yText + '" fill="black" class="vpkfont">NAMESPACE: ' + ns + '</text>'
+    let nsFnum;
+    // Check for namespace Fnum
+    if (typeof namespaceFnum[ns] !== 'undefined') {
+        nsFnum = namespaceFnum[ns];
+    } else {
+        nsFnum = 'noData';
+    }
+    return '<image x="80" y="' + yIcon + '"  width="30" height="30" href="images/k8/ns.svg"  onclick="getDefFnum(\'' + nsFnum + '\')"/>'
+        + '<text x="120" y="' + yText + '" fill="black" class="vpkfont" onclick="getDefFnum(\'' + nsFnum + '\')">NAMESPACE: ' + ns + '</text>'
         + '<line x1="55" x2="78" y1="' + yLine + '" x2="78" y2="' + yLine + '" stroke="blue" stroke-width="1.5" stroke-linecap="round"/>'
 }
 
@@ -282,11 +288,11 @@ function svgKind(kindFnum, y) {
     }
 
     return '<image x="120" y="' + yIcon + '"  width="30" height="30" href="images/k8/' + kindIcon + '" onclick="getDefFnum(\'' + fnum + '\')"/>'
-        + '<text x="160" y="' + yText + '" fill="black" class="vpkfont">KIND: ' + kind + '</text>'
+        + '<text x="160" y="' + yText + '" fill="black" class="vpkfont" onclick="getDefFnum(\'' + fnum + '\')">KIND: ' + kind + '</text>'
         + '<line x1="95" y1="' + yLine + '" x2="118" y2="' + yLine + '" stroke="green" stroke-width="1.5" stroke-linecap="round"/>'
 }
 
-function svgContainer(name, type, y) {
+function svgContainer(name, type, y, fnum, image) {
     let yLine = y + 15;
     let yText = y + 15
     let yIcon = y - 5;
@@ -302,8 +308,8 @@ function svgContainer(name, type, y) {
         cType = 'INIT CONTAINER'
     }
 
-    return '<image x="160" y="' + yIcon + '"  width="30" height="30" href="images/3d/' + cIcon + '"  onclick="getDefFnum(\'noData\')"/>'
-        + '<text x="200" y="' + yText + '" fill="black" class="vpkfont">' + cType + ': ' + name + '</text>'
+    return '<image x="160" y="' + yIcon + '"  width="30" height="30" href="images/3d/' + cIcon + '"  onclick="getDefFnumAtItem(\'' + fnum + '\',\'' + image + '\')"/>'
+        + '<text x="200" y="' + yText + '" fill="black" class="vpkfont" onclick="getDefFnumAtItem(\'' + fnum + '\',\'' + image + '\')">' + cType + ': ' + name + '</text>'
         + '<line x1="135" y1="' + yLine + '" x2="156" y2="' + yLine + '" stroke="red" stroke-width="1.5" stroke-linecap="round"/>'
 }
 

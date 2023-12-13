@@ -157,7 +157,6 @@ function formatSchematicSVG(data) {
 
     for (let i = 0; i < nsKeys.length; i++) {
         podsFound = false;
-        //html = html + '<div><h6>' + nsKeys[i] + '</h6></div>';
         podKeys = Object.keys(newData[nsKeys[i]]);
         for (let p = 0; p < podKeys.length; p++) {
             if (podKeys[p] === 'NoPod') {
@@ -301,20 +300,19 @@ function formatSingleSVG(data, pod) {
     let nsKeys = Object.keys(data);
     let podKeys;
 
-
-
     for (let i = 0; i < nsKeys.length; i++) {
         podKeys = Object.keys(data[nsKeys[i]]);
         for (let p = 0; p < podKeys.length; p++) {
             if (podKeys[p] !== pod) {
                 continue;
             } else {
-                return '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
-                    + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-                    + ' onclick="returnToWhereTab()">Return</button>'
+                $('#schematicReturn').html(
+                    '<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-2 ml-2">'
+                    + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2" '
+                    + ' onclick="returnToWhereTab(\'' + returnWhere + '\',\'schematicReturn\')">Return</button>'
                     + '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
-                    + '</div>'
-                    + data[nsKeys[i]][podKeys[p]];
+                    + '</div>')
+                return data[nsKeys[i]][podKeys[p]];
             }
         }
     }

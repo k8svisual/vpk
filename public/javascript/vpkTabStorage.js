@@ -764,10 +764,10 @@ function openNodeStorageCounts(node) {
     countsForNodeType(node);
 
     returnWhere = 'Cluster';
-    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
-        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-        + ' onclick="returnToWhereTab()">Return</button>'
-        + '<span class="px-2">to Cluster tab</span>'
+    let returnButton = '<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-2 ml-2">'
+        + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2" '
+        + ' onclick="returnToWhereTab(\'' + returnWhere + '\',\'countsReturnSection\')">Return</button>'
+        + '<span class="px-2">to ' + returnWhere + ' tab</span>'
         + '</div>'
 
     $("#countsReturnSection").html(returnButton);
@@ -1021,11 +1021,12 @@ function toggleStorage(id) {
 function showSC(name, fnum) {
     // Close all StroageClasses
     returnWhere = 'Cluster';
-    let returnButton = '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
-        + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-        + ' onclick="returnToWhereTab()">Return</button>'
-        + '<span class="px-2 vpkfont">to Cluster tab</span>'
+    let returnButton = '<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-2 ml-2">'
+        + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2" '
+        + ' onclick="returnToWhereTab(\'' + returnWhere + '\',\'storageReturnSection\')">Return</button>'
+        + '<span class="px-2">to ' + returnWhere + ' tab</span>'
         + '</div>'
+
     $("#storageReturnSection").html(returnButton);
     $("#countsReturnSection").html('');
 

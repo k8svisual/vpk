@@ -198,6 +198,14 @@ function populateSelectLists(data) {
             dropdownCssClass: "vpkfont-md",
             containerCssClass: "vpkfont-md"
         });
+        // Uses in graphic tab for DirStats report
+        $("#graphic-kind-filter").empty();
+        $("#graphic-kind-filter").select2({
+            data: options,
+            dropdownCssClass: "vpkfont-md",
+            containerCssClass: "vpkfont-md"
+        });
+
 
         // populateXrefLists(data);
 
@@ -206,7 +214,6 @@ function populateSelectLists(data) {
         populateSchematicList();
     }
 }
-
 
 
 function populateExplains(data) {
@@ -260,43 +267,6 @@ function populateExplains(data) {
 }
 
 
-// function populateXrefLists(data) {
-//     // xref-type dropdown
-//     if (typeof data.xRefs !== 'undefined') {
-//         options = buildXrefType(data.xRefs);
-
-//         $("#xref-type").empty();
-//         $("#xref-type").select2({
-//             data: options,
-//             dropdownCssClass: "vpkfont-md",
-//             containerCssClass: "vpkfont-md"
-//         });
-
-//         // Populate xrefEdit-type with the same content as xref-type
-//         $("#xrefEdit-type").empty();
-//         $("#xrefEdit-type").select2({
-//             data: options,
-//             dropdownCssClass: "vpkfont-md",
-//             containerCssClass: "vpkfont-md"
-//         });
-//     }
-// }
-
-
-// function buildXrefType(data) {
-//     // "secrets" : {"desc": "Secrets defined in the environment"},
-//     let listitem = '';
-//     let keys = Object.keys(data);
-//     let listArray = [];
-//     listArray.push(listitem);
-//     keys.sort();
-//     for (let i = 0; i < keys.length; i++) {
-//         listitem = { 'id': keys[i], 'text': keys[i] + ' : ' + data[keys[i]].desc };
-//         listArray.push(listitem);
-//     }
-//     return listArray;
-// }
-
 function buildStatsToggle() {
     if (dsToggle === 'kind') {
         buildNamespaceStats();
@@ -306,6 +276,7 @@ function buildStatsToggle() {
         dsToggle = 'kind'
     }
 }
+
 
 //----------------------------------------------------------
 // sort and build the selection list option entries
@@ -409,6 +380,7 @@ function bldClusterDir(dirs) {
     }
     return listitems;
 }
+
 
 //----------------------------------------------------------
 console.log('loaded vpkSelectLists.js');

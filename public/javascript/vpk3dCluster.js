@@ -27,6 +27,16 @@ let ownerRefName;
 let ownerRefNS;
 let CSIItems;
 let nodeEndAngles = [];
+// 3D view related
+let clusterPanelIsClosed = true;
+let foundNSNamesBuilt = false;
+let sceneColorR = 0.9;
+let sceneColorG = 0.9;
+let sceneColorB = 0.9;
+let sceneStars = false;
+let sceneSky = false;
+let stickColorDark = true;
+let soundFor3D = true;
 
 $("#cluster3DView").show();
 
@@ -49,7 +59,7 @@ function k8sDocSite() {
 function checkOwnerRef(chkFnum, chkNS, chkKind) {
     if (typeof ownerRefExist[chkFnum] !== 'undefined') {
         return '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-            + ' onclick="showOwnRef(\'' + chkFnum + '\',\'' + chkNS + '\',\'' + chkKind + '\',\'Cluster\')">View ownerRef</button>&nbsp;'
+            + ' onclick="showOwnRef(\'' + chkFnum + '\',\'' + chkNS + '\',\'' + chkKind + '\',\'Cluster\')">OwnerRef</button>&nbsp;'
     } else {
         return '';
     }
@@ -68,37 +78,27 @@ function print3Dscene() {
     }
 }
 
-function set3dBackColor(r, g, b, title) {
+function set3dBackColor(title) {
     // reset stars and clouds
     sceneStars = false;
-    sceneClouds = false;
+    sceneSky = false;
     // set if stars or clouds
     if (title === 'Stars') {
         sceneStars = true;
-        sceneClouds = false;
+        sceneSky = false;
         stickColorDark = false;
-        $("#colorTitle").html('Image:&nbsp;' + title);
         return;
     }
 
-    if (title === 'Clouds') {
-        sceneClouds = true;
+    if (title === 'Sky') {
+        sceneSky = true;
         sceneStars = false;
         stickColorDark = true;
-        $("#colorTitle").html('Image:&nbsp;' + title);
         return;
     }
 
-    // Solid color not image
-    sceneColorR = r / 255;
-    sceneColorG = g / 255;
-    sceneColorB = b / 255;
-    $("#colorTitle").html('Color:&nbsp;' + title);
-    if (title === 'Straw' || title === 'Grey' || title === 'Lavender' || title === 'Olive' || title === 'Teal' || title === 'White') {
-        stickColorDark = true;
-    } else {
-        stickColorDark = false;
-    }
+
+    stickColorDark = true
 }
 
 
@@ -121,14 +121,9 @@ function createScene() {
     let NODE_ICON_ADJ = .75;
     let MST_TYPE = 'Master';
     let WRK_TYPE = 'Worker';
-    let NODE_NAME = 'Name: ';
-    let NODE_TYPE = 'Type:';
     let NODE_HEIGHT = 1.0;
     let POD_HEIGHT = 0.30;
     let POD_SIZE = 0.20;
-    let RES_NAME = 'Name :';
-    let RES_STATUS = 'Status:';
-    let RES_NS = 'Namespace :';
     let SLICE_HEIGHT = 0.01;
     let SLICE_SIZE = 0.50;
     let SLICE_SIZE_BIG = 1.60;
@@ -197,7 +192,7 @@ function createScene() {
         skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
         skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
         skybox.material = skyboxMaterial;
-    } else if (sceneClouds === true) {
+    } else if (sceneSky === true) {
         scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
         let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
         let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
@@ -604,7 +599,7 @@ function createScene() {
                 + '</table>'
                 + '<br>'
                 + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
-                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\',\'Cluster\')">View schematic</button>&nbsp;'
+                + ' onclick="showSchematic(\'' + ns + '\',\'' + podFnum + '\',\'Cluster\')">Schematic</button>&nbsp;'
 
                 + checkOwnerRef(podFnum, ns, 'Pod')
 
@@ -707,10 +702,6 @@ function createScene() {
                         + '<tr><td><b>Name:</b></td><td class="pl-2">' + epName + '</td></tr>'
                         + '<tr><td><b>Namespace:</b></td><td class="pl-2">' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</td></tr>'
                         + '</table>'
-
-                        // + '<span><b>' + RES_NAME + '</b><span class="pl-2">' + epName + '</span></span>'
-                        // + '<br>'
-                        // + '<span><b>' + RES_NS + '</b><span class="pl-2">' + cluster.nodes[node].pods[cCnt].services[0].namespace + '</span></span>'
                         + '<br>'
                         + checkOwnerRef(epFnum, ns, 'EndpointSlice')
                         + checkOwnerRef(epFnum, ns, 'Endpoints')
@@ -740,11 +731,6 @@ function createScene() {
                     + '<tr><td><b>Namespace:</b></td><td class="pl-2">' + cluster.nodes[node].pods[cCnt].ns + '</td></tr>'
                     + '<tr><td><b>Status:</b></td><td class="pl-2">' + cluster.nodes[node].pods[cCnt].phase + '</td></tr>'
                     + '</table>'
-
-                    // + '<span><b>Name :</b><span class="pl-2">' + cluster.nodes[node].pods[cCnt].pvc[0].name + '</span></span>'
-                    // + '<br>'
-                    // + '<span><b>' + RES_NS + '</b><span class="pl-2">' + cluster.nodes[node].pods[cCnt].ns + '</span></span>'
-                    // + '</span>' 
                     + '<br>'
                     + checkOwnerRef(cluster.nodes[node].pods[cCnt].pvc[0].fnum, cluster.nodes[node].pods[cCnt].ns, 'PersistentVolumeClaim')
                     + '</div>';
@@ -1162,7 +1148,7 @@ function createScene() {
                 + '</span></div>'
 
                 + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
-                + ' onclick="showSC(\'' + scData.name + '\',\'' + scFnum + '\')">View Storage Class</button>&nbsp;'
+                + ' onclick="showSC(\'' + scData.name + '\',\'' + scFnum + '\')">Storage</button>&nbsp;'
 
                 + '<br>' + checkOwnerRef(scFnum, 'cluster-level', 'StorageClass')
                 + '</div>'
@@ -1568,9 +1554,7 @@ function createScene() {
                     // + '</span>'
                     + '<br>'
                     + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
-                    + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'T\')">View Repository Table</button>'
-                    + '<button type="button" class="ml-1 mt-1 btn btn-primary btn-sm vpkButton" '
-                    + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'G\')">View Repository Graph</button>'
+                    + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'G\',\'Cluster\')">Container</button>'
                     + '</div>';
 
                 buildControlComponent(pX, y, pZ, .2, .40, 32, registryColor, 'cluster-level', 'ControlPlaneComponent', rFnum.toString(), imageRegInner, '');
@@ -1812,7 +1796,7 @@ function createScene() {
                 + '<span class="vpkfont-slidein"><b>Node name:  </b>' + nName + '</span>'
                 + '<br>' + checkOwnerRef('4444.' + index, 'cluster-level', 'NODE-Storage')
                 + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
-                + ' onclick="openNodeStorageCounts(\'' + nName + '\')">View Node Storage information</button>'
+                + ' onclick="openNodeStorageCounts(\'' + nName + '\')">Storage</button>'
                 + '</div>';
 
             buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'nodeStorage', '4444.' + index, nodeStorageInner, '')
@@ -2321,7 +2305,6 @@ function createScene() {
 
                 let inner = '<div class="vpkfont vpkcolor ml-1">'
                     + '<div id="sliceKey">' + fnum + '</div>'
-                    //+ '<a href="javascript:getDefFnum(\'' + fnum + '\')">'
                     + '<img src="images/k8/k8.svg" class="icon"></a>'
                     + '<span class="pl-2 pb-2 vpkfont-sm">'
                     + '</span>'
@@ -2331,10 +2314,9 @@ function createScene() {
                     + '<span class="vpkfont-slidein pr-2"><b>API type:</b>' + type + ' Resources</b>'
                     + '<br><br>'
                     + '<span><b>Kind : </b><span class="pl-2">' + data[p] + '</span></span>'
-                    + '</span><br><br>Use Search tab to locate and view resource definition(s).</div>'
+                    + '</span><br><br>View resource information by pressing the Search button below.</div>'
                     + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
-                    + ' onclick="openSearch(\'' + data[p] + '\')">View Search results</button>'
-
+                    + ' onclick="openSearch(\'' + data[p] + '\',\'Cluster\')">Search</button>'
 
                 buildOtherSphere(pX, y, pZ, type, inner)
                 buildSlice(pX, y, pZ, fnum.toString(), 'n');

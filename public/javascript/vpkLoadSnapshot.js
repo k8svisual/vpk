@@ -35,6 +35,7 @@ let evtMaxMinutes = 0;
 let evtMinutes;
 let evtNs;
 let evtNsSum;
+let namespaceFnum;
 
 
 //----------------------------------------------------------
@@ -151,125 +152,7 @@ socket.on('parseStatus', function (data) {
 //==========================================================
 
 
-//----------------------------------------------------------
-// show server statistics
-function dirStats() {
-    socket.emit('getDirStats');
-}
-//...
-socket.on('dirStatsResult', function (data) {
-    dsCounts = data;
-    if (dsToggle === 'kind' || dsToggle === '') {
-        buildKindStats();
-    } else {
-        buildNamespaceStats();
-    }
-});
-//... supporting functions
-function buildKindStats() {
-    dsToggle = 'kind';
-    if (typeof dsCounts === 'undefined') {
-        return;
-    }
-    if (typeof dsCounts.kind === 'undefined') {
-        return;
-    }
-    data = dsCounts.kind;
 
-    if (typeof data._total === 'undefined') {
-        return;
-    }
-
-    let keys = Object.keys(data);
-    keys.sort();
-
-    let total = data._total._cnt;
-    let cKeys;
-    let nsText = '';
-    let htm = '<table class="vpkfont-md"><thead><tr class="statsHeader" style="text-align:center">'
-        + '<th>-Kind-</th><th class="pl-2">-Count-</th><th class="pl-2">-Namespace-</th>'
-        + '</tr></thead><tbody>';
-    // add overall total line
-    htm = htm + '<tr style="text-align:center"><td width="200">All</td><td width="200" class="pd-4">' + total + '</td><td width="300" class="pl-2">All</td></tr>'
-
-
-    for (let i = 0; i < keys.length; i++) {
-        if (keys[i].startsWith('_')) {
-            continue;
-        }
-        htm = htm + '<tr><td><hr></td><td><hr></td><td><hr></td></tr>'
-
-        htm = htm + '<tr><td>' + keys[i] + '</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
-
-        cKeys = Object.keys(data[keys[i]]);
-        cKeys.sort();
-        for (let c = 0; c < cKeys.length; c++) {
-            if (cKeys[c].startsWith('_')) {
-                continue;
-            } else {
-                nsText = cKeys[c];
-                if (nsText === 'cluster-level') {
-                    nsText = '< Cluster Level >'
-                }
-                htm = htm + '<tr><td>&nbsp;</td><td class="pl-4">' + data[keys[i]][cKeys[c]] + '</td><td class="pl-2">' + nsText + '</td></tr>'
-            }
-        }
-    };
-    htm = htm + '</tbody></table>';
-    $("#statContents").empty();
-    $("#statContents").html('');
-    $("#statContents").html(htm);
-    $("#statsModal").modal();
-}
-function buildNamespaceStats(stats) {
-    if (typeof dsCounts === 'undefined') {
-        return;
-    }
-    if (typeof dsCounts.ns === 'undefined') {
-        return;
-    }
-    dsToggle = 'ns';
-    data = dsCounts.ns;
-    let keys = Object.keys(data);
-    keys.sort();
-    let total = dsCounts.kind._total._cnt;  // get overall total from the kinds stats
-    let cKeys;
-    let nsText = '';
-    let htm = '<table class="vpkfont-md"><thead><tr class="statsHeader" style="text-align:center">'
-        + '<th>-Namespace-</th><th class="pl-2">-Count-</th><th class="pl-2">-Kind-</th>'
-        + '</tr></thead><tbody>';
-    // add overall total line
-    htm = htm + '<tr style="text-align:center"><td width="200">All</td><td width="200" class="pd-4">' + total + '</td><td width="300" class="pl-2">All</td></tr>'
-
-
-    for (let i = 0; i < keys.length; i++) {
-        if (keys[i].startsWith('_')) {
-            continue;
-        }
-        htm = htm + '<tr><td><hr></td><td><hr></td><td><hr></td></tr>'
-        nsText = keys[i];
-        if (nsText === 'cluster-level') {
-            nsText = '< Cluster Level >'
-        }
-
-        htm = htm + '<tr><td>' + nsText + '</td><td>&nbsp;</td><td>&nbsp;</td></tr>'
-
-        cKeys = Object.keys(data[keys[i]]);
-        cKeys.sort();
-        for (let c = 0; c < cKeys.length; c++) {
-            if (cKeys[c].startsWith('_')) {
-                continue;
-            } else {
-                htm = htm + '<tr><td>&nbsp;</td><td class="pl-4">' + data[keys[i]][cKeys[c]] + '</td><td class="pl-2">' + cKeys[c] + '</td></tr>'
-            }
-        }
-    };
-    htm = htm + '</tbody></table>';
-    $("#statContents").empty();
-    $("#statContents").html('');
-    $("#statContents").html(htm);
-    $("#statsModal").modal();
-}
 //==========================================================
 
 
@@ -309,12 +192,25 @@ socket.on('versionResult', function (data) {
         var link = document.getElementById('sshInfo');
         link.style.display = 'block'; //or
         //link.style.visibility = 'hidden';
-
-
     } else {
         var link = document.getElementById('runContainer');
         link.style.display = 'none'; //or
         link.style.visibility = 'hidden';
+    }
+    // set the edit theme for light or dark
+    if (data.editTheme === true) {
+        aceTheme = 'chrome'
+    } else {
+        aceTheme = 'merbivore'
+    }
+
+    // set the 3d cluster background
+    if (typeof data.clusterBackground !== 'undefined') {
+        clusterBack = data.clusterBackground
+        set3dBackColor(clusterBack)
+        setSelectValue('clusterBG', clusterBack)
+    } else {
+        set3dBackColor('Grey')
     }
 });
 
@@ -395,6 +291,7 @@ socket.on('getServerDataResult', function (data) {
     evtMinutes = data.eventStats.evtMinutes;
     evtNs = data.eventStats.evtNs;
     evtNsSum = data.eventStats.evtNsSum;
+    namespaceFnum = data.namespaceFnum
 
     if (typeof data.filters !== 'undefined') {
         clusterFilters = data.filters;
@@ -403,13 +300,13 @@ socket.on('getServerDataResult', function (data) {
 
     hideMessage();
     populateSelectLists(data);
+    populateRepositoryList();
     populateSchematicList();
     buildStorage();
     processimageRepositoryData();
     populateEventNSList();
     $('#evtMinutesRange').html(`Range 0 to ${evtMaxMinutes}`)
     evtShowStats();
-
     showClusterTab();
 
     $("#loadStatus").hide();
@@ -421,9 +318,10 @@ socket.on('getServerDataResult', function (data) {
     }
 
     // clear display areas of old data
-    $("#chartInfo").html('')
-    $("#graphicCharts2").html('')
-    $("#schematicDetail").html('')
+    $("#chartInfo").html('');
+    $("#graphicCharts2").html('');
+    $("#schematicDetail").html('');
+    $("#oRefWrapper").html('');
 
     foundNSNamesBuilt = false;
 
@@ -475,7 +373,7 @@ function getCluster() {
     $("#clusterModalFooter").show();
     $("#clusterModal").modal('show');
     $("#clusterStatus").empty();
-    $("#clusterStatus").html('&nbsp');
+    $("#clusterStatus").html('');
 }
 
 function sendCommand() {
@@ -512,6 +410,9 @@ function pickData(what) {
         openRunCommand();
     }
 }
+
+
+
 
 
 //----------------------------------------------------------

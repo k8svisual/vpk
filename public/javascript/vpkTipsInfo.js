@@ -63,23 +63,45 @@ function showVpkTooltip(evt, key) {
 }
 
 
-function showEvtTooltip(event, firstTime, duration, message) {
+
+
+function formatDuration(seconds) {
+    const days = Math.floor(seconds / (3600 * 24));
+    const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = seconds % 60;
+
+    return `${days} days, ${hours} hours, ${minutes} minutes, ${remainingSeconds} seconds`;
+}
+
+
+function showEvtTooltip(event, createTime, firstTime, lastTime, duration, totalDuration, message) {
     let tooltip = document.getElementById("tooltip");
     let clientXPos = event.clientX;
     let clientYPos = event.clientY;
     let offTop = $("#evtSpan").offset().top;
     let info;
     let durTime = '';
+    let totalDur = '';
     if (duration < 60) {
         durTime = duration + ' seconds'
     } else {
-        durTime = (parseInt(duration / 60)) + ' minutes ' + (duration % 60) + ' seconds'
+        durTime = formatDuration(duration);
     }
+
+    if (totalDuration < 60) {
+        totalDur = totalDuration + ' seconds'
+    } else {
+        totalDur = formatDuration(totalDuration);
+    }
+
+
     info = '<div class="fa-1x pl-2" style="width: 400px;"><table>'
-        + '<tr><td><b>Date:</b></td><td><span class="pl-2">' + firstTime.substring(0, 10) + ' at ' + firstTime.substring(11, 19) + '</span></td></tr>'
+        + '<tr><td><b>Date:</b></td><td><span class="pl-2">' + createTime.substring(0, 10) + ' at ' + createTime.substring(11, 19) + '</span></td></tr>'
         + '<tr><td><b>Duration:</b></td><td><span class="pl-2">' + durTime + '</span></td></tr>'
-        // + '<tr><td><b>Message:</b></td><td><span class="pl-2">' + message + '</span></td></tr>'
-        // + '</table></div>'
+        + '<tr><td><b>FirstTime:</b></td><td><span class="pl-2">' + firstTime + '</span></td></tr>'
+        + '<tr><td><b>LastTime:</b></td><td><span class="pl-2">' + lastTime + '</span></td></tr>'
+        + '<tr><td><b>Total Time:</b></td><td><span class="pl-2">' + totalDur + '</span></td></tr>'
 
         + '</table><hr class="tipLine">'
         + '<span class="pt-2"><b>Message:</b></span><br><span style="word-break: break-word;">' + message

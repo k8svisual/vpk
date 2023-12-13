@@ -199,7 +199,8 @@ function startServer() {
             utl.makedir('cluster');
         }
         utl.makedir('usage');             // create the usage directory if it does not exist
-        docm.buildDocumentation();        // read, parse, and load documentation markdown file into global vpk
+
+        docm.buildDocumentation();        // read, parse, and load documentation markdown files into global vpk
     } catch (err) {
         console.log(err.stack)
     }

@@ -25,7 +25,7 @@ function editDef(data, which) {
         which = null;
     }
     //console.log(JSON.stringify(data, null, 4));
-    var part = data.filePart;
+    //var part = data.filePart;
     var defkey = data.defkey;
     var rtn = data.lines;
     data = null;
@@ -82,11 +82,14 @@ function editDef(data, which) {
     }
 }
 
-
 function initAceEditor(rtn) {
+    let needle;
+    let range;
+    let lineNumber = 0;
+    let theme = 'ace/theme/' + aceTheme;
     editor = ace.edit("editor");
-    editor.setValue(rtn);
-    editor.setTheme("ace/theme/sqlserver");         // theme for editing
+    editor.setValue(rtn);                           // the data to be edited/shown
+    editor.setTheme(theme);         // theme for editing
     editor.getSession().setMode("ace/mode/yaml");   // type of file high lighting
     editor.setOptions(
         {
@@ -94,16 +97,49 @@ function initAceEditor(rtn) {
             fontSize: 11,
             printMargin: false,
             tabSize: 2,
-            scrollPastEnd: 0.10,
-            enableBasicAutocompletion: true,
-            enableLiveAutocompletion: true
+            scrollPastEnd: 0.10
         }
     );
-    editor.focus();
-    editor.gotoLine(1, 0, true);
-    editor.renderer.scrollToRow(1);
-}
+    if (aceSearchValue !== '') {
+        editor.find(aceSearchValue);
+        // Open the Find/Replace dialog
+        editor.commands.exec("find", editor);
+        //editor.focus();
+    }
 
+
+    if (aceSearchValue !== '') {
+        // Find a needle in the hay stack
+        needle = new RegExp(aceSearchValue, 'g');
+        range = editor.find(needle, {
+            start: { row: 0, column: 0 },
+            preventScroll: false
+        });
+    } else {
+        range = null;
+    }
+
+    if (typeof range !== 'undefined' && range !== null) {
+        if (typeof range.start !== 'undefined') {
+            if (typeof range.start.row !== 'undefined') {
+                aceSearchValue = '';
+                // Wait for the editor to finish rendering
+                editor.renderer.once('afterRender', function () {
+                    var lineNumber = range.start.row;
+                    editor.scrollToLine(lineNumber, true, true, function () {
+                        var editorContainer = document.getElementById("editor");
+                        editorContainer.style.display = "block";
+                    });
+                });
+            }
+        }
+    } else {
+        aceSearchValue = '';
+        editor.focus();
+        editor.gotoLine(1, 0, true);
+        editor.renderer.scrollToRow(lineNumber);
+    }
+}
 
 //----------------------------------------------------------
 console.log('loaded vpkEdit.js');

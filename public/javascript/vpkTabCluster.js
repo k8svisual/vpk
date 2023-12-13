@@ -21,14 +21,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // Screen handling code for loading or creating Snapshot
 //----------------------------------------------------------
 
-
-
 //----------------------------------------------------------
 // build UI for the get Cluster
 function buildClusterUI(s) {
     $("#clusterInfo").show();
     $("#clusterStatus").empty();
-    $("#clusterStatus").html('&nbsp');
+    $("#clusterStatus").html('');
 }
 
 // Function to close the filter slide-in on right side of screen
@@ -54,9 +52,8 @@ function showClusterTab() {
     buildCluster3D();
 }
 
-function showRegistry(registry, view) {
-    returnWhere = 'Cluster';
-    loadRepositoryData(registry, view)
+function showRegistry(registry, view, returnTo) {
+    loadRepositoryData(registry, view, returnTo)
 }
 
 //----------------------------------------------------------

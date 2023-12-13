@@ -96,6 +96,21 @@ function getDefSec(data) {
     }
 }
 
+function getDefFnumAtItem(data, item) {
+    aceSearchValue = item;
+    if (data === 'noData') {
+        noDefInfo();
+        return;
+    }
+    if (data === 'missing') {
+        $("#yamlModal").modal('show');
+        return;
+    }
+    selectedDef = data;
+    editObj();
+}
+
+
 function getDefFnum(data) {
     if (data === 'noData') {
         noDefInfo();

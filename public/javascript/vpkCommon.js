@@ -26,16 +26,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // control what tab to return to 
 let returnWhere;
 
-// 3D view related
-let clusterPanelIsClosed = true;
-let foundNSNamesBuilt = false;
-let sceneColorR = 0.9;
-let sceneColorG = 0.9;
-let sceneColorB = 0.9;
-let sceneStars = false;
-let sceneClouds = false;
-let stickColorDark = true;
-let soundFor3D = true;
+
 
 // global
 let version = 'Get from server';  // Version of the software 
@@ -52,8 +43,10 @@ let podStatusLookup = {};
 
 // let editor;
 let selectedDef;
-let chartType;
-let chartWhat;
+
+//Filter value for DirStats graph
+let dirStatFilter = '';
+
 let currentTab = "instructions"
 let rootDir;
 let k8cData;
@@ -94,9 +87,18 @@ let explainInfo = [];
 
 let containerImagesInfo;
 
+// Cluster tab related fields
 let clusterFilters = {};
+let clusterBack = 'Grey'
+
+// ACE editor theme
+let aceTheme = 'chrome'
+let aceSearchValue = '';    // Value to find in k8s resource when opening in ACE
 
 let yesNoWhere = '';
+
+//Return stack
+let returnStack = {};
 
 // Not sure if Zoom code is needed
 let zoom = d3.zoom()
@@ -110,6 +112,12 @@ function initZoom() {
 function handleZoom(e) {
 	d3.select('svg g')
 		.attr('transform', e.transform);
+}
+
+function returnStackID(to, from) {
+	let key = new Date();
+	returnStack[key] = { 'to': to, 'from': from }
+	return key;
 }
 
 function getScreenWidth() {
@@ -132,13 +140,31 @@ function getScreenHeight() {
 	);
 }
 
-function returnToWhereTab() {
-	if (returnWhere === 'Cluster') {
+function returnToWhereTab(target, hide) {
+	if (hide !== null && hide.length > 0) {
+		$('#' + hide).html('');
+	}
+	if (target === 'Cluster') {
 		$('[href="#cluster"]').tab('show');
-		$("#storageReturnSection").html('');
-		$('#searchReturn').html('');
-	} else if (returnWhere === 'Event') {
+		$('#storageReturnSection').html('');
+	} else if (target === 'Event') {
 		$('[href="#evtMsgs"]').tab('show');
+	} else if (target === 'Graphic') {
+		$('[href="#graphic"]').tab('show');
+	} else if (target === 'Workload') {
+		// Clear the filter field
+		evtLimitUid = '';
+		// Switch views
+		$('[href="#schematic"]').tab('show');
+		$("#schemModal").modal('show');
+		// Scroll to the proper schematic 
+		let elementId = 'fnum-' + evtScrollFnum;
+		let targetElement = document.getElementById(elementId);
+		if (targetElement) {
+			targetElement.scrollIntoView();
+		} else {
+			console.log("Element not found");
+		}
 	}
 }
 
@@ -179,25 +205,93 @@ function processModalYesNo(action) {
 	}
 }
 
-function openSearch(val) {
+function setSelectValue(selectName, value) {
+	console.log(`selectList: ${selectName}  value: ${value}`)
+	// Update the selected item in a drop-down
+	let dropdown = document.getElementById(selectName);
+	for (var i = 0; i < dropdown.options.length; i++) {
+		if (dropdown.options[i].text === value) {
+			dropdown.selectedIndex = i;
+			break;
+		} else {
+			console.log(`did not match: ${dropdown.options[i].text}`)
+		}
+	}
+	// Trigger a change event to notify any listeners (like event listeners or frameworks)
+	let event = new Event("change");
+	dropdown.dispatchEvent(event);
+}
 
-	$('#kind-filter').val(val);
-	$('#kind-filter').trigger('change')
+function openSearch(val, requestor) {
+	let nsVal = '::all-namespaces::';
+	let kVal = val;
+	let gType = '';
+	let where = requestor;
+	let nsSelect
+	let kindSelect;
 
-	var data = {
+	// If the requesting source is the Graphic tab / dirStats report
+	if (requestor === 'GraphicDirStats') {
+		where = 'Graphic'
+		gType = $("#dirStatType").prop("innerText");
+		if (gType.indexOf('Namespace') > -1) {
+			if (dirStatFilter === '') {
+				nsSelect = val;
+				kindSelect = 'all-kinds';
+				nsVal = '::' + val + '::';
+				kVal = '::all-kinds::'
+			} else {
+				nsSelect = dirStatFilter;
+				kindSelect = val;
+				nsVal = '::' + dirStatFilter + '::';
+				kVal = '::' + val + '::';
+			}
+		} else {
+			if (dirStatFilter === '') {
+				nsSelect = 'all-namespaces';
+				kindSelect = val;
+				nsVal = '::all-namespaces::';
+				kVal = '::' + val + '::';
+			} else {
+				nsSelect = val;
+				kindSelect = dirStatFilter;
+				nsVal = '::' + val + '::';
+				kVal = '::' + dirStatFilter + '::';
+			}
+		}
+	} else if (requestor === 'Cluster') {
+		nsSelect = val;
+		kindSelect = val;
+	}
+
+	// Set the drop-down values for the Search tab
+	if (requestor !== 'Cluster') {
+		setSelectValue('ns-filter', nsSelect)
+	}
+
+	// Update the Kind dropDown
+	setSelectValue('kind-filter', kindSelect)
+
+	// Build search request and send to server
+	let data = {
 		"searchValue": '',
-		"namespaceFilter": '::all-namespaces::',
-		"kindFilter": val
+		"namespaceFilter": nsVal,
+		"kindFilter": kVal
 	}
 	socket.emit('searchK8Data', data);
-	returnWhere = 'Cluster'
-	let rtn = '<div class="vpkfont vpkcolor mt-1 mb-1" style="background-color: #eeeeee;"><hr style="margin-top: 3px; margin-bottom: 3px;">'
-		+ '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-		+ ' onclick="returnToWhereTab()">Return</button>'
-		+ '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'
-		+ '<hr style="margin-top: 3px; margin-bottom: 3px;"></div>'
-	$('#searchReturn').html(rtn);
+	returnWhere = where;
 
+	$('#searchReturn').html(
+		'<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-1">'
+		+ '<hr style="margin-top: 3px; margin-bottom: 3px;">'
+		+ '<button type="button" class="btn btn-sm btn-secondary vpkButtons ml-2 px-2"'
+		+ '	onclick="returnToWhereTab(\'' + where + '\',\'searchReturn\')">Return</button>'
+		+ '<span class="px-1">to</span>' + where + '<span class="px-1">tab</span>'
+		+ '<hr style="margin-top: 3px; margin-bottom: 3px;">'
+		+ '</div>'
+	)
+
+	// Open tab
 	$('[href="#searchview"]').tab('show');
 }
 

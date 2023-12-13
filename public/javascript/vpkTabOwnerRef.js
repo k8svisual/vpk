@@ -42,7 +42,7 @@ let oRef
 
 //Invoked when Cluster tab 'View OwnerRef' button pressed
 function showOwnRef(oRefFnum, oRefNameSpace, oRefKind, where) {
-    returnWhere = where;
+    returnWhere = where;   // Always set to Cluster
     hideMessage();
     oRefData = [];
     oRefNS = [];
@@ -338,16 +338,17 @@ function createGraphORef(clusterORef) {
     try {
         let height = '150000pt';
         // clear the div that contains the graph
-        document.getElementById('oRefWrapper').innerHTML = '';
+        $('#oRefWrapper').html('')
         if (clusterORef === true) {
-            document.getElementById('oRefWrapper').innerHTML =
-                '<div class="vpkfont vpkcolor mt-1 mb-2 ml-2">'
-                + '<button type="button" class="btn btn-sm btn-primary vpkButtons vpkwhite ml-2 px-2" '
-                + ' onclick="returnToWhereTab()">Return</button>'
+            $('#oRefWrapper').html(
+                '<div class="vpkfont vpk-rtn-bg mt-1 mb-2 ml-2">'
+                + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2" '
+                + ' onclick="returnToWhereTab(\'Cluster\',\'oRefWrapper\')">Return</button>'
                 + '<span class="px-2 vpkfont">to Cluster tab</span></div>'
                 + '<div id="oRefViz" style="text-align: center;"></div>'
+            )
         } else {
-            document.getElementById('oRefWrapper').innerHTML = '<div id="oRefViz" style="text-align: center;"></div>'
+            $('#oRefWrapper').html('<div id="oRefViz" style="text-align: center;"></div>')
         }
         let viz = d3.select("#oRefViz");
         viz
@@ -357,7 +358,7 @@ function createGraphORef(clusterORef) {
             .renderDot(graphVizDataORef)
             .on("end", addGraphvizOnClickORef);
     } catch (e) {
-        console.log(`createGraph`)
+        console.log(`createGraphORef error: ${e}`)
     }
 
     // Check to determine if this a single OwnerRef fron Cluster View

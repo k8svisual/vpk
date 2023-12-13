@@ -32,6 +32,9 @@ function saveConfig(what) {
     let mFlds = document.getElementById('mgmFlds').checked;
     let redactSec = document.getElementById('redactSecrets').checked;
     let reloadAction = document.getElementById('reloadAction').checked;
+    let lightTheme = document.getElementById('lightTheme').checked;
+
+
     if (typeof mFlds === 'undefined') {
         mFlds = false;
     }
@@ -44,7 +47,35 @@ function saveConfig(what) {
     if (typeof reloadAction === 'undefined') {
         reloadAction = false;
     }
-    socket.emit('saveConfig', { "managedFields": mFlds, "statusSection": sFlds, "redactSecrets": redactSec, "reloadAction": reloadAction });
+    if (typeof lightTheme === 'undefined') {
+        lightTheme = true;
+    } else {
+        if (lightTheme === true) {
+            aceTheme = 'chrome'
+        } else {
+            aceTheme = 'merbivore'
+        }
+    }
+
+
+    let tmp = $('#clusterBG').select2('data')
+    let back = ''
+    if (typeof tmp === 'undefined' || tmp === null) {
+        back = 'Grey';
+    } else {
+        back = tmp[0].text;
+        console.log(`back: ${back}`)
+    }
+
+
+    socket.emit('saveConfig', {
+        "managedFields": mFlds,
+        "statusSection": sFlds,
+        "redactSecrets": redactSec,
+        "reloadAction": reloadAction,
+        "lightTheme": lightTheme,
+        "clusterBackground": back
+    });
     atOpenSettings = getCurrentSettings();
 
 }
@@ -99,8 +130,15 @@ socket.on('getConfigResult', function (data) {
         $('#reloadAction').bootstrapToggle('off');
     }
 
+    if (data.config.lightTheme === true) {
+        $('#lightTheme').bootstrapToggle('on');
+    } else {
+        $('#lightTheme').bootstrapToggle('off');
+    }
+
+    // Save all the current setting to compare on close
+    // to determine if they should be saved
     atOpenSettings = getCurrentSettings();
-    console.log(atOpenSettings + ' : atOpenSettings')
 
     $("#configModal").modal('show');
 });
@@ -111,6 +149,7 @@ function getCurrentSettings() {
     let mFlds = document.getElementById('mgmFlds').checked;
     let redactSec = document.getElementById('redactSecrets').checked;
     let reloadAction = document.getElementById('reloadAction').checked;
+    let lightTheme = document.getElementById('lightTheme').checked;
     let comapreSettings = '';
 
     if (mFlds === true) {
@@ -133,6 +172,13 @@ function getCurrentSettings() {
     } else {
         comapreSettings = comapreSettings + 'F';
     }
+    if (lightTheme === true) {
+        comapreSettings = comapreSettings + 'T';
+    } else {
+        comapreSettings = comapreSettings + 'F';
+    }
+    comapreSettings = comapreSettings + $('#clusterBG').select2('data');
+
     return comapreSettings;
 }
 
@@ -146,9 +192,9 @@ function closeConfig() {
         + '<br><br><span>Continue processing or return to configuration?</span></div>'
 
     let currentSettings = getCurrentSettings();
-    console.log(currentSettings + ' : currentSettings')
-    console.log(atOpenSettings + ' : atOpenSettings')
-    console.log(configSaved + ' : configSaved')
+    // console.log(currentSettings + ' : currentSettings')
+    // console.log(atOpenSettings + ' : atOpenSettings')
+    // console.log(configSaved + ' : configSaved')
 
     // Are current setting the same as when Config modal was openned
     if (currentSettings !== atOpenSettings) {
