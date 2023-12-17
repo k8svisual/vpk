@@ -115,14 +115,9 @@ function populate3DSelectNS() {
         return
     }
     // namespace drop downs
-    let data = bldOptions(foundNSNames, 'N', 'select2');
-
+    let data = bldOptions(foundNSNames, 'S', 'no');
     $("#cluster-ns-filter").empty();
-    $("#cluster-ns-filter").select2({
-        data: data,
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md"
-    });
+    $("#cluster-ns-filter").html(data);
     foundNSNamesBuilt = true;
 }
 

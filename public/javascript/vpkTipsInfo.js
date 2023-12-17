@@ -153,8 +153,15 @@ function hideVpkTooltip() {
 }
 
 function showMessage(msg, level) {
-    level = 'docBackground'
-    let txt = '<div class="text-center mt-3 mb-3 ml-2 mr-2 ' + level + '">' + msg + '</div>';
+    let txt = ''
+    if (level !== 'processing') {
+        txt = '<div class="text-center mt-3 mb-3 ml-2 mr-2 docBackground">' + msg + '</div>';
+    } else {
+        txt = '<div class="text-center mt-3 mb-3 ml-2 mr-2 docBackground">' + msg + '</div>'
+            + '<div class="row text-center mx-auto mt-5">'
+            + '<img src="images/loading.gif" width="45" height="45" />'
+            + '</div>'
+    }
     $('#messageBody').html(txt);
     $("#messageModal").modal('show');
 }

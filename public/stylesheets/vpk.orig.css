@@ -60,10 +60,6 @@ div {
     font-size: 0.75rem;
 }
 
-.vpkselect2 {
-    font-size: 0.75rem;
-}
-
 .vpkfont-decode {
     font-size: 0.75rem;
     background-color: #dddddd;
@@ -87,11 +83,8 @@ div {
 }
 
 .vpkblue {
+    /* color: rgb(18, 100, 187); */
     color: rgb(0, 123, 255);
-}
-
-.vpkgrey {
-    color: rgb(123, 123, 123);
 }
 
 .vpkwhite {
@@ -99,11 +92,11 @@ div {
     color: rgb(0, 123, 255);
 }
 
-.vpkgreyBanner {
+.vpkblue {
     width: 100%;
-    background-color: rgb(123, 123, 123);
+    background-color: rgb(0, 123, 255);
     color: white;
-    padding: 4px;
+    padding: 10px;
 }
 
 .vpkinline {
@@ -127,11 +120,6 @@ div {
 .vpk-font-bold-italic {
     font-weight: bold;
     font-style: italic;
-}
-
-.vpk-padStorage {
-    padding-top: .75rem !important;
-    padding-bottom: .75rem !important;
 }
 
 .filterWidth {

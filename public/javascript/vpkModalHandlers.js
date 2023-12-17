@@ -38,7 +38,7 @@ function getNsTable(ns) {
 }
 
 function getEvtsTable(key) {
-    $("#schemHeader").html('<span class="vpkcolor vpkfont">Events for workload</span>');
+    $("#schemHeader").html('<span class="vpkblue vpkfont">Events for workload</span>');
     if (typeof workloadEventsInfo[key] !== 'undefined') {
         $("#schemBody").html(workloadEventsInfo[key]);
     } else {

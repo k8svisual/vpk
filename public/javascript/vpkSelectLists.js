@@ -33,14 +33,6 @@ function populateEventNSList() {
         for (let i = 0; i < keys.length; i++) {
             data[keys[i]] = keys[i]
         }
-        $("#events-ns-filter").empty();
-        $("#events-ns-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md",
-            placeholder: "all-namespaces"
-        });
-
         options = bldOptions(data, 'S', 'no');
         let tmpArray = options.split('<option>');
         let newOptions = '';
@@ -53,7 +45,6 @@ function populateEventNSList() {
             }
         }
         options = newOptions;
-
         $("#events-ns-filter").empty();
         $("#events-ns-filter").html(options);
     }
@@ -68,16 +59,7 @@ function populateSchematicList() {
         for (let i = 0; i < keys.length; i++) {
             data[keys[i]] = keys[i]
         }
-        $("#schematic-ns-filter").empty();
-        $("#schematic-ns-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md",
-            placeholder: "select namespace(s)"
-        });
-
         options = bldOptions(data, 'S', 'no');
-
         $("#schematic-ns-filter").empty();
         $("#schematic-ns-filter").html(options);
     }
@@ -93,18 +75,9 @@ function populateRepositoryList() {
         for (let i = 0; i < keys.length; i++) {
             data[keys[i]] = keys[i]
         }
-        $("#container-images-filter").empty();
-        $("#container-images-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md",
-            placeholder: "select repository"
-        });
-
         options = bldOptions(data, 'S', 'no');
-
-        $("#container-images-filter").empty();
-        $("#container-images-filter").html(options);
+        $("#repository-list").empty();
+        $("#repository-list").html(options);
     }
 }
 
@@ -125,9 +98,11 @@ function populateORefKinds(oRefKinds) {
     $("#ownerRef-kind-filter").empty();
     $("#ownerRef-kind-filter").select2({
         data: listArray,
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select kind(s), default is ALL kinds"
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select kinds(s), default is ALL kinds",
+        multiple: false,
+        width: 300
     });
 }
 
@@ -148,40 +123,31 @@ function populateSelectLists(data) {
         baseDir = data.baseDir;
 
         // filter bar1 (namespaces) and grapcis and cluster drop downs
-        options = bldOptions(data.namespaces, 'N', 'select2');
-        options.sort();
+        // options = bldOptions(data.namespaces, 'N', 'select2');
+        // options.sort();
+
+        // $("#ns-filter").empty();
+        // $("#ns-filter").html(options);
+
+        // let secTemp = [];
+        // options.sort();
+        // for (let i = 0; i < options.length; i++) {
+        //     if (i === 0) {
+        //         secTemp.push({ 'id': 0, 'text': ' ' });
+        //         secTemp.push({ 'id': 0, 'text': '<cluster-level>' });
+        //     }
+        //     if (options[i].text === 'all-namespaces' || options[i].text === 'cluster-level') {
+        //         //console.log('skipped');
+        //     } else {
+        //         secTemp.push(options[i])
+        //     }
+        // }
+
+        // Namespaces
+        options = bldOptions(data.namespaces, 'S', 'no');
 
         $("#ns-filter").empty();
-        $("#ns-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
-        });
-
-        $("#graphic-ns-filter").empty();
-        $("#graphic-ns-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md",
-            placeholder: "select namespace(s)"
-        });
-
-        let secTemp = [];
-        options.sort();
-        for (let i = 0; i < options.length; i++) {
-            if (i === 0) {
-                secTemp.push({ 'id': 0, 'text': ' ' });
-                secTemp.push({ 'id': 0, 'text': '<cluster-level>' });
-            }
-            if (options[i].text === 'all-namespaces' || options[i].text === 'cluster-level') {
-                //console.log('skipped');
-            } else {
-                secTemp.push(options[i])
-
-            }
-        }
-
-        options = bldOptions(data.namespaces, 'S', 'no');
+        $("#ns-filter").html(options);
 
         $("#security-ns-filter").empty();
         $("#security-ns-filter").html(options);
@@ -189,22 +155,20 @@ function populateSelectLists(data) {
         $("#ownerRef-ns-filter").empty();
         $("#ownerRef-ns-filter").html(options);
 
+        $("#graphic-ns-filter").empty();
+        $("#graphic-ns-filter").html(options);
 
-        // filter bar2 (resource kinds)
-        options = bldOptions(data.kinds, 'K', 'select2');
+
+        // Kinds
+        // options = bldOptions(data.kinds, 'K', 'select2');
+        options = bldOptions(data.kinds, 'S', 'no');
+
         $("#kind-filter").empty();
-        $("#kind-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
-        });
+        $("#kind-filter").html(options);
+
         // Uses in graphic tab for DirStats report
         $("#graphic-kind-filter").empty();
-        $("#graphic-kind-filter").select2({
-            data: options,
-            dropdownCssClass: "vpkfont-md",
-            containerCssClass: "vpkfont-md"
-        });
+        $("#graphic-kind-filter").html(options);
 
 
         // populateXrefLists(data);

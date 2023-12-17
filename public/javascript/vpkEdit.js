@@ -72,7 +72,7 @@ function editDef(data, which) {
 
     var editImage = '<img style="vertical-align:middle;" src="images/' + image + '" width="30" height="30" '
         + ' onclick="getExplain(\'' + kind + '\',\'' + api + '\')"></img>'
-        + '<div style="vertical-align:middle; display:inline;" class="vpkcolor vpkfont pl-2">'
+        + '<div style="vertical-align:middle; display:inline;" class="vpkblue vpkfont pl-2">'
         + kind + '  (' + fnum + ')';
 
     if (which === null || which === '') {

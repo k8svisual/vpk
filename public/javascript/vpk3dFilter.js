@@ -45,6 +45,22 @@ function meshCnt() {
         noCnt = 0;
     }
 }
+function clearAll3dItems() {
+    for (i = 0; i < meshArray.length; i++) {
+        meshArray[i].obj.setEnabled(false);
+    }
+    for (i = 0; i < sliceArray.length; i++) {
+        sliceArray[i].obj.setEnabled(false);
+    }
+    for (i = 0; i < controlPlaneArray.length; i++) {
+        controlPlaneArray[i].obj.setEnabled(false);
+    }
+    for (i = 0; i < resourceArray.length; i++) {
+        resourceArray[i].obj.setEnabled(false);
+    }
+}
+
+
 
 
 function showRing() {
@@ -78,6 +94,12 @@ function getFnumInfo(data) {
 
 
 function filter3DView() {
+    // Close the TimeLapse if it is open
+    const clusterSlideUpContainer = document.getElementById('clusterSlideUpContainer');
+    clusterSlideUpContainer.classList.remove('clusterShow');
+    timeLapseFilterClose();
+
+
     // get namespace filters if defined
     let namespaces = '';
     let options = $('#cluster-ns-filter').select2('data');

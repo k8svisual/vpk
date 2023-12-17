@@ -36,6 +36,7 @@ let evtMinutes;
 let evtNs;
 let evtNsSum;
 let namespaceFnum;
+let timeline3d;
 
 
 //----------------------------------------------------------
@@ -103,7 +104,7 @@ function dynamic() {
 
     socket.emit('connectK8', kinfo);
     $("#clusterStatus").empty();
-    var resp = '<div><span class="vkpfont vpkcolor" style="vertical-align: middle;">Request will take several seconds to complete</span></div>';
+    var resp = '<div><span class="vkpfont vpkblue" style="vertical-align: middle;">Request will take several seconds to complete</span></div>';
     $("#clusterStatus").html(resp);
 }
 //...
@@ -125,7 +126,7 @@ socket.on('getKStatus', function (data) {
             msg = "Processing completed. Use 'Close' button' to close window."
         }
     }
-    let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
+    let resp = '<br><div class="vpkfont vpkblue">' + msg + '</div>';
     $("#clusterStatus").html(resp);
 
 });
@@ -133,7 +134,7 @@ socket.on('getKStatus', function (data) {
 //...
 socket.on('getsDone', function (data) {
     let msg = data.msg
-    let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
+    let resp = '<br><div class="vpkfont vpkblue">' + msg + '</div>';
     $("#clusterStatus").html(resp);
 
 });
@@ -145,7 +146,7 @@ socket.on('parseStatus', function (data) {
     } else {
         msg = 'Parsing files'
     }
-    let resp = '<br><div class="vpkfont vpkcolor">' + msg + '</div>';
+    let resp = '<br><div class="vpkfont vpkblue">' + msg + '</div>';
     $("#parseStatus").html(resp);
 
 });
@@ -183,20 +184,44 @@ socket.on('versionResult', function (data) {
     } else {
         console.log('VpK runMode: Container')
     }
-    // hide one of the select sections in the html
-    if (runMode === 'C') {
-        var link = document.getElementById('runLocal');
-        link.style.display = 'none'; //or
-        link.style.visibility = 'hidden';
 
-        var link = document.getElementById('sshInfo');
-        link.style.display = 'block'; //or
-        //link.style.visibility = 'hidden';
+    if (runMode !== 'C') {
+        $('#sourceDropDown').html(
+            '<select id="pickDataSource" class="vkpfont-md">'
+            + '<option></option>'
+            + '<option>Running cluster</option>'
+            + '<option>Previous captured snapshot</option>'
+            + '</select>'
+        );
+        $('#sshInfo').hide();
+
     } else {
-        var link = document.getElementById('runContainer');
-        link.style.display = 'none'; //or
-        link.style.visibility = 'hidden';
+        $('#sourceDropDown').html(
+            '<select id="pickDataSource" class="vkpfont-md">'
+            + '<option></option>'
+            + '<option>Running cluster</option>'
+            + '<option>Previous captured snapshot</option>'
+            + '<option>Run command in container</option>'
+            + '</select>'
+        )
+        $('#sshInfo').show();
+
     }
+
+    $('#pickDataSource').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "Select option",
+        theme: "classic",
+        multiple: false,
+        width: 225
+    });
+    $('#pickDataSource').on('select2:select', function (e) {
+        var selected = $('#pickDataSource option:selected').val();
+        pickData(selected);
+        $('#pickDataSource').val(null)
+    });
+
     // set the edit theme for light or dark
     if (data.editTheme === true) {
         aceTheme = 'chrome'
@@ -291,7 +316,8 @@ socket.on('getServerDataResult', function (data) {
     evtMinutes = data.eventStats.evtMinutes;
     evtNs = data.eventStats.evtNs;
     evtNsSum = data.eventStats.evtNsSum;
-    namespaceFnum = data.namespaceFnum
+    namespaceFnum = data.namespaceFnum;
+    timeline3d = data.timeline;
 
     if (typeof data.filters !== 'undefined') {
         clusterFilters = data.filters;
@@ -305,7 +331,8 @@ socket.on('getServerDataResult', function (data) {
     buildStorage();
     processimageRepositoryData();
     populateEventNSList();
-    $('#evtMinutesRange').html(`Range 0 to ${evtMaxMinutes}`)
+    populateTimeLapseNSList();
+    $('#evtMinutesRange').html(`(Range 0 to ${evtMaxMinutes})`)
     evtShowStats();
     showClusterTab();
 

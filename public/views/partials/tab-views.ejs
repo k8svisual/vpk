@@ -22,277 +22,256 @@
 -->
 
 
-<div>
 
-    <div id="instructionsHdr">
+<div id="instructionsHdr">
+</div>
+
+<div id="clusterHdr" class="vpkhidden mt-1">
+    <div class="mb-1 ml-1 mt-1">
+        <i class="fa fa-lg fa-stopwatch vpkblue header-right pt-1 pr-2 pl-2" onclick="timeLapseOpen()"></i>
     </div>
-
-    <div id="clusterHdr" class="vpkhidden mt-1">
-        <div class="mb-1 ml-1 mt-1">
-            <span class="'vpkcolor header-right">
-                <button type="button" class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                    onclick="viewClusterLegend()">Legend
-                </button>
-            </span>
-            <span class="fas fa-print fa-lg mr-1 pt-1 pr-2 vpkcolor header-right" onclick="print3Dscene()">
-            </span>
-        </div>
+    <div class="mb-1 ml-1 mt-1">
+        <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2" onclick="viewClusterLegend()"></i>
     </div>
+</div>
 
-    <div id="schematicHdr" class="vpkhidden">
-        <div class="vpkcolor mt-1 mr-2 ml-2 mb-1 border rounded">
-            <div class="row ml-1 mr-1 mb-1 mt-1">
-                <div id="schematic-ns-select" class="ml-1 mr-1 vpkfont-md">
-                    <select id="schematic-ns-filter" multiple="multiple" style="width: 300px">
+<div id="schematicHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <select id="schematic-ns-filter">
                         <option>all-namespaces</option>
                         <option>default</option>
                     </select>
-
-                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="getSchematic"
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="getSchematic()">
-                        &nbsp;Retrieve Schematic(s)&nbsp;
+                        Retrieve Schematic
                     </button>
-                    <span class="vpkfont-sm vpkcolor ml-t">Once data is retrieved press the blue and/or yellow
-                        buttons shown below to toggle the view for the identifed namespace.
-                    </span>
+                    <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                        onclick="tellMe('schematic-01')"></i>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <div id="storageHdr" class="vpkhidden">
-        <div class="vpkcolor mt-1 mr-2 ml-2 mb-1 border rounded">
-            <div class="row ml-1 mr-1 mb-1 mt-1">
-                <div class="col-1 align-middle fa-sm vpkcolor ">
-                    <span class="vpkfont-sm">Toggle views:</span>
-                </div>
-                <div class="col-2" style="text-align:center">
-                    <a href=" #storageWrapper" class="btn btn-sm storage-color fa-sm" data-toggle="collapse">
-                        SC / PV / PVC
-                    </a>
-                </div>
-                <div class="col-2" style="text-align:center">
-                    <a href="#countVol" class="btn btn-sm btn-primary fa-sm" data-toggle="collapse">
-                        Counts by Volume Types
-                    </a>
-                </div>
-                <div class="col-2" style="text-align:center">
-                    <a href=" #countNode" class="btn btn-sm btn-secondary fa-sm" data-toggle="collapse">
-                        Counts by Cluster Node
-                    </a>
-                </div>
-                <div class="col-2" style="text-align:center">
-                    <a href=" #countNamespace" class="btn btn-sm btn-success fa-sm" data-toggle="collapse">
-                        Counts by Namespace
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="securityHdr" class="vpkhidden">
-        <div class="vpkcolor mt-1 mr-2 ml-2 mb-1 border rounded">
-            <div class="mt-1 mr-2 ml-2 mb-1">
-                <div>
-                    <span>
-                        <span id="security-ns-select" class="ml-1 mr-1 vpkfont-md">
-                            <select id="security-ns-filter" style="width: 300px">
-                                <option>all-namespaces</option>
-                                <option>default</option>
-                            </select>
-                        </span>
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                            onclick="getSecurityViewData()">
-                            &nbsp;View selected namespace&nbsp;
-                        </button>
-                        <span class="'vpkcolor header-right">
-                            <button type="button" class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                onclick="viewSecurityLegend()">Legend
-                            </button>
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ownerlinksHdr" class="vpkhidden">
-        <div class="vpkcolor mt-1 mr-2 ml-2 mb-1 border rounded">
-            <div class="mt-1 mr-2 ml-2 mb-1">
-                <div>
-                    <span>
-                        <span id="ownerRef-ns-select" class="ml-1 mr-1 vpkfont-md">
-                            <select id="ownerRef-ns-filter" style="width: 300px">
-                                <option>all-namespaces</option>
-                                <option>default</option>
-                            </select>
-                        </span>
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite" id="sec06"
-                            onclick="getOwnerRefData()">
-                            &nbsp;View selected namespace&nbsp;
-                        </button>
-                        <span class="'vpkcolor header-right">
-                            <button type="button" class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                onclick="viewOwnerRefLegend()">Legend
-                            </button>
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="evtMsgsHdr" class="vpkhidden">
-        <div class="vpkcolor mt-1 mr-2 ml-2 mb-1 border rounded">
-            <div class="mt-1 mr-2 ml-2 mb-1">
-                <div>
-                    <span>
-                        <span>
-                            <span style="padding-right: 10px;" class="vpkfont-sm vpkcolor">
-                                Select view
-                            </span>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="evtShowStats()">
-                                Statistics
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="evtShowTimeline()">
-                                Timeline
-                            </button>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="evtShowTable()">
-                                Table view
-                            </button>
-                        </span>
-                        <span style="padding-left: 20px;" class="vpkfont-sm vpkcolor">
-                            Select namespace
-                        </span>
-                        <span id="events-ns-select" class="vpkfont-md pl-1 pr-1">
-                            <select id="events-ns-filter" style="width: 300px;">
-                                <option>all-namespaces</option>
-                            </select>
-                        </span>
-                        <span style="padding-left: 20px;" class="vpkfont-sm vpkcolor">
-                            First minute to display
-                            <span style="display: inline; padding-left: 5px;">
-                                <input type="text" class="vpkfont vpkcolor" style="width: 40px; height: 25px;"
-                                    id="evtPageToStart">
-                            </span>
-                            <span id="evtMinutesRange" style="padding-left: 5px;">
-                            </span>
-                        </span>
-                        <span style="padding-left: 20px;">
-                            <button id="evtFilter" type="button" class="btn btn-warning btn-sm pl-1 pr-1 vpkhidden"
-                                onclick="evtClearFilter()">
-                                Clear Workload Schematic UID filter
-                            </button>
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="graphicHdr">
-        <div class="vpkcolor mt-1 mr-2 ml-2 border rounded">
-            <div class="mt-1 mr-2 ml-2 mb-1">
-                <div>
-                    <span>
-                        <span>
-                            <span style="padding-right: 10px;" class="vpkfont-sm vpkcolor">
-                                Select graph
-                            </span>
-                            <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                                onclick="getChart('snapshot')">
-                                Snapshot counts
-                            </button>
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="containerImagesHdr" class="vpkhidden">
-        <div class="ml-2 mt-1 mb-2 mr-2 border rounded">
-            <div class="vpkButtons mb-1 ml-1 mt-1">
-                <div>
-                    <span>
-                        <span style="padding-right: 10px;" class="vpkfont-sm vpkcolor">
-                            Select repository
-                        </span>
-                        <span id="container-images-select" class="ml-1 mr-1 vpkfont-md">
-                            <select id="container-images-filter" style="width: 300px">
-                                <option>all-repositories</option>
-                                <option>default</option>
-                            </select>
-                        </span>
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                            onclick="getRepositoryData()">
-                            View selected repository
-                        </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
-                            onclick="toggleImagesView()">
-                            Toggle views (table/graph)
-                        </button>
-                        <span class="'vpkcolor header-right">
-                            <button type="button" class="btn btn-outline-primary btn-sm pl-1 pr-1 vpkButtons vpkwhite"
-                                onclick="viewRepositoryLegend()">Legend
-                            </button>
-                        </span>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="searchviewHdr" class="vpkhidden">
-        <div class="grid ml-2 mr-2">
-            <div id="filterdata" class="border rounded mt-1 vpkcolor">
-                <div class="grid ml-1 mr-2 mt-1 vpkcolor vpkfont-md">
-                    Select or enter one or more criteria and press the Search button
-                </div>
-                <div class="row filterBack pl-1 mt-1">
-                    <div class="vpkfont-md mt-2 filterWidth">
-                        Namespace(s)
+<div id="storageHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2">View</span>
+                    <div class="col-auto">
+                        <a href=" #storageWrapper" class="btn btn-sm storage-color fa-sm px-2 vpk-padStorage"
+                            data-toggle="collapse">
+                            SC / PV / PVC
+                        </a>
                     </div>
-                    <div class="ml-1 mr-1 mt-1 vpkfont-md">
-                        <select id="ns-filter" multiple="multiple" style="width: 550px">
+                    <div class="col-auto">
+                        <a href="#countVol" class="btn btn-sm btn-primary fa-sm px-2  vpk-padStorage"
+                            data-toggle="collapse">
+                            Counts by Volume Types
+                        </a>
+                    </div>
+                    <div class="col-auto">
+                        <a href=" #countNode" class="btn btn-sm btn-secondary fa-sm px-2  vpk-padStorage"
+                            data-toggle="collapse">
+                            Counts by Cluster Node
+                        </a>
+                    </div>
+                    <div class="col-auto">
+                        <a href=" #countNamespace" class="btn btn-sm btn-success fa-sm px-2  vpk-padStorage"
+                            data-toggle="collapse">
+                            Counts by Namespace
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="securityHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <select id="security-ns-filter">
+                        <option>all-namespaces</option>
+                    </select>
+
+                    <button type=" button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="getSecurityViewData()">
+                        View selected namespace
+                    </button>
+                    <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                        onclick="tellMe('security-01')"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="ownerlinksHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <select id="ownerRef-ns-filter">
+                        <option>all-namespaces</option>
+                        <option>default</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="getOwnerRefData()">
+                        View selected namespace
+                    </button>
+                    <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                        onclick="tellMe('ownerRef-01')"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="evtMsgsHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont-md vpkblue px-2 pt-1">View</span>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="evtShowStats()">
+                        Statistics
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="evtShowTimeline()">
+                        Timeline
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="evtShowTable()">
+                        Table view
+                    </button>
+                    </span>
+                    <span class="vpkfont-md vpkblue ml-4 pt-1">
+                        Namespace
+                    </span>
+                    <span id="events-ns-select" class="vpkfont-md pl-1 pr-1">
+                        <select id="events-ns-filter">
                             <option>all-namespaces</option>
                         </select>
-                    </div>
-                </div>
-                <div class="row filterBack pl-1">
-                    <div class="vpkfont-md mt-2 filterWidth">
-                        Kind(s)
-                    </div>
-                    <div class="ml-1 mr-1 mt-1 vpkfont-md">
-                        <select id="kind-filter" multiple="multiple" style="width: 550px">
-                            <option>all-kinds</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row filterBack pl-1 pb-2">
-                    <div class="vpkfont-md mt-2 filterWidth">
-                        Search value
-                    </div>
-                    <div id="bar3-select" class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
-                        <input type="text" class="form-control vpkfont-md" id="search-value-field"
-                            placeholder="partial or complete name resource name">
-                    </div>
-                    <!-- Information blue DOT -->
-                    <span class="pt-2">
-                        <a href="javascript:searchValues()">
-                            <i class="fas fa-question mr-3 mt-1 vpkcolor"></i>
-                        </a>
+                    </span>
+                    <span class="vpkfont-md vpkblue ml-4">
+                        First minute to display
+                        <span class="ml-4">
+                            <input type="text" class="vpkfont vpkblue" style="width: 40px; height: 25px;"
+                                id="evtPageToStart">
+                        </span>
+                        <span id="evtMinutesRange" style="padding-left: 5px;">
+                        </span>
+                    </span>
+                    <span class="ml-4">
+                        <button id="evtFilter" type="button" class="btn btn-warning btn-sm pl-1 pr-1 vpkhidden"
+                            onclick="evtClearFilter()">
+                            Clear Workload Schematic UID filter
+                        </button>
                     </span>
                 </div>
-                <div class="float-left mt-2 mb-1 ml-0">
-                    <button type="button" class="btn btn-sm btn-primary vpkButtons px-2 vpkwhite" onclick="searchObj()">
-                        Search
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="graphicHdr">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2 pt-1">Graph</span>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2 py-2"
+                        onclick="getChart('snapshot')">
+                        Snapshot counts
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="containerImagesHdr" class="vpkhidden">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col">
+                <div class="d-flex flex-row mt-1">
+                    <span class="vpkfont vpkblue px-2 pt-1">Repository</span>
+                    <span id="container-images-select" class="ml-1 mr-1 vpkfont-md">
+                        <select id="repository-list" style="width: 300px">
+                            <option>all-repositories</option>
+                            <option>default</option>
+                        </select>
+                    </span>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
+                        onclick="getRepositoryData()">
+                        View selected repository
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
+                        onclick="toggleImagesView()">
+                        Toggle views (table/graph)
+                    </button>
+                    <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                        onclick="tellMe('container-01')"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="searchviewHdr" class="vpkhidden">
+    <div class="grid ml-2 mr-2">
+        <div id="filterdata" class="border rounded mt-1 vpkblue">
+            <div class="grid ml-1 mr-2 mt-1 vpkblue vpkfont-md">
+                Select or enter one or more criteria and press the Search button
+            </div>
+            <div class="row filterBack pl-1 mt-1">
+                <div class="vpkfont-md mt-2 filterWidth">
+                    Namespace(s)
+                </div>
+                <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                    <select id="ns-filter">
+                        <option>all-namespaces</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row filterBack pl-1">
+                <div class="vpkfont-md mt-2 filterWidth">
+                    Kind(s)
+                </div>
+                <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                    <select id="kind-filter">
+                        <option>all-kinds</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row filterBack pl-1 pb-2">
+                <div class="vpkfont-md mt-2 filterWidth">
+                    Search value
+                </div>
+                <div class="ml-1 mr-1 mt-1 vpkfont-md" style="width: 550px;">
+                    <input type="text" class="form-control vpkfont-md" id="search-value-field"
+                        placeholder="partial or complete name resource name">
+                </div>
+                <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                    onclick="tellMe('search-01')"></i>
+            </div>
+        </div>
+        <div class="float-left mt-2 mb-1 ml-0">
+            <button type="button" class="btn btn-sm btn-primary vpkButtons px-2 vpkwhite" onclick="searchObj()">
+                Search
+            </button>
         </div>
     </div>
 </div>

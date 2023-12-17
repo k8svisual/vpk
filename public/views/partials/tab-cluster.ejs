@@ -9,14 +9,14 @@
 
     <span id="slideIn_box">Properties</span>
     <div id="slideIn" class="hidden">
-        <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right mt-1 mr-1"
-            onclick="closeSlideIn()">&nbsp;Close&nbsp;
+        <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right mt-1 mr-1 px-1"
+            onclick="close3dPropSlideIn()">Close
         </button>
 
         <div class="content">
             <div class="mr-2 pd-2">
-                <!-- <div id="resourceProps" class="mt-1 mb-1 mr-1 pr-3 pt-3 pb-3 vpkfont vpkcolor"> -->
-                <div id="resourceProps" class="mt-1 mb-1 mr-1 vpkfont vpkcolor">
+                <!-- <div id="resourceProps" class="mt-1 mb-1 mr-1 pr-3 pt-3 pb-3 vpkfont vpkblue"> -->
+                <div id="resourceProps" class="mt-1 mb-1 mr-1 vpkfont vpkblue">
                     <!-- Resource info inserted here -->
                 </div>
             </div>
@@ -28,16 +28,17 @@
     <div id="cluster_filter_box">
         <div style="display: inline;" class="mb-1 text-center">
             <div class="form-check mb-1">
-                <span class="vpkcolor vkpfont-md align-left" style="margin-bottom: 5px;">Filter 3D view</span>
-                <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right vpkfont-filter"
-                    onclick="closeClusterFilter()" style="margin-bottom: 5px;">&nbsp;Close&nbsp;
+                <span class="vpkblue vkpfont-md align-left" style="margin-bottom: 5px;">Filter 3D view</span>
+                <button type="button"
+                    class="btn btn-outline-primary vpkButtons vpkwhite header-right vpkfont-filter px-1"
+                    onclick="closeClusterFilter()" style="margin-bottom: 5px;">Close
                 </button>
             </div>
         </div>
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Node, Storage, Network</span>
+            <span class="vpkblue">Node, Storage, Network</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
@@ -93,7 +94,7 @@
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Control Plane & etcd Planes</span>
+            <span class="vpkblue">Control Plane & etcd Planes</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
@@ -202,7 +203,7 @@
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Pods</span>
+            <span class="vpkblue">Pods</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
@@ -253,7 +254,7 @@
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Resource CPU & Memory</span>
+            <span class="vpkblue">Resource CPU & Memory</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
@@ -323,12 +324,12 @@
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Namespace (default: all-namespace)</span>
+            <span class="vpkblue">Namespace (default: all-namespace)</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
-            <select id="cluster-ns-filter" multiple="multiple" style="width: 250px" id="cluster-bar1-options">
+            <select id="cluster-ns-filter">
                 <option>all-namespaces</option>
                 <option>&lt;cluster-level&gt;</option>
                 <option>default</option>
@@ -337,7 +338,7 @@
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
         <div class="form-check vpkfont-filter">
-            <span class="vpkcolor">Sound</span>
+            <span class="vpkblue">Sound</span>
         </div>
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
@@ -355,59 +356,6 @@
             <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons px-2"
                 onclick="saveClusterFilters()">Save current filter settings as default</button>
         </div>
-        <!-- <div class="form-check vpkfont-filter">
-                    <span class="pt-1">BACKGROUND</span>
-                </div>
-
-                <div>
-                    <span class="form-check vpkfont-filter">Click color or
-                        image:&nbsp;&nbsp;<span id="colorTitle" class="vpkfont-filter"></span></span>
-
-                    <table class="ml-1" style="width: 250px; border: 1px solid black;">
-                        <tr>
-                            <td style="width: 25px; height: 30px; background: rgb(255,255,255);"
-                                onclick="set3dBackColor('255','255','255','White')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(244, 244, 244);"
-                                onclick="set3dBackColor('242','242','242','Grey')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(220,208,255);"
-                                onclick="set3dBackColor('220','208','255','Lavender')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(234,219,200);"
-                                onclick="set3dBackColor('234','219','200','Straw')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(32,178,170);"
-                                onclick="set3dBackColor('32','178','170','Teal')">
-                            </td>
-
-                            <td style="width: 25px; height: 30px; background: rgb(72,61,139);"
-                                onclick="set3dBackColor('72','61','139','Purple')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(154,185,115);"
-                                onclick="set3dBackColor('154','185','115','Olive')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(131,105,83);"
-                                onclick="set3dBackColor('131','105','83','Brown')">
-                            </td>
-                            <td style="width: 25px; height: 30px; background: rgb(0,0,0);"
-                                onclick="set3dBackColor('0','0','0', 'Black')">
-                            </td>
-                        </tr>
-                    </table>
-
-                    <table class="ml-1" style="width: 250px;">
-                        <tr>
-                            <td onclick="set3dBackColor('0','0','0', 'Stars')">
-                                <img style="float:left" src="images/stars.jpg" width="125" height="30" />
-                            </td>
-                            <td onclick="set3dBackColor('0','0','0', 'Clouds')">
-                                <img style="float:left" src="images/clouds.jpg" width="122" height="30" />
-                            </td>
-                        </tr>
-                    </table>
-
-                </div> -->
     </div>
 </div>
 
@@ -415,4 +363,129 @@
 <div id="clusterPicture" class="text-center mr-2" style="display: none;">
     <div class="text-center vpkfont-lg mt-1 mb-1">VpK Cluster 3D view</div>
     <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
+</div>
+
+
+<!-- ============================== Time Lapse slide-up ===============================-->
+<div class="container-3d">
+    <div class="cluster-slide-up-container" id="clusterSlideUpContainer">
+        <div class="container-fluid mt-2">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="timeLapseFilterOpen()">Filter</button>
+                </div>
+                <div class="col">
+                    <div class="d-flex flex-row justify-content-center">
+                        <div class="timeLapseDate mr-2" id="timeLapseDate"></div>
+                        <div class="timeLapseTime ml-2 mr-2 text-center" id="timeLapseTime"></div>
+                        <div class="timeLapseInt ml-2 text-center" id="timeLapseInt"></div>
+                        <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
+                            onclick="timeLapseIntervalDetail()"></i>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <span class="header-right">
+                        <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                            onclick="timeLapseClose()">Close</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="timeLapseIconBox">
+                <div class="timeLapseIconGroup">
+                    <i id="timeLapseBack" class="fa fa-2x fa-backward-step timeLapseControlColor"
+                        onclick="timeLapseBack()"></i>
+                    <i id="timeLapsePlay" class="fa fa-2x fa-play timeLapseControlColor" onclick="timeLapsePlay()"></i>
+                    <i id="timeLapsePause" class="fa fa-2x fa-pause timeLapseControlColor"
+                        onclick="timeLapsePause()"></i>
+                    <i id="timeLapseReset" class="fa fa-2x fa-arrows-rotate timeLapseControlColor"
+                        onclick="timeLapseReset()"></i>
+                    <i id="timeLapseForward" class="fa fa-2x fa-forward-step timeLapseControlColor"
+                        onclick="timeLapseForward()"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <span class="px-2 py-2 timeLapseStart" id="timeLapseStart"></span>
+            <span class="px-2 py-2 timeLapseEnd" id="timeLapseEnd"></span>
+        </div>
+    </div>
+</div>
+
+<!-- ============================== Time Lapse filter ===============================-->
+<div id="timeLapseSlideIn">
+    <div style="display: inline;" class="mb-1 text-center">
+        <div class="form-check mb-1 mt-1">
+            <span class="vpkblue vkpfont-md align-left" style="margin-bottom: 5px;">Filter 3D Timelapse View</span>
+            <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right vpkfont-filter px-1"
+                onclick="timeLapseFilterClose()" style="margin-bottom: 5px;">Close
+            </button>
+        </div>
+    </div>
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div class="form-check vpkfont-filter">
+        <span class="vpkblue">Select items to view</span>
+    </div>
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
+    <div class="form-check vpkfont-filter ml-1 mt-2 vpk-vert-mid">
+        <input class="form-check-input filter-checkbox" type="checkbox" value="" id="timeLapseFilterStorage"
+            name="timeLapseFilterStorage" checked>
+        <span class="pvc">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span class="pv">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span
+            class="storageClass">&nbsp;&nbsp;&nbsp;</span>
+        <label class="form-check-label" for="timeLapseFilterStorage">
+            Storage (PVC, PV, Storage Class)
+        </label>
+    </div>
+
+    <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
+        <input class="form-check-input filter-checkbox" type="checkbox" value="" id="timeLapseFilterNetwork"
+            name="timeLapseFilterNetwork" checked>
+        <span class="endpoint">&nbsp;&nbsp;&nbsp;</span>&nbsp;<span class="service">&nbsp;&nbsp;&nbsp;</span><span
+            class="ingress">&nbsp;&nbsp;&nbsp;</span>
+        <label class="form-check-label" for="timeLapseFilterNetwork">
+            Network (Endpoints, Services, Ingress)
+        </label>
+    </div>
+
+
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div class="form-check vpkfont-filter">
+        <span class="vpkblue">Namespace (default: all-namespaces)</span>
+    </div>
+
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div id="timeLapse-bar-select" class="form-check mr-1 mt-2 mb-2 vpkfont-filter">
+        <select id="timeLapse-ns-filter">
+            <option>all-namespaces</option>
+            <option>&lt;cluster-level&gt;</option>
+            <option>default</option>
+        </select>
+    </div>
+
+
+
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div class="form-check vpkfont-filter">
+        <span class="vpkblue">Timelapse delay interval (1 - 30)</span>
+    </div>
+
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div class="row row justify-content-center mt-2">
+        <span class="pr-2 vpkblue">
+            <span class="px-1 vpkfont">Fast</span><i class="fas fa-125x fa-caret-square-left vpkblue vpkfont-lg"
+                onclick="timeLapseSpeedLess()"></i>
+        </span>
+        <span class="vpkfont vpkblue text-center" style="width: 40px important;">
+            <span id="timeLapseSpeed">1</span>
+        </span>
+        <span class="pl-2 vpkblue">
+            <i class="fas fa-125x fa-caret-square-right vpkblue vpkfont-lg" onclick="timeLapseSpeedMore()"></i><span
+                class="px-1 vpkfont">Slow</span>
+        </span>
+    </div>
 </div>

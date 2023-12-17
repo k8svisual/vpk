@@ -22,13 +22,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //----------------------------------------------------------
 
 
-//let childwin;
 let getFileIsSecret;
-// let clientXPos;
-// let clientYPos;
-
-// const childname = "schematicWindow";
-// const themeToggle = document.getElementById("theme-toggle");
 
 $(document).ready(function () {
 
@@ -225,7 +219,6 @@ $(document).ready(function () {
         }
     });
 
-
     $("#tableContainerImages").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.fnum;
         if ($el.kind === 'Secret') {
@@ -259,111 +252,138 @@ $(document).ready(function () {
         }
     });
 
+    // ChgDir modal
+    $('#dsInstances').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select snapshot",
+        multiple: false,
+        width: 500
+    });
+    // Cluster tab
+    $('#cluster-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace(s)",
+        multiple: true,
+        width: 250
+    });
+
+    $('#timeLapse-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace(s)",
+        multiple: true,
+        width: 250
+    });
+
+    // Workload Schematic tab
+    $('#schematic-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace",
+        multiple: false,
+        width: 300
+    });
+    // Security tab
+    $('#security-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace",
+        multiple: false,
+        width: 300
+    });
+    // Security tab - filter
     $("#secTable").on("click-cell.bs.table", function (field, value, row, $el) {
         selectedDef = $el.fnum;
         getDefFnum(selectedDef);
     });
-
-    $('#clusterBG').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md"
-    });
-
-    $('#pickDataSource').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "Select option"
-    });
-
-    $('#pickDataSource').on('select2:select', function (e) {
-        var selected = $('#pickDataSource option:selected').val();
-        pickData(selected);
-        $('#pickDataSource').val(null)
-    });
-
-    $('#pickDataSource2').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "Select option"
-    });
-
-    $('#pickDataSource2').on('select2:select', function (e) {
-        var selected = $('#pickDataSource2 option:selected').val();
-        pickData(selected);
-        $('#pickDataSource2').val(null)
-    });
-
-    $('#anno-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md"
-    });
-
-    $('#dsInstances').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select snapshot"
-    });
-
-    $('#schematic-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace(s)"
-    });
-
-    $('#graphic-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace(s)"
-    });
-
-    $('#schematic-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace(s)"
-    });
-
-    $('#security-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace"
-    });
-
-    $('#events-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "all-namespaces"
-    });
-
+    // OwnerRef Links tab
     $('#ownerRef-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace"
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace",
+        multiple: false,
+        width: 300
     });
-
-    $('#cluster-ns-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select namespace(s)"
-    });
-
     $('#ownerRef-kind-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select kinds(s), default is ALL kinds"
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select kinds(s), default is ALL kinds",
+        multiple: false,
+        width: 300
     });
-
-    $('#evtMsgs-sort-select').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select event message sort order"
+    // Event Msgs tab
+    $('#events-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "all-namespaces",
+        multiple: false,
+        width: 300
     });
-
-    $('#container-images-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
+    // Graphic View tab
+    $('#graphic-ns-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select namespace(s)",
+        multiple: false,
+        width: 250
+    });
+    // Uses in graphic tab for DirStats report
+    $("#graphic-kind-filter").select2({
+        dropdownCssClass: "vpkselect2",
+        containerCssClass: "vpkselect2",
+        placeholder: "select kind",
+        multiple: false,
+        width: 250
+    });
+    // Container Images tab
+    $('#repository-list').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
         placeholder: "select repository"
     });
+    // Search tab
+    $("#ns-filter").select2({
+        dropdownCssClass: "vpkselect2",
+        containerCssClass: "vpkselect2",
+        placeholder: "select namespace(s)",
+        multiple: true,
+        width: 550
+    });
+    $("#kind-filter").select2({
+        dropdownCssClass: "vpkselect2",
+        containerCssClass: "vpkselect2",
+        placeholder: "select kind(s)",
+        multiple: true,
+        width: 550
+    });
 
+
+
+    $('#clusterBG').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2"
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //=========================================================================
+    // Watch EVENTS 
+    //=========================================================================
     $("#searchBtn").click(function (e) {
         e.preventDefault();
         searchObj();
@@ -406,121 +426,136 @@ $(document).ready(function () {
         evtApplyNamespace();
     });
 
+    // timeLapse 3D filters
+    $('input[name=timeLapseFilterNetwork]').change(function () {
+        filterTimeLapseView();
+    });
+
+    $('input[name=timeLapseFilterStorage]').change(function () {
+        filterTimeLapseView();
+    });
+
+    $('#timeLapse-bar-select').focusout(function () {
+        filterTimeLapseView();
+    });
+
+
+    // 3d cluster filters
     $('input[name=clusterFilterNodes]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterStorage]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterNetwork]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterRunning]').change(function () {
         //console.log('filter pods Running')
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterWarning]').change(function () {
         //console.log('filter pods Warning')
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterFailed]').change(function () {
         //console.log('filter pods Failed')
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterSuccessful]').change(function () {
         //console.log('filter pods Successful')
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterDSPods]').change(function () {
         //console.log('filter pods DaemonSet')
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterMemoryLimit]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterMemoryRequest]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterCPULimit]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterCPURequest]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterNodeMemory]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterNodeCPU]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterNodeStorage]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterControlP]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterWorkload]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterService]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterConfigStorage]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterAuthentication]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterAuthorization]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterPolicy]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterExtend]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterCluster]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterOther]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterThirdParty]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterCSI]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('input[name=clusterFilterIngress]').change(function () {
-        filter3DView()
+        filter3DView();
     });
 
     $('[data-toggle="popover"]').popover();
@@ -532,19 +567,19 @@ $(document).ready(function () {
     });
 
     $("#schematic_filter").click(function (event) {
-        schematicFilterShow()
+        schematicFilterShow();
     });
 
     $("#ownerRef_filter").click(function (event) {
-        ownerRefFilterShow()
+        ownerRefFilterShow();
     });
 
     $("#security_filter").click(function (event) {
-        securityFilterShow()
+        securityFilterShow();
     });
 
     $("#slideIn_box").click(function (event) {
-        $("#slideIn").addClass("active")
+        $("#slideIn").addClass("active");
     });
 
 

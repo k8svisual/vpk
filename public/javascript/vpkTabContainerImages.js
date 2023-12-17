@@ -33,30 +33,34 @@ function viewRepositoryLegend() {
 function getRepositoryData() {
     let option;
     let repository;
-    option = $('#container-images-filter').select2('data');
-    repository = option[0].text;
-    repository = repository.trim();
-    graphRepository = repository;
+    option = $('#repository-list').select2('data');
+    if (typeof option !== 'undefined') {
+        repository = option[0].text;
+        repository = repository.trim();
+        graphRepository = repository;
 
-    if (repository.indexOf('Select Repository') > -1) {
-        showMessage('Select a valid repository.', 'fail');
-        return;
+        if (repository.indexOf('Select Repository') > -1) {
+            showMessage('Select a valid repository.', 'fail');
+            return;
+        } else {
+            containerImagesInfo = imageRepositoryData[repository];
+            let html = '<div class="vpkfont vpkblue px-2">Viewing repository:<b> ' + repository + '</b></div>'
+            $('#selectedRepository').html(html);
+            $('#containerImagesReturn').html('')
+            loadContainerImagesTable();
+            buildContainerImageGraphics(repository);
+            $('#containerImageTable').show();
+            $('#containerImageGraphic').hide();
+        }
     } else {
-        containerImagesInfo = imageRepositoryData[repository];
-        let html = '<div class="vpkfont vpkcolor px-2">Viewing repository:<b> ' + repository + '</b></div>'
-        $('#selectedRepository').html(html);
-        $('#containerImagesReturn').html('')
-        loadContainerImagesTable();
-        buildContainerImageGraphics(repository);
-        $('#containerImageTable').show();
-        $('#containerImageGraphic').hide();
+        console.log(`No data founf for Repository: ${option}`)
     }
 }
 
 // Called from Cluster tab
 function loadRepositoryData(repository, view, returnTo) {
     graphRepository = repository;   //container-images-select
-    setSelectValue('container-images-filter', repository)
+    setSelectValue('repository-list', repository)
     $('#containerImagesReturn').html(
         '<span class="vpkfont mt-1 mb-2 ml-2 px-2">'
         + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons px-2" '

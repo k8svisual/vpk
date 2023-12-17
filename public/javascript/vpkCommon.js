@@ -154,6 +154,9 @@ function returnToWhereTab(target, hide) {
 	} else if (target === 'Workload') {
 		// Clear the filter field
 		evtLimitUid = '';
+		// Clear the first minute value
+		$('#evtPageToStart').val(0);
+
 		// Switch views
 		$('[href="#schematic"]').tab('show');
 		$("#schemModal").modal('show');
@@ -165,6 +168,7 @@ function returnToWhereTab(target, hide) {
 		} else {
 			console.log("Element not found");
 		}
+		evtClearFilter();
 	}
 }
 
@@ -206,15 +210,12 @@ function processModalYesNo(action) {
 }
 
 function setSelectValue(selectName, value) {
-	console.log(`selectList: ${selectName}  value: ${value}`)
 	// Update the selected item in a drop-down
 	let dropdown = document.getElementById(selectName);
 	for (var i = 0; i < dropdown.options.length; i++) {
 		if (dropdown.options[i].text === value) {
 			dropdown.selectedIndex = i;
 			break;
-		} else {
-			console.log(`did not match: ${dropdown.options[i].text}`)
 		}
 	}
 	// Trigger a change event to notify any listeners (like event listeners or frameworks)
@@ -282,7 +283,7 @@ function openSearch(val, requestor) {
 	returnWhere = where;
 
 	$('#searchReturn').html(
-		'<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-1">'
+		'<div class="vpkfont vpkblue vpk-rtn-bg mt-1 mb-1">'
 		+ '<hr style="margin-top: 3px; margin-bottom: 3px;">'
 		+ '<button type="button" class="btn btn-sm btn-secondary vpkButtons ml-2 px-2"'
 		+ '	onclick="returnToWhereTab(\'' + where + '\',\'searchReturn\')">Return</button>'
@@ -293,6 +294,27 @@ function openSearch(val, requestor) {
 
 	// Open tab
 	$('[href="#searchview"]').tab('show');
+}
+
+function tellMe(msg) {
+	if (msg === 'schematic-01') {
+		showMessage('Once data is retrieved press the blue and/or yellow'
+			+ ' buttons shown to toggle the view for the identifed namespace.')
+	} else if (msg === 'security-01') {
+		viewSecurityLegend();
+	} else if (msg === 'ownerRef-01') {
+		//viewOwnerRefLegend();
+		showMessage('No OwnerRef Link information defined at this time.')
+	} else if (msg === 'container-01') {
+		viewRepositoryLegend();
+		//showMessage('No OwnerRef Link information defined at this time.')
+	} else if (msg === 'search-01') {
+		searchValues();
+	}
+
+
+
+
 }
 
 

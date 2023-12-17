@@ -28,7 +28,6 @@ var createDefaultEngine
 var scene = null;
 var sceneToRender = null;
 
-
 let foundServices = {};
 let foundNSNames = [];
 let foundStorageClasses = {};
@@ -189,3 +188,5 @@ let bt = [
     1000000000000000000000000
 ];
 
+//----------------------------------------------------------
+console.log('loaded vpkCommon.js');

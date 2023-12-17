@@ -76,7 +76,7 @@ function buildAll() {
     let ns = secNS;
     if (secData.length === 0) {
         console.log('Nothing')
-        document.getElementById('vizWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkcolor">No data for requested namespace: <span class="vpkfont-lg">' + ns + '</span></div>';
+        document.getElementById('vizWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkblue">No data for requested namespace: <span class="vpkfont-lg">' + ns + '</span></div>';
         return;
     }
     buildGraphSubjects(secData, ns);
@@ -129,7 +129,7 @@ function getSecurityNames(category) {
 
     // Populate names table with data for the selected category
     $("#tableSecurity").bootstrapTable('load', securityNamesData)
-    $("#tableSecurity").bootstrapTable('hideColumn', 'id');
+    //$("#tableSecurity").bootstrapTable('hideColumn', 'id');
 
 }
 
@@ -673,6 +673,7 @@ function addGraphvizOnClick() {
                 showNodeFnum(title)
             }
         });
+    $('#statusProcessing').hide();
 }
 
 //-------------------------------------------------------------------------
@@ -793,8 +794,6 @@ function checkSelectedCategory() {
     } else if ($("#filterSecurityRole").is(":checked")) {
         category = 'R'
     }
-    console.log(category)
-
     getSecurityNames(category)
 }
 
@@ -836,7 +835,6 @@ function clearSecurityFilters() {
 // send request to server to get security data for a specific
 // namespace
 function getSecurityViewData(namespace) {
-    hideMessage();
     let ns;
     let option
     if (typeof namespace === 'undefined' || namespace === null) {
@@ -855,11 +853,15 @@ function getSecurityViewData(namespace) {
     }
     $("#secViz").empty();
     $("#secViz").html('');
-    socket.emit('getSecurityViewData', ns);
+    $('#statusProcessing').show();
+    //showMessage('Processing Security request', 'info');
+    setTimeout(function () {
+        socket.emit('getSecurityViewData', ns);;
+    }, 1000);
+
 }
 //...
 socket.on('getSecurityViewDataResult', function (data) {
-    console.log('SecurityView data received');
     buildSecGraph(data);      // vpkSecGraph.js
 });
 //==========================================================

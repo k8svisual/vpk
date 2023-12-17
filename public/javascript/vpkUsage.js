@@ -105,7 +105,7 @@ function browserUsageDetails() {
 
 
 function formatUsage(data) {
-    let rtn = '<div class="events ml-2 mr-2 mb-2 vpkcolor" ><hr><table style="width:100%">'
+    let rtn = '<div class="events ml-2 mr-2 mb-2 vpkblue" ><hr><table style="width:100%">'
     rtn = rtn + usageLine('Architecture', data.header.arch);
     rtn = rtn + usageLine('Machine', data.header.osMachine);
     rtn = rtn + usageLine('OS Name', data.header.osName);
@@ -158,7 +158,7 @@ function formatUsage(data) {
 }
 
 function usageLine(v1, v2) {
-    let trP1 = '<tr class="vpkcolor">';
+    let trP1 = '<tr class="vpkblue">';
     let trP2 = '</tr>';
     let tdR = '<td width="40%" style="text-align: right; padding-right: 30px;" >';
     let tdL = '<td width="60%">';

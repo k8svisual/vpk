@@ -62,6 +62,7 @@ $('#evtPageToStart').val(0);
 
 function evtClearFilter() {
     evtLimitUid = '';
+    $('#evtPageToStart').val(0);
     evtApplyNamespace();
 }
 
@@ -1058,8 +1059,16 @@ function timeDiff(startTime, endTime) {
     // end date time. As currently written the routine only handles maximum of
     // two consecutive days.
     //------------------------------------------------------------------------------
-
+    if (typeof startTime === 'undefined' || startTime === null || startTime === "") {
+        console.log(`TimeDiff got a blank or missing startTime`);
+        return 1
+    }
+    if (typeof endTime === 'undefined' || endTime === null || endTime === "") {
+        console.log(`TimeDiff got a blank or missing endTime`);
+        return 1
+    }
     try {
+        //ToDo need to check if data has been f
         let sTmp = startTime.split('T');
         let eTmp = endTime.split('T');
 
@@ -1110,6 +1119,7 @@ function timeDiff(startTime, endTime) {
         return totalSeconds;
     } catch (err) {
         console.log(`Error calculating time duration, message: ${err}`);
+        console.log(`Stack:${err.stack}`)
         return 1;
     }
 

@@ -32,7 +32,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 let processingRequest = '<div class="row">'
     + '<div class="col mt-1 ml-4">'
     + '  <img style="float:left" src="images/loading.gif" width="30" height="30"/>'
-    + '  <div class="vpkfont-md vpkcolor mt-2"><span>&nbsp;&nbsp;Processing request</span>'
+    + '  <div class="vpkfont-md vpkblue mt-2"><span>&nbsp;&nbsp;Processing request</span>'
     + '  </div>'
     + '</div>';
 

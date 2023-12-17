@@ -363,3 +363,120 @@
 .vpkScroll-Y {
     overflow-y: scroll;
 }
+
+.container-3d {
+    position: relative;
+    height: 100%;
+}
+
+.cluster-slide-up-container {
+    position: fixed;
+    bottom: -100%;
+    /* Start off-screen */
+    left: 0;
+    width: 100%;
+    background-color: rgba(200, 200, 200, 0.45);
+    transition: bottom 0.3s ease-in-out;
+    /* Add smooth transition */
+    border-top: 1px solid rgb(0, 123, 255);
+}
+
+.cluster-slide-up-content {
+    padding: 10px;
+}
+
+.clusterShow {
+    bottom: 0;
+}
+
+.timeLapseTime,
+.timeLapseDate,
+.timeLapseInt {
+    color: black;
+    background-color: white;
+    font-size: 1.00rem;
+    border-style: solid;
+    border-width: 1px;
+    border-color: grey;
+    border-radius: 4px;
+    padding: 3px;
+    display: inline;
+    margin-right: 10p;
+}
+
+.timeLapseStart,
+.timeLapseEnd {
+    font-size: .75rem;
+    color: grey;
+}
+
+.timeLapseIconBox {
+    background-color: white;
+    border-radius: 30px;
+    border-width: 2px;
+    border-color: grey;
+    padding: 5px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.timeLapseIconGroup {
+    margin: 2px;
+}
+
+.timeLapseIconCenter {
+    justify-content: center;
+}
+
+.timeLapseControlColor {
+    color: black;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+#timeLapseSlideIn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    height: 250px;
+    background-color: #eeeeee;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(0, 123, 255);
+}
+
+#timeLapseSlideIn.open {
+    transform: translateY(0);
+}
+
+#timeLapseSlideInCloseButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+#timeLapseBody table,
+th,
+td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+#timeLapseBody th {
+    color: white;
+    background-color: rgb(0, 123, 255);
+    text-align: center;
+}
+
+#timeLapseBody td {
+    color: rgb(0, 123, 255);
+    background-color: white;
+}

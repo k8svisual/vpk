@@ -174,7 +174,7 @@ function formatSchematicSVG(data) {
                         + '<div id="collid-' + collNum + '" class="collapse">'
                         + '<div class="header-right">'
                         + '<a href="javascript:printDiv(\'collid-' + collNum + '\')">'
-                        + '<i class="fas fa-print mr-3 vpkcolor vpkfont-lg"></i>'
+                        + '<i class="fas fa-print mr-3 vpkblue vpkfont-lg"></i>'
                         + '</a>'
                         + '</div>'
                         + newData[nsKeys[i]][podKeys[p]];
@@ -307,7 +307,7 @@ function formatSingleSVG(data, pod) {
                 continue;
             } else {
                 $('#schematicReturn').html(
-                    '<div class="vpkfont vpkcolor vpk-rtn-bg mt-1 mb-2 ml-2">'
+                    '<div class="vpkfont vpkblue vpk-rtn-bg mt-1 mb-2 ml-2">'
                     + '<button type="button" class="mt-1 mb-1 btn btn-sm btn-secondary vpkButtons ml-2 px-2" '
                     + ' onclick="returnToWhereTab(\'' + returnWhere + '\',\'schematicReturn\')">Return</button>'
                     + '<span class="px-1">to</span>' + returnWhere + '<span class="px-1">tab</span>'

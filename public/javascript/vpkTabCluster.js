@@ -30,7 +30,7 @@ function buildClusterUI(s) {
 }
 
 // Function to close the filter slide-in on right side of screen
-function closeSlideIn() {
+function close3dPropSlideIn() {
     slideIn.classList.remove("active");
 }
 

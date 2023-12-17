@@ -234,7 +234,6 @@ function getDocumentation(data) {
 //...
 socket.on('getDocumentationResult', function (data) {
     let content = data.content;
-    console.log(data.content);
     $('#docsBody').html(content)
     $("#docsModal").modal('show');
 });
@@ -291,9 +290,9 @@ function cancelShutdown() {
 }
 function shutdownVpK() {
     let html1 = '<div>&nbsp;</div>'
-    let html2 = '<div class="text-center vpkcolor vpkfont-lg mb-5 mt-5">'
+    let html2 = '<div class="text-center vpkblue vpkfont-lg mb-5 mt-5">'
         + '<img class="vpk-vert-mid" src="images/vpk.png" width="100" height="100"></div>'
-        + '<div class="text-center mt-2 vpkfont-giant vpkcolor">'
+        + '<div class="text-center mt-2 vpkfont-giant vpkblue">'
         + '<span id="shutdownMsg">VpK shutdown in progress</span></div></div>'
     $("#closeVpKModal").modal('hide')
     $("#banner").html(html1);
@@ -302,18 +301,18 @@ function shutdownVpK() {
 }
 
 function sendShutdownS1() {
-    let html2 = '<div class="text-center vpkcolor vpkfont-lg mt-5">'
+    let html2 = '<div class="text-center vpkblue vpkfont-lg mt-5">'
         + '<img class="vpk-vert-mid" src="images/vpk.png" width="200" height="200"></div>'
-        + '<div class="text-center mt-5 mb-5 vpkfont-giant vpkcolor">'
+        + '<div class="text-center mt-5 mb-5 vpkfont-giant vpkblue">'
         + '<span id="shutdownMsg" >VpK shutdown in progress</span></div></div></div>'
     $("#viewarea").html(html2);
     let doit = setTimeout(sendShutdownS2, 1000);
 }
 
 function sendShutdownS2() {
-    let html2 = '<div class="text-center vpkcolor vpkfont-lg mt-5">'
+    let html2 = '<div class="text-center vpkblue vpkfont-lg mt-5">'
         + '<img class="vpk-vert-mid" src="images/vpk.png" width="300" height="300"></div>'
-        + '<div class="text-center mt-5 mb-5 vpkfont-giant vpkcolor">'
+        + '<div class="text-center mt-5 mb-5 vpkfont-giant vpkblue">'
         + '<span id="shutdownMsg" >VpK shutdown complete</span></div></div></div>'
     $("#viewarea").html(html2);
     socket.emit('shutdownVpK');

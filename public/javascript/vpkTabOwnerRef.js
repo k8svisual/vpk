@@ -48,9 +48,11 @@ function showOwnRef(oRefFnum, oRefNameSpace, oRefKind, where) {
     oRefNS = [];
     oRefNamesData = [];
     $('#ownerRef-kind-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select kinds(s), default is ALL kinds"
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select kinds(s), default is ALL kinds",
+        multiple: false,
+        width: 300
     });
     populateORefKinds([]);
     $("#tableORef").bootstrapTable('load', oRefNamesData);
@@ -79,6 +81,8 @@ function getOwnerRefData() {
     // Save which namespaces to report
     oRefNS.push(ns);
     nsORefSelected = ns;
+
+    $('#statusProcessing').show();
     // Reset a variables
     resetVars();
     // get started processing
@@ -211,7 +215,7 @@ function getParents(child, cnt) {
 // build lookup table with uid and the associated nodeID
 function buildAllORef(clusterORef) {
     if (oRefData.length === 0) {
-        document.getElementById('oRefWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkcolor">No data located for requested namespace</div>';
+        document.getElementById('oRefWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkblue">No data located for requested namespace</div>';
         return;
     }
     buildNodesORef();
@@ -358,6 +362,7 @@ function createGraphORef(clusterORef) {
             .renderDot(graphVizDataORef)
             .on("end", addGraphvizOnClickORef);
     } catch (e) {
+        $('#statusProcessing').hide();
         console.log(`createGraphORef error: ${e}`)
     }
 
@@ -376,6 +381,7 @@ function addGraphvizOnClickORef() {
             var title = d3.select(this).selectAll('title').text().trim();
             showNodeFnumORef(title)
         });
+    $('#statusProcessing').hide();
 }
 
 //-------------------------------------------------------------------------
@@ -519,20 +525,27 @@ function applyOwnerRefFilter() {
 // Clear the selected filter setting in the filter UI 
 // and populate the tab UI with all the returned data
 function clearAllOwnerRefFilters() {
-    hideMessage();
+
     oRefData = [];
     oRefNS = [];
     oRefNamesData = [];
     $('#ownerRef-kind-filter').select2({
-        dropdownCssClass: "vpkfont-md",
-        containerCssClass: "vpkfont-md",
-        placeholder: "select kinds(s), default is ALL kinds"
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select kinds(s), default is ALL kinds",
+        multiple: false,
+        width: 300
     });
-    populateORefKinds([]);
-    $("#tableORef").bootstrapTable('load', oRefNamesData);
-    $("#tableORef").bootstrapTable('hideColumn', 'id');
+
     $("#ownerRefFilterModal").modal('hide');
-    getOwnerRefData()
+    $('#statusProcessing').show();
+    setTimeout(function () {
+        populateORefKinds([]);
+        $("#tableORef").bootstrapTable('load', oRefNamesData);
+        $("#tableORef").bootstrapTable('hideColumn', 'id');
+        $("#ownerRefFilterModal").modal('hide');
+        getOwnerRefData();
+    }, 1000);
 }
 
 function formatFilterOwnerRef() {

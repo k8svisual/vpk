@@ -394,14 +394,85 @@ function createScene() {
     const thirdPartySphereColor = new BABYLON.StandardMaterial("", scene);
     thirdPartySphereColor.diffuseColor = new BABYLON.Color3.FromHexString("#FF0099");
 
-
-
     let stickColor = new BABYLON.StandardMaterial("", scene);
     if (stickColorDark === false) {
         stickColor.diffuseColor = new BABYLON.Color3.FromHexString("#ffffff");
     } else {
         stickColor.diffuseColor = new BABYLON.Color3.FromHexString("#666666");
     }
+
+
+    //---------------------------------------------------
+    // Build pods for each node
+    //---------------------------------------------------
+    foundServices = {};
+    for (let n = 0; n < cluster.maxNodes; n++) {
+        let gblCnt = 360 / nodeCnt;
+        let start;
+        let stop;
+
+        currentNode++;
+
+        gblCnt = parseInt(gblCnt, 10);
+        if (currentNode === 1) {
+            stop = gblCnt - 1;
+            if (nodeCnt === 48) {
+                start = 1;
+            } else {
+                start = 2;
+            }
+            // console.log(`start: ${start} stop: ${stop} currentNode: ${currentNode}`)
+            buildResources(start, stop, currentNode)
+        } else {
+            let totV = currentNode * gblCnt;
+            start = (totV - gblCnt) + 3;
+            // start = (totV - gblCnt) + 4;
+            stop = totV - 4;
+            //console.log(`start: ${start} stop: ${stop} currentNode: ${currentNode}`)
+            buildResources(start, stop, currentNode)
+        }
+
+        // define the arc start and stop points for the control plane
+        if (typeof cluster.nodes[currentNode] !== 'undefined') {
+            if (typeof cluster.nodes[currentNode].type !== 'undefined') {
+                if (cluster.nodes[currentNode].type === "m") {
+                    if (mstStart === 0) {
+                        mstStart = currentNode;
+                    }
+                    mstStop = currentNode;
+                }
+            }
+        }
+    }
+
+    //---------------------------------------------------
+    // Build outter band/ring and walls for each node
+    maxRings = (maxRings * LINEFACTOR) + RADIUSINNER + OUTTERFACTOR;
+    buildOutterRing(maxRings);
+
+    //---------------------------------------------------
+    // build node walls and node objects
+    mstCount = 0;
+    for (let index = 0; index < max; index++) {
+        buildNodesAndWall(index);
+    }
+
+    //---------------------------------------------------
+    // build the control plane
+    buildControlPlane();
+
+    //---------------------------------------------------
+    // build storage classes
+    buildSCs();
+
+
+    //---------------------------------------------------
+    // Ingress related
+    buildIngressSlice();
+    // return the newly built scene to the calling function
+
+    return scene;
+
 
 
     //////////////////////////////////////////////////////////////////////////////
@@ -552,11 +623,6 @@ function createScene() {
         for (cCnt = 0; cCnt < podCnt; cCnt++) {
             let size;
 
-            // Build Pod and save the center cords for use with network and storage 
-            // if (cCnt === 0) {
-            //     console.log(`buildResources - angleArray at start: ${angleArray[cPtr]}  cPtr: ${cPtr}  nLen: ${nLen}`)
-            // }
-
             // check if ring of node is full, if so, add new ring in node
             if (cPtr > stop) {
                 // Save ptr if it is greater than highPtr
@@ -582,7 +648,7 @@ function createScene() {
             // Save the pod status for use in the Storage tab
             podStatusLookup[podFnum] = podStatus;
 
-            podName = '<div class="vpkfont vpkcolor ml-1">'
+            podName = '<div class="vpkfont vpkblue ml-1">'
                 + '<div id="sliceKey">' + podFnum + '</div>'
                 + '<a href="javascript:getDefFnum(\'' + podFnum + '\')">'
                 + '<img src="images/k8/pod.svg" class="icon">'
@@ -637,7 +703,7 @@ function createScene() {
             // Network related - Service and Endpoint
             ///////////////////////////////////////////////////////////////////
             if (cluster.nodes[node].pods[cCnt].services.length > 0) {
-                svcName = '<div class="vpkfont vpkcolor ml-1">'
+                svcName = '<div class="vpkfont vpkblue ml-1">'
                     + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].services[0].fnum + '</div>'
 
                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].services[0].fnum + '\')">'
@@ -688,7 +754,7 @@ function createScene() {
                 }
 
                 if (endPoint !== "") {
-                    epInner = '<div class="vpkfont vpkcolor ml-1">'
+                    epInner = '<div class="vpkfont vpkblue ml-1">'
                         + '<div id="sliceKey">' + epFnum + '</div>'
                         + '<a href="javascript:getDefFnum(\'' + epFnum + '\')">'
                         + '<img src="images/k8/' + epType + '.svg" class="icon"></a>'
@@ -716,7 +782,7 @@ function createScene() {
             // Storage related - PV and PVC
             ///////////////////////////////////////////////////////////////////
             if (cluster.nodes[node].pods[cCnt].pvc.length > 0) {
-                pvcName = '<div class="vpkfont vpkcolor ml-1">'
+                pvcName = '<div class="vpkfont vpkblue ml-1">'
                     + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].pvc[0].fnum + '</div>'
 
                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].fnum + '\')">'
@@ -736,7 +802,7 @@ function createScene() {
                     + '</div>';
 
                 if (typeof cluster.nodes[node].pods[cCnt].pvc[0].pvName !== 'undefined') {
-                    pvName = '<div class="vpkfont vpkcolor ml-1">'
+                    pvName = '<div class="vpkfont vpkblue ml-1">'
                         + '<div id="sliceKey">' + cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + '</div>'
                         + '<a href="javascript:getDefFnum(\'' + cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + '\')">'
                         + '<img src="images/k8/pv.svg" class="icon"></a>'
@@ -769,19 +835,12 @@ function createScene() {
 
                     // save x,y,z for use with storage class if the PV was built
                     if (found) {
-                        //console.log('ns: ' + cluster.nodes[node].pods[cCnt].ns)
                         podCords.ns = cluster.nodes[node].pods[cCnt].ns;
-
-                        //console.log('fnum: ' + podFnum)
                         podCords.pFnum = podFnum;
-
-                        //console.log('key: ' + key)
                         if (typeof foundStorageClasses[key] === 'undefined') {
-                            //console.log('Created foundStorageClass')
                             foundStorageClasses[key] = {};
                         }
                         if (typeof foundStorageClasses[key].pv === 'undefined') {
-                            //console.log('Created PV in foundStorageClass')
                             foundStorageClasses[key].pv = [];
                         }
                         foundStorageClasses[key].pv.push(podCords);
@@ -848,9 +907,12 @@ function createScene() {
 
     //==============================================
     // build a cylinder used for a line to connect objects   
-    function buildLine(x, y, z, height, type, ns, fnum) {
+    function buildLine(x, y, z, height, type, ns, fnum, nameFnum) {
+        if (typeof nameFnum === 'undefined' || nameFnum === null) {
+            nameFnum = 'unknown'
+        }
         let stick;
-        stick = BABYLON.MeshBuilder.CreateCylinder(type, { height: height, diameterTop: .015, diameterBottom: .015, tessellation: 4 });
+        stick = BABYLON.MeshBuilder.CreateCylinder(nameFnum, { height: height, diameterTop: .015, diameterBottom: .015, tessellation: 4 });
         stick.position.x = x;
         stick.position.y = y;
         stick.position.z = z;
@@ -861,8 +923,14 @@ function createScene() {
 
     //==============================================
     // build a cylinder 
-    function buildCylinder(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, link) {
-        let cyl = BABYLON.MeshBuilder.CreateCylinder("pvc", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
+    //buildCylinder(pCords.x, pCords.y - 2.5, pCords.z, .4, .25, 16, pvcColor, ns, 'PVC', pFnum, pvcName, '')
+    //                 x         y               z       h    d   t   material ns   type   
+    function buildCylinder(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, nameFnum) {
+        if (typeof nameFnum === 'undefined' || nameFnum === null) {
+            nameFnum = 'unknown'
+        }
+
+        let cyl = BABYLON.MeshBuilder.CreateCylinder(nameFnum, { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
         cyl.position.x = x;
         cyl.position.y = y;
         cyl.position.z = z;
@@ -886,7 +954,7 @@ function createScene() {
     //==============================================
     // build a cylinder 
     function buildControlComponent(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, link) {
-        let cyl = BABYLON.MeshBuilder.CreateCylinder("pvc", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
+        let cyl = BABYLON.MeshBuilder.CreateCylinder("ctlComp", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
         cyl.position.x = x;
         cyl.position.y = y;
         cyl.position.z = z;
@@ -947,9 +1015,9 @@ function createScene() {
 
     //==============================================
     // build a shpere   
-    function buildSphere(x, y, z, diameter, segs, material, ns, type, fnum, inner) {
+    function buildSphere(x, y, z, diameter, segs, material, ns, type, fnum, inner, nameFnum) {
         // define the sphere
-        let sphere = BABYLON.MeshBuilder.CreateSphere("endpoint", { diameter: diameter, segments: segs }, scene);
+        let sphere = BABYLON.MeshBuilder.CreateSphere(nameFnum, { diameter: diameter, segments: segs }, scene);
         sphere.position.x = x;
         sphere.position.y = y;
         sphere.position.z = z;
@@ -988,19 +1056,20 @@ function createScene() {
 
     //==============================================
     // build a cylinder for the PVC and PV
+
     function buildStorageObj(pCords, pvcName, ns, pvName, pFnum, pvcFnum, pvFnum, foundKey) {
         if (typeof foundPVC[foundKey].cords === 'undefined') {
             // define the PVC
-            buildCylinder(pCords.x, pCords.y - 2.5, pCords.z, .4, .25, 16, pvcColor, ns, 'PVC', pFnum, pvcName, '')
+            buildCylinder(pCords.x, pCords.y - 2.5, pCords.z, .4, .25, 16, pvcColor, ns, 'PVC', pFnum, pvcName, '', pvcFnum)
             buildSlice(pCords.x, pCords.y - 2.5, pCords.z, pvcFnum, 'n')
             // Connect PVC to Pod
-            buildLine(pCords.x, pCords.y - 1.15, pCords.z, 2.25, 'PVCLine', ns, pFnum)
+            buildLine(pCords.x, pCords.y - 1.15, pCords.z, 2.25, 'PVCLine', ns, pFnum, pvcFnum)
 
             // define the PV
-            buildCylinder(pCords.x, pCords.y - 5, pCords.z, .4, .25, 8, pvColor, ns, 'PV', pFnum, pvName, '')
+            buildCylinder(pCords.x, pCords.y - 5, pCords.z, .4, .25, 8, pvColor, ns, 'PV', pFnum, pvName, '', pvFnum)
             buildSlice(pCords.x, pCords.y - 5, pCords.z, pvFnum, 'n')
             // Connect PVC to PV
-            buildLine(pCords.x, pCords.y - 3.75, pCords.z, 2.25, 'PVLine', ns, pFnum)
+            buildLine(pCords.x, pCords.y - 3.75, pCords.z, 2.25, 'PVLine', ns, pFnum, pvFnum)
             //Update the object
             foundPVC[foundKey].cords = pCords;
             return true   // Indicate the objects are new
@@ -1018,20 +1087,16 @@ function createScene() {
 
         if (nCords === 'build') {
             // define the Endpoint
-            buildSphere(pCords.x, pCords.y + 5, pCords.z, .175, 32, endpointColor, ns, 'Endpoint', pFnum, epInner)
-            //            buildSphere(x       ,            y,        z, diameter, segs, material     , ns, type, fnum, inner)
-
+            buildSphere(pCords.x, pCords.y + 5, pCords.z, .175, 32, endpointColor, ns, 'Endpoints', pFnum, epInner, epFnum)
             buildSlice(pCords.x, pCords.y + 5, pCords.z, epFnum, 'n')
-
             // Add connection line between the Pod and the Endpoint
-            buildLine(pCords.x, pCords.y + 2.55, pCords.z, 5.0, 'EndpointLine', ns, pFnum)
+            buildLine(pCords.x, pCords.y + 2.55, pCords.z, 5.0, 'EndpointLine', ns, pFnum, epFnum)
 
             // define the Serive
-            buildSphere(pCords.x, pCords.y + 7, pCords.z, .175, 32, serviceColor, ns, 'Service', pFnum, sName)
+            buildSphere(pCords.x, pCords.y + 7, pCords.z, .175, 32, serviceColor, ns, 'Service', pFnum, sName, svcFnum)
             buildSlice(pCords.x, pCords.y + 7, pCords.z, svcFnum, 'n')
-
             // Add connection line between the Service and the Endpoint
-            buildLine(pCords.x, pCords.y + 6, pCords.z, 2.0, 'ServiceLine', ns, pFnum)
+            buildLine(pCords.x, pCords.y + 6, pCords.z, 2.0, 'ServiceLine', ns, pFnum, svcFnum)
 
         } else {
             // Endpoint / EndpointSlice already defined, link this pod to existing item.
@@ -1083,7 +1148,7 @@ function createScene() {
         }
 
         // define the Pod
-        buildCylinder(wX, wY, wZ, POD_HEIGHT, POD_SIZE, 6, material, ns, 'Pod', pFnum, name, pStatus)
+        buildCylinder(wX, wY, wZ, POD_HEIGHT, POD_SIZE, 6, material, ns, 'Pod', pFnum, name, pStatus, pFnum)
         buildSlice(wX, wY, wZ, pFnum, 'n')
 
         return { 'x': wX, 'y': wY, 'z': wZ };
@@ -1135,7 +1200,7 @@ function createScene() {
         for (index = 0; index < max; index++) {
             scData = foundStorageClasses[scKeys[index]];
             scFnum = scData.fnum;
-            scTxt = '<div class="vpkfont vpkcolor ml-1">'
+            scTxt = '<div class="vpkfont vpkblue ml-1">'
                 + '<div id="sliceKey">' + scFnum + '</div>'
                 + '<a href="javascript:getDefFnum(\'' + scFnum + '\')">'
                 + '<img src="images/k8/sc.svg" class="icon"></a>'
@@ -1167,7 +1232,8 @@ function createScene() {
             pY = 0;
             pZ = (maxRings - adjustment) * Math.cos(angle);
             // define the storage class
-            buildCylinder(pX, pY - 7, pZ, 1, 1, 32, storageClassColor, 'ClusterLevel', 'StorageClass', 0, scTxt, '')
+
+            buildCylinder(pX, pY - 7, pZ, 1, 1, 32, storageClassColor, 'ClusterLevel', 'StorageClass', 0, scTxt, '', scFnum)
             buildSlice(pX, pY - 7, pZ, scFnum, 'b')
 
             // connect StorageClass icon to CSI Storage Wall
@@ -1237,7 +1303,7 @@ function createScene() {
             });
         csiStorageWall.material = csiStorageWallColor;
 
-        let inner = '<div class="vpkfont vpkcolor ml-1">'
+        let inner = '<div class="vpkfont vpkblue ml-1">'
             + '<div id="sliceKey">666.0</div>'
             + '<span>'
             + '<img src="images/k8/sc.svg" class="icon"></span>'
@@ -1313,7 +1379,7 @@ function createScene() {
             controlPlaneArc2.push(new BABYLON.Vector3(tX, -0.5, tZ));
         }
 
-        controlPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
+        controlPlaneInner = '<div class="vpkfont vpkblue ml-1">'
             + '<div id="sliceKey">999.9</div>'
             + '<span>'
             + '  <img src="images/k8/control-plane.svg" class="icon"></span>'
@@ -1399,7 +1465,7 @@ function createScene() {
                     cN = 'Control Plane component'
                 }
 
-                let controlPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
+                let controlPlaneInner = '<div class="vpkfont vpkblue ml-1">'
                     + '<div id="sliceKey">' + compStatus[p].fnum + '</div>'
                     + '<a href="javascript:getDefFnum(\'' + compStatus[p].fnum + '\')">'
                     + '<img src="images/k8/' + img + '" class="icon"></a>'
@@ -1436,7 +1502,7 @@ function createScene() {
                     sphere1.material = controlPlaneColor;
                     buildSlice(kX, 0, kZ, '998.9', 'n');
 
-                    let kubectlInner = '<div class="vpkfont vpkcolor ml-1">'
+                    let kubectlInner = '<div class="vpkfont vpkblue ml-1">'
                         + '<div id="sliceKey">998.9</div>'
                         + '<span>'
                         + '<img src="images/k8/k8.svg" class="icon"></span>'
@@ -1533,7 +1599,7 @@ function createScene() {
             for (let p = 0; p < irKeys.length; p++) {
                 let img = 'k8.svg';
                 let cN = 'Registry';
-                let imageRegInner = '<div class="vpkfont vpkcolor ml-1">'
+                let imageRegInner = '<div class="vpkfont vpkblue ml-1">'
                     + '<div id="sliceKey">' + rFnum.toString() + '</div>'
                     + '<span>'
                     + '<img src="images/k8/' + img + '" class="icon"></span>'
@@ -1642,7 +1708,7 @@ function createScene() {
         sphere1.material = controlPlaneColor;
         buildSlice(x, y, z, fnum.toString(), 'n');
 
-        let kubeletInner = '<div class="vpkfont vpkcolor ml-1">'
+        let kubeletInner = '<div class="vpkfont vpkblue ml-1">'
             + '<div id="sliceKey">' + fnum + '</div>'
             + '<span>'
             + '<img src="images/k8/kubelet.svg" class="icon"></span>'
@@ -1677,7 +1743,7 @@ function createScene() {
         sphere2.material = controlPlaneColor;
         buildSlice(x, y, z, pnum.toString(), 'n');
 
-        let proxyInner = '<div class="vpkfont vpkcolor ml-1">'
+        let proxyInner = '<div class="vpkfont vpkblue ml-1">'
             + '<div id="sliceKey">' + pnum + '</div>'
             + '<span>'
             + '<img src="images/k8/k-proxy.svg" class="icon"></span>'
@@ -1705,6 +1771,10 @@ function createScene() {
 
 
     function buildNodesAndWall(index) {
+        let adjF = (((PI2 / max) * 2) * -1);
+        angle += adjF;
+        // console.log(`angle range: ${angle += adjF}`);
+        // console.log(`buildNodesAndWall nodePtr: ${nodePtr}  type: ${cluster.nodes[nodePtr].type} angle: ${angle}`)
         let size;
         let nName = cluster.nodes[nodePtr].name;
         if (buildWall === false) {
@@ -1717,7 +1787,7 @@ function createScene() {
             let csiDrvX = (maxRings + NODE_ICON_ADJ + .75) * Math.sin(angle);
             let csiDrvZ = (maxRings + NODE_ICON_ADJ + .75) * Math.cos(angle);
 
-            let node = BABYLON.MeshBuilder.CreateBox("node" + index, { width: NODE_HEIGHT, height: NODE_HEIGHT, depth: NODE_HEIGHT });
+            let node = BABYLON.MeshBuilder.CreateBox(nName, { width: NODE_HEIGHT, height: NODE_HEIGHT, depth: NODE_HEIGHT });
             node.position.y = pY;
             node.position.x = pX;
             node.position.z = pZ;
@@ -1782,7 +1852,7 @@ function createScene() {
             let nodeStrgY = 0;
             let nodeStrgZ = (maxRings + NODE_ICON_ADJ + 1.75) * Math.cos(angle);
 
-            nodeStorageInner = '<div class="vpkfont vpkcolor ml-1">'
+            nodeStorageInner = '<div class="vpkfont vpkblue ml-1">'
                 + '<div id="sliceKey">' + '4444.' + index + '</div>'
                 + '<a href="javascript:openNodeStorageCounts(\'' + nName + '\')">'
                 + '<img src="images/3d/3d-volume.png" width="60" height"60"></a>'
@@ -1799,7 +1869,7 @@ function createScene() {
                 + ' onclick="openNodeStorageCounts(\'' + nName + '\')">Storage</button>'
                 + '</div>';
 
-            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'nodeStorage', '4444.' + index, nodeStorageInner, '')
+            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'nodeStorage', '4444.' + index, nodeStorageInner, '', '4444.' + index)
             buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + index, 'n')
             // Connect Cylinder to the Node
             buildNodeStorageLine(nodeStrgX, nodeStrgY, nodeStrgZ, pX, pY, pZ);
@@ -1822,7 +1892,7 @@ function createScene() {
                         for (let c = 0; c < cluster.nodes[nodePtr].csiNodes[0].drivers.length; c++) {
                             yDown = yDown + -.5;
                             if (typeof cluster.nodes[nodePtr].csiNodes[0].fnum !== 'undefined') {
-                                csiInner = '<div class="vpkfont vpkcolor ml-1">'
+                                csiInner = '<div class="vpkfont vpkblue ml-1">'
                                     + '<div id="sliceKey">' + cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c + '</div>'
                                     + '<a href="javascript:getDefFnum(\'' + cluster.nodes[nodePtr].csiNodes[0].fnum + '\')">'
                                     + '<img src="images/k8/csinode.svg" class="icon"></a>'
@@ -1837,7 +1907,7 @@ function createScene() {
                                     + '</div>';
 
                                 // define the csiNode
-                                buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner);
+                                buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner, cluster.nodes[nodePtr].csiNodes[0].fnum);
                                 buildSlice(csiX, yDown, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
                                 buildCSILine(csiX, yDown, pZ, csiHome, pY, pZ)
 
@@ -1905,7 +1975,7 @@ function createScene() {
                 storage = 'None';
             }
 
-            let nTxt = '<div class="vpkfont vpkcolor ml-1">'
+            let nTxt = '<div class="vpkfont vpkblue ml-1">'
                 + '<div id="sliceKey">' + cluster.nodes[nodePtr].fnum + '</div>'
                 + '<a href="javascript:getDefFnum(\'' + cluster.nodes[nodePtr].fnum + '\')">'
                 + '<img src="images/k8/node.svg" class="icon"></a>'
@@ -2021,7 +2091,7 @@ function createScene() {
             iArc = iArc + 30;
             iData = ingressArray[i];
             let ns = iData[0].namespace;
-            let inner = '<div class="vpkfont vpkcolor ml-1">'
+            let inner = '<div class="vpkfont vpkblue ml-1">'
                 + '<div id="sliceKey">' + iData[0].fnum + '</div>'
                 + '<a href="javascript:getDefFnum(\'' + iData[0].fnum + '\')">'
                 + '<img src="images/k8/ing.svg" class="icon"></a>'
@@ -2034,7 +2104,7 @@ function createScene() {
                 + '<tr><td><b>Kind:</b></td><td class="pl-2">' + iData[0].kind + '</td></tr>'
                 + '</table>'
 
-                // + '<div class="vpkfont vpkcolor ml-1">'
+                // + '<div class="vpkfont vpkblue ml-1">'
                 // + '<span><b>Name : </b>' + iData[0].name + '</span></span>'
                 // + '<br>'
                 // + '<span><b>Kind : </b><span class="pl-2">' + iData[0].kind + '</span></span>'
@@ -2218,7 +2288,7 @@ function createScene() {
             otherPlaneArc2.push(new BABYLON.Vector3(tX, .5, tZ));
         }
 
-        otherPlaneInner = '<div class="vpkfont vpkcolor ml-1">'
+        otherPlaneInner = '<div class="vpkfont vpkblue ml-1">'
             + '<div id="sliceKey">' + wFnum + '</div>'
             + '<span>'
             + '<a href="javascript:k8sDocSite()">'
@@ -2303,7 +2373,7 @@ function createScene() {
                 pX = (maxRings + CLUSTERLEVELPLANE) * Math.sin(angleArray[aa]);
                 pZ = (maxRings + CLUSTERLEVELPLANE) * Math.cos(angleArray[aa]);
 
-                let inner = '<div class="vpkfont vpkcolor ml-1">'
+                let inner = '<div class="vpkfont vpkblue ml-1">'
                     + '<div id="sliceKey">' + fnum + '</div>'
                     + '<img src="images/k8/k8.svg" class="icon"></a>'
                     + '<span class="pl-2 pb-2 vpkfont-sm">'
@@ -2323,7 +2393,6 @@ function createScene() {
             }
         }
     }
-
 
 
     function buildOtherSphere(x, y, z, type, inner) {
@@ -2374,73 +2443,6 @@ function createScene() {
     //==============================================
     // End of common functions
     //==============================================
-
-
-    //---------------------------------------------------
-    // Build pods for each node
-    foundServices = {};
-    for (let n = 0; n < cluster.maxNodes; n++) {
-        let gblCnt = 360 / nodeCnt;
-        let start;
-        let stop;
-        currentNode++;
-        gblCnt = parseInt(gblCnt, 10);
-        if (currentNode === 1) {
-            stop = gblCnt - 1;
-            if (nodeCnt === 48) {
-                start = 1;
-            } else {
-                start = 2;
-            }
-            buildResources(start, stop, currentNode)
-        } else {
-            let totV = currentNode * gblCnt;
-            start = (totV - gblCnt) + 3;
-            // start = (totV - gblCnt) + 4;
-            stop = totV - 4;
-            buildResources(start, stop, currentNode)
-        }
-
-        // define the arc start and stop points for the control plane
-        if (typeof cluster.nodes[currentNode] !== 'undefined') {
-            if (typeof cluster.nodes[currentNode].type !== 'undefined') {
-                if (cluster.nodes[currentNode].type === "m") {
-                    if (mstStart === 0) {
-                        mstStart = currentNode;
-                    }
-                    mstStop = currentNode;
-                }
-            }
-        }
-    }
-
-    //---------------------------------------------------
-    // Build outter band/ring and walls for each node
-    maxRings = (maxRings * LINEFACTOR) + RADIUSINNER + OUTTERFACTOR;
-    buildOutterRing(maxRings);
-
-    //---------------------------------------------------
-    // build node walls and node objects
-    mstCount = 0;
-    for (let index = 0; index < max; index++) {
-        buildNodesAndWall(index);
-    }
-
-    //---------------------------------------------------
-    // build the control plane
-    buildControlPlane();
-
-    //---------------------------------------------------
-    // build storage classes
-    buildSCs();
-
-
-    //---------------------------------------------------
-    // Ingress related
-    buildIngressSlice();
-    // return the newly built scene to the calling function
-
-    return scene;
 }
 
 
