@@ -18,7 +18,7 @@
 | <a href="javascript:docNextTopic('security')">Security</a> | &nbsp;Roles, bindings, and subjects |
 | <a href="javascript:docNextTopic('ownerref')">OwnerRef Links</a> | &nbsp;OwnerReference links |
 | <a href="javascript:docNextTopic('eventmsgs')">Event Messages</a> | &nbsp;K8s event messages |
-| <a href="javascript:docNextTopic('graphicview')">Graphic View</a> | &nbsp;Graphical views of K8s cluster |
+| <a href="javascript:docNextTopic('statsview')">Stats View</a> | &nbsp;Snapshot statistics of K8s cluster |
 | <a href="javascript:docNextTopic('containerimages')">Container Images</a> | &nbsp;Images for containers |
 | <a href="javascript:docNextTopic('search')">Search</a> | &nbsp;Search K8s resources |
 

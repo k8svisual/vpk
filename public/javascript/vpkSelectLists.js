@@ -168,6 +168,7 @@ function populateSelectLists(data) {
 
         // Uses in graphic tab for DirStats report
         $("#graphic-kind-filter").empty();
+        options = '<option>all-kinds</option>' + options;
         $("#graphic-kind-filter").html(options);
 
 
@@ -227,17 +228,6 @@ function populateExplains(data) {
                 'desc': desc
             }
         }
-    }
-}
-
-
-function buildStatsToggle() {
-    if (dsToggle === 'kind') {
-        buildNamespaceStats();
-        dsToggle = 'ns'
-    } else {
-        buildKindStats();
-        dsToggle = 'kind'
     }
 }
 

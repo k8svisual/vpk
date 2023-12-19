@@ -26,25 +26,66 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // send request to server to get graphic hierarchy and circle 
 // pack data
 
+let dsCounts = '';                           // dataSource stats kind counts by namespace
+let dsToggle = 'kind';                       // Controls what stats are shown
+let statsViewType = 'graph'                  // default report type
 
-
-
-let processingRequest = '<div class="row">'
-    + '<div class="col mt-1 ml-4">'
-    + '  <img style="float:left" src="images/loading.gif" width="30" height="30"/>'
-    + '  <div class="vpkfont-md vpkblue mt-2"><span>&nbsp;&nbsp;Processing request</span>'
-    + '  </div>'
-    + '</div>';
 
 // What chart is being created and if needed get the selected Namespaces    
-function getChart(type) {
+function showSnapshotView(type) {
     hideMessage();
-
-    if (type === 'snapshot') {
+    statsViewType = type;
+    // Check if data has bee pulled if not get data
+    if (dsCounts === '') {
         dirStats()
+    } else {
+        createStatsView()
     }
+}
 
-    ///////// ADD OTHER GRAPH LOGIC HERE /////////
+
+function createStatsView() {
+    if (statsViewType === 'graph') {
+        $('#statsTableSection').hide();
+        $('#statsTreeMapSection').show();
+        setGraphicView('snapshot')
+        if (dsToggle === 'kind' || dsToggle === '') {
+            buildKindStats();
+        } else {
+            buildNamespaceStats();
+        }
+    } else if (statsViewType === 'report') {
+        $('#statsTreeMapSection').hide();
+        $('#statsTableSection').show();
+        if (dsToggle === 'kind' || dsToggle === '') {
+            statsShowReport('Kind')
+        } else {
+            statsShowReport('Namespace')
+        }
+    }
+}
+
+
+function buildStatsToggle() {
+    if (dsToggle === 'kind') {
+        buildNamespaceStats();
+        dsToggle = 'ns'
+    } else {
+        buildKindStats();
+        dsToggle = 'kind'
+    }
+}
+
+function buildStatsTableToggle() {
+    if (dsToggle === 'kind') {
+        //buildNamespaceStatsTable();
+        statsShowReport('Namespace')
+        dsToggle = 'ns'
+    } else {
+        //buildKindStatsTable();
+        statsShowReport('Kind')
+        dsToggle = 'kind'
+    }
 }
 
 // Control showing or hiding graphs
@@ -104,12 +145,7 @@ function dirStats() {
 //...
 socket.on('dirStatsResult', function (data) {
     dsCounts = data;
-    setGraphicView('snapshot')
-    if (dsToggle === 'kind' || dsToggle === '') {
-        buildKindStats();
-    } else {
-        buildNamespaceStats();
-    }
+    createStatsView();
 });
 
 //... supporting functions
@@ -316,6 +352,7 @@ function d3TreeMap(data, filter) {
 
 }
 
+
 function d3Children(data, keys) {
     let rtn = [];
     for (let i = 0; i < keys.length; i++) {
@@ -325,6 +362,134 @@ function d3Children(data, keys) {
         rtn.push({ 'name': keys[i], 'value': data[keys[i]] })
     }
     return rtn;
+}
+
+
+function statsToggle(id) {
+    // Toggle carets and show or hide sections of related messages.
+    let targetText = "#tc-collapse-" + id;
+    let targetCaret = "#tc-caret-" + id;
+    let isTargetExpanded = $(targetText).hasClass('in');
+    if (isTargetExpanded) {
+        $(targetText).addClass('collapse').removeClass("in"); // collapse clicked target
+        $(targetCaret).html('<i class="fas fa-xl fa-caret-right mr-2"></i>')
+    } else {
+        $(targetText).removeClass('collapse').addClass("in"); // expand clicked target
+        $(targetCaret).html('<i class="fas fa-xl fa-caret-down mr-2"></i>')
+    }
+}
+
+
+function statsShowReport(type) {
+    if (typeof dsCounts === 'undefined' || dsCounts === null) {
+        dirStats();
+    }
+    let subType = '';
+    let data;
+    if (type === 'Kind') {
+        dsToggle = 'kind';
+        data = dsCounts.kind;
+        subType = 'Namespace'
+    } else if (type === 'Namespace') {
+        dsToggle = 'ns';
+        data = dsCounts.ns;
+        subType = 'Kind'
+    }
+
+    let keys = Object.keys(data);
+    let cKeys;
+    let nsText = '';
+    let htm = '';
+    let newD = [];
+    let amt = 0;
+
+    // build data in order needed
+    for (let i = 0; i < keys.length; i++) {
+        if (keys[i] === '_total') {
+            continue;
+        }
+        amt = '0000000' + data[keys[i]]._cnt;
+        newD.push({ 'cnt': amt.slice(-7), 'key': keys[i] })
+    }
+    newD.sort((a, b) => b.cnt - a.cnt);
+    keys = [];
+    for (let i = 0; i < newD.length; i++) {
+        keys.push(newD[i].key)
+    }
+
+    htm = htm + '<div class="mt-1">'
+        + '   <div id="ts-heading-' + i + '" class="row">'
+        + '      <div class="statsHeader" style="width: 480px; display: inline-block; text-align: left; padding-left: 10px;">' + type
+        + '      </div>'
+        + '      <div class="statsHeader" style="width: 100px; display: inline-block; text-align: center;">Count'
+        + '      </div>'
+        + '   </div>'
+        + '</div>'
+
+    for (let i = 0; i < keys.length; i++) {
+        // Kind banner 
+        if (keys[i].startsWith('_')) {
+            continue;
+        }
+        htm = htm + '<div class="mt-1">'
+            + '   <div id="ts-heading-' + i + '" class="row">'
+            + '       <div class="mb-0 align-left" onclick="statsToggle(\'' + i + '\')" id="tc-caret-' + i + '">'
+            + '           <i class="fas fa-xl fa-caret-right mr-2"></i>'
+            + '      </div>'
+            + '      <div  class="vkp-bottom-line" style="width: 480px; display: inline-block;">' + keys[i]
+            + '      </div>'
+            + '      <div class="vkp-bottom-line" style="width: 80px; display: inline-block; text-align: center;">' + data[keys[i]]._cnt
+            + '      </div>'
+            + '   </div>'
+            + '</div>'
+
+        // Inner table
+        cKeys = Object.keys(data[keys[i]]);
+        cKeys.sort();
+
+        // build kind breadout data in order needed
+        newD = [];
+        for (let k = 0; k < cKeys.length; k++) {
+            if (cKeys[k] === '_cnt') {
+                continue;
+            }
+            amt = '0000000' + data[keys[i]][cKeys[k]];
+            newD.push({ 'cnt': amt.slice(-7), 'key': cKeys[k] })
+        }
+        newD.sort((a, b) => b.cnt - a.cnt);
+        cKeys = [];
+        for (let i = 0; i < newD.length; i++) {
+            cKeys.push(newD[i].key)
+        }
+
+        htm = htm + '<div id="tc-collapse-' + i + '" data-toggle="collapse" class="collapse">'
+            + '<table class="vpkfont-md">'
+            + '  <tr class="statsHeader" style="text-align:center">'
+            + '    <th width="40">&nbsp;</th>'
+            + '    <th width="400">' + subType + '</th>'
+            + '    <th width="100">&nbsp;</th>'
+            + '  </tr>'
+        for (let c = 0; c < cKeys.length; c++) {
+            if (cKeys[c].startsWith('_')) {
+                continue;
+            } else {
+                nsText = cKeys[c];
+                if (nsText === 'cluster-level') {
+                    nsText = '< Cluster Level >'
+                }
+                htm = htm + '<tr>'
+                    + '<td width="40">&nbsp</td>'
+                    + '<td class="pl-2 vkp-bottom-line">' + nsText + '</td>'
+                    + '<td class="pl-2 vkp-bottom-line" style="text-align: center;">' + data[keys[i]][cKeys[c]] + '</td>'
+                    + '</tr>'
+            }
+        }
+        htm = htm + '</table></div></div>'
+    };
+
+    $("#statContentsTable").empty();
+    $("#statContentsTable").html('');
+    $("#statContentsTable").html(htm);
 }
 
 

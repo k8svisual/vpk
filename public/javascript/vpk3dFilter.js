@@ -25,7 +25,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 function meshCnt() {
     let yesCnt = 0;
     let noCnt = 0;
-    let types = ['Node', 'Pod', 'PV', 'PVC', 'Endpoint', 'Service', 'StorageClass', 'PVLine', 'EndpointLine', 'ServiceLine', 'StorageClassLine']
+    let types = ['Node', 'Pod', 'PV', 'PVC', 'Endpoints', 'Service', 'StorageClass', 'PVLine', 'EndpointLine', 'ServiceLine', 'StorageClassLine']
     let i;
     let t;
     let type;
@@ -169,14 +169,14 @@ function filter3DView() {
     if ($('#clusterFilterNetwork').prop('checked')) {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type;
-            if (tmp === 'Endpoint' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
+            if (tmp === 'Endpoints' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
                 meshArray[i].obj.setEnabled(true);
             }
         }
     } else {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type;
-            if (tmp === 'Endpoint' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
+            if (tmp === 'Endpoints' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
                 meshArray[i].obj.setEnabled(false);
             }
         }
@@ -335,7 +335,7 @@ function filter3DView() {
     // Hide Network related itmes that have no associated pod shown
     for (i = 0; i < meshArray.length; i++) {
         tmp = meshArray[i].type
-        if (tmp === 'Endpoint' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
+        if (tmp === 'Endpoints' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
             if (podArray.includes(meshArray[i].pod)) {
                 //nothing to do
             } else {
@@ -359,7 +359,7 @@ function filter3DView() {
     if (parentPods.length > 0) {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type
-            if (tmp === 'Endpoint' || tmp === 'Service' || tmp === 'ServiceLine') {
+            if (tmp === 'Endpoints' || tmp === 'Service' || tmp === 'ServiceLine') {
                 if (parentPods.includes(meshArray[i].pod)) {
                     meshArray[i].obj.setEnabled(true);
                 }

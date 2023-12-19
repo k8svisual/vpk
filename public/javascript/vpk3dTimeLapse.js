@@ -170,15 +170,24 @@ function filterTimeLapseData() {
 
 
 function timeLapseOpen() {
-    // const slideUpContainer = document.getElementById('clusterSlideUpContainer');
-    // clusterSlideUpContainer.classList.add('clusterShow');
-    filterTimeLapseView();
-    timeLapse()
+    if (typeof timeLapseData === 'undefined') {
+        showMessage('No snapshot or running cluster has been connected.', 'fail');
+    } else {
+        if ($("#timeLapse_filter").is(":visible")) {
+            timeLapseClose();
+        } else {
+            // const slideUpContainer = document.getElementById('clusterSlideUpContainer');
+            // clusterSlideUpContainer.classList.add('clusterShow');
+            filterTimeLapseView();
+            timeLapse()
+        }
+    }
 }
 function timeLapseClose() {
     clearInterval(timeLapseLoop);
     timeLapseLoop = null;
     timeLapseFilterClose();
+    $('#timeLapse_filter').hide();
     const clusterSlideUpContainer = document.getElementById('clusterSlideUpContainer');
     clusterSlideUpContainer.classList.remove('clusterShow');
     // Reopen original 3D view 
@@ -217,6 +226,7 @@ function timeLapse() {
     $('#timeLapseReset').hide();
     $('#timeLapseForward').show();
     $('#timeLapseBack').show();
+    $('#timeLapse_filter').show();
     const clusterSlideUpContainer = document.getElementById('clusterSlideUpContainer');
     clusterSlideUpContainer.classList.add('clusterShow');
 
@@ -244,6 +254,7 @@ function timeLapseSetUi() {
     $('#timeLapseReset').show();
     $('#timeLapseForward').show();
     $('#timeLapseBack').show();
+    $('#timeLapse_filter').show();
     const clusterSlideUpContainer = document.getElementById('clusterSlideUpContainer');
     clusterSlideUpContainer.classList.add('clusterShow');
 
@@ -345,6 +356,7 @@ function timeLapseDone() {
     $('#timeLapseReset').show();
     $('#timeLapseForward').hide();
     $('#timeLapseBack').hide();
+    $('#timeLapse_filter').hide();
 }
 
 function timeLapseWorker(key, direction) {

@@ -24,75 +24,99 @@
 
 <!-- Tab: GRAPHIC VIEW  -->
 <div id="graphic" class="tab-pane">
-    <div class="mt-2 vpkfont vpkblue" id="chartInfo">
+
+    <!-- ============ Stats d3 treeMap ============= -->
+    <div id="statsTreeMapSection">
+        <div class="mt-2 vpkfont vpkblue" id="chartInfo">
+        </div>
+        <div id="dirStatsChart" class="vpkhidden">
+            <div class="mt-2 ml-5 mb-3">
+                <div id="statsHeader">
+                    <div class="vpkblue mb-1">
+                        <span class="vpkblue">
+                            Snapshot Counts Graph
+                        </span>
+                        <span class="pl-3 pr-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary vpkfont-sm"
+                                onclick="buildStatsToggle()">
+                                Toggle view for Kinds/Namespaces
+                            </button>
+                        </span>
+
+                        <span class="pl-3">
+                            <input class="form-check-input" type="checkbox" value="" id="dirStatLabels" checked>
+                            <label class="form-check-label" for="dirStatLabels">
+                                Show lables
+                            </label>
+                        </span>
+                    </div>
+                    <div class="mt-3">
+                        <span class="vpkfont vpkblue pl-5">
+                            <span>Minimum count:</span>
+                            <span class="pl-2">
+                                <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;"
+                                    id="dirStatMin">
+                            </span>
+                            <span class="pl-2">Maximum count:</span>
+                            <span class="pl-2 pr-2">
+                                <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;"
+                                    id="dirStatMax">
+                            </span>
+
+                            <span id="dirStatType" class="pl-2">
+                            </span>
+
+                            <span id="graphicDirNS">
+                                <span id="graphic-ns-select" class="pl-1 pr-1">
+                                    <select id="graphic-ns-filter" style="width: 250px;">
+                                        <option>all-namespaces</option>
+                                    </select>
+                                </span>
+                            </span>
+                            <span id="graphicDirKind">
+                                <span id="graphic-kind-select" class="pl-1 pr-1">
+                                    <select id="graphic-kind-filter" style="width: 250px">
+                                        <option>all-kinds</option>
+                                    </select>
+                                </span>
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ml-5 mt-1 mr-5">
+                <div id="snapshot_treeMap" class="mb-5">
+                </div>
+            </div>
+        </div>
+
+        <div class="ml-5 mr-5">
+            <div id="statContents" class="vpkfont-md text-center">
+            </div>
+        </div>
     </div>
-    <div id="dirStatsChart" class="vpkhidden">
+    <!-- ============ Stats tables ============= -->
+
+    <div id="statsTableSection" class="vpkhidden">
         <div class="mt-2 ml-5 mb-3">
             <div id="statsHeader">
                 <div class="vpkblue mb-1">
                     <span class="vpkblue">
-                        Snapshot Counts
+                        Snapshot Counts Report
                     </span>
                     <span class="pl-3 pr-3">
                         <button type="button" class="btn btn-sm btn-outline-primary vpkfont-sm"
-                            onclick="buildStatsToggle()">
+                            onclick="buildStatsTableToggle()">
                             Toggle view for Kinds/Namespaces
                         </button>
                     </span>
-
-                    <span class="pl-3">
-                        <input class="form-check-input" type="checkbox" value="" id="dirStatLabels" checked>
-                        <label class="form-check-label" for="dirStatLabels">
-                            Show lables
-                        </label>
-                    </span>
-
-
-                </div>
-                <div class="mt-3">
-                    <span class="vpkfont vpkblue pl-5">
-                        <span>Minimum count:</span>
-                        <span class="pl-2">
-                            <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;"
-                                id="dirStatMin">
-                        </span>
-                        <span class="pl-2">Maximum count:</span>
-                        <span class="pl-2 pr-2">
-                            <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;"
-                                id="dirStatMax">
-                        </span>
-
-                        <span id="dirStatType" class="pl-2">
-                        </span>
-
-                        <span id="graphicDirNS">
-                            <span id="graphic-ns-select" class="pl-1 pr-1">
-                                <select id="graphic-ns-filter" style="width: 250px;">
-                                    <option>all-namespaces</option>
-                                </select>
-                            </span>
-                        </span>
-                        <span id="graphicDirKind">
-                            <span id="graphic-kind-select" class="pl-1 pr-1">
-                                <select id="graphic-kind-filter" style="width: 250px">
-                                    <option>all-kinds</option>
-                                </select>
-                            </span>
-                        </span>
-                    </span>
                 </div>
             </div>
         </div>
 
-        <div class="ml-5 mt-1 mr-5">
-            <div id="snapshot_treeMap" class="mb-5">
-            </div>
+        <div id="statContentsTable" class="vpkfont-md vpk-ml-40">
+            <p>Stats data</P>
         </div>
     </div>
-
-    <div class="ml-5 mr-5">
-        <div id="statContents" class="vpkfont-md text-center">
-        </div>
-    </div>
-
 </div>

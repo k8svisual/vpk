@@ -371,9 +371,9 @@
     <div class="cluster-slide-up-container" id="clusterSlideUpContainer">
         <div class="container-fluid mt-2">
             <div class="row align-items-center">
-                <div class="col-auto">
-                    <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
-                        onclick="timeLapseFilterOpen()">Filter</button>
+                <div class="col-auto">&NonBreakingSpace;
+                    <!-- <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
+                        onclick="timeLapseFilterOpen()">Filter</button> -->
                 </div>
                 <div class="col">
                     <div class="d-flex flex-row justify-content-center">
@@ -411,12 +411,14 @@
 
         <div class="row justify-content-center">
             <span class="px-2 py-2 timeLapseStart" id="timeLapseStart"></span>
-            <span class="px-2 py-2 timeLapseEnd" id="timeLapseEnd"></span>
+            <span class="px-2 py-2 mb-3 timeLapseEnd" id="timeLapseEnd"></span>
         </div>
     </div>
 </div>
 
 <!-- ============================== Time Lapse filter ===============================-->
+<span id="timeLapse_filter" class="vpkhidden" onclick="timeLapseFilterOpen()">Filter timelapse</span>
+
 <div id="timeLapseSlideIn">
     <div style="display: inline;" class="mb-1 text-center">
         <div class="form-check mb-1 mt-1">

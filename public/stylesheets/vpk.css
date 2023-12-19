@@ -204,6 +204,14 @@ div {
     margin-left: -10px;
 }
 
+.vpk-ml-40 {
+    margin-left: 40px;
+}
+
+.vpk-mr-40 {
+    margin-right: 40px;
+}
+
 hr.hrDatasource {
     margin-top: 2px;
     margin-bottom: 2px;
@@ -309,11 +317,9 @@ img.icon {
     z-index: 3000;
 }
 
-
 #schemModal {
     overflow-y: scroll;
 }
-
 
 #editorModal {
     z-index: 9999;
@@ -743,6 +749,10 @@ tr.border_bottom td {
     visibility: hidden;
 }
 
+.tcCaret {
+    visibility: hidden;
+}
+
 /* Tooltip */
 .tooltip {
     pointer-events: none;
@@ -783,4 +793,9 @@ tr.border_bottom td {
 .fa-cog {
     color: rgb(0, 123, 255);
     padding: 2px;
+}
+
+.vkp-bottom-line {
+    border-bottom: 1px solid #dddddd;
+
 }

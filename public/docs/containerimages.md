@@ -1,6 +1,6 @@
 <topicKey containerimages/>
 <topicBack id="topicNext" link="search"/>
-<topicNext id="topicBack" link="eventmsgs"/>
+<topicNext id="topicBack" link="statsview"/>
 
 <a style="float: right;" href="javascript:docNextTopic()">&nbsp;&nbsp;Next&nbsp;<i class="fa fa-lg fa-arrow-right"></i></a>
 <a style="float: right;" href="javascript:docNextTopic('toc')">&nbsp;&nbsp;TOC&nbsp;&nbsp;</a>

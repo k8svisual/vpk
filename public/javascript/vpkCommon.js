@@ -50,8 +50,7 @@ let dirStatFilter = '';
 let currentTab = "instructions"
 let rootDir;
 let k8cData;
-let dsCounts;
-let dsToggle = 'kind';
+
 let bootstrapModalCounter = 0;
 let documentationTabTopic = 'toc';
 

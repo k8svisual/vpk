@@ -1645,7 +1645,7 @@ function createScene() {
         stick.material = stickColor;
 
         // FNUM FIX
-        addMesh(stick, 'ClusterLevel', 'Node-Storage-Line', '0000.0', '')
+        addMesh(stick, 'ClusterLevel', 'Node', '0000.0', '')
     }
 
     //==============================================
@@ -1869,7 +1869,7 @@ function createScene() {
                 + ' onclick="openNodeStorageCounts(\'' + nName + '\')">Storage</button>'
                 + '</div>';
 
-            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'nodeStorage', '4444.' + index, nodeStorageInner, '', '4444.' + index)
+            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'Node', '4444.' + index, nodeStorageInner, '', '4444.' + index)
             buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + index, 'n')
             // Connect Cylinder to the Node
             buildNodeStorageLine(nodeStrgX, nodeStrgY, nodeStrgZ, pX, pY, pZ);
@@ -1880,7 +1880,7 @@ function createScene() {
             ];
             let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: nsPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
             upStick.material = stickColor;
-            addMesh(upStick, 'ClusterLevel', 'nodeStorage', '4444.' + index, '')
+            addMesh(upStick, 'ClusterLevel', 'Node', '4444.' + index, '')
 
 
             // CSINode information 

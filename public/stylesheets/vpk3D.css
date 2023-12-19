@@ -446,6 +446,7 @@
     border-style: solid;
     border-width: 1px;
     border-color: rgb(0, 123, 255);
+    z-index: 1000;
 }
 
 #timeLapseSlideIn.open {
@@ -460,8 +461,8 @@
 }
 
 #timeLapseBody table,
-th,
-td {
+#timeLapseBody th,
+#timeLapseBody td {
     border: 1px solid black;
     border-collapse: collapse;
     padding-left: 5px;
@@ -479,4 +480,26 @@ td {
 #timeLapseBody td {
     color: rgb(0, 123, 255);
     background-color: white;
+}
+
+#timeLapse_filter {
+    position: fixed;
+    left: -40px;
+    bottom: 40px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 5px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#timeLapse_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
 }

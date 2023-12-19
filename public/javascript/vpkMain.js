@@ -94,6 +94,9 @@ $(document).ready(function () {
         let px;
         let element;
         hideVpkTooltip()
+        timeLapseClose();
+
+
         // take action based on what tab was shown
         if (currentTab === "#instructions") {
             px = 75;
