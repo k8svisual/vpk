@@ -37,6 +37,9 @@ let sceneStars = false;
 let sceneSky = false;
 let stickColorDark = true;
 let soundFor3D = true;
+let scToPVLink = {};
+let scToPVNumber = 0;
+let ptrCSIWall = -1;
 
 $("#cluster3DView").show();
 
@@ -471,6 +474,10 @@ function createScene() {
     buildIngressSlice();
     // return the newly built scene to the calling function
 
+    // scToPVLink has been built and contains the links 
+    // from the PV to the associated SC
+    //console.log(JSON.stringify(scToPVLink, null, 4))
+
     return scene;
 
 
@@ -825,7 +832,7 @@ function createScene() {
                     pvName = '';
                 }
 
-                key = cluster.nodes[node].pods[cCnt].pvc[0].scName
+                key = cluster.nodes[node].pods[cCnt].pvc[0].scName;
                 if (key > "") {
                     let pvcFnum = cluster.nodes[node].pods[cCnt].pvc[0].fnum
                     let pvFnum = cluster.nodes[node].pods[cCnt].pvc[0].pvFnum
@@ -837,6 +844,7 @@ function createScene() {
                     if (found) {
                         podCords.ns = cluster.nodes[node].pods[cCnt].ns;
                         podCords.pFnum = podFnum;
+                        podCords.pvFnum = cluster.nodes[node].pods[cCnt].pvc[0].pvFnum;
                         if (typeof foundStorageClasses[key] === 'undefined') {
                             foundStorageClasses[key] = {};
                         }
@@ -844,6 +852,12 @@ function createScene() {
                             foundStorageClasses[key].pv = [];
                         }
                         foundStorageClasses[key].pv.push(podCords);
+                        // an object with each PV-to-SC connection
+                        // that will be updated with the name of the lines that 
+                        // connect the two items
+                        //scToPVLink[cluster.nodes[node].pods[cCnt].pvc[0].pvFnum + ':' + foundStorageClasses[key].fnum] = 'unknown'
+                        scToPVLink[cluster.nodes[node].pods[cCnt].pvc[0].pvFnum] = 'unknown'
+
                     }
                 }
             }
@@ -954,7 +968,7 @@ function createScene() {
     //==============================================
     // build a cylinder 
     function buildControlComponent(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, link) {
-        let cyl = BABYLON.MeshBuilder.CreateCylinder("ctlComp", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
+        let cyl = BABYLON.MeshBuilder.CreateCylinder(link, { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
         cyl.position.x = x;
         cyl.position.y = y;
         cyl.position.z = z;
@@ -1254,6 +1268,7 @@ function createScene() {
                     new BABYLON.Vector3(tX, - 7, tZ),
                     new BABYLON.Vector3(tX, -0.85, tZ)
                 ];
+
                 let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
                 upStick.material = csiStickColor;
                 addMesh(upStick, 'ClusterLevel', 'csiStorageLine', scFnum, '')
@@ -1267,7 +1282,12 @@ function createScene() {
                         new BABYLON.Vector3(scData.pv[c].x, scData.pv[c].y - 5, scData.pv[c].z)
                     ];
 
-                    let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                    scToPVNumber++;
+                    if (typeof scToPVLink[scData.pv[c].pvFnum] !== 'undefined') {
+                        scToPVLink[scData.pv[c].pvFnum] = 'scLink' + scToPVNumber;
+                    }
+
+                    let stick = BABYLON.MeshBuilder.CreateTube("scLink" + scToPVNumber, { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
                     stick.material = stickColor;
 
                     addMesh(stick, 'ClusterLevel', 'StorageClassLine', scData.pv[c].pFnum, '')
@@ -1328,6 +1348,8 @@ function createScene() {
         ));
         buildSlice(tX, -0.75, tZ, '666.0', 'n');
         addMesh(csiStorageWall, 'ClusterLevel', 'CSIWall', 100, '')
+        // Save to location of the CSI wall in the arrae
+        ptrCSIWall = meshArray.length;
     }
 
 
@@ -1477,9 +1499,8 @@ function createScene() {
                     + '<span><b>Name : </b><span class="pl-2">' + compStatus[p].name + '</span></span>'
                     + '</span></div>';
 
-                buildControlComponent(pX, 0, pZ, .8, .40, 3, controlPlaneColor, 'cluster-level', 'ControlPlaneComponent', compStatus[p].fnum, controlPlaneInner, '');
+                buildControlComponent(pX, 0, pZ, .8, .40, 3, controlPlaneColor, 'cluster-level', 'ControlPlaneComponent', compStatus[p].fnum, controlPlaneInner, '', compStatus[p].fnum);
                 buildSlice(pX, 0, pZ, compStatus[p].fnum, 'n');
-
 
                 if (cN === 'API server') {
                     // Add horizontal line/stick for kubectl
@@ -1623,7 +1644,7 @@ function createScene() {
                     + ' onclick="showRegistry(\'' + irKeys[p] + '\',\'G\',\'Cluster\')">Container</button>'
                     + '</div>';
 
-                buildControlComponent(pX, y, pZ, .2, .40, 32, registryColor, 'cluster-level', 'ControlPlaneComponent', rFnum.toString(), imageRegInner, '');
+                buildControlComponent(pX, y, pZ, .2, .40, 32, registryColor, 'cluster-level', 'ControlPlaneComponent', rFnum.toString(), imageRegInner, '', irKeys[p]);
                 buildSlice(pX, y, pZ, rFnum.toString(), 'n');
 
                 y = y + yInc;
@@ -1634,14 +1655,14 @@ function createScene() {
 
 
     //==============================================
-    // build line to connect CSINode to Node
-    function buildNodeStorageLine(sX, sY, sZ, eX, eY, eZ) {
+    // build line to connect Node storage to Node
+    function buildNodeStorageLine(sX, sY, sZ, eX, eY, eZ, name) {
         let epPath = [
             new BABYLON.Vector3(sX, sY, sZ),
             new BABYLON.Vector3(eX, eY, eZ)
         ];
 
-        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        let stick = BABYLON.MeshBuilder.CreateTube(name, { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         stick.material = stickColor;
 
         // FNUM FIX
@@ -1650,13 +1671,13 @@ function createScene() {
 
     //==============================================
     // build line to connect CSINode to Node
-    function buildCSILine(sX, sY, sZ, eX, eY, eZ) {
+    function buildCSILine(sX, sY, sZ, eX, eY, eZ, name) {
         let epPath = [
             new BABYLON.Vector3(sX, sY, sZ),
             new BABYLON.Vector3(eX, eY, eZ)
         ];
 
-        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        let stick = BABYLON.MeshBuilder.CreateTube(name, { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         stick.material = csiStickColor;
 
         // FNUM FIX
@@ -1853,7 +1874,7 @@ function createScene() {
             let nodeStrgZ = (maxRings + NODE_ICON_ADJ + 1.75) * Math.cos(angle);
 
             nodeStorageInner = '<div class="vpkfont vpkblue ml-1">'
-                + '<div id="sliceKey">' + '4444.' + index + '</div>'
+                + '<div id="sliceKey">' + '4444.' + cluster.nodes[nodePtr].fnum + '</div>'
                 + '<a href="javascript:openNodeStorageCounts(\'' + nName + '\')">'
                 + '<img src="images/3d/3d-volume.png" width="60" height"60"></a>'
                 + '<span class="pl-2 pb-2 vpkfont-sm">(Press to open Storage tab view)'
@@ -1864,23 +1885,29 @@ function createScene() {
                 + 'Storage defined at node i.e. configMap, emptyDir, secret, hostPath, etc.</b></span>'
                 + '<br><br>'
                 + '<span class="vpkfont-slidein"><b>Node name:  </b>' + nName + '</span>'
-                + '<br>' + checkOwnerRef('4444.' + index, 'cluster-level', 'NODE-Storage')
+                + '<br>' + checkOwnerRef('4444.' + cluster.nodes[nodePtr].fnum, 'cluster-level', 'NODE-Storage')
                 + '<button type="button" class="ml-1 mt-4 btn btn-primary btn-sm vpkButton" '
                 + ' onclick="openNodeStorageCounts(\'' + nName + '\')">Storage</button>'
                 + '</div>';
 
-            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'Node', '4444.' + index, nodeStorageInner, '', '4444.' + index)
-            buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + index, 'n')
+            cluster.nodes[nodePtr]
+
+            //buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'Node', '4444.' + index, nodeStorageInner, '', '4444.' + index)
+            //buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + index, 'n')
+
+            buildCylinder(nodeStrgX, -1.25, nodeStrgZ, .4, .25, 16, nodeStorage, 'ClusterLevel', 'Node', '4444.' + cluster.nodes[nodePtr].fnum, nodeStorageInner, '', '4444.' + cluster.nodes[nodePtr].fnum)
+            buildSlice(nodeStrgX, -1.25, nodeStrgZ, '4444.' + cluster.nodes[nodePtr].fnum, 'n')
             // Connect Cylinder to the Node
-            buildNodeStorageLine(nodeStrgX, nodeStrgY, nodeStrgZ, pX, pY, pZ);
+            buildNodeStorageLine(nodeStrgX, nodeStrgY, nodeStrgZ, pX, pY, pZ, '4444.' + cluster.nodes[nodePtr].fnum);
 
             let nsPath = [
                 new BABYLON.Vector3(nodeStrgX, - 1.25, nodeStrgZ),
                 new BABYLON.Vector3(nodeStrgX, 0, nodeStrgZ)
             ];
-            let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: nsPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            let upStick = BABYLON.MeshBuilder.CreateTube('4444.' + cluster.nodes[nodePtr].fnum, { path: nsPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
             upStick.material = stickColor;
-            addMesh(upStick, 'ClusterLevel', 'Node', '4444.' + index, '')
+            //addMesh(upStick, 'ClusterLevel', 'Node', '4444.' + index, '')
+            addMesh(upStick, 'ClusterLevel', 'Node', '4444.' + cluster.nodes[nodePtr].fnum, '')
 
 
             // CSINode information 
@@ -1907,14 +1934,14 @@ function createScene() {
                                     + '</div>';
 
                                 // define the csiNode
-                                buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', csiFnum, csiInner, cluster.nodes[nodePtr].csiNodes[0].fnum);
+                                buildSphere(csiX, yDown, pZ, .25, 32, csiStorageWallColor, 'ClusterLevel', 'CSINode', cluster.nodes[nodePtr].fnum, csiInner, cluster.nodes[nodePtr].csiNodes[0].fnum);
                                 buildSlice(csiX, yDown, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum + '.' + c, 'n');
-                                buildCSILine(csiX, yDown, pZ, csiHome, pY, pZ)
+                                buildCSILine(csiX, yDown, pZ, csiHome, pY, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum)
 
 
                                 // build csiLine to the csiWall
                                 if (c === 0) {
-                                    buildCSILine(csiDrvX, -.75, csiDrvZ, csiHome, -.75, pZ)
+                                    buildCSILine(csiDrvX, -.75, csiDrvZ, csiHome, -.75, pZ, cluster.nodes[nodePtr].csiNodes[0].fnum)
                                 }
 
                                 //save the volumeAttachments

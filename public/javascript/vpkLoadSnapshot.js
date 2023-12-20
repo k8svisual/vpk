@@ -37,7 +37,9 @@ let evtNs;
 let evtNsSum;
 let namespaceFnum;
 let timeline3d;
-
+let imageRepositoryData = '';
+let imageRepository = '';
+let imageRepositoryFirst = '';
 
 //----------------------------------------------------------
 // show change directory modal 
@@ -293,8 +295,11 @@ socket.on('getServerDataResult', function (data) {
     buildOwnerRefExists();
     storageData = data.stor;
     helmData = data.helm;
+
     imageRepository = data.registry;
     imageRepositoryData = data.registryData;
+    imageRepositoryFirst = data.registryFirst;
+
     configMapsFound = data.configMapsFound;
     secretsFound = data.secretsFound;
     eventsInfo = data.events;

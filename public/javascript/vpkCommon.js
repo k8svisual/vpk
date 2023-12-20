@@ -79,8 +79,6 @@ let storageData = '';
 //let storageInfoID = 0;
 
 let helmData = '';
-let imageRepositoryData = '';
-let imageRepository = '';
 
 let explainInfo = [];
 

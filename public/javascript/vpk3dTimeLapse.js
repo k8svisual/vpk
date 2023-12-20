@@ -35,6 +35,8 @@ let timeLapseData;
 let timeLapseSpeed = 1;
 let timeLapseGap = 100;
 let timeLapseCompleted = false;
+let timeLapseCSIWallInterval = '';
+let timeLapseKubectlInterval = '';
 
 function populateTimeLapseNSList() {
     let keys = Object.keys(timeline3d);
@@ -227,6 +229,7 @@ function timeLapse() {
     $('#timeLapseForward').show();
     $('#timeLapseBack').show();
     $('#timeLapse_filter').show();
+    timeLapseCSIWallInterval = '';
     const clusterSlideUpContainer = document.getElementById('clusterSlideUpContainer');
     clusterSlideUpContainer.classList.add('clusterShow');
 
@@ -299,7 +302,7 @@ function timeLapseBack() {
     $('#timeLapseBack').prop('disabled', true);
     timeLapseWorker(timeLapseKeys[timeLapseI], 'B')
     if ((timeLapseI - 1) > -1) {
-        console.log(`interval ${timeLapseI} reset to: ${timeLapseI--}`)
+        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI--}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
     } else {
         showMessage('Start of range reached')
@@ -310,7 +313,7 @@ function timeLapseBack() {
 function timeLapseForward() {
     $('#timeLapseForward').prop('disabled', true);
     if ((timeLapseI + 1) < timeLapseKeysHL) {
-        console.log(`interval ${timeLapseI} reset to: ${timeLapseI++}`)
+        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI++}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
         timeLapseWorker(timeLapseKeys[timeLapseI], 'F')
     } else {
@@ -346,6 +349,7 @@ function timeLapseReset() {
     $('#timeLapseReset').show();
     $('#timeLapseForward').show();
     $('#timeLapseBack').show();
+    timeLapseCSIWallInterval = '';
     //Reset the UI to the start
     timeLapse();
 }
@@ -367,7 +371,6 @@ function timeLapseWorker(key, direction) {
         return;
     }
 
-
     try {
         for (let i = 0; i < data.length; i++) {
             shown = false;
@@ -378,8 +381,27 @@ function timeLapseWorker(key, direction) {
                     if (meshArray[m].obj.name === data[i].name) {
                         if (direction === 'F') {
                             meshArray[m].obj.setEnabled(true);
+                            for (let n = 0; n < meshArray.length; n++) {
+                                // if (meshArray[n].type === 'Node') {
+                                //     console.log(meshArray[n].obj.name)
+                                //     console.log(data[i].fnum)
+                                // }
+                                if (meshArray[n].type === 'Node' && meshArray[n].obj.name === '4444.' + data[i].fnum) {
+                                    meshArray[n].obj.setEnabled(true);
+                                }
+                            }
                         } else {
                             meshArray[m].obj.setEnabled(false);
+                            for (let n = 0; n < meshArray.length; n++) {
+                                // if (meshArray[n].type === 'Node') {
+                                //     console.log(meshArray[n].obj.name)
+                                //     console.log(data[i].fnum)
+                                // }
+                                if (meshArray[n].type === 'Node' && meshArray[n].obj.name === '4444.' + data[i].fnum) {
+                                    meshArray[n].obj.setEnabled(false);
+                                }
+                            }
+
                         }
                     }
                     shown = true;
@@ -391,8 +413,28 @@ function timeLapseWorker(key, direction) {
                         if (data[i].act === 'create' || data[i].act === 'start') {
                             if (direction === 'F') {
                                 meshArray[m].obj.setEnabled(true);
+                                if (typeof imageRepositoryFirst[data[i].fnum] !== 'undefined') {
+                                    for (let ir = 0; ir < imageRepositoryFirst[data[i].fnum].length; ir++) {
+                                        let repoName = imageRepositoryFirst[data[i].fnum][ir];
+                                        for (let re = 0; re < meshArray.length; re++) {
+                                            if (meshArray[re].obj.name === repoName) {
+                                                meshArray[re].obj.setEnabled(true);
+                                            }
+                                        }
+                                    }
+                                }
                             } else {
                                 meshArray[m].obj.setEnabled(false);
+                                if (typeof imageRepositoryFirst[data[i].fnum] !== 'undefined') {
+                                    for (let ir = 0; ir < imageRepositoryFirst[data[i].fnum].length; ir++) {
+                                        let repoName = imageRepositoryFirst[data[i].fnum][ir];
+                                        for (let re = 0; re < meshArray.length; re++) {
+                                            if (meshArray[re].obj.name === repoName) {
+                                                meshArray[re].obj.setEnabled(false);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } else if (data[i].act === 'finish') {
                             if (direction === 'F') {
@@ -442,8 +484,25 @@ function timeLapseWorker(key, direction) {
                     if (meshArray[m].obj.name === data[i].fnum) {
                         if (direction === 'F') {
                             meshArray[m].obj.setEnabled(true);
+                            if (typeof scToPVLink[meshArray[m].obj.name] !== 'undefined') {
+                                let pvLinkName = scToPVLink[meshArray[m].obj.name]
+                                for (let pv = 0; pv < meshArray.length; pv++) {
+                                    if (meshArray[pv].obj.name === pvLinkName) {
+                                        meshArray[pv].obj.setEnabled(true);
+                                    }
+                                }
+                            }
+
                         } else {
                             meshArray[m].obj.setEnabled(false);
+                            if (typeof scToPVLink[meshArray[m].obj.name] !== 'undefined') {
+                                let pvLinkName = scToPVLink[meshArray[m].obj.name]
+                                for (let pv = 0; pv < meshArray.length; pv++) {
+                                    if (meshArray[pv].obj.name === pvLinkName) {
+                                        meshArray[pv].obj.setEnabled(false);
+                                    }
+                                }
+                            }
                         }
                     }
                     shown = true;
@@ -484,7 +543,47 @@ function timeLapseWorker(key, direction) {
                     shown = true;
                     continue;
                 }
-
+                if (meshArray[m].type === 'CSINode' && data[i].kind === 'CSINode') {
+                    if (meshArray[m].obj.name === data[i].fnum) {
+                        if (direction === 'F') {
+                            meshArray[m].obj.setEnabled(true);
+                            for (let c = 0; c < meshArray.length; c++) {
+                                if (meshArray[c].type === 'CSILine') {
+                                    if (meshArray[c].obj.name === data[i].fnum) {
+                                        meshArray[c].obj.setEnabled(true);
+                                    }
+                                    if (timeLapseCSIWallInterval === '') {
+                                        timeLapseCSIWallInterval = data[i].fnum;
+                                        for (let w = 0; w < meshArray.length; w++) {
+                                            if (meshArray[w].type === 'CSIWall') {
+                                                meshArray[w].obj.setEnabled(true);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            meshArray[m].obj.setEnabled(false);
+                            for (let c = 0; c < meshArray.length; c++) {
+                                if (meshArray[c].type === 'CSILine') {
+                                    if (meshArray[c].obj.name === data[i].fnum) {
+                                        meshArray[c].obj.setEnabled(false);
+                                    }
+                                    if (timeLapseCSIWallInterval === data[i].fnum) {
+                                        timeLapseCSIWallInterval = '';
+                                        for (let w = 0; w < meshArray.length; w++) {
+                                            if (meshArray[w].type === 'CSIWall') {
+                                                meshArray[w].obj.setEnabled(false);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    shown = true;
+                    continue;
+                }
                 if (meshArray[m].type === 'Endpoints' && data[i].kind === 'Endpoints') {
                     if (meshArray[m].obj.name === data[i].fnum) {
                         if (direction === 'F') {
