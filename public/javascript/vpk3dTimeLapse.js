@@ -302,7 +302,8 @@ function timeLapseBack() {
     $('#timeLapseBack').prop('disabled', true);
     timeLapseWorker(timeLapseKeys[timeLapseI], 'B')
     if ((timeLapseI - 1) > -1) {
-        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI--}`)
+        timeLapseI--;
+        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
     } else {
         showMessage('Start of range reached')
@@ -313,7 +314,8 @@ function timeLapseBack() {
 function timeLapseForward() {
     $('#timeLapseForward').prop('disabled', true);
     if ((timeLapseI + 1) < timeLapseKeysHL) {
-        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI++}`)
+        timeLapseI++;
+        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
         timeLapseWorker(timeLapseKeys[timeLapseI], 'F')
     } else {
@@ -409,7 +411,7 @@ function timeLapseWorker(key, direction) {
                 }
                 // Handle Pods
                 if (meshArray[m].type === 'Pod' && data[i].kind === 'Pod') {
-                    if (meshArray[m].pod === data[i].fnum) {
+                    if (meshArray[m].fnum === data[i].fnum) {
                         if (data[i].act === 'create' || data[i].act === 'start') {
                             if (direction === 'F') {
                                 meshArray[m].obj.setEnabled(true);
@@ -420,6 +422,13 @@ function timeLapseWorker(key, direction) {
                                             if (meshArray[re].obj.name === repoName) {
                                                 meshArray[re].obj.setEnabled(true);
                                             }
+                                        }
+                                    }
+                                }
+                                if (sharedEndpoint.includes(data[i].fnum)) {
+                                    for (let sep = 0; sep < meshArray.length; sep++) {
+                                        if (meshArray[sep].type === 'EndpointLine' && meshArray[sep].fnum === data[i].fnum) {
+                                            meshArray[sep].obj.setEnabled(true);
                                         }
                                     }
                                 }
@@ -435,6 +444,14 @@ function timeLapseWorker(key, direction) {
                                         }
                                     }
                                 }
+                                if (sharedEndpoint.includes(data[i].fnum)) {
+                                    for (let sep = 0; sep < meshArray.length; sep++) {
+                                        if (meshArray[sep].type === 'EndpointLine' && meshArray[sep].fnum === data[i].fnum) {
+                                            meshArray[sep].obj.setEnabled(false);
+                                        }
+                                    }
+                                }
+
                             }
                         } else if (data[i].act === 'finish') {
                             if (direction === 'F') {
@@ -443,6 +460,49 @@ function timeLapseWorker(key, direction) {
                                 meshArray[m].obj.setEnabled(true);
                             }
                         }
+                    }
+
+                    if (typeof epToPodLinks[data[i].fnum] !== 'undefined') {
+                        let links = epToPodLinks[data[i].fnum];
+                        let baseLink;
+                        for (let epl = 0; epl < links.length; epl++) {
+                            baseLink = links[epl];
+                            for (let y = 0; y < meshArray.length; y++) {
+                                if (meshArray[y].type === 'EndpointLine') {
+                                    // meshArray[y].obj.name is the FNUM of the associated Endpoint
+                                    if (meshArray[y].obj.name === baseLink.baseLink) {
+                                        if (direction === 'F') {
+                                            meshArray[y].obj.setEnabled(true);
+                                        } else {
+                                            meshArray[y].obj.setEnabled(false);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        // Network related lines
+                        // if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'Endpoints') {
+                        //     if (meshArray[m].obj.name === data[i].fnum) {
+                        //         if (direction === 'F') {
+                        //             meshArray[m].obj.setEnabled(true);
+                        //         } else {
+                        //             meshArray[m].obj.setEnabled(false);
+                        //         }
+                        //     }
+                        //     shown = true;
+                        //     continue;
+                        // }
+                        // if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'EndpointSlice') {
+                        //     if (meshArray[m].obj.name === data[i].fnum) {
+                        //         if (direction === 'F') {
+                        //             meshArray[m].obj.setEnabled(true);
+                        //         } else {
+                        //             meshArray[m].obj.setEnabled(false);
+                        //         }
+                        //     }
+                        //     shown = true;
+                        //     continue;
+                        // }
                     }
                     shown = true;
                     continue;
@@ -513,8 +573,22 @@ function timeLapseWorker(key, direction) {
                     if (meshArray[m].obj.name === data[i].fnum) {
                         if (direction === 'F') {
                             meshArray[m].obj.setEnabled(true);
+                            for (let s = 0; s < meshArray.length; s++) {
+                                if (meshArray[s].type === 'csiStorageLine') {
+                                    if (meshArray[s].obj.name === data[i].fnum) {
+                                        meshArray[s].obj.setEnabled(true);
+                                    }
+                                }
+                            }
                         } else {
                             meshArray[m].obj.setEnabled(false);
+                            for (let s = 0; s < meshArray.length; s++) {
+                                if (meshArray[s].type === 'csiStorageLine') {
+                                    if (meshArray[s].obj.name === data[i].fnum) {
+                                        meshArray[s].obj.setEnabled(false);
+                                    }
+                                }
+                            }
                         }
                     }
                     shown = true;
@@ -594,17 +668,17 @@ function timeLapseWorker(key, direction) {
                     }
                     shown = true;
                 }
-                if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'Endpoints') {
-                    if (meshArray[m].obj.name === data[i].fnum) {
-                        if (direction === 'F') {
-                            meshArray[m].obj.setEnabled(true);
-                        } else {
-                            meshArray[m].obj.setEnabled(false);
-                        }
-                    }
-                    shown = true;
-                    continue;
-                }
+                // if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'Endpoints') {
+                //     if (meshArray[m].obj.name === data[i].fnum) {
+                //         if (direction === 'F') {
+                //             meshArray[m].obj.setEnabled(true);
+                //         } else {
+                //             meshArray[m].obj.setEnabled(false);
+                //         }
+                //     }
+                //     shown = true;
+                //     continue;
+                // }
 
                 if (meshArray[m].type === 'Endpoints' && data[i].kind === 'EndpointSlice') {
                     if (meshArray[m].obj.name === data[i].fnum) {
@@ -616,17 +690,17 @@ function timeLapseWorker(key, direction) {
                     }
                     shown = true;
                 }
-                if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'EndpointSlice') {
-                    if (meshArray[m].obj.name === data[i].fnum) {
-                        if (direction === 'F') {
-                            meshArray[m].obj.setEnabled(true);
-                        } else {
-                            meshArray[m].obj.setEnabled(false);
-                        }
-                    }
-                    shown = true;
-                    continue;
-                }
+                // if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'EndpointSlice') {
+                //     if (meshArray[m].obj.name === data[i].fnum) {
+                //         if (direction === 'F') {
+                //             meshArray[m].obj.setEnabled(true);
+                //         } else {
+                //             meshArray[m].obj.setEnabled(false);
+                //         }
+                //     }
+                //     shown = true;
+                //     continue;
+                // }
             }
             if (shown === false) {
                 console.log(`TimeLapse did not handle: ${JSON.stringify(data[i], null, 4)}`)

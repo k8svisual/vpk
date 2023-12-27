@@ -29,7 +29,7 @@ $(document).ready(function () {
     // get version from server
     getVersion();
 
-    // Vpk splash modal, hide after 3.0 seconds
+    // Vpk splash modal, hide after 3.5 seconds
     $("#splashVpKModal").modal('show');
     setTimeout(function () {
         $("#splashVpKModal").modal('hide');
@@ -362,25 +362,10 @@ $(document).ready(function () {
         width: 550
     });
 
-
-
     $('#clusterBG').select2({
         dropdownCssClass: "vpkselect2",
         selectionCssClass: "vpkselect2"
     });
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -418,7 +403,7 @@ $(document).ready(function () {
 
     $('#clusterBG').on("change", function () {
         let selected = $('#clusterBG').select2('data');
-        set3dBackColor(selected);
+        chgSkybox(selected[0].text);
     });
 
     $('#events-ns-select').on("change", function () {

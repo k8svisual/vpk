@@ -234,10 +234,9 @@ socket.on('versionResult', function (data) {
     // set the 3d cluster background
     if (typeof data.clusterBackground !== 'undefined') {
         clusterBack = data.clusterBackground
-        set3dBackColor(clusterBack)
         setSelectValue('clusterBG', clusterBack)
     } else {
-        set3dBackColor('Grey')
+        clusterBack = 'Grey';
     }
 });
 

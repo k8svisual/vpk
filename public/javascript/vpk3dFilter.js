@@ -327,7 +327,7 @@ function filter3DView() {
     for (i = 0; i < meshArray.length; i++) {
         if (meshArray[i].type === 'Pod') {
             if (meshArray[i].obj.isEnabled()) {
-                podArray.push(meshArray[i].pod)
+                podArray.push(meshArray[i].fnum)
             };
         };
     }
@@ -336,7 +336,7 @@ function filter3DView() {
     for (i = 0; i < meshArray.length; i++) {
         tmp = meshArray[i].type
         if (tmp === 'Endpoints' || tmp === 'EndpointLine' || tmp === 'Service' || tmp === 'ServiceLine') {
-            if (podArray.includes(meshArray[i].pod)) {
+            if (podArray.includes(meshArray[i].fnum)) {
                 //nothing to do
             } else {
                 meshArray[i].obj.setEnabled(false);
@@ -344,8 +344,8 @@ function filter3DView() {
         }
         // Build array of items to check for missing endpoint and services
         if (tmp === 'EndpointLine' && meshArray[i].obj.isEnabled()) {
-            if (typeof networkLinks[meshArray[i].pod] !== 'undefined') {
-                parentPods.push(networkLinks[meshArray[i].pod]);
+            if (typeof networkLinks[meshArray[i].fnum] !== 'undefined') {
+                parentPods.push(networkLinks[meshArray[i].fnum]);
             }
         }
     }
@@ -360,7 +360,7 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type
             if (tmp === 'Endpoints' || tmp === 'Service' || tmp === 'ServiceLine') {
-                if (parentPods.includes(meshArray[i].pod)) {
+                if (parentPods.includes(meshArray[i].fnum)) {
                     meshArray[i].obj.setEnabled(true);
                 }
             }
@@ -378,7 +378,7 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type;
             if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine' || tmp === 'PVCLine' || tmp === 'StorageClassLine') {
-                if (podArray.includes(meshArray[i].pod)) {
+                if (podArray.includes(meshArray[i].fnum)) {
                     //console.log('Show: ' + tmp);
                 } else {
                     meshArray[i].obj.setEnabled(false);
@@ -397,7 +397,7 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             if (meshArray[i].type === 'Pod') {
                 if (meshArray[i].obj.isEnabled()) {
-                    podArray.push(meshArray[i].pod)
+                    podArray.push(meshArray[i].fnum)
                 };
             };
         }
@@ -409,7 +409,7 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type
             if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine' || tmp === 'PVCLine') {
-                t1 = meshArray[i].pod;
+                t1 = meshArray[i].fnum;
                 if (podArray.includes(t1)) {
                     //determine if this pod is linked to another PVC
                     if (typeof pvcLinks[t1] !== 'undefined') {
@@ -424,7 +424,7 @@ function filter3DView() {
             for (i = 0; i < meshArray.length; i++) {
                 tmp = meshArray[i].type
                 if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine') {
-                    if (parentPods.includes(meshArray[i].pod)) {
+                    if (parentPods.includes(meshArray[i].fnum)) {
                         meshArray[i].obj.setEnabled(true);
                     }
                 }

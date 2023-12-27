@@ -40,6 +40,8 @@ let soundFor3D = true;
 let scToPVLink = {};
 let scToPVNumber = 0;
 let ptrCSIWall = -1;
+let sharedEndpoint = [];
+let epToPodLinks = {};
 
 $("#cluster3DView").show();
 
@@ -79,29 +81,6 @@ function print3Dscene() {
     } else {
         console.log('No 3D image to print');
     }
-}
-
-function set3dBackColor(title) {
-    // reset stars and clouds
-    sceneStars = false;
-    sceneSky = false;
-    // set if stars or clouds
-    if (title === 'Stars') {
-        sceneStars = true;
-        sceneSky = false;
-        stickColorDark = false;
-        return;
-    }
-
-    if (title === 'Sky') {
-        sceneSky = true;
-        sceneStars = false;
-        stickColorDark = true;
-        return;
-    }
-
-
-    stickColorDark = true
 }
 
 
@@ -151,7 +130,6 @@ function createScene() {
     let beginArc = 0;
     let endArc = 0;
     let saveEndArc;
-    // let controlPlane;
 
     let podArcSize = 0;
 
@@ -184,38 +162,48 @@ function createScene() {
     const scene = new BABYLON.Scene(engine);
     const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene, null, { loop: false, autoplay: true });
 
-    // set scene background
-    if (sceneStars === true) {
-        scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-        let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-        let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-        skyboxMaterial.backFaceCulling = false;
-        skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
-        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        skybox.material = skyboxMaterial;
-    } else if (sceneSky === true) {
-        scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-        let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-        let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-        skyboxMaterial.backFaceCulling = false;
-        skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/clouds", scene);
-        skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-        skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-        skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-        skybox.material = skyboxMaterial;
-    } else {
+    let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    skyboxMaterial.backFaceCulling = false;
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+
+    skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+
+
+
+    // clusterBack is the variable that contains the selected 3d background used in the config modal
+    if (clusterBack === 'Sky') {
+        var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
+        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+        stickColorDark = true;
+    } else if (clusterBack === 'Stars') {
+        var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
+        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+        stickColorDark = false;
+    } else if (clusterBack === 'Grey') {
         scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
+        scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
+        stickColorDark = true;
     }
+
+
+
+
+
+
 
     camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, 3 * Math.PI / 8, 30, BABYLON.Vector3.Zero());
     camera.attachControl(canvas, true);
 
     const light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 50, 0));
     const light2 = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(10, -50, 0));
-
-
     // Build inner band for cluster (small circle in center of cluster)
     const band1 = BABYLON.MeshBuilder.CreateTube("band1", {
         path: [new BABYLON.Vector3(0.0, 0.0, 0.0), new BABYLON.Vector3(0.0, WALL_HEIGHT, 0.0)],
@@ -224,7 +212,6 @@ function createScene() {
     }, scene);
     bandPositions = band1.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     band1.setVerticesData(BABYLON.VertexBuffer.ColorKind, setColor(bandPositions, 0.70, 0.70, 0.70));
-
 
     // build materials with colors for nodes and pods
     const mstNodeMat = new BABYLON.StandardMaterial("", scene);
@@ -555,7 +542,7 @@ function createScene() {
     //==============================================
     // Add mesh to an array that is used to control showing the mesh object
     function addMesh(obj, ns, type, fnum, status, link) {
-        meshArray.push({ 'ns': ns, 'type': type, 'obj': obj, 'pod': fnum, 'status': status, 'link': link });
+        meshArray.push({ 'ns': ns, 'type': type, 'obj': obj, 'fnum': fnum, 'status': status, 'link': link });
     }
 
 
@@ -936,20 +923,16 @@ function createScene() {
 
 
     //==============================================
-    // build a cylinder 
-    //buildCylinder(pCords.x, pCords.y - 2.5, pCords.z, .4, .25, 16, pvcColor, ns, 'PVC', pFnum, pvcName, '')
-    //                 x         y               z       h    d   t   material ns   type   
+    // build a cylinder                   
     function buildCylinder(x, y, z, height, diameter, tess, material, ns, type, fnum, inner, status, nameFnum) {
         if (typeof nameFnum === 'undefined' || nameFnum === null) {
             nameFnum = 'unknown'
         }
-
         let cyl = BABYLON.MeshBuilder.CreateCylinder(nameFnum, { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
         cyl.position.x = x;
         cyl.position.y = y;
         cyl.position.z = z;
         cyl.material = material;
-
         // register click event for object
         cyl.actionManager = new BABYLON.ActionManager(scene);
         cyl.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
@@ -964,6 +947,7 @@ function createScene() {
         ));
         addMesh(cyl, ns, type, fnum, status)
     }
+
 
     //==============================================
     // build a cylinder 
@@ -992,14 +976,13 @@ function createScene() {
 
 
     //==============================================
-    // build a cylinder 
+    // build a CPU or Memory cylinder 
     function buildMemCPUCylinder(x, y, z, height, diameter, tess, material, ns, type, fnum, inner) {
         let cyl = BABYLON.MeshBuilder.CreateCylinder("pvc", { height: height, diameterTop: diameter, diameterBottom: diameter, tessellation: tess });
         cyl.position.x = x;
         cyl.position.y = y;
         cyl.position.z = z;
         cyl.material = material;
-
         // register click event for object
         cyl.actionManager = new BABYLON.ActionManager(scene);
         cyl.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
@@ -1036,7 +1019,6 @@ function createScene() {
         sphere.position.y = y;
         sphere.position.z = z;
         sphere.material = material;
-
         // register click event for object
         sphere.actionManager = new BABYLON.ActionManager(scene);
         sphere.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
@@ -1053,6 +1035,7 @@ function createScene() {
         addMesh(sphere, ns, type, fnum, '')
     }
 
+
     //==============================================
     // build line to connect Pod to an existing PVC
     function buildPVCLine(cords, pCords, fnum, ns) {
@@ -1061,12 +1044,11 @@ function createScene() {
             new BABYLON.Vector3(pCords.x, pCords.y - 1.35, pCords.z),
             new BABYLON.Vector3(cords.x, cords.y - 2.5, cords.z)
         ];
-
         let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         stick.material = stickColor;
-
         addMesh(stick, ns, 'PVCLine', fnum, '')
     }
+
 
     //==============================================
     // build a cylinder for the PVC and PV
@@ -1096,22 +1078,26 @@ function createScene() {
 
 
     //==============================================
-    // build a sphere for the endpoint and service
+    // build spheres for the endpoint and service
     function buildServiceObj(pCords, sName, ns, nCords, epInner, pFnum, svcFnum, epFnum) {
-
         if (nCords === 'build') {
             // define the Endpoint
             buildSphere(pCords.x, pCords.y + 5, pCords.z, .175, 32, endpointColor, ns, 'Endpoints', pFnum, epInner, epFnum)
             buildSlice(pCords.x, pCords.y + 5, pCords.z, epFnum, 'n')
             // Add connection line between the Pod and the Endpoint
             buildLine(pCords.x, pCords.y + 2.55, pCords.z, 5.0, 'EndpointLine', ns, pFnum, epFnum)
+            // Save info for Pod-to-EPLine
+            if (typeof epToPodLinks[pFnum] === 'undefined') {
+                epToPodLinks[pFnum] = [];
+            }
+            epToPodLinks[pFnum].push({ 'baseLink': epFnum, 'pod': pFnum, 'linkType': 'EndpointLine' });
 
-            // define the Serive
+            // define the Service
             buildSphere(pCords.x, pCords.y + 7, pCords.z, .175, 32, serviceColor, ns, 'Service', pFnum, sName, svcFnum)
             buildSlice(pCords.x, pCords.y + 7, pCords.z, svcFnum, 'n')
             // Add connection line between the Service and the Endpoint
             buildLine(pCords.x, pCords.y + 6, pCords.z, 2.0, 'ServiceLine', ns, pFnum, svcFnum)
-
+            // epToPodLinks[pFnum].push({ 'baseLink': epFnum, 'pod': pFnum, 'linkType': 'ServiceLine'  });
         } else {
             // Endpoint / EndpointSlice already defined, link this pod to existing item.
             // Define a map with three points of the stick (start, middle, end)
@@ -1120,10 +1106,14 @@ function createScene() {
                 new BABYLON.Vector3(pCords.x, pCords.y + 2, pCords.z),
                 new BABYLON.Vector3(nCords.x, nCords.y + 5, nCords.z)
             ];
-
-            let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            sharedEndpoint.push(pFnum);
+            let stick = BABYLON.MeshBuilder.CreateTube(pFnum, { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
             stick.material = stickColor;
-
+            // Save info for Pod-to-EPLine
+            if (typeof epToPodLinks[pFnum] === 'undefined') {
+                epToPodLinks[pFnum] = [];
+            }
+            epToPodLinks[pFnum].push({ 'epFnum': epFnum, 'pod': pFnum, 'linkType': 'EndpointLine' });
             //pCords.fnum is the pod that this is linking back to
             addMesh(stick, ns, 'EndpointLine', pFnum, '', pCords.fnum)
         }
@@ -1135,19 +1125,16 @@ function createScene() {
     //            
     // build Pod and save the center cords for use with network and storage    
     // podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
-
     function buildPodObj(iAngle, iLen, pStatus, name, ns, pFnum) {
         //console.log(`buildPodObj: iAngle: ${iAngle} iLen ${iLen}`)
         let wX;
         let wY;
         let wZ;
         let material
-
         // Calculate where is the point to build the Pod
         wX = iLen * Math.sin(iAngle);
         wY = 0;
         wZ = iLen * Math.cos(iAngle);
-
         // set pod color using the status
         if (pStatus === 1 || pStatus === '1') {
             material = podGreen;
@@ -1160,11 +1147,9 @@ function createScene() {
         } else if (pStatus === 0 || pStatus === '0') {
             material = podGrey;
         }
-
         // define the Pod
         buildCylinder(wX, wY, wZ, POD_HEIGHT, POD_SIZE, 6, material, ns, 'Pod', pFnum, name, pStatus, pFnum)
         buildSlice(wX, wY, wZ, pFnum, 'n')
-
         return { 'x': wX, 'y': wY, 'z': wZ };
     }
 
@@ -1176,18 +1161,15 @@ function createScene() {
         let wallMat = new BABYLON.StandardMaterial("mat" + i, scene);
         wallMat.backFaceCulling = false;
         wallMat.diffuseColor = new BABYLON.Color3(0.625, 0.625, 0.625);
-
         //Create a custom mesh for the wall
         let customMesh = new BABYLON.Mesh("wall" + i, scene);
         //Set arrays for positions and indices
         let positions = [sX, sY, sZ, x, y, z, x, h, z, sX, h, sZ];
         let indices = [0, 1, 2, 2, 3, 0];
-
         //Empty array to contain calculated values
         var normals = [];
         var vertexData = new BABYLON.VertexData();
         BABYLON.VertexData.ComputeNormals(positions, indices, normals);
-
         //Assign positions, indices and normals to vertexData
         vertexData.positions = positions;
         vertexData.indices = indices;
@@ -1207,9 +1189,7 @@ function createScene() {
         let index;
         let scTxt;
         let scFnum
-
         max = scKeys.length;
-
         // loop and build storage classes and connect to PVs
         for (index = 0; index < max; index++) {
             scData = foundStorageClasses[scKeys[index]];
@@ -1231,13 +1211,10 @@ function createScene() {
 
                 + '<br>' + checkOwnerRef(scFnum, 'cluster-level', 'StorageClass')
                 + '</div>'
-
-
             //createSC(scTxt, scFnum, scData)
             let adjustment = 0;
             let path;
             let tX, tZ;
-
             // set x,y,z points for storage class icon
             if (maxRings > 4) {
                 adjustment = 3;
@@ -1246,10 +1223,8 @@ function createScene() {
             pY = 0;
             pZ = (maxRings - adjustment) * Math.cos(angle);
             // define the storage class
-
             buildCylinder(pX, pY - 7, pZ, 1, 1, 32, storageClassColor, 'ClusterLevel', 'StorageClass', 0, scTxt, '', scFnum)
             buildSlice(pX, pY - 7, pZ, scFnum, 'b')
-
             // connect StorageClass icon to CSI Storage Wall
             tX = (maxRings + 1.5) * Math.sin(angle);
             tZ = (maxRings + 1.5) * Math.cos(angle);
@@ -1257,10 +1232,9 @@ function createScene() {
                 new BABYLON.Vector3(pX, pY - 7, pZ),
                 new BABYLON.Vector3(tX, -7, tZ)
             ];
-
             // If the StorageClass provisioner is the name of a CSIDriver draw the lines
             if (foundCSINames.includes(scData.prov)) {
-                let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                let stick = BABYLON.MeshBuilder.CreateTube(scFnum, { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
                 stick.material = csiStickColor;
                 addMesh(stick, 'ClusterLevel', 'csiStorageLine', scFnum, '')
 
@@ -1269,11 +1243,10 @@ function createScene() {
                     new BABYLON.Vector3(tX, -0.85, tZ)
                 ];
 
-                let upStick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+                let upStick = BABYLON.MeshBuilder.CreateTube(scFnum, { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
                 upStick.material = csiStickColor;
                 addMesh(upStick, 'ClusterLevel', 'csiStorageLine', scFnum, '')
             }
-
             // connection lines to PVCs 
             if (typeof scData.pv[0] !== 'undefined') {
                 for (let c = 0; c < scData.pv.length; c++) {
@@ -1397,8 +1370,8 @@ function createScene() {
 
             tX = (maxRings + CONTROLPLANE) * Math.sin(ARC * i);
             tZ = (maxRings + CONTROLPLANE) * Math.cos(ARC * i);
-            controlPlaneArc1.push(new BABYLON.Vector3(tX, 0.5, tZ));
-            controlPlaneArc2.push(new BABYLON.Vector3(tX, -0.5, tZ));
+            controlPlaneArc1.push(new BABYLON.Vector3(tX, 0.25, tZ));
+            controlPlaneArc2.push(new BABYLON.Vector3(tX, -0.25, tZ));
         }
 
         controlPlaneInner = '<div class="vpkfont vpkblue ml-1">'
@@ -1687,7 +1660,6 @@ function createScene() {
     //==============================================
     // build node kubelet and kube-proxy
     function buildKublet(x, y, z, index) {
-
         // Add line from Node up that will contain the kubelet, kube-proxy and connect to the control plane
         let path = [
             new BABYLON.Vector3(x, 0, z),
@@ -1711,7 +1683,7 @@ function createScene() {
 
         // Add line down to the Control Plane
         path = [
-            new BABYLON.Vector3(tX, 0.5, tZ),
+            new BABYLON.Vector3(tX, 0.25, tZ),
             new BABYLON.Vector3(tX, 1.5, tZ)
         ];
         stick = BABYLON.MeshBuilder.CreateTube("tube", { path: path, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
@@ -2596,9 +2568,37 @@ function parseClusterResc() {
     if (secretsFound === true) {
         clusterRescConfigStorage.push('Secrets')
     }
-
     console.log('Built API Resource arrays')
 }
+
+function chgSkybox(sky) {
+    if (scene === null) {
+        console.log('no scene defined at this time');
+        return;
+    }
+    if (sky === 'Sky') {
+        var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
+        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+        stickColorDark = true;
+        return;
+    } else if (sky === 'Stars') {
+        var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
+        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+        stickColorDark = false;
+        return;
+    } else if (sky === 'Grey') {
+        scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
+        scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
+        stickColorDark = true;
+        return;
+    }
+    console.log(`No valid background value provided: ${sky}`)
+}
+
 
 
 //----------------------------------------------------------

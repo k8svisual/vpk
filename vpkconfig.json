@@ -5,16 +5,16 @@
         "redactSecrets": false,
         "reloadAction": true,
         "lightTheme": false,
-        "clusterBackground": "Stars"
+        "clusterBackground": "Grey"
     },
     "snapshotDir": "/Users/bob/snaptest",
     "clusterFilters": {
         "clusterFilterNodes": true,
         "clusterFilterCSI": true,
         "clusterFilterStorage": true,
-        "clusterFilterNetwork": false,
-        "clusterFilterIngress": false,
-        "clusterFilterControlP": false,
+        "clusterFilterNetwork": true,
+        "clusterFilterIngress": true,
+        "clusterFilterControlP": true,
         "clusterFilterWorkload": false,
         "clusterFilterService": false,
         "clusterFilterConfigStorage": false,
