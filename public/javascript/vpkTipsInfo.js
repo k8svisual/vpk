@@ -142,6 +142,91 @@ function showEvtDist(event, minute, total) {
     tooltip.style.top = clientYPos + 'px';
 }
 
+function showNetworkTooltip(evt, key) {
+    let parts = key.split('::');
+    let tooltip = document.getElementById("tooltip");
+    let info = '';
+    let data = networkNodes[parts[0]].pods[parts[1]];
+    let img;
+    let bgEven = "#ddd";
+    let bgOdd = "#fff";
+    let bgCurrent = true;
+    let bgColor;
+
+    if (typeof data !== 'undefined') {
+        info = info + '<div class="fa-1x pl-2" style="width: 675px;">'
+            + '<table><tr class="statsHeader mb-2">'
+            + '<th colspan="2" style="width: 525px;">Pod information for IP: ' + parts[1] + '</th><th>DaemonSet</th><th>HostNetwork</th></tr>'
+        for (let i = 0; i < data.length; i++) {
+            if (typeof k8cData[data[i].fnum] !== 'undefined') {
+
+                if (data[i].podStatus === 'Running') {
+                    img = 'images/3d/3d-podGreen.png';                   // Running
+                } else if (data[i].podStatus === 'Succeeded') {
+                    img = 'images/3d/3d-podBlue.png';                    // Complete
+                } else {
+                    console.log(data[i].podStatus)
+                }
+
+                if (k8cData[data[i].fnum].daemonSetPod === true) {
+                    img = 'images/3d/3d-podGrey.png';
+                }
+
+                if (bgCurrent === true) {
+                    bgColor = bgEven;
+                    bgCurrent = false;
+                } else {
+                    bgColor = bgOdd;
+                    bgCurrent = true;
+                }
+
+                info = info + '<tr style="background-color: ' + bgColor + ';">'
+                    + '<td style="width: 100px;" class="text-center"><img src="' + img + '" width="20"></td>'
+                    + '<td class="pl-2 fa-1x">' + k8cData[data[i].fnum].name + '</td>'
+                    + '<td style="width: 75px; height:20px;" class="pl-2 text-center fa-1x">' + k8cData[data[i].fnum].daemonSetPod + '</td>'
+                    + '<td style="width: 75px; height:20px;" class="pl-2 text-center fa-1x">' + data[i].hostNetwork + '</td>'
+                    + '</tr>'
+                    + '<tr style="background-color: ' + bgColor + ';">'
+                    + '<td style="font-style: italic; height:20px;" class="text-right fa-1x ">Namespace:</td>'
+                    + '<td colspan="3" style="height:20px;" class="pl-2 fa-1x">' + k8cData[data[i].fnum].namespace + '</td></tr>'
+
+                // + '<tr><td>&nbsp;</td><td>&nbsp;</td></tr>'
+            }
+        }
+        info = info + '</table></div>'
+    }
+
+    tooltip.innerHTML = info;
+    let clientXPos = evt.clientX;
+    let clientYPos = evt.clientY;
+    let offTop = $("#networkDetail").offset().top;
+    if (offTop < 1) {
+        clientYPos = clientYPos + (offTop * -1);
+    } else {
+        clientYPos = clientYPos - offTop;
+    }
+    tooltip.style.display = "block";
+    tooltip.style.left = clientXPos + 'px';
+    tooltip.style.top = clientYPos + 'px';
+}
+
+
+function showTooltipMessage(evt, msg) {
+    let tooltip = document.getElementById("tooltip");
+    tooltip.innerHTML = msg;
+    let clientXPos = evt.clientX;
+    let clientYPos = evt.clientY;
+    let offTop = $("#networkDetail").offset().top;
+    if (offTop < 1) {
+        clientYPos = clientYPos + (offTop * -1);
+    } else {
+        clientYPos = clientYPos - offTop;
+    }
+    tooltip.style.display = "block";
+    tooltip.style.left = clientXPos + 'px';
+    tooltip.style.top = clientYPos + 'px';
+}
+
 
 function hideOwnerRefTooltip() {
     hideVpkTooltip();

@@ -64,7 +64,7 @@ function saveConfig(what) {
         back = 'Grey';
     } else {
         back = tmp[0].text;
-        console.log(`back: ${back}`)
+        //console.log(`back: ${back}`)
     }
 
 

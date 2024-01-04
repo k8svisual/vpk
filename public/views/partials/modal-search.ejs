@@ -75,6 +75,19 @@
                                 annotation name. This is accomplished by using an "*" astrick as the value for the
                                 labels: or
                                 annotations: parameters.</p>
+                        </span>
+                        <li>
+                            <p class="vpkfont-bold">JSON search with attribute and value</p>
+                        </li>
+                        <span>
+                            <p> When searching for a value that is a JSON attribute and value the items need to be
+                                inclued in double quotes.
+                                Searching for the following attribute and value app: ovs is accomplished by enclosing
+                                both in double quotes
+                                without spaces, "app":"ovs".
+                            </p>
+                        </span>
+
                     </ul>
                     <hr>
                     Example searches:
@@ -96,7 +109,6 @@
                     <p class="pl-3">Search all resource metadata labels for the value 'server'.<br>
                         <span class="pl-5 vpkfont-bold">labels: * ::value:: server</span>
                     </p>
-
 
                     <p class="pl-3">Search resource metadata annotations that match 'productName'.<br>
                         <span class="pl-5 vpkfont-bold">annotations: productName</span>

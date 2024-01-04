@@ -189,4 +189,4 @@ let bt = [
 ];
 
 //----------------------------------------------------------
-console.log('loaded vpkCommon.js');
+console.log('loaded vpk3dCommon.js');

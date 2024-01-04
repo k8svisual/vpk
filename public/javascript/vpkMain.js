@@ -137,6 +137,17 @@ $(document).ready(function () {
             $('#storage').hide();
             $('#storageHdr').hide();
         }
+        if (currentTab === "#network") {
+            px = 120;
+            checkIfDataLoaded();
+            documentationTabTopic = 'network';
+            $('#network').show();
+            $('#networkHdr').show();
+        } else {
+            $('#network').hide();
+            $('#networkHdr').hide();
+        }
+
         if (currentTab === "#security") {
             px = 120;
             checkIfDataLoaded();
@@ -403,7 +414,7 @@ $(document).ready(function () {
 
     $('#clusterBG').on("change", function () {
         let selected = $('#clusterBG').select2('data');
-        chgSkybox(selected[0].text);
+        clusterBack = selected[0].text;
     });
 
     $('#events-ns-select').on("change", function () {

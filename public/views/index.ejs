@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <!--
         Copyright (c) 2018-2023 Dave Weilert
 
@@ -20,9 +22,6 @@
         OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
         WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
-
-<!DOCTYPE html>
-<html>
 
 <head>
     <%- include('partials/head') %>
@@ -67,6 +66,9 @@
             </div>
             <div>
                 <%- include('partials/tab-storage') %>
+            </div>
+            <div>
+                <%- include('partials/tab-network') %>
             </div>
             <div>
                 <%- include('partials/tab-security') %>
@@ -139,6 +141,9 @@
         </div>
         <div>
             <%- include('partials/modal-multi') %>
+        </div>
+        <div>
+            <%- include('partials/modal-networkInfo') %>
         </div>
         <div>
             <%- include('partials/modal-ownerRefFilter') %>

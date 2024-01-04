@@ -42,6 +42,7 @@ let scToPVNumber = 0;
 let ptrCSIWall = -1;
 let sharedEndpoint = [];
 let epToPodLinks = {};
+let oldSkybox = '';
 
 $("#cluster3DView").show();
 
@@ -131,6 +132,9 @@ function createScene() {
     let endArc = 0;
     let saveEndArc;
 
+    let skybox;
+    let skyboxMaterial;
+
     let podArcSize = 0;
 
     nodeEndAngles = [];
@@ -162,45 +166,88 @@ function createScene() {
     const scene = new BABYLON.Scene(engine);
     const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene, null, { loop: false, autoplay: true });
 
-    let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-    let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    // let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    // let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    // skyboxMaterial.backFaceCulling = false;
+    // skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    // skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+
+    // skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    // skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    // skybox.material = skyboxMaterial;
+
+
+
+    // // clusterBack is the variable that contains the selected 3d background used in the config modal
+    // if (clusterBack === 'Sky') {
+    //     var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
+    //     scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+    //     scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+    //     scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+    //     stickColorDark = true;
+    // } else if (clusterBack === 'Stars') {
+    //     var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    //     scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
+    //     scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
+    //     scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
+    //     stickColorDark = false;
+    // } else if (clusterBack === 'Grey') {
+    //     scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
+    //     scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
+    //     stickColorDark = true;
+    // }
+
+    // // set scene background
+    // if (sceneStars === true) {
+    //     scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+    //     skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    //     skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    //     skyboxMaterial.backFaceCulling = false;
+    //     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    //     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    //     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    //     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    //     skybox.material = skyboxMaterial;
+    // } else if (sceneSky === true) {
+    //     scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+    //     skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    //     skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+    //     skyboxMaterial.backFaceCulling = false;
+    //     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/clouds", scene);
+    //     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+    //     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+    //     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+    //     skybox.material = skyboxMaterial;
+    // } else {
+    //     scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
+    // }
+
+
+    skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
+    skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
     skyboxMaterial.backFaceCulling = false;
     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-
     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
     skybox.material = skyboxMaterial;
 
-
-
-    // clusterBack is the variable that contains the selected 3d background used in the config modal
-    if (clusterBack === 'Sky') {
-        var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
-        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-        stickColorDark = true;
-    } else if (clusterBack === 'Stars') {
-        var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
-        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-        stickColorDark = false;
-    } else if (clusterBack === 'Grey') {
+    if (clusterBack === 'Grey') {
         scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
-        scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
-        stickColorDark = true;
+        skybox.isVisible = false;
+    } else {
+        skybox.isVisible = true;
     }
-
-
-
-
-
-
 
     camera = new BABYLON.ArcRotateCamera("Camera", 3 * Math.PI / 2, 3 * Math.PI / 8, 30, BABYLON.Vector3.Zero());
     camera.attachControl(canvas, true);
+
+    scene.registerBeforeRender(function () {
+        if (clusterBack !== oldSkybox) { // Condition to change the skybox
+            changeSkybox();
+        }
+    });
+
 
     const light = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 50, 0));
     const light2 = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(10, -50, 0));
@@ -474,6 +521,38 @@ function createScene() {
     //////////////////////////////////////////////////////////////////////////////
 
     //==============================================
+    function changeSkybox() {
+        if (clusterBack === oldSkybox) {
+            return
+        }
+        oldSkybox = clusterBack;
+        if (clusterBack === 'Sky') {
+            sceneStars = false;
+            sceneSky = true;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/clouds", scene);
+            stickColorDark = true;
+            skybox.isVisible = true;
+            return;
+        } else if (clusterBack === 'Stars') {
+            sceneStars = true;
+            sceneSky = false;
+            skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+            stickColorDark = false;
+            skybox.isVisible = true;
+            return;
+        } else if (clusterBack === 'Grey') {
+            sceneStars = false;
+            sceneSky = false;
+            scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
+            stickColorDark = true;
+            skybox.isVisible = false;
+            return;
+        }
+    }
+
+
+
+
     // Routine to build outter band of cluster 
     function buildOutterRing(radius) {
         // Good / Green band
@@ -1990,9 +2069,9 @@ function createScene() {
                 + '<tr><td><b>Memory:</b></td><td class="pl-2">' + memory + '</td></tr>'
                 + '<tr><td><b>Storage:</b></td><td class="pl-2">' + storage + '</td></tr>'
                 + '</table>'
-                + '<br>'
-
                 + '<br>' + checkOwnerRef(cluster.nodes[nodePtr].fnum, 'cluster-level', 'Node')
+                + '<button type="button" class="ml-1 mt-2 btn btn-primary btn-sm vpkButton" '
+                + ' onclick="openNodeInfo(\'' + nName + '::' + nType + '\')">Node Info</button>'
                 + '</div>';
 
             // register click event for each node;
@@ -2568,37 +2647,63 @@ function parseClusterResc() {
     if (secretsFound === true) {
         clusterRescConfigStorage.push('Secrets')
     }
-    console.log('Built API Resource arrays')
 }
 
-function chgSkybox(sky) {
-    if (scene === null) {
-        console.log('no scene defined at this time');
-        return;
+function openNodeInfo(node) {
+    let parts = node.split('::');
+    let nData = '';
+    let tRows = '';
+    let nodeIP = 'Unknown'
+    for (let i = 0; i < k8cData['0000-clusterLevel'].Node.length; i++) {
+        if (k8cData['0000-clusterLevel'].Node[i].name === parts[0]) {
+            nData = k8cData['0000-clusterLevel'].Node[i]
+        }
     }
-    if (sky === 'Sky') {
-        var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
-        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-        stickColorDark = true;
-        return;
-    } else if (sky === 'Stars') {
-        var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
-        scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-        scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-        scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-        stickColorDark = false;
-        return;
-    } else if (sky === 'Grey') {
-        scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
-        scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
-        stickColorDark = true;
-        return;
-    }
-    console.log(`No valid background value provided: ${sky}`)
-}
 
+    // Get Node IP address
+    let data = networkNodes[parts[0]];
+    for (let ip = 0; ip < data.addresses.length; ip++) {
+        if (data.addresses[ip].type === 'InternalIP') {
+            nodeIP = data.addresses[ip].address;
+            break;
+        }
+    }
+
+    let html = '<div class="mt-4">'
+        + '<table style="border: 1px solid grey; border-collapse: collapse;" width="100%">'
+        + '<tr class="text-center" style="background-color: grey; color: white;">'
+        + '<th width="250px">Item</th><th>Value</th></tr>';
+    tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Name</td><td>' + parts[0] + '</td></tr>'
+        + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Type</td><td>' + parts[1] + '</td></tr>'
+        + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">IP address</td><td>' + nodeIP + '</td></tr>';
+
+    if (typeof nData.nodeInfo['architecture'] !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Node Architecture</td><td>' + nData.nodeInfo['architecture'] + '</td></tr>'
+    }
+    if (typeof nData.c_cpu !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">CPUs</td><td>' + nData.c_cpu + '</td></tr>'
+    }
+    if (typeof nData.c_memory !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Memory</td><td>' + nData.c_memory + '</td></tr>'
+    }
+    if (typeof nData.nodeInfo['osImage'] !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Operating System</td><td>' + nData.nodeInfo['osImage'] + '</td></tr>'
+    }
+    if (typeof nData.nodeInfo['kubeletVersion'] !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Kubelet Version</td><td>' + nData.nodeInfo['kubeletVersion'] + '</td></tr>'
+    }
+    if (typeof nData.nodeInfo['kubeProxyVersion'] !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Kube Proxy Version</td><td>' + nData.nodeInfo['kubeProxyVersion'] + '</td></tr>'
+    }
+    if (typeof nData.nodeInfo['containerRuntimeVersion'] !== 'undefined') {
+        tRows = tRows + '<tr style="border: 1px solid grey; background-color: white;"><td class="px-2">Container Runtime (CRI) Version</td><td>' + nData.nodeInfo['containerRuntimeVersion'] + '</td></tr>'
+    }
+    html = html + tRows + '</table></div>'
+    $('#networkInfoContents').html(html);
+    $('#networkInfoModal').modal('show');
+
+
+}
 
 
 //----------------------------------------------------------

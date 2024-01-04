@@ -37,9 +37,13 @@ let evtNs;
 let evtNsSum;
 let namespaceFnum;
 let timeline3d;
+let networkNodes;
+let networkServicesToPods;
 let imageRepositoryData = '';
 let imageRepository = '';
 let imageRepositoryFirst = '';
+let vpkstats = '';
+let helmManaged = '';
 
 //----------------------------------------------------------
 // show change directory modal 
@@ -322,6 +326,10 @@ socket.on('getServerDataResult', function (data) {
     evtNsSum = data.eventStats.evtNsSum;
     namespaceFnum = data.namespaceFnum;
     timeline3d = data.timeline;
+    networkNodes = data.networkNodes;
+    networkServicesToPods = data.networkServiceToPods;
+    helmManaged = data.helm;
+    vpkstats = data.vpkstats;
 
     if (typeof data.filters !== 'undefined') {
         clusterFilters = data.filters;
@@ -339,6 +347,7 @@ socket.on('getServerDataResult', function (data) {
     $('#evtMinutesRange').html(`(Range 0 to ${evtMaxMinutes})`)
     evtShowStats();
     showClusterTab();
+    loadNetworkIPS();
 
     $("#loadStatus").hide();
     $("#chgDirFooter").show();

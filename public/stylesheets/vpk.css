@@ -799,3 +799,11 @@ tr.border_bottom td {
     border-bottom: 1px solid #dddddd;
 
 }
+
+tr.border-bottom td {
+    border-bottom: 1pt solid #555555;
+}
+
+tr.border-top td {
+    border-top: 1pt solid #555555;
+}

@@ -38,5 +38,147 @@
         "clusterFilterCPULimit": false,
         "clusterFilterCPURequest": false,
         "clusterFilterSound": false
-    }
+    },
+    "search": [
+        {
+            "type": "network",
+            "result": "Cilium",
+            "value": "cilium",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Flannel",
+            "value": "flannel",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Calico",
+            "value": "calico",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Canal",
+            "value": "canal",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Weave",
+            "value": "weave",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVSa",
+            "value": "Open vSwitch",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVSb",
+            "value": "Open_vSwitch",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Antrea",
+            "value": "antrea",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "CISCO ACI",
+            "value": "apimachinery",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "CNI Genie",
+            "value": "cni-genie",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Contiv",
+            "value": "contivpp.io",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Contrail",
+            "value": "contrail",
+            "kinds": "::Pod::Deployment::DaemonSet::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Gateway",
+            "value": "gateway.networking",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Knitter",
+            "value": "knitter",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVN",
+            "value": "ovn-kube",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Nodus",
+            "value": ".opnfv.",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "NSX-T",
+            "value": "nsx-system",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Nuage",
+            "value": "nuage.io",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Romana",
+            "value": "romana",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Spiderpool",
+            "value": "spiderpool",
+            "kinds": "::all-kinds::",
+            "ns": "::all-namespaces::"
+        }
+    ]
 }
