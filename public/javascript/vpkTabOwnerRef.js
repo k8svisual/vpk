@@ -117,8 +117,9 @@ function filterDataORef() {
             }
         }
         buildAllORef(false);    // false = not a Cluster OwnerRef request
-    } catch (e) {
-        console.log('Error in reducing the ownerRefLinks data, message: ' + e.message);
+    } catch (err) {
+        console.log(`Error in reducing the ownerRefLinks data, message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
         return;
     }
 }
@@ -136,8 +137,9 @@ function findORefKinds() {
             }
         }
         populateORefKinds(oRefKinds);
-    } catch (e) {
-        console.log('Error in reducing the ownerRefLinks data, message: ' + e.message);
+    } catch (err) {
+        console.log(`Error in reducing the ownerRefLinks data, message: message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
         return;
     }
 }
@@ -169,8 +171,9 @@ function clusterORefRequest(oRefFnum, oRefNameSpace, oRefKind) {
         resetVars();
         nsORefSelected = oRefNameSpace;
         buildAllORef(true);     // true = this is a Cluster view button click OwnerRef request
-    } catch (e) {
-        console.log('Error in ownerRefLinks reducing the data, message: ' + e.message);
+    } catch (err) {
+        console.log(`Error in ownerRefLinks reducing the data, message: message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
         return;
     }
 }
@@ -198,14 +201,13 @@ function getParents(child, cnt) {
                 oRefData.push(oRefLinks[i]);
                 if (oRefLinks[i].parent !== '') {
                     return oRefLinks[i].parent;
-                } else {
-                    console.log('Review');
                 }
             }
         }
         return '';      // Indicates there is no Parent
-    } catch (e) {
-        console.log('Error in ownerRefLinks reducing the data, message: ' + e.message);
+    } catch (err) {
+        console.log(`Error in ownerRefLinks reducing the data, message: message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
         return;
     }
 }
@@ -361,9 +363,10 @@ function createGraphORef(clusterORef) {
             .height(height)
             .renderDot(graphVizDataORef)
             .on("end", addGraphvizOnClickORef);
-    } catch (e) {
+    } catch (err) {
         $('#statusProcessing').hide();
-        console.log(`createGraphORef error: ${e}`)
+        console.log(`createGraphORef error: message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
     }
 
     // Check to determine if this a single OwnerRef fron Cluster View
@@ -495,8 +498,9 @@ function buildOwnerRefExists() {
                 ownerRefExist[oFnum] = oRefLinks[i].child
             }
         }
-    } catch (e) {
-        console.log('Error in ownerRefLinks reducing the data, message: ' + e.message);
+    } catch (err) {
+        console.log(`Error in ownerRefLinks reducing the data, message: message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
         return;
     }
 }
@@ -592,8 +596,6 @@ function findORefNames() {
             }
         }
 
-        console.log('Selected kinds count: ' + selectedKinds.length)
-
         // Parse the already Namespace selected data
         for (let i = 0; i < oRefData.length; i++) {
             if (selectedKinds.includes(oRefData[i].childKind)) {
@@ -622,10 +624,10 @@ function findORefNames() {
                 }
             }
         }
-        console.log('Names data for selected kinds: ' + oRefNamesData.length)
 
-    } catch (e) {
-        console.log('Names data for selected kinds: ' + oRefNamesData.length)
+    } catch (err) {
+        console.log(`Error in findORefNames(): message: ${err.message}`);
+        console.log(`Error stack: ${err.stack}`);
     }
     // build the table
     $("#tableORef").bootstrapTable('load', oRefNamesData)

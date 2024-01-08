@@ -24,22 +24,20 @@ function editDef(data, which) {
     if (typeof which === 'undefined') {
         which = null;
     }
-    //console.log(JSON.stringify(data, null, 4));
-    //var part = data.filePart;
-    var defkey = data.defkey;
-    var rtn = data.lines;
+    let defkey = data.defkey;
+    let rtn = data.lines;
     data = null;
     // create array of file lines
-    var newData = rtn.split('\n');
-    var hl = newData.length;
-    var outData = [];
-    var line = '';
-    var image = 'k8.svg';
-    var kind = '';
-    var api = '';
-    var fp;
-    var fnum;
-    for (var d = 0; d < hl; d++) {
+    let newData = rtn.split('\n');
+    let hl = newData.length;
+    let outData = [];
+    let line = '';
+    let image = 'k8.svg';
+    let kind = '';
+    let api = '';
+    let fp;
+    let fnum;
+    for (let d = 0; d < hl; d++) {
         line = newData[d]
         outData.push(line + '\n');
         //line = line.trim();
@@ -70,7 +68,7 @@ function editDef(data, which) {
         fnum = 'No matching file';
     }
 
-    var editImage = '<img style="vertical-align:middle;" src="images/' + image + '" width="30" height="30" '
+    let editImage = '<img style="vertical-align:middle;" src="images/' + image + '" width="30" height="30" '
         + ' onclick="getExplain(\'' + kind + '\',\'' + api + '\')"></img>'
         + '<div style="vertical-align:middle; display:inline;" class="vpkblue vpkfont pl-2">'
         + kind + '  (' + fnum + ')';
@@ -125,9 +123,9 @@ function initAceEditor(rtn) {
                 aceSearchValue = '';
                 // Wait for the editor to finish rendering
                 editor.renderer.once('afterRender', function () {
-                    var lineNumber = range.start.row;
+                    let lineNumber = range.start.row;
                     editor.scrollToLine(lineNumber, true, true, function () {
-                        var editorContainer = document.getElementById("editor");
+                        let editorContainer = document.getElementById("editor");
                         editorContainer.style.display = "block";
                     });
                 });

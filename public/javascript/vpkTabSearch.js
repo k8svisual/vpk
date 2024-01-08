@@ -101,7 +101,6 @@ function searchObj() {
 }
 //...
 socket.on('searchResult', function (data) {
-    //console.log(JSON.stringify(data, null, 4))
     $("#searchResults").show();
     buildSearchResults(data);
 });
@@ -121,7 +120,7 @@ function buildSearchResults(data) {
         b = tmp.kind;
         c = tmp.name;
         if (typeof tmp.fnum === 'undefined') {
-            console.log('Missing fnum for namespace:' + a + ' kind: ' + ' name:' + c)
+            console.log(`buildSearchResults() has missing fnum for namespace: ${a} kind: ${b} name: ${c}`)
         }
         d = tmp.fnum;
         newData.push({

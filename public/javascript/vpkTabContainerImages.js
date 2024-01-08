@@ -108,7 +108,8 @@ function graphImageTable() {
         $('#containerImageTable').hide();
         $('#containerImageGraphic').show();
     } catch (err) {
-        console.log('Failed to process selected Container Images to graph, message: ' + err)
+        console.log(`Failed to process selected Container Images to graph, message: ${err}`)
+        console.l0g(`Error stack: ${err.stack}`)
     }
 }
 
@@ -288,7 +289,7 @@ function svgKind(kindFnum, y) {
     } else if (kind === 'Pod') {
         kindIcon = 'pod.svg';
     } else {
-        console.log('======== Icon type not defined for this kind: ' + kind)
+        console.log(`======== Icon type not defined for this kind: ${kind}`)
     }
 
     return '<image x="120" y="' + yIcon + '"  width="30" height="30" href="images/k8/' + kindIcon + '" onclick="getDefFnum(\'' + fnum + '\')"/>'

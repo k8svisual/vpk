@@ -57,3 +57,34 @@ EXPOSE 4200/tcp
 
 #EXAMPLE docker command to run command in vpk container
 #docker run -it k8svisual/vpk sh
+
+#======================= Multi-platform docker images =========================
+#
+# List existing builds
+#
+#    docker buildx ls
+#
+# Create a New Builder Instance:
+# Docker buildx operates with the concept of "builders", which are essentially 
+# environments where the build process runs. Create a new builder instance 
+# which has support for multi-architecture builds:
+#
+#    docker buildx create --name mybuilder --use
+#
+# Start up the Builder: 
+# After creating a builder, you need to start it:
+#
+#    docker buildx inspect --bootstrap
+#
+# Build the image:
+# Now, use the docker buildx build command to build the image for multiple 
+# architectures. You need to specify each architecture with the --platform 
+# flag. For example, to build for arm64 and amd64:
+#
+#    docker buildx build --platform linux/amd64,linux/arm64 -t k8svisual/vpk:latest . --push
+#
+# Verify the Image:
+#
+#    docker manifest inspect k8svisual/vpk:latest
+#
+#

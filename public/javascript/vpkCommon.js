@@ -163,7 +163,7 @@ function returnToWhereTab(target, hide) {
 		if (targetElement) {
 			targetElement.scrollIntoView();
 		} else {
-			console.log("Element not found");
+			console.log(`returnToWhereTab() could not find document elementID: ${elementId}`);
 		}
 		evtClearFilter();
 	}
@@ -257,13 +257,51 @@ function openSearch(val, requestor) {
 				kVal = '::' + dirStatFilter + '::';
 			}
 		}
+	} else if (requestor === 'GraphicDirRpt') {
+		let newVal = val.split('::');
+		where = 'Graphic'
+		if (newVal[1] === 'Namespace') {
+			nsSelect = newVal[0];
+			nsVal = '::' + newVal[0] + '::';
+			kindSelect = 'all-kinds'
+			kVal = '::all-kinds::'
+		}
+		if (newVal[1] === 'Kind') {
+			nsSelect = 'all-namespaces';
+			nsVal = '::all-namespaces::';
+			kindSelect = newVal[0];
+			kVal = '::' + newVal[0] + '::'
+		}
+
+	} else if (requestor === 'GraphicDirRptSub') {
+		let newVal = val.split('::');
+		where = 'Graphic'
+		if (newVal[2] === 'Namespace') {
+			nsSelect = newVal[0];
+			nsVal = '::' + newVal[0] + '::';
+			kindSelect = newVal[1];
+			kVal = '::' + newVal[1] + '::'
+		}
+		if (newVal[2] === 'Kind') {
+			nsSelect = newVal[1];
+			nsVal = '::' + newVal[1] + '::';
+			kindSelect = newVal[0];
+			kVal = '::' + newVal[0] + '::'
+		}
+
 	} else if (requestor === 'Cluster') {
 		nsSelect = val;
 		kindSelect = val;
 	}
 
+
 	// Set the drop-down values for the Search tab
 	if (requestor !== 'Cluster') {
+		setSelectValue('ns-filter', nsSelect)
+	}
+
+	// Set the drop-down values for the Search tab
+	if (requestor !== 'GraphicDirRpt') {
 		setSelectValue('ns-filter', nsSelect)
 	}
 
@@ -308,10 +346,6 @@ function tellMe(msg) {
 	} else if (msg === 'search-01') {
 		searchValues();
 	}
-
-
-
-
 }
 
 

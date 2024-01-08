@@ -475,7 +475,7 @@ function countsForNodeTypeKey(node, key) {
         img = "images/k8/ns.svg";
         cnt = volumeCountsNode[keys[i]]
         if (cnt === null) {
-            console.log('Value erron for Key: ' + keys[i]);
+            console.log(`countsForNodeTypeKey() Value error for Key: ${keys[i]}`);
             console.log(JSON.stringify(volumeCountsNode[keys[i]], null, 4))
             continue;
         }
@@ -568,7 +568,7 @@ function countsForNodeTypeKeyFnum(node, key, ns) {
 
         cnt = volumeCountsNode[keys[i]]
         if (cnt === null) {
-            console.log('Value erron for Key: ' + keys[i]);
+            console.log(`countsForNodeTypeKeyFnum() Value erron for Key: ${keys[i]}`);
             console.log(JSON.stringify(volumeCountsNode[keys[i]], null, 4))
             continue;
         }
@@ -1062,7 +1062,8 @@ function showSC(name, fnum) {
             document.getElementById(tID).scrollIntoView({ behavior: 'smooth' });
         }
     } catch (e) {
-        console.log('View storage from cluster failed, error: ' + e)
+        console.log(`View storage from cluster failed, error: ${e.message}`);
+        console.log(`Error stack: ${e.stack}`);
     }
 }
 

@@ -108,12 +108,12 @@ function evtScroll(fnum) {
         // Scroll to the target element
         targetElement.scrollIntoView({ behavior: 'smooth' });
     } else {
-        console.log("Element not found");
+        console.log(`Element not found in evtScroll(), elementId ${elementId}`);
     }
 }
 
 function evtInvalidMinutesMsg() {
-    showMessage(`"First minute to display" is out of range. Valid range is 0 to ${evtMaxMinutes}'`);
+    showMessage(`Field: 'First minute to display' is out of range. Valid range is 0 to ${evtMaxMinutes}'`);
     return;
 }
 
@@ -316,9 +316,6 @@ function evtApplyNamespace() {
                         }
                         if (eventsInfo[i].lastTime > evtLastTime) {
                             evtLastTime = eventsInfo[i].lastTime;
-                            if (evtLastTime === 0) {
-                                console.log('what')
-                            }
                         }
                     }
                 }
@@ -562,6 +559,7 @@ function loadStatsByMinutes() {
             color = 'green';
         }
         tipData = "'" + i + "','" + evtMinutesData[i] + "'";
+
         set = '<rect x="' + left + '" y="' + top + '" width="' + width + '"'
             + ' height="' + height + '" fill="' + color + '" '
             + ' onmousemove="showEvtDist(evt,' + tipData + ')" '
@@ -643,7 +641,6 @@ function buildEvtTimeline() {
                     if (typeof evtTableData[nPtr].multiCnt === 'undefined') {
                         nPtr = nPtr - 1;
                     } else {
-                        //console.log(`Page start backed up ${pStart - nPtr} records`)
                         pStart = nPtr
                         stay = false;
                     }
@@ -655,7 +652,6 @@ function buildEvtTimeline() {
                 let stay = true;
                 while (stay === true) {
                     if (typeof evtTableData[nPtr].multiCnt !== 'undefined') {
-                        //console.log(`Page stop moved forward ${nPtr - pStop} records`)
                         pStop = nPtr
                         stay = false;
                     } else {
@@ -740,7 +736,8 @@ function buildEvtTimeline() {
             }
         }
     } catch (err) {
-        console.log('Error creating Events graph, error: ' + err)
+        console.log(`Error creating Events graph, error: ${err} + err`)
+        console.log(`Error stack: ${err.stack}`)
     }
 
     $('#evtLeft').html('');
@@ -837,13 +834,7 @@ function buildEvtRight(data) {
         // Remove any single or double quotes from message
         message = data.message.replace(/["']/g, "");
         xVal = intervalOffsetAdjustment(data.Dateoffset);
-        if (typeof xVal !== 'number') {
-            console.log(`xVal: ${xVal} data.Dataoffset: ${data.Dateoffset}`);
-        }
         wVal = intervalDurationAdjustment(data.duration);
-        if (typeof wVal !== 'number') {
-            console.log(`wVal: ${wVal} data.duration: ${data.duration}`);
-        }
 
         line = '<div id="evt-' + evtCount + '-line">'
             + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
@@ -865,6 +856,7 @@ function buildEvtRight(data) {
         return line;
     } catch (err) {
         console.log(`Error in buildEvtRight, message: ${err}`);
+        console.log(`Error stack: ${err.stack}`);
     }
 }
 
@@ -887,13 +879,7 @@ function buildEvtRightMulti(data) {
         }
         message = data[0].message.replace(/["']/g, "");
         xVal = intervalOffsetAdjustment(data[0].offset);
-        if (typeof xVal !== 'number') {
-            console.log(`xVal: ${xVal} data[0]offset: ${data[0].offset}`);
-        }
         wVal = intervalDurationAdjustment(dur);
-        if (typeof wVal !== 'number') {
-            console.log(`wVal: ${wVal} data[0].duration: ${dur}`);
-        }
 
         rtn = '<div id="evt-' + evtCount + '-line">'
             + '<svg xmlns="http://www.w3.org/2000/svg" width="' + timelineWidth + '" height="25">'
@@ -901,11 +887,11 @@ function buildEvtRightMulti(data) {
             + tickMarks
             + '<rect x="' + xVal + '" y="5" width="' + wVal + '"'
             + ' height="15" rx="0" fill="green" '
-            + ' onmousemove="showEvtTooltip(evt,\'' + data.createTime
-            + '\',\'' + data.fistTime
-            + '\',\'' + data.lastTime
+            + ' onmousemove="showEvtTooltip(evt,\'' + data[0].createTime
+            + '\',\'' + data[0].fistTime
+            + '\',\'' + data[0].lastTime
             + '\',\'' + dur
-            + '\',\'' + data.durationFromFirst
+            + '\',\'' + data[0].durationFromFirst
             + '\',\'' + message
             + '\')" '
             + ' onmouseout="hideVpkTooltip()" '
@@ -922,23 +908,17 @@ function buildEvtRightMulti(data) {
             if (dur < 2) {
                 dur = 2;
             }
-            message = data[0].message.replace(/["']/g, "");
+            message = data[i].message.replace(/["']/g, "");
             xVal = intervalOffsetAdjustment(data[i].offset);
-            if (typeof xVal !== 'number') {
-                console.log(`xVal: ${xVal} data[${i}].offset: ${data[i].offset}`);
-            }
             wVal = intervalDurationAdjustment(dur);
-            if (typeof wVal !== 'number') {
-                console.log(`wVal: ${wVal} data[${i}].duration: ${dur}`);
-            }
 
             line = line + '<rect x="' + xVal + '" y="' + yPos + '" width="' + wVal + '"'
                 + ' height="15" rx="0" fill="green"'
-                + ' onmousemove="showEvtTooltip(evt,\'' + data.createTime
-                + '\',\'' + data.fistTime
-                + '\',\'' + data.lastTime
-                + '\',\'' + data.duration
-                + '\',\'' + data.durationFromFirst
+                + ' onmousemove="showEvtTooltip(evt,\'' + data[i].createTime
+                + '\',\'' + data[i].fistTime
+                + '\',\'' + data[i].lastTime
+                + '\',\'' + data[i].duration
+                + '\',\'' + data[i].durationFromFirst
                 + '\',\'' + message
                 + '\')" '
                 + ' onmouseout="hideVpkTooltip()" '
@@ -949,6 +929,7 @@ function buildEvtRightMulti(data) {
         return rtn;
     } catch (err) {
         console.log(`Error in buildEvtRightMulti, message: ${err}`);
+        console.log(`Error stack: ${err.stack}`);
     }
 }
 
@@ -971,6 +952,7 @@ function buildTickMarks(height) {
         return line;
     } catch (err) {
         console.log(`Error in buildEvtRightMulti, message: ${err}`);
+        console.log(`Error stack: ${err.stack}`);
         return ' ';
     }
 }
@@ -1002,12 +984,12 @@ function formatServiceOp(data) {
 }
 
 function intervalOffsetAdjustment(val) {
+    if (typeof val === 'undefined' || val === null) {
+        return 1
+    }
+
     if (offSetAdjustment > 0) {
         val = val - offSetAdjustment;
-
-        if (val < 0) {
-            console.log('what')
-        }
     }
 
     if (val === 0 || val === 1) {
@@ -1038,18 +1020,16 @@ function setTotalSeconds(startTime, endTime) {
     try {
         totalSeconds = timeDiff(startTime, endTime)
         evtTotalSeconds = totalSeconds;
-        console.log('Total seconds in Event messages duration: ' + evtTotalSeconds);
         if (evtTotalSeconds < evtWidth) {
             evtInterval = evtWidth / evtTotalSeconds;
         } else {
             evtInterval = evtTotalSeconds / evtWidth;
         }
         evtInterval = evtInterval.toFixed(3);
-        console.log('Event messages interval: ' + evtInterval);
     } catch (err) {
-        console.log('Failed to calculate Event messages duration: ' + err);
+        console.log(`Failed to calculate Event messages duration: ${err}`);
+        console.log(`Error stack: ${err}`);
         evtInterval = 1;
-        console.log('Event messages interval: ' + evtInterval);
     }
 }
 
@@ -1060,11 +1040,9 @@ function timeDiff(startTime, endTime) {
     // two consecutive days.
     //------------------------------------------------------------------------------
     if (typeof startTime === 'undefined' || startTime === null || startTime === "") {
-        console.log(`TimeDiff got a blank or missing startTime`);
         return 1
     }
     if (typeof endTime === 'undefined' || endTime === null || endTime === "") {
-        console.log(`TimeDiff got a blank or missing endTime`);
         return 1
     }
     try {
@@ -1119,7 +1097,7 @@ function timeDiff(startTime, endTime) {
         return totalSeconds;
     } catch (err) {
         console.log(`Error calculating time duration, message: ${err}`);
-        console.log(`Stack:${err.stack}`)
+        console.log(`Error stack: ${err.stack}`)
         return 1;
     }
 

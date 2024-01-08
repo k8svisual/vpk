@@ -59,6 +59,7 @@ function populateTimeLapseNSList() {
         $("#timeLapse-ns-filter").html(data);
     } catch (err) {
         console.log(`Failed to build timeLapse NS list: ${err.message}`)
+        console.log(`Error stack: ${err.stack}`)
     }
 }
 
@@ -116,7 +117,6 @@ function filterTimeLapseData() {
         timeLapseFilterS === true &&
         timeLapseFilterNS[0] === 'all-namespaces') {
         timeLapseData = new Object(timeline3d)
-        console.log(`No timeLapse filtering required`)
         return;
     }
 
@@ -303,7 +303,6 @@ function timeLapseBack() {
     timeLapseWorker(timeLapseKeys[timeLapseI], 'B')
     if ((timeLapseI - 1) > -1) {
         timeLapseI--;
-        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
     } else {
         showMessage('Start of range reached')
@@ -315,7 +314,6 @@ function timeLapseForward() {
     $('#timeLapseForward').prop('disabled', true);
     if ((timeLapseI + 1) < timeLapseKeysHL) {
         timeLapseI++;
-        //console.log(`interval ${timeLapseI} reset to: ${timeLapseI}`)
         setTimeLapseClock(timeLapseKeys[timeLapseI], timeLapseI + 1, timeLapseKeysHL);
         timeLapseWorker(timeLapseKeys[timeLapseI], 'F')
     } else {
@@ -384,10 +382,6 @@ function timeLapseWorker(key, direction) {
                         if (direction === 'F') {
                             meshArray[m].obj.setEnabled(true);
                             for (let n = 0; n < meshArray.length; n++) {
-                                // if (meshArray[n].type === 'Node') {
-                                //     console.log(meshArray[n].obj.name)
-                                //     console.log(data[i].fnum)
-                                // }
                                 if (meshArray[n].type === 'Node' && meshArray[n].obj.name === '4444.' + data[i].fnum) {
                                     meshArray[n].obj.setEnabled(true);
                                 }
@@ -395,15 +389,10 @@ function timeLapseWorker(key, direction) {
                         } else {
                             meshArray[m].obj.setEnabled(false);
                             for (let n = 0; n < meshArray.length; n++) {
-                                // if (meshArray[n].type === 'Node') {
-                                //     console.log(meshArray[n].obj.name)
-                                //     console.log(data[i].fnum)
-                                // }
                                 if (meshArray[n].type === 'Node' && meshArray[n].obj.name === '4444.' + data[i].fnum) {
                                     meshArray[n].obj.setEnabled(false);
                                 }
                             }
-
                         }
                     }
                     shown = true;
@@ -690,17 +679,6 @@ function timeLapseWorker(key, direction) {
                     }
                     shown = true;
                 }
-                // if (meshArray[m].type === 'EndpointLine' && data[i].kind === 'EndpointSlice') {
-                //     if (meshArray[m].obj.name === data[i].fnum) {
-                //         if (direction === 'F') {
-                //             meshArray[m].obj.setEnabled(true);
-                //         } else {
-                //             meshArray[m].obj.setEnabled(false);
-                //         }
-                //     }
-                //     shown = true;
-                //     continue;
-                // }
             }
             if (shown === false) {
                 console.log(`TimeLapse did not handle: ${JSON.stringify(data[i], null, 4)}`)
@@ -709,6 +687,7 @@ function timeLapseWorker(key, direction) {
         }
     } catch (err) {
         console.log(`Error occured: key: ${key}  direction: ${direction}  error: ${err.message}`)
+        console.log(`Error stack: ${err.stack}`);
     }
 }
 

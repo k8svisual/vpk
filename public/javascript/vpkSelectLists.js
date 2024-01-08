@@ -122,27 +122,6 @@ function populateSelectLists(data) {
         rootDir = data.baseDir;
         baseDir = data.baseDir;
 
-        // filter bar1 (namespaces) and grapcis and cluster drop downs
-        // options = bldOptions(data.namespaces, 'N', 'select2');
-        // options.sort();
-
-        // $("#ns-filter").empty();
-        // $("#ns-filter").html(options);
-
-        // let secTemp = [];
-        // options.sort();
-        // for (let i = 0; i < options.length; i++) {
-        //     if (i === 0) {
-        //         secTemp.push({ 'id': 0, 'text': ' ' });
-        //         secTemp.push({ 'id': 0, 'text': '<cluster-level>' });
-        //     }
-        //     if (options[i].text === 'all-namespaces' || options[i].text === 'cluster-level') {
-        //         //console.log('skipped');
-        //     } else {
-        //         secTemp.push(options[i])
-        //     }
-        // }
-
         // Namespaces
         options = bldOptions(data.namespaces, 'S', 'no');
 
@@ -171,8 +150,6 @@ function populateSelectLists(data) {
         options = '<option>all-kinds</option>' + options;
         $("#graphic-kind-filter").html(options);
 
-
-        // populateXrefLists(data);
 
         populateExplains(data);
 
@@ -289,8 +266,8 @@ function bldOptions(options, type, style) {
             }
 
         } else {
-            console.log('Dropped kind: ' + cki)
             // drop all user defined kinds
+            console.log(`Dropped user defined kind: ${cki}`)
         }
     }
     if (style !== 'select2') {

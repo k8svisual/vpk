@@ -83,18 +83,36 @@ function showEvtTooltip(event, createTime, firstTime, lastTime, duration, totalD
     let info;
     let durTime = '';
     let totalDur = '';
-    if (duration < 60) {
-        durTime = duration + ' seconds'
+
+    if (typeof duration === 'undefined' || duration === 'undefined' || duration === null || duration === '') {
+        durTime = 'Unknown'
     } else {
-        durTime = formatDuration(duration);
+        if (duration < 60) {
+            durTime = duration + ' seconds'
+        } else {
+            durTime = formatDuration(duration);
+        }
     }
 
-    if (totalDuration < 60) {
-        totalDur = totalDuration + ' seconds'
+    if (typeof totalDuration === 'undefined' || totalDuration === 'undefined' || totalDuration === null || totalDuration === '') {
+        totalDur = 'Unknown'
     } else {
-        totalDur = formatDuration(totalDuration);
+        if (totalDuration < 60) {
+            totalDur = totalDuration + ' seconds'
+        } else {
+            totalDur = formatDuration(totalDuration);
+        }
     }
 
+    if (typeof firstTime === 'undefined' || firstTime === 'undefined' || firstTime === null || firstTime === '') {
+        firstTime = 'Unknown';
+    }
+    if (typeof lastTime === 'undefined' || lastTime === 'undefined' || lastTime === null || lastTime === '') {
+        lastTime = 'Unknown';
+    }
+    if (typeof createTime === 'undefined' || createTime === 'undefined' || createTime === null || createTime === '') {
+        createTime = 'Unknown';
+    }
 
     info = '<div class="fa-1x pl-2" style="width: 400px;"><table>'
         + '<tr><td><b>Date:</b></td><td><span class="pl-2">' + createTime.substring(0, 10) + ' at ' + createTime.substring(11, 19) + '</span></td></tr>'
@@ -165,7 +183,8 @@ function showNetworkTooltip(evt, key) {
                 } else if (data[i].podStatus === 'Succeeded') {
                     img = 'images/3d/3d-podBlue.png';                    // Complete
                 } else {
-                    console.log(data[i].podStatus)
+                    console.log(`showNetworkTooltip() did not handle Pod Status: ${data[i].podStatus}`);
+                    img = 'images/3d/3d-podGreen.png';
                 }
 
                 if (k8cData[data[i].fnum].daemonSetPod === true) {

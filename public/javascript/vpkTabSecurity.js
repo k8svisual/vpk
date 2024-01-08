@@ -75,7 +75,7 @@ function reset() {
 function buildAll() {
     let ns = secNS;
     if (secData.length === 0) {
-        console.log('Nothing')
+
         document.getElementById('vizWrapper').innerHTML = '<div class="mt-5 ml-5 vpkfont vpkblue">No data for requested namespace: <span class="vpkfont-lg">' + ns + '</span></div>';
         return;
     }
@@ -84,7 +84,7 @@ function buildAll() {
     buildGraphRoles(secData, ns);
     buildConnections(secData, ns);
     buildDOTData(ns);            // add and second parm and each line of DOT data will print to console
-    // console.log(graphVizData)
+
     createGraph();
 }
 
@@ -159,7 +159,7 @@ function buildDOTData(ns) {
     // build the string of DOT data and print if the show parameter is found
     for (let p = 0; p < graphsData.length; p++) {
         if (graphsPrintData) {
-            console.log(graphsData[p]);
+            console.log(`${graphsData[p]}`);
         }
         graphVizData = graphVizData + '   ' + graphsData[p];
     }
@@ -292,8 +292,8 @@ function parseRulePart(data, part) {
                 rtn = rtn + ',' + data[p];
             }
         }
-    } catch (e) {
-        console.log('Error in parseRulePart - data: ' + data[p] + '  mag: ' + err.message)
+    } catch (err) {
+        console.log(`Error in parseRulePart() - data: ${data[p]} ${err.message}`)
         return 'failed to parse';
     }
     return rtn;
@@ -325,7 +325,6 @@ function buildConnections(data, ns) {
 
             //  check for duplicate subject bindings    
             if (typeof checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] !== 'undefined') {
-                //console.log(`Found dup binding: ${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`)
                 continue;
             } else {
                 checkSubjectBindings[`${data[c].subjectName}.${data[c].subjectKind}.${subNS}.${data[c].fnum}`] = 'Y';
@@ -334,8 +333,8 @@ function buildConnections(data, ns) {
             try {
                 beginKey = data[c].subjectName + '.' + data[c].subjectKind + '.' + subNS
                 begin = nodeData[beginKey].node;
-            } catch (e) {
-                console.log(`Error locating subject connection: ${beginKey}`);
+            } catch (err) {
+                console.log(`buildConnections() Error locating subject connection: ${beginKey} message: ${err.message}`);
             }
 
 
@@ -349,7 +348,7 @@ function buildConnections(data, ns) {
             endKey = data[c].name + '.' + data[c].kind + '.' + bindNS
 
             if (typeof nodeData[endKey] === 'undefined') {
-                console.log('Link Subject-Binding did not find endKey: ' + endKey)
+                console.log(`buildConnections() Link Subject-Binding did not find endKey: ${endKey}`)
                 return;
             }
 
@@ -362,9 +361,9 @@ function buildConnections(data, ns) {
                     connections.push({ 'link': begin + '->' + end + '[dir="back"]', 'ns': data[c].ns });
                 }
             } else {
-                console.log('Failed to build subject to binding link\n'
-                    + '- begin: ' + beginKey + '\n'
-                    + '- end: ' + endKey)
+                console.log(`buildConnections() Failed to build subject to binding link
+                    - begin: ${beginKey}
+                    - end:   ${endKey}`)
             }
 
             // now use the binding as the start
@@ -380,7 +379,7 @@ function buildConnections(data, ns) {
 
             endKey = data[c].roleName + '.' + data[c].roleKind + '.' + roleNS;
             if (typeof nodeData[endKey] === 'undefined') {
-                console.log('Link Role-Binding did not find endKey: ' + endKey)
+                console.log(`buildConnections() Link Role-Binding did not find endKey: ${endKey}`)
                 return;
             }
 
@@ -394,9 +393,10 @@ function buildConnections(data, ns) {
 
                 //connections.push({ 'link': begin + '->' + end, 'ns': data[c].ns });
             } else {
-                console.log('Failed to build binding to role link\n'
-                    + '- begin: ' + beginKey + '\n'
-                    + '- end: ' + endKey)
+                console.log(`buildConnections() Failed to build binding to role link'
+                    - begin: ${beginKey}
+                    - end:   ${endKey}`)
+
             }
         }
     }
@@ -433,8 +433,6 @@ function getNodesAndLinks(ns) {
 function addNodeFnum(node, fnum) {
     if (typeof graphvNodeToFnum[node] === 'undefined') {
         graphvNodeToFnum[node] = fnum;
-    } else {
-        console.log(`Node: ${node} already exists.`)
     }
 }
 
@@ -464,7 +462,7 @@ function buildGraphSubjects(data, ns) {
                 }
             }
             if (typeof checkSubjects[`${data[s].subjectNname}.${data[s].subjectKind}.${data[s].fnum}`] !== 'undefined') {
-                console.log(`Found dup subject: ${data[s].subjectName} . ${data[s].subjectKind} . ${data[s].fnum}`)
+                console.log(`buildGraphSubjects() Found dup subject: ${data[s].subjectName} . ${data[s].subjectKind} . ${data[s].fnum}`)
                 continue;
             } else {
                 checkSubjects[`${data[s].subjectName}.${data[s].subjectKind}.${data[s].fnum}`] = 'Y';
@@ -501,7 +499,6 @@ function buildGraphBindings(data, ns) {
         for (let b = 0; b < data.length; b++) {
             if (typeof data[b] !== 'undefined') {
                 if (typeof checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] !== 'undefined') {
-                    //console.log(`Found dup binding: ${data[b].name} . ${data[b].kind} . ${data[b].fnum}`)
                     continue;
                 } else {
                     checkBinds[`${data[b].name}.${data[b].kind}.${data[b].fnum}`] = 'Y';
@@ -528,7 +525,8 @@ function buildGraphBindings(data, ns) {
             }
         }
     } catch (e) {
-        console.log(`Error: ${e}`)
+        console.log(`buildGraphBindings() Error: ${e}`);
+        console.log(`Error stack: ${e.stack}`);
     }
 }
 
@@ -550,7 +548,6 @@ function buildGraphRoles(data, ns) {
         if (typeof data[r] !== 'undefined') {
             beginFnum = ''
             if (typeof checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] !== 'undefined') {
-                //console.log(`Found dup role: ${data[r].name} . ${data[r].kind} . ${data[r].fnum}`)
                 continue;
             } else {
                 checkRoles[`${data[r].name}.${data[r].kind}.${data[r].fnum}`] = 'Y';
@@ -584,7 +581,7 @@ function buildGraphRoles(data, ns) {
                 if (typeof nodeData[key] === 'undefined') {
                     returnData = buildRules(data[r].rules);
                     if (returnData === null) {
-                        console.log(`Null rules for role: ${data[r].roleName} namespace: ${roleNS}`)
+                        console.log(`buildGraphRoles() Null rules for role: ${data[r].roleName} namespace: ${roleNS}`)
                         continue;
                     }
 
@@ -662,11 +659,6 @@ function addGraphvizOnClick() {
     nodes
         .on("click", function () {
             var title = d3.select(this).selectAll('title').text().trim();
-            // var text = d3.select(this).selectAll('text').text();
-            // var id = d3.select(this).attr('id');
-            // var class1 = d3.select(this).attr('class');
-            // dotElement = title.replace('->', ' -> ');
-            // console.log('Element id="%s" class="%s" title="%s" text="%s" dotElement="%s"', id, class1, title, text, dotElement);
             if (title.startsWith('RN')) {
                 // skip
             } else {

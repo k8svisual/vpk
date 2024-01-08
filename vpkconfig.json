@@ -77,14 +77,14 @@
         },
         {
             "type": "network",
-            "result": "OVSa",
+            "result": "OVS",
             "value": "Open vSwitch",
             "kinds": "::Pod::Deployment::DaemonSet::",
             "ns": "::all-namespaces::"
         },
         {
             "type": "network",
-            "result": "OVSb",
+            "result": "OVS",
             "value": "Open_vSwitch",
             "kinds": "::Pod::Deployment::DaemonSet::",
             "ns": "::all-namespaces::"

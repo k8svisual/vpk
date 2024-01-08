@@ -93,13 +93,13 @@ function browserUsageDetails() {
     try {
         let memU = window.performance.memory;
         if (typeof memU !== 'undefined') {
-            console.log(typeof memU)
+
             usageJSHeapSizeLimit = memU.jsHeapSizeLimit;
             usageJSHeapTotal = memU.totalJSHeapSize;
             usageJSHeapUsed = memU.usedJSHeapSize;
         }
     } catch (e) {
-        console.log('unable to get browser memeory usage')
+        console.log(`browserUsageDetails() unable to get browser memeory usage: ${e.message}`)
     }
 }
 

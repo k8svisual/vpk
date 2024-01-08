@@ -40,7 +40,6 @@ function meshCnt() {
                 }
             }
         }
-        console.log(type + '  Yes: ' + yesCnt + '  No: ' + noCnt)
         yesCnt = 0;
         noCnt = 0;
     }
@@ -146,7 +145,6 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type;
             if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine' || tmp === 'PVCLine' || tmp === 'StorageClass' || tmp === 'StorageClassLine') {
-                //console.log('Show: ' + tmp)
                 meshArray[i].obj.setEnabled(true);
             }
         }
@@ -154,7 +152,6 @@ function filter3DView() {
         for (i = 0; i < meshArray.length; i++) {
             tmp = meshArray[i].type;
             if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine' || tmp === 'PVCLine' || tmp === 'StorageClass' || tmp === 'StorageClassLine') {
-                //console.log('NoShow: ' + tmp)
                 meshArray[i].obj.setEnabled(false);
             }
         }
@@ -379,7 +376,6 @@ function filter3DView() {
             tmp = meshArray[i].type;
             if (tmp === 'PV' || tmp === 'PVC' || tmp === 'PVLine' || tmp === 'PVCLine' || tmp === 'StorageClassLine') {
                 if (podArray.includes(meshArray[i].fnum)) {
-                    //console.log('Show: ' + tmp);
                 } else {
                     meshArray[i].obj.setEnabled(false);
                 };
@@ -843,8 +839,6 @@ function saveClusterFilters() {
     } else {
         filter.clusterFilterSound = false
     }
-
-    //console.log(JSON.stringify(filter, null, 4))
 
     socket.emit('saveClusterFilters', filter);
 }

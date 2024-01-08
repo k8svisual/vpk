@@ -347,9 +347,9 @@ function d3TreeMap(data, filter) {
             .attr("class", "tooltip")
             .style("opacity", 0);
     } catch (err) {
-        console.log('swallow err: ' + err.msg)
+        console.log(`d3TreeMap() error: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
     }
-
 }
 
 
@@ -436,7 +436,8 @@ function statsShowReport(type) {
             + '       <div class="mb-0 align-left" onclick="statsToggle(\'' + i + '\')" id="tc-caret-' + i + '">'
             + '           <i class="fas fa-xl fa-caret-right mr-2"></i>'
             + '      </div>'
-            + '      <div  class="vkp-bottom-line" style="width: 480px; display: inline-block;">' + keys[i]
+            + '      <div  class="vkp-bottom-line" style="width: 480px; display: inline-block;" '
+            + ' onclick="openSearch(\'' + keys[i] + '::' + type + '\',\'' + 'GraphicDirRpt' + '\')">' + keys[i]
             + '      </div>'
             + '      <div class="vkp-bottom-line" style="width: 80px; display: inline-block; text-align: center;">' + data[keys[i]]._cnt
             + '      </div>'
@@ -479,8 +480,12 @@ function statsShowReport(type) {
                 }
                 htm = htm + '<tr>'
                     + '<td width="40">&nbsp</td>'
-                    + '<td class="pl-2 vkp-bottom-line">' + nsText + '</td>'
-                    + '<td class="pl-2 vkp-bottom-line" style="text-align: center;">' + data[keys[i]][cKeys[c]] + '</td>'
+                    + '<td class="pl-2 vkp-bottom-line" '
+                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'GraphicDirRptSub' + '\')" '
+                    + '>' + nsText + '</td>'
+                    + '<td class="pl-2 vkp-bottom-line" style="text-align: center;"'
+                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'GraphicDirRptSub' + '\')" '
+                    + '>' + data[keys[i]][cKeys[c]] + '</td>'
                     + '</tr>'
             }
         }

@@ -77,7 +77,7 @@ function getDefSec(data) {
     let src;
     // Old lookup handler will check for source file 
     if (items.length === 3) {
-        console.log('Using source file ' + items[0])
+        console.log(`getDefSec() Using source file: ${items[0]}`)
         if (items[2] === 'file') {
             items[2] = 'Secret';
         }
@@ -136,7 +136,6 @@ function partArray(type, data) {
             multiList(type, data)
         } else {
             if (typeof data[0].source !== 'undefined') {
-                console.log('Using file source: ' + selectedDef + '::' + data[0].part + '::' + data[0].name)
                 selectedDef = data[0].source
                 if (typeof data[0].part !== 'undefined') {
                     selectedDef = selectedDef + '::' + data[0].part + '::' + data[0].name;
@@ -151,7 +150,8 @@ function partArray(type, data) {
             editObj();
         }
     } catch (err) {
-        console.log('Error processing request, message: ' + err)
+        console.log(`partArray() Error processing request, message: ${err}`)
+        console.log(`Error stack: ${err.stack}}`);
     }
 }
 
@@ -166,7 +166,8 @@ function partPVC(type, data) {
         selectedDef = fnum;
         editObj();
     } catch (err) {
-        console.log('Error processing request, message: ' + err)
+        console.log(`partPVC() Error processing request, message: ${err}`)
+        console.log(`Error stack: ${err.stack}}`);
     }
 }
 
@@ -193,7 +194,8 @@ function partChain(type, data) {
             editObj();
         }
     } catch (err) {
-        console.log('Error processing request, message: ' + err)
+        console.log(`partChain() Error processing request, message:  ${err}`)
+        console.log(`Error stack: ${err.stack}}`);
     }
 }
 
@@ -228,7 +230,8 @@ function partServices(type, data) {
             editObj();
         }
     } catch (err) {
-        console.log('Error processing request, message: ' + err)
+        console.log(`partServices() Error processing request, message:  ${err}`)
+        console.log(`Error stack: ${err.stack}}`);
     }
 }
 
@@ -242,7 +245,6 @@ function multiList(type, data) {
     for (let i = 0; i < data.length; i++) {
 
         if (typeof data[i].source !== 'undefined') {
-            console.log('Using file source: ' + data[i].source + '::' + data[i].part + '::' + data[i].name);
             ref = data[i].source + '::' + data[i].part + '::' + data[i].name;
         }
 
@@ -274,6 +276,7 @@ function multiList(type, data) {
 
     $("#multiModal").modal('show');
 }
+
 
 //----------------------------------------------------------
 console.log('loaded vpkGetDefs.js');

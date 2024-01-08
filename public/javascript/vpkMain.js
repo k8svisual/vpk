@@ -453,27 +453,22 @@ $(document).ready(function () {
     });
 
     $('input[name=clusterFilterRunning]').change(function () {
-        //console.log('filter pods Running')
         filter3DView();
     });
 
     $('input[name=clusterFilterWarning]').change(function () {
-        //console.log('filter pods Warning')
         filter3DView();
     });
 
     $('input[name=clusterFilterFailed]').change(function () {
-        //console.log('filter pods Failed')
         filter3DView();
     });
 
     $('input[name=clusterFilterSuccessful]').change(function () {
-        //console.log('filter pods Successful')
         filter3DView();
     });
 
     $('input[name=clusterFilterDSPods]').change(function () {
-        //console.log('filter pods DaemonSet')
         filter3DView();
     });
 

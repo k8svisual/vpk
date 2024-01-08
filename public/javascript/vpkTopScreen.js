@@ -64,7 +64,6 @@ function saveConfig(what) {
         back = 'Grey';
     } else {
         back = tmp[0].text;
-        //console.log(`back: ${back}`)
     }
 
 
@@ -192,10 +191,6 @@ function closeConfig() {
         + '<br><br><span>Continue processing or return to configuration?</span></div>'
 
     let currentSettings = getCurrentSettings();
-    // console.log(currentSettings + ' : currentSettings')
-    // console.log(atOpenSettings + ' : atOpenSettings')
-    // console.log(configSaved + ' : configSaved')
-
     // Are current setting the same as when Config modal was openned
     if (currentSettings !== atOpenSettings) {
         $('#yesNoMessageBody').html(notSavedMsg);
@@ -317,8 +312,6 @@ function sendShutdownS2() {
     $("#viewarea").html(html2);
     socket.emit('shutdownVpK');
 }
-
-
 
 
 //----------------------------------------------------------

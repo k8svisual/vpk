@@ -418,7 +418,7 @@ function getCluster() {
 
 function sendCommand() {
     let command = $("#commandInput").val();
-    console.log('send command: ' + command);
+    console.log('send command to host: ' + command);
     socket.emit('runCommand', command);
 }
 
@@ -450,9 +450,6 @@ function pickData(what) {
         openRunCommand();
     }
 }
-
-
-
 
 
 //----------------------------------------------------------

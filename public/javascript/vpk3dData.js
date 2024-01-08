@@ -52,8 +52,8 @@ function build3DJSON() {
             cluster.nodeArc = 360 / cluster.maxNodes;
             cluster.nodes = [];
 
-            console.log('Cluster node count: ' + maxNodeCount)
-            //console.log('Cluster node arc: ' + cluster.nodeArc)
+            console.log(`Cluster node count: ${maxNodeCount}`)
+
 
             // Create object with node names and type for use in storage tab
             for (let i = 0; i < nData.length; i++) {
@@ -140,7 +140,6 @@ function savePVC(name, ns, pvcFnum, podFnum) {
     let key = name + '::' + ns;
     if (typeof foundPVC[key] === 'undefined') {
         foundPVC[key] = { 'name': name, 'ns': ns, 'fnum': pvcFnum, 'cnt': 1, 'podFnum': podFnum }
-        //console.log('Added PCV: ' + key)
     } else {
         let cnt = foundPVC[key].cnt
         cnt++;
@@ -218,14 +217,9 @@ function populatePods() {
                         if (k8cData[keys[i]].PersistentVolumeClaim[0].pvcSpace > 0) {
                             if (typeof nodeSpace[nodeName] !== 'undefined') {
                                 spcTmp = nodeSpace[nodeName];
-                                // console.log('Node: ' + nodeName)
-                                // console.log('Value old: ' + spcTmp);
                                 nodeSpace[nodeName] = spcTmp + k8cData[keys[i]].PersistentVolumeClaim[0].pvcSpace;
-                                // console.log('Added: ' + k8cData[keys[i]].PersistentVolumeClaim[0].pvcSpace)
-                                // console.log('Value new: ' + nodeSpace[nodeName]);
                             } else {
                                 nodeSpace[nodeName] = k8cData[keys[i]].PersistentVolumeClaim[0].pvcSpace;
-                                // console.log('Inserted node: ' + nodeName + ' - ' + k8cData[keys[i]].PersistentVolumeClaim[0].pvcSpace)
                             }
                         }
                     } else {
@@ -262,9 +256,7 @@ function populatePods() {
                         if (typeof k8cData[keys[i]].resourceLimit[r].cpu !== 'undefined') {
                             tVal = k8cData[keys[i]].resourceLimit[r].cpu
                             if (tVal !== '0') {
-                                //console.log('CPU: ' + tVal)
                                 tVal = parseCPU(tVal);
-                                //console.log('CPULimit: ' + tVal)
                                 if (typeof tVal === 'string') {
                                     cpuLimit = cpuLimit + parseFloat(tVal);
                                 } else {
@@ -276,10 +268,7 @@ function populatePods() {
                         if (typeof k8cData[keys[i]].resourceLimit[r].memory !== 'undefined') {
                             tVal = k8cData[keys[i]].resourceLimit[r].memory
                             if (tVal !== '0') {
-                                //console.log('Memory: ' + tVal)
                                 tVal = parseMemory(tVal);
-                                //console.log('Memory New: ' + tVal)
-                                //memory = memory + tVal
                                 if (typeof tVal === 'string') {
                                     memoryLimit = memoryLimit + parseFloat(tVal);
                                 } else {
@@ -306,9 +295,7 @@ function populatePods() {
                         if (typeof k8cData[keys[i]].resourceRequest[r].cpu !== 'undefined') {
                             tVal = k8cData[keys[i]].resourceRequest[r].cpu
                             if (tVal !== '0') {
-                                //console.log('CPU: ' + tVal)
                                 tVal = parseCPU(tVal);
-                                //console.log('CPURequest: ' + tVal)
                                 if (typeof tVal === 'string') {
                                     cpu = cpu + parseFloat(tVal);
                                 } else {
@@ -320,10 +307,7 @@ function populatePods() {
                         if (typeof k8cData[keys[i]].resourceRequest[r].memory !== 'undefined') {
                             tVal = k8cData[keys[i]].resourceRequest[r].memory
                             if (tVal !== '0') {
-                                //console.log('Memory: ' + tVal)
                                 tVal = parseMemory(tVal);
-                                //console.log('Memory New: ' + tVal)
-                                //memory = memory + tVal
                                 if (typeof tVal === 'string') {
                                     memory = memory + parseFloat(tVal);
                                 } else {
@@ -348,7 +332,6 @@ function populatePods() {
     for (nk = 0; nk < nkeys.length; nk++) {
         if (nodeStats[nkeys[nk]].podCount > maxPodCount) {
             maxPodCount = nodeStats[nkeys[nk]].podCount;
-            //console.log('new maxPodCount: ' + maxPodCount);
         }
     }
 }
@@ -405,7 +388,7 @@ function parseCPU(v) {
                 } else {
                     num = v.substring(0, v.length - 1)
                     if (typeof num !== 'number') {
-                        console.log('Dont know how to handle cpu: ' + v + ' num: ' + num);
+                        console.log(`parseCPU() doesn't know how to handle cpu: ${v} and num: ${num}`);
                     }
                 }
             }
@@ -494,6 +477,7 @@ function parseOther() {
         }
     }
 }
+
 
 //----------------------------------------------------------
 console.log('loaded vpk3dData.js');

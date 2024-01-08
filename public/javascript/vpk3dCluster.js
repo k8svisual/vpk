@@ -80,7 +80,7 @@ function print3Dscene() {
                 printDiv('clusterPicture')
             });
     } else {
-        console.log('No 3D image to print');
+        console.log(`Did not locate 3D image to print`);
     }
 }
 
@@ -458,14 +458,12 @@ function createScene() {
             } else {
                 start = 2;
             }
-            // console.log(`start: ${start} stop: ${stop} currentNode: ${currentNode}`)
             buildResources(start, stop, currentNode)
         } else {
             let totV = currentNode * gblCnt;
             start = (totV - gblCnt) + 3;
             // start = (totV - gblCnt) + 4;
             stop = totV - 4;
-            //console.log(`start: ${start} stop: ${stop} currentNode: ${currentNode}`)
             buildResources(start, stop, currentNode)
         }
 
@@ -510,7 +508,6 @@ function createScene() {
 
     // scToPVLink has been built and contains the links 
     // from the PV to the associated SC
-    //console.log(JSON.stringify(scToPVLink, null, 4))
 
     return scene;
 
@@ -649,8 +646,6 @@ function createScene() {
     //==============================================
     // Build the pods to display in the cluster view for this node
     function buildResources(start, stop, node) {
-        //console.log(`------------------------------------------------------------`)
-        //console.log(`buildResources - start ${start}  stop: ${stop} node: ${node}`)
         let lc = 0;
         let nLen = (lc * LINEFACTOR) + RADIUSINNER + INNERFACTOR;
         let cPtr = start;
@@ -680,7 +675,7 @@ function createScene() {
 
         // Check for no pods in the node
         if (typeof cluster.nodes[node].pods === 'undefined') {
-            console.log(cluster.nodes[node].name + ' has no pods')
+            console.log(`Node: ${cluster.nodes[node].name} has no pods`)
             return
         }
 
@@ -945,8 +940,6 @@ function createScene() {
             }
         }
 
-
-        //console.log(`buildResources - high-angleArray at end: ${highAngle}  high-ptr: ${highPtr}`)
         nodeEndAngles.push(highAngle);
         nodeEndAngles.push('empty');
 
@@ -1205,7 +1198,6 @@ function createScene() {
     // build Pod and save the center cords for use with network and storage    
     // podCords = buildPodObj(angleArray[cPtr], nLen, podStatus, podName, ns, podFnum, podStatus)
     function buildPodObj(iAngle, iLen, pStatus, name, ns, pFnum) {
-        //console.log(`buildPodObj: iAngle: ${iAngle} iLen ${iLen}`)
         let wX;
         let wY;
         let wZ;
@@ -1845,8 +1837,6 @@ function createScene() {
     function buildNodesAndWall(index) {
         let adjF = (((PI2 / max) * 2) * -1);
         angle += adjF;
-        // console.log(`angle range: ${angle += adjF}`);
-        // console.log(`buildNodesAndWall nodePtr: ${nodePtr}  type: ${cluster.nodes[nodePtr].type} angle: ${angle}`)
         let size;
         let nName = cluster.nodes[nodePtr].name;
         if (buildWall === false) {
@@ -2531,10 +2521,9 @@ function build3DView() {
             try {
                 return createDefaultEngine();
             } catch (err) {
-                console.log('Failed to create Babylon 3D default engine, error message: ' + err)
-                console.log(err.stack)
-                alert("Create 3D engine function failed. Creating the default engine instead")
-                console.log("Create 3D engine function failed. Creating the default engine instead");
+                console.log(`Failed to create Babylon 3D default engine, error message: ${err}`);
+                console.log(`Error stack: ${err.stack}`);
+                alert(`Create 3D engine function failed with error: ${err} Creating the default engine instead`)
                 return createDefaultEngine();
             }
         }
@@ -2701,8 +2690,6 @@ function openNodeInfo(node) {
     html = html + tRows + '</table></div>'
     $('#networkInfoContents').html(html);
     $('#networkInfoModal').modal('show');
-
-
 }
 
 

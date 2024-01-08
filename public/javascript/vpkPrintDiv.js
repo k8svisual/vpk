@@ -43,9 +43,6 @@ function printDiv(id) {
        JavaScript Window Print command and the IFRAME is removed from the pag
     */
 
-    // if (window.getComputedStyle(id).display === "none") {
-    // 	console.log('Element is hidden')// Do something..
-    // }
 
     var contents = $(id).html();
     var frame1 = $('<iframe />');
