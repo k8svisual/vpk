@@ -2,7 +2,7 @@
 # Docker build file base image
 # FROM node:18.17.1
 # FROM node:20
-FROM node:21-slim
+FROM node:21.5-slim
 LABEL maintainer="k8svisual"
 
 # Create directories
