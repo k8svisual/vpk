@@ -171,29 +171,35 @@ function evtShowTable() {
 }
 
 function evtShowTimeline() {
-    if (typeof eventsInfo === 'undefined') {
-        $('#evtStats').html(evtNoDataMsg);
-        $('#evtStatInfoTop').hide();
-        $('#evtStatsGroup').show();
-        $('#evtMsgsDetail').hide();
-        $('#evtControl').hide();
-        $('#evtSpan').hide();
-        return;
-    }
-    evtValidMinutes = evtNsSelection();
-    if (evtValidMinutes === true) {
-        if (evtTableData.length === 0) {
-            evtGetData();
+    try {
+        if (typeof eventsInfo === 'undefined') {
+            $('#evtStats').html(evtNoDataMsg);
+            $('#evtStatInfoTop').hide();
+            $('#evtStatsGroup').show();
+            $('#evtMsgsDetail').hide();
+            $('#evtControl').hide();
+            $('#evtSpan').hide();
+            return;
         }
-        evtCurrentView = 'timeline';
-        $('#evtStatsGroup').hide();
-        $('#evtMsgsDetail').hide();
-        $('#evtControl').show();
-        $('#evtSpan').show();
-        loadEvtTimeline();
-    } else {
-        evtInvalidMinutesMsg()
+        evtValidMinutes = evtNsSelection();
+        if (evtValidMinutes === true) {
+            if (evtTableData.length === 0) {
+                evtGetData();
+            }
+            evtCurrentView = 'timeline';
+            $('#evtStatsGroup').hide();
+            $('#evtMsgsDetail').hide();
+            $('#evtControl').show();
+            $('#evtSpan').show();
+            loadEvtTimeline();
+        } else {
+            evtInvalidMinutesMsg()
+        }
+    } catch (err) {
+        console.log(`Error in evtShowTimeline(), message: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
     }
+
 }
 
 function evtGetData() {
@@ -238,111 +244,116 @@ function evtNsSelection() {
 }
 
 function evtApplyNamespace() {
-    if (evtLimitUid !== '') {
-        $('#evtFilter').show();
-    } else {
-        $('#evtFilter').hide();
-    }
-
-    // Invoked when UI events required view to be recreated
-    evtNsSelection();
-    evtTableData = [];
-    evtFirstTime = '3000-12-30T23:59:59Z';
-    evtLastTime = '';
-    evtShowTextZero = false;
-    let skipChecking = false;
-
-    if (evtLimitUid !== '') {
-        let offset = 999999;
-        for (let i = 0; i < eventsInfo.length; i++) {
-            if (eventsInfo[i].involvedUid === evtLimitUid) {
-                evtTableData.push(eventsInfo[i]);
-                if (eventsInfo[i].firstTime < evtFirstTime) {
-                    evtFirstTime = eventsInfo[i].firstTime;
-                }
-                if (eventsInfo[i].lastTime > evtLastTime) {
-                    evtLastTime = eventsInfo[i].lastTime;
-                }
-                if (eventsInfo[i].offset < offset) {
-                    offset = eventsInfo[i].offset;
-                }
-            }
+    try {
+        if (evtLimitUid !== '') {
+            $('#evtFilter').show();
+        } else {
+            $('#evtFilter').hide();
         }
-        skipChecking = true;
-        offset = parseInt(offset / 60);
 
-        $('#evtPageToStart').val(offset);
-        evtShowTextZero = true;
-    }
-
-    // is everything set????
-
-    if (skipChecking === false) {
+        // Invoked when UI events required view to be recreated
         evtNsSelection();
-        if (evtNamespace !== 'all-namespaces') {
-            for (let i = 0; i < eventsInfo.length; i++) {
-                if (eventsInfo[i].namespace === evtNamespace) {
-                    if (evtFirstMinuteToShow > 0) {
-                        //if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
-                        if (eventsInfo[i].offset >= offSetAdjustment) {
-                            evtTableData.push(eventsInfo[i]);
-                        }
+        evtTableData = [];
+        evtFirstTime = '3000-12-30T23:59:59Z';
+        evtLastTime = '';
+        evtShowTextZero = false;
+        let skipChecking = false;
 
-                        if (eventsInfo[i].firstTime < evtFirstTime) {
-                            evtFirstTime = eventsInfo[i].firstTime;
-                        }
-                        if (eventsInfo[i].lastTime > evtLastTime) {
-                            evtLastTime = eventsInfo[i].lastTime;
-                        }
-                    } else {
-                        evtTableData.push(eventsInfo[i]);
-                        if (eventsInfo[i].firstTime < evtFirstTime) {
-                            evtFirstTime = eventsInfo[i].firstTime;
-                        }
-                        if (eventsInfo[i].lastTime > evtLastTime) {
-                            evtLastTime = eventsInfo[i].lastTime;
-                        }
+        if (evtLimitUid !== '') {
+            let offset = 999999;
+            for (let i = 0; i < eventsInfo.length; i++) {
+                if (eventsInfo[i].involvedUid === evtLimitUid) {
+                    evtTableData.push(eventsInfo[i]);
+                    if (eventsInfo[i].firstTime < evtFirstTime) {
+                        evtFirstTime = eventsInfo[i].firstTime;
+                    }
+                    if (eventsInfo[i].lastTime > evtLastTime) {
+                        evtLastTime = eventsInfo[i].lastTime;
+                    }
+                    if (eventsInfo[i].offset < offset) {
+                        offset = eventsInfo[i].offset;
                     }
                 }
             }
-            evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
-        } else {
-            if (evtFirstMinuteToShow > 0) {
+            skipChecking = true;
+            offset = parseInt(offset / 60);
+
+            $('#evtPageToStart').val(offset);
+            evtShowTextZero = true;
+        }
+
+        // is everything set????
+
+        if (skipChecking === false) {
+            evtNsSelection();
+            if (evtNamespace !== 'all-namespaces') {
                 for (let i = 0; i < eventsInfo.length; i++) {
-                    if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
-                        evtTableData.push(eventsInfo[i]);
-                        if (eventsInfo[i].firstTime < evtFirstTime) {
-                            evtFirstTime = eventsInfo[i].firstTime;
-                        }
-                        if (eventsInfo[i].lastTime > evtLastTime) {
-                            evtLastTime = eventsInfo[i].lastTime;
+                    if (eventsInfo[i].namespace === evtNamespace) {
+                        if (evtFirstMinuteToShow > 0) {
+                            //if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                            if (eventsInfo[i].offset >= offSetAdjustment) {
+                                evtTableData.push(eventsInfo[i]);
+                            }
+
+                            if (eventsInfo[i].firstTime < evtFirstTime) {
+                                evtFirstTime = eventsInfo[i].firstTime;
+                            }
+                            if (eventsInfo[i].lastTime > evtLastTime) {
+                                evtLastTime = eventsInfo[i].lastTime;
+                            }
+                        } else {
+                            evtTableData.push(eventsInfo[i]);
+                            if (eventsInfo[i].firstTime < evtFirstTime) {
+                                evtFirstTime = eventsInfo[i].firstTime;
+                            }
+                            if (eventsInfo[i].lastTime > evtLastTime) {
+                                evtLastTime = eventsInfo[i].lastTime;
+                            }
                         }
                     }
                 }
                 evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
             } else {
-                evtFirstTime = evtStatsFirstTime;
-                evtLastTime = evtStatsLastTime;
-                evtTotalDuration = evtStatsTotalDuration;
-                evtTableData = new Object(eventsInfo);
+                if (evtFirstMinuteToShow > 0) {
+                    for (let i = 0; i < eventsInfo.length; i++) {
+                        if ((eventsInfo[i].offset / 60) >= evtFirstMinuteToShow) {
+                            evtTableData.push(eventsInfo[i]);
+                            if (eventsInfo[i].firstTime < evtFirstTime) {
+                                evtFirstTime = eventsInfo[i].firstTime;
+                            }
+                            if (eventsInfo[i].lastTime > evtLastTime) {
+                                evtLastTime = eventsInfo[i].lastTime;
+                            }
+                        }
+                    }
+                    evtTotalDuration = timeDiff(evtFirstTime, evtLastTime);
+                } else {
+                    evtFirstTime = evtStatsFirstTime;
+                    evtLastTime = evtStatsLastTime;
+                    evtTotalDuration = evtStatsTotalDuration;
+                    evtTableData = new Object(eventsInfo);
+                }
             }
         }
-    }
 
-    evtTableData.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1);
+        evtTableData.sort((a, b) => (a.fnum > b.fnum) ? 1 : -1);
 
-    evtPageNumber = 1;
-    evtGrpCnt = 0;
-    $('#evtPage').html(evtPageNumber)
+        evtPageNumber = 1;
+        evtGrpCnt = 0;
+        $('#evtPage').html(evtPageNumber)
 
-    if (evtCurrentView === 'stats') {
-        evtShowStats();
-    } else if (evtCurrentView === 'timeline') {
-        evtShowTimeline();
-    } else if (evtCurrentView === 'table') {
-        evtShowTable();
-    } else if (evtCurrentView === '') {
-        evtShowStats();
+        if (evtCurrentView === 'stats') {
+            evtShowStats();
+        } else if (evtCurrentView === 'timeline') {
+            evtShowTimeline();
+        } else if (evtCurrentView === 'table') {
+            evtShowTable();
+        } else if (evtCurrentView === '') {
+            evtShowStats();
+        }
+    } catch (err) {
+        console.log(`Error in evtApplyNamespace(), message: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
     }
 }
 
@@ -357,39 +368,45 @@ function loadEvtMsgs() {
 }
 
 function loadEvtTimeline() {
-    evtLeft = '<div id="hdr-text" style="height: 25px; background-color: #e6e6e6; padding-left: 25px; color: #600;" class="vpkfont">Component'
-        + '<span style="color: #aaaaaa; padding-left: 97px;" class="pr-1">- Reason</span>'
-        + '<span style="color: #aaaaaa;" class="vpkfont">(first minute of data)</span></div>';
+    try {
+        evtLeft = '<div id="hdr-text" style="height: 25px; background-color: #e6e6e6; padding-left: 25px; color: #600;" class="vpkfont">Component'
+            + '<span style="color: #aaaaaa; padding-left: 97px;" class="pr-1">- Reason</span>'
+            + '<span style="color: #aaaaaa;" class="vpkfont">(first minute of data)</span></div>';
 
-    evtRight = '';
-    evtWidth = getScreenWidth();
-    evtWidth = evtWidth - 585;  // Subtract left side, border, and margins
-    evtGrpCnt = evtTableData.length / evtPageBreak;
+        evtRight = '';
+        evtWidth = getScreenWidth();
+        evtWidth = evtWidth - 585;  // Subtract left side, border, and margins
+        evtGrpCnt = evtTableData.length / evtPageBreak;
 
-    if (evtTableData.length > 0) {
-        $('#evtPage').html(evtPageNumber);
-        evtGrpCnt = parseInt(evtGrpCnt) + 1;
-        $('#evtGroupCnt').html('of ' + evtGrpCnt);
-    } else {
-        $('#evtPage').html('0');
-        $('#evtGroupCnt').html('of ' + evtGrpCnt);
-    }
-    calcEvtInterval();
-    if (typeof evtStatsTotalDuration === 'number') {
-        buildEvtHeaders();
-        buildEvtTimeline();
-        if (evtShowTextZero === true) {
-            evtToggle('evt-0');
+        if (evtTableData.length > 0) {
+            $('#evtPage').html(evtPageNumber);
+            evtGrpCnt = parseInt(evtGrpCnt) + 1;
+            $('#evtGroupCnt').html('of ' + evtGrpCnt);
+        } else {
+            $('#evtPage').html('0');
+            $('#evtGroupCnt').html('of ' + evtGrpCnt);
         }
-    } else {
-        evtLeft = '<div><span>No Snapshot data loaded</span></></div>'
-        evtRight = '<div><span>No Snapshot data loaded</span></></div>'
-        $('#evtLeft').html('');
-        $('#evtRight').html('');
+        calcEvtInterval();
+        if (typeof evtStatsTotalDuration === 'number') {
+            buildEvtHeaders();
+            buildEvtTimeline();
+            if (evtShowTextZero === true) {
+                evtToggle('evt-0');
+            }
+        } else {
+            evtLeft = '<div><span>No Snapshot data loaded</span></></div>'
+            evtRight = '<div><span>No Snapshot data loaded</span></></div>'
+            $('#evtLeft').html('');
+            $('#evtRight').html('');
 
-        $('#evtLeft').html(evtLeft);
-        $('#evtRight').html(evtRight);
+            $('#evtLeft').html(evtLeft);
+            $('#evtRight').html(evtRight);
+        }
+    } catch (err) {
+        console.log(`Error in loadEvtTimeline(), message: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
     }
+
 }
 
 function evtMsgsShowSource(fnum) {
@@ -664,7 +681,6 @@ function buildEvtTimeline() {
                 pStop = evtTableData.length;
             }
 
-
             if (pStart === 1) {
                 pStart = 0;
             }
@@ -720,9 +736,13 @@ function buildEvtTimeline() {
                     evtCount++;
                 } else {
 
-                    if (evtTableData[i].offset > 60) {
-                        min = evtTableData[i].offset / 60;
-                        min = parseInt(min);
+                    if (typeof evtTableData[i].offset !== 'undefined') {
+                        if (evtTableData[i].offset > 60) {
+                            min = evtTableData[i].offset / 60;
+                            min = parseInt(min);
+                        } else {
+                            min = 0;
+                        }
                     } else {
                         min = 0;
                     }
@@ -736,7 +756,7 @@ function buildEvtTimeline() {
             }
         }
     } catch (err) {
-        console.log(`Error creating Events graph, error: ${err} + err`)
+        console.log(`Error creating Events graph, error: ${err}`)
         console.log(`Error stack: ${err.stack}`)
     }
 
@@ -748,29 +768,35 @@ function buildEvtTimeline() {
 }
 
 function buildEvtLeft(srv, op, fnum, multi, len, min) {
-    let line = '<div id="evt-' + evtCount + '-hdr">'
-        + '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="25">'
+    try {
+        let line = '<div id="evt-' + evtCount + '-hdr">'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="25">'
 
-    // If multi add the Icon to expand/collapse
-    if (multi === true) {
-        line = line + '<g onclick="evtToggle(\'evt-' + evtCount + '\')">'
-            + '  <g id="evt-' + evtCount + '-caret-right" style="visibility: visible">'
-            + '    <polygon points="9,7 15,12  9,17" style="stroke:#666; fill:#666" />'
-            + '  </g>'
-            + '  <g id="evt-' + evtCount + '-caret-down" style="visibility: hidden">'
-            + '    <polygon points="8,7 18,7 13,15" style="stroke:#666; fill:#666" />'
-            + '  </g>'
-            + '</g>'
+        // If multi add the Icon to expand/collapse
+        if (multi === true) {
+            line = line + '<g onclick="evtToggle(\'evt-' + evtCount + '\')">'
+                + '  <g id="evt-' + evtCount + '-caret-right" style="visibility: visible">'
+                + '    <polygon points="9,7 15,12  9,17" style="stroke:#666; fill:#666" />'
+                + '  </g>'
+                + '  <g id="evt-' + evtCount + '-caret-down" style="visibility: hidden">'
+                + '    <polygon points="8,7 18,7 13,15" style="stroke:#666; fill:#666" />'
+                + '  </g>'
+                + '</g>'
+        }
+
+        // line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">'
+        //     + data + '(' + min + ')</text></svg></div>'
+
+        line = line + '<g><text text-anchor="start" x="25"  y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">' + srv + '</text>'
+            + '<text text-anchor="start" x="200" y="15" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')"> - ' + op + '(' + min + ')</text>'
+            + '</g></svg></div>'
+
+        return line;
+    } catch (err) {
+        console.log(`Error in buildEvtLeft(), error: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
+        return line;
     }
-
-    // line = line + '<text text-anchor="start" x="25" y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">'
-    //     + data + '(' + min + ')</text></svg></div>'
-
-    line = line + '<g><text text-anchor="start" x="25"  y="15" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')">' + srv + '</text>'
-        + '<text text-anchor="start" x="200" y="15" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + fnum + '\')"> - ' + op + '(' + min + ')</text>'
-        + '</g></svg></div>'
-
-    return line;
 }
 
 function buildEvtLeftMulti(data) {
@@ -781,44 +807,66 @@ function buildEvtLeftMulti(data) {
     let serviceOp = formatServiceOp(data[0]);
     let min = 0;
 
-    if (data[0].offset > 60) {
-        min = data[0].offset / 60;
-        min = parseInt(min);
-    } else {
-        min = 0;
-    }
-
-    if (data.length === 1) {
-        rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, false, data.length, min);
-    } else {
-        rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, true, data.length, min);
-    }
-
-    rtn = rtn + '<div id="evt-' + evtCount + '-text" class="collapse">'
-        + '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="' + height + '">'
-    for (let i = 1; i < data.length; i++) {
-
-        if (data[i].offset > 60) {
-            min = data[i].offset / 60;
-            min = parseInt(min);
+    try {
+        if (typeof data[0] !== 'undefined') {
+            if (typeof data[0].offset !== 'undefined') {
+                if (data[0].offset > 60) {
+                    min = data[0].offset / 60;
+                    min = parseInt(min);
+                } else {
+                    min = 0;
+                }
+            } else {
+                min = 0;
+            }
         } else {
             min = 0;
         }
 
-        yPos = (25 * (i - 1)) + 15;
-        serviceOp = formatServiceOp(data[i])
-        // line = '<text text-anchor="start" x="25" y="' + yPos + '" class="evtSmall"  onclick="getDefFnum(\'' + data[i].fnum + '\')">'
-        //     + serviceOp.srv + ' : ' + serviceOp.op + '(' + min + ')</text>'
+        if (data.length === 1) {
+            rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, false, data.length, min);
+        } else {
+            rtn = buildEvtLeft(serviceOp.srv, serviceOp.op, data[0].fnum, true, data.length, min);
+        }
 
-        line = '<g>'
-            + '<text text-anchor="start" x="25"  y="' + yPos + '" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')">' + serviceOp.srv + '</text>'
-            + '    <text text-anchor="start" x="200" y="' + yPos + '" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')"> - ' + serviceOp.op + '(' + min + ')</text>'
-            + '</g>'
+        rtn = rtn + '<div id="evt-' + evtCount + '-text" class="collapse">'
+            + '<svg xmlns="http://www.w3.org/2000/svg" width="500" height="' + height + '">'
+        for (let i = 1; i < data.length; i++) {
+            if (typeof data[i] !== 'undefined') {
+                if (typeof data[i].offset !== 'undefined') {
+                    if (data[i].offset > 60) {
+                        min = data[i].offset / 60;
+                        min = parseInt(min);
+                    } else {
+                        min = 0;
+                    }
+                } else {
+                    min = 0;
+                }
+            } else {
+                continue;
+            }
 
-        rtn = rtn + line;
+            yPos = (25 * (i - 1)) + 15;
+            serviceOp = formatServiceOp(data[i])
+            // line = '<text text-anchor="start" x="25" y="' + yPos + '" class="evtSmall"  onclick="getDefFnum(\'' + data[i].fnum + '\')">'
+            //     + serviceOp.srv + ' : ' + serviceOp.op + '(' + min + ')</text>'
+
+            line = '<g>'
+                + '<text text-anchor="start" x="25"  y="' + yPos + '" fill="#600" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')">' + serviceOp.srv + '</text>'
+                + '    <text text-anchor="start" x="200" y="' + yPos + '" fill="#aaa" class="evtSmall" onclick="getDefFnum(\'' + data[i].fnum + '\')"> - ' + serviceOp.op + '(' + min + ')</text>'
+                + '</g>'
+
+            rtn = rtn + line;
+        }
+        rtn = rtn + '</svg></div>';
+        return rtn;
+
+    } catch (err) {
+        console.log(`Error in buildEvtLeftMulti(), message: ${err}`)
+        console.log(`Error stack: ${err.stack}`)
+        return '';
     }
-    rtn = rtn + '</svg></div>';
-    return rtn;
 }
 
 function buildEvtRight(data) {
@@ -855,7 +903,7 @@ function buildEvtRight(data) {
 
         return line;
     } catch (err) {
-        console.log(`Error in buildEvtRight, message: ${err}`);
+        console.log(`Error in buildEvtRight(), message: ${err}`);
         console.log(`Error stack: ${err.stack}`);
     }
 }
@@ -903,7 +951,15 @@ function buildEvtRightMulti(data) {
         line = buildTickMarks(height);
         for (let i = 1; i < data.length; i++) {
             yPos = yPos = (25 * (i - 1)) + 5;
-            dur = data[i].duration;
+            if (typeof data[i] !== 'undefined') {
+                if (typeof data[i].duration !== 'undefined') {
+                    dur = data[i].duration;
+                } else {
+                    dur = 0;
+                }
+            } else {
+                continue;
+            }
             // Mimimum width for timeline item
             if (dur < 2) {
                 dur = 2;
@@ -917,7 +973,7 @@ function buildEvtRightMulti(data) {
                 + ' onmousemove="showEvtTooltip(evt,\'' + data[i].createTime
                 + '\',\'' + data[i].fistTime
                 + '\',\'' + data[i].lastTime
-                + '\',\'' + data[i].duration
+                + '\',\'' + dur
                 + '\',\'' + data[i].durationFromFirst
                 + '\',\'' + message
                 + '\')" '
@@ -928,7 +984,7 @@ function buildEvtRightMulti(data) {
         rtn = rtn + '</svg></div>'
         return rtn;
     } catch (err) {
-        console.log(`Error in buildEvtRightMulti, message: ${err}`);
+        console.log(`Error in buildEvtRightMulti(), message: ${err}`);
         console.log(`Error stack: ${err.stack}`);
     }
 }
@@ -951,7 +1007,7 @@ function buildTickMarks(height) {
         }
         return line;
     } catch (err) {
-        console.log(`Error in buildEvtRightMulti, message: ${err}`);
+        console.log(`Error in buildTickMarks(), message: ${err}`);
         console.log(`Error stack: ${err.stack}`);
         return ' ';
     }

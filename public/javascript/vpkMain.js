@@ -66,8 +66,8 @@ $(document).ready(function () {
 
     $("#searchResults").hide();
 
-    $("#graphic").removeClass("active");
-    $("#graphic").removeClass("show");
+    $("#stats").removeClass("active");
+    $("#stats").removeClass("show");
 
     $("#schematic").removeClass("active");
     $("#schematic").removeClass("show");
@@ -143,6 +143,7 @@ $(document).ready(function () {
             documentationTabTopic = 'network';
             $('#network').show();
             $('#networkHdr').show();
+            openNetworkTab();
         } else {
             $('#network').hide();
             $('#networkHdr').hide();
@@ -172,7 +173,7 @@ $(document).ready(function () {
         if (currentTab === "#evtMsgs") {
             px = 120;
             checkIfDataLoaded();
-            documentationTabTopic = 'evtmsgs';
+            documentationTabTopic = 'eventmsgs';
             $('#evtMsgsHdr').show();
             $('#evtMsgs').show();
             //$('[href="#evtMsgs"]').tab('show');
@@ -186,15 +187,17 @@ $(document).ready(function () {
             $('#evtMsgs').hide();
             $('#evtMsgsHdr').hide();
         }
-        if (currentTab === "#graphic") {
+        if (currentTab === "#stats") {
             px = 120;
             checkIfDataLoaded();
-            documentationTabTopic = 'graphicview';
-            $('#graphic').show();
-            $('#graphicHdr').show();
+            documentationTabTopic = 'statsview';
+            $('#stats').show();
+            $('#statsHdr').show();
+            openStatsTab();
         } else {
-            $('#graphic').hide();
-            $('#graphicHdr').hide();
+            $('#stats').hide();
+            $('#statsHdr').hide();
+            statsFilterClose();
         }
         if (currentTab === "#containerImages") {
             px = 120;
@@ -299,6 +302,60 @@ $(document).ready(function () {
         multiple: false,
         width: 300
     });
+    // Network tab
+    $('#network-type-node-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select network filter type",
+        multiple: false,
+        width: 200
+    });
+
+    $('#network-type-node-filter').on('select2:select', function (e) {
+        var selected = $('#network-type-node-filter option:selected').val();
+        getNetworkFilterTypeLevel(selected);
+    });
+
+    $('#network-type-service-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select network filter type",
+        multiple: false,
+        width: 200
+    });
+
+    $('#network-type-service-filter').on('select2:select', function (e) {
+        var selected = $('#network-type-service-filter option:selected').val();
+        getNetworkFilterTypeLevel(selected);
+    });
+
+    $('#network-data-node-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select network filter type",
+        multiple: true,
+        width: 400
+    });
+
+    $('#network-data-service-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select network filter type",
+        multiple: true,
+        width: 400
+    });
+
+
+
+    // OwnerRef tab
+    $('#ownerRef-kind-filter').select2({
+        dropdownCssClass: "vpkselect2",
+        selectionCssClass: "vpkselect2",
+        placeholder: "select kinds(s), default is ALL kinds",
+        multiple: false,
+        width: 300
+    });
+
     // Security tab
     $('#security-ns-filter').select2({
         dropdownCssClass: "vpkselect2",
@@ -335,21 +392,21 @@ $(document).ready(function () {
         multiple: false,
         width: 300
     });
-    // Graphic View tab
-    $('#graphic-ns-filter').select2({
+    // Stata View tab
+    $('#stats-ns-filter').select2({
         dropdownCssClass: "vpkselect2",
         selectionCssClass: "vpkselect2",
         placeholder: "select namespace(s)",
         multiple: false,
-        width: 250
+        width: 275
     });
-    // Uses in graphic tab for DirStats report
-    $("#graphic-kind-filter").select2({
+
+    $("#stats-kind-filter").select2({
         dropdownCssClass: "vpkselect2",
         containerCssClass: "vpkselect2",
         placeholder: "select kind",
         multiple: false,
-        width: 250
+        width: 275
     });
     // Container Images tab
     $('#repository-list').select2({
@@ -400,11 +457,11 @@ $(document).ready(function () {
         dirStats();
     });
 
-    $('#graphic-ns-select').on("change", function () {
+    $('#stats-ns-select').on("change", function () {
         dirStats();
     });
 
-    $('#graphic-kind-select').on("change", function () {
+    $('#stats-kind-select').on("change", function () {
         dirStats();
     });
 
@@ -572,10 +629,17 @@ $(document).ready(function () {
         securityFilterShow();
     });
 
+    $("#network_filter").click(function (event) {
+        openNetworkFilter();
+    });
+
     $("#slideIn_box").click(function (event) {
         $("#slideIn").addClass("active");
     });
 
+    $("#slideIn_box").click(function (event) {
+        $("#slideIn").addClass("active");
+    });
 
     // Event handlers for checkbox selection of Workload Schematic filter table: tableWS
     $('#tableWS').on('check.bs.table', function (e, row) {

@@ -146,8 +146,8 @@ function returnToWhereTab(target, hide) {
 		$('#storageReturnSection').html('');
 	} else if (target === 'Event') {
 		$('[href="#evtMsgs"]').tab('show');
-	} else if (target === 'Graphic') {
-		$('[href="#graphic"]').tab('show');
+	} else if (target === 'Stats') {
+		$('[href="#stats"]').tab('show');
 	} else if (target === 'Workload') {
 		// Clear the filter field
 		evtLimitUid = '';
@@ -229,8 +229,8 @@ function openSearch(val, requestor) {
 	let kindSelect;
 
 	// If the requesting source is the Graphic tab / dirStats report
-	if (requestor === 'GraphicDirStats') {
-		where = 'Graphic'
+	if (requestor === 'StatsDirStats') {
+		where = 'Stats'
 		gType = $("#dirStatType").prop("innerText");
 		if (gType.indexOf('Namespace') > -1) {
 			if (dirStatFilter === '') {
@@ -257,9 +257,9 @@ function openSearch(val, requestor) {
 				kVal = '::' + dirStatFilter + '::';
 			}
 		}
-	} else if (requestor === 'GraphicDirRpt') {
+	} else if (requestor === 'StatsDirRpt') {
 		let newVal = val.split('::');
-		where = 'Graphic'
+		where = 'Stats'
 		if (newVal[1] === 'Namespace') {
 			nsSelect = newVal[0];
 			nsVal = '::' + newVal[0] + '::';
@@ -273,9 +273,9 @@ function openSearch(val, requestor) {
 			kVal = '::' + newVal[0] + '::'
 		}
 
-	} else if (requestor === 'GraphicDirRptSub') {
+	} else if (requestor === 'StatsDirRptSub') {
 		let newVal = val.split('::');
-		where = 'Graphic'
+		where = 'Stats'
 		if (newVal[2] === 'Namespace') {
 			nsSelect = newVal[0];
 			nsVal = '::' + newVal[0] + '::';
@@ -301,7 +301,7 @@ function openSearch(val, requestor) {
 	}
 
 	// Set the drop-down values for the Search tab
-	if (requestor !== 'GraphicDirRpt') {
+	if (requestor !== 'StatsDirRpt') {
 		setSelectValue('ns-filter', nsSelect)
 	}
 

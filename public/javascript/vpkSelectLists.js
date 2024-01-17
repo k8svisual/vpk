@@ -134,8 +134,8 @@ function populateSelectLists(data) {
         $("#ownerRef-ns-filter").empty();
         $("#ownerRef-ns-filter").html(options);
 
-        $("#graphic-ns-filter").empty();
-        $("#graphic-ns-filter").html(options);
+        $("#stats-ns-filter").empty();
+        $("#stats-ns-filter").html(options);
 
 
         // Kinds
@@ -145,10 +145,10 @@ function populateSelectLists(data) {
         $("#kind-filter").empty();
         $("#kind-filter").html(options);
 
-        // Uses in graphic tab for DirStats report
-        $("#graphic-kind-filter").empty();
+        // Used in stats tab for DirStats report
+        $("#stats-kind-filter").empty();
         options = '<option>all-kinds</option>' + options;
-        $("#graphic-kind-filter").html(options);
+        $("#stats-kind-filter").html(options);
 
 
         populateExplains(data);

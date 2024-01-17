@@ -347,7 +347,7 @@ socket.on('getServerDataResult', function (data) {
     $('#evtMinutesRange').html(`(Range 0 to ${evtMaxMinutes})`)
     evtShowStats();
     showClusterTab();
-    loadNetworkIPS();
+    // loadNetworkIPS();
 
     $("#loadStatus").hide();
     $("#chgDirFooter").show();
@@ -359,7 +359,7 @@ socket.on('getServerDataResult', function (data) {
 
     // clear display areas of old data
     $("#chartInfo").html('');
-    $("#graphicCharts2").html('');
+    $("#statsCharts2").html('');
     $("#schematicDetail").html('');
     $("#oRefWrapper").html('');
 

@@ -23,18 +23,40 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 //----------------------------------------------------------
-// send request to server to get graphic hierarchy and circle 
-// pack data
 
 let dsCounts = '';                           // dataSource stats kind counts by namespace
 let dsToggle = 'kind';                       // Controls what stats are shown
 let statsViewType = 'graph'                  // default report type
 
+function openStatsTab() {
+    // If the tab is empty populate with treeMap
+    if (statsViewType === 'graph') {
+        let html = document.getElementById("snapshot_treeMap").innerHTML;
+        if (html.trim() === '') {
+            dirStats();
+        }
+    }
+}
+
+function statsFilterOpen() {
+    $('#statsSlideIn').addClass('open');
+}
+
+function statsFilterClose() {
+    $('#statsSlideIn').removeClass('open');
+}
 
 // What chart is being created and if needed get the selected Namespaces    
 function showSnapshotView(type) {
     hideMessage();
     statsViewType = type;
+    if (type === 'report') {
+        $('#dirStatType').hide();
+        $('#statsDirKind').hide();
+        $('#statsDirNS').hide();
+    }
+
+
     // Check if data has bee pulled if not get data
     if (dsCounts === '') {
         dirStats()
@@ -42,7 +64,6 @@ function showSnapshotView(type) {
         createStatsView()
     }
 }
-
 
 function createStatsView() {
     if (statsViewType === 'graph') {
@@ -64,7 +85,6 @@ function createStatsView() {
         }
     }
 }
-
 
 function buildStatsToggle() {
     if (dsToggle === 'kind') {
@@ -100,7 +120,7 @@ function setGraphicView(what) {
 function getSelectedNamespaces() {
     let namespaces = [];
     let tmp;
-    let options = $('#graphic-ns-filter').select2('data');
+    let options = $('#stats-ns-filter').select2('data');
     for (var i = 0; i < options.length; i++) {
         tmp = options[i].text;
         tmp = tmp.trim();
@@ -120,7 +140,7 @@ function getSelectedNamespaces() {
 function getSelectedKinds() {
     let kinds = [];
     let tmp;
-    let options = $('#graphic-kind-filter').select2('data');
+    let options = $('#stats-kind-filter').select2('data');
     for (var i = 0; i < options.length; i++) {
         tmp = options[i].text;
         tmp = tmp.trim();
@@ -157,15 +177,15 @@ function buildKindStats() {
         return;
     }
     dsToggle = 'kind';
-    $('#graphicDirKind').show();
-    $('#graphicDirNS').hide();
+    $('#dirStatType').show();
+    $('#statsDirKind').show();
+    $('#statsDirNS').hide();
     $('#dirStatType').html('Kind(s)');
     data = dsCounts.kind;
     let kinds = getSelectedKinds();
     d3TreeMap(data, kinds);
-    $('[href="#graphic"]').tab('show');
+    $('[href="#stats"]').tab('show');
 }
-
 
 function buildNamespaceStats() {
     if (typeof dsCounts === 'undefined') {
@@ -175,15 +195,15 @@ function buildNamespaceStats() {
         return;
     }
     dsToggle = 'ns';
-    $('#graphicDirKind').hide();
-    $('#graphicDirNS').show();
+    $('#dirStatType').show();
+    $('#statsDirKind').hide();
+    $('#statsDirNS').show();
     $('#dirStatType').html('Namespace(s)');
     data = dsCounts.ns;
     let namespaces = getSelectedNamespaces();
     d3TreeMap(data, namespaces);
-    $('[href="#graphic"]').tab('show');
+    $('[href="#stats"]').tab('show');
 }
-
 
 function d3TreeMap(data, filter) {
     if (data === null) {
@@ -192,13 +212,13 @@ function d3TreeMap(data, filter) {
     let treemapData = [{ 'name': 'Cluster', 'children': [] }];
     let kindKeys = Object.keys(data);
     let kindData;
-    let bottomValue = $("#dirStatMin").val();
-    let topValue = $("#dirStatMax").val();
     let newData = {};
     let fKeys;
 
     dirStatFilter = '';
 
+    let bottomValue = $("#dirStatMin").val();
+    let topValue = $("#dirStatMax").val();
     // Set number boundries
     if (bottomValue.trim() === "") {
         bottomValue = 1;
@@ -245,11 +265,7 @@ function d3TreeMap(data, filter) {
         }
     }
 
-
     try {
-        //let width = 900;
-        //let height = 600;
-
         let showDirStatLabels;
         showDirStatLabels = $("#dirStatLabels").is(":checked")
 
@@ -325,9 +341,9 @@ function d3TreeMap(data, filter) {
             })
             .on("click", function (d) {
                 // Open search tab with Kind selected
-                returnWhere = 'Graphic'
+                returnWhere = 'Stats'
                 let name = d.currentTarget['__data__']['data'].name;
-                openSearch(name, 'GraphicDirStats')
+                openSearch(name, 'StatsDirStats')
             });
 
         // Add text labels to the treemap tiles
@@ -352,7 +368,6 @@ function d3TreeMap(data, filter) {
     }
 }
 
-
 function d3Children(data, keys) {
     let rtn = [];
     for (let i = 0; i < keys.length; i++) {
@@ -363,7 +378,6 @@ function d3Children(data, keys) {
     }
     return rtn;
 }
-
 
 function statsToggle(id) {
     // Toggle carets and show or hide sections of related messages.
@@ -378,7 +392,6 @@ function statsToggle(id) {
         $(targetCaret).html('<i class="fas fa-xl fa-caret-down mr-2"></i>')
     }
 }
-
 
 function statsShowReport(type) {
     if (typeof dsCounts === 'undefined' || dsCounts === null) {
@@ -403,11 +416,38 @@ function statsShowReport(type) {
     let newD = [];
     let amt = 0;
 
+
+
+    let bottomValue = $("#dirStatMin").val();
+    let topValue = $("#dirStatMax").val();
+    // Set number boundries
+    if (bottomValue.trim() === "") {
+        bottomValue = 1;
+    } else {
+        bottomValue = parseInt(bottomValue);
+    }
+    if (topValue.trim() === "") {
+        topValue = 999999;
+    } else {
+        topValue = parseInt(topValue);
+    }
+
+
+
     // build data in order needed
     for (let i = 0; i < keys.length; i++) {
+        //Filter data
         if (keys[i] === '_total') {
             continue;
         }
+        if (data[keys[i]]._cnt < bottomValue) {
+            continue
+        }
+        if (data[keys[i]]._cnt > topValue) {
+            continue
+        }
+
+
         amt = '0000000' + data[keys[i]]._cnt;
         newD.push({ 'cnt': amt.slice(-7), 'key': keys[i] })
     }
@@ -437,7 +477,7 @@ function statsShowReport(type) {
             + '           <i class="fas fa-xl fa-caret-right mr-2"></i>'
             + '      </div>'
             + '      <div  class="vkp-bottom-line" style="width: 480px; display: inline-block;" '
-            + ' onclick="openSearch(\'' + keys[i] + '::' + type + '\',\'' + 'GraphicDirRpt' + '\')">' + keys[i]
+            + ' onclick="openSearch(\'' + keys[i] + '::' + type + '\',\'' + 'StatsDirRpt' + '\')">' + keys[i]
             + '      </div>'
             + '      <div class="vkp-bottom-line" style="width: 80px; display: inline-block; text-align: center;">' + data[keys[i]]._cnt
             + '      </div>'
@@ -481,10 +521,10 @@ function statsShowReport(type) {
                 htm = htm + '<tr>'
                     + '<td width="40">&nbsp</td>'
                     + '<td class="pl-2 vkp-bottom-line" '
-                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'GraphicDirRptSub' + '\')" '
+                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'StatsDirRptSub' + '\')" '
                     + '>' + nsText + '</td>'
                     + '<td class="pl-2 vkp-bottom-line" style="text-align: center;"'
-                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'GraphicDirRptSub' + '\')" '
+                    + ' onclick="openSearch(\'' + keys[i] + '::' + cKeys[c] + '::' + type + '\',\'' + 'StatsDirRptSub' + '\')" '
                     + '>' + data[keys[i]][cKeys[c]] + '</td>'
                     + '</tr>'
             }

@@ -835,6 +835,7 @@ function getSecurityViewData(namespace) {
         ns = ns.trim();
         if (ns.text === '' || ns.length === 0) {
             showMessage('Select a namespace it cannot be blank.')
+            return;
         }
     } else {
         ns = namespace;

@@ -807,3 +807,11 @@ tr.border-bottom td {
 tr.border-top td {
     border-top: 1pt solid #555555;
 }
+
+.ml-40 {
+    margin-left: 40px;
+}
+
+.ml-35 {
+    margin-left: 35px;
+}

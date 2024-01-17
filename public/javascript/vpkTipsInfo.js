@@ -230,12 +230,18 @@ function showNetworkTooltip(evt, key) {
 }
 
 
-function showTooltipMessage(evt, msg) {
+function showTooltipMessage(evt, msg, sec) {
     let tooltip = document.getElementById("tooltip");
     tooltip.innerHTML = msg;
     let clientXPos = evt.clientX;
     let clientYPos = evt.clientY;
-    let offTop = $("#networkDetail").offset().top;
+    let offTop;
+    if (sec === 0) {
+        offTop = $("#networkNodeDetail").offset().top;
+    } else {
+        offTop = $("#networkServiceDetail").offset().top;
+    }
+
     if (offTop < 1) {
         clientYPos = clientYPos + (offTop * -1);
     } else {

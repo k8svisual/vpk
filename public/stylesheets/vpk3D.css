@@ -58,7 +58,7 @@
 
 #cluster_filter {
     position: fixed;
-    left: -40px;
+    left: -21px;
     top: 182px;
     background: #bbbbbb;
     color: #fff;
@@ -105,7 +105,7 @@
 
 #schematic_filter {
     position: fixed;
-    left: -40px;
+    left: -21px;
     top: 182px;
     background: #bbbbbb;
     color: #fff;
@@ -137,7 +137,7 @@
 
 #ownerRef_filter {
     position: fixed;
-    left: -40px;
+    left: -21px;
     top: 182px;
     background: #bbbbbb;
     color: #fff;
@@ -166,7 +166,7 @@
 
 #security_filter {
     position: fixed;
-    left: -40px;
+    left: -21px;
     top: 182px;
     background: #bbbbbb;
     color: #fff;
@@ -217,6 +217,90 @@
 #evtMsgs_border {
     margin-left: 35px;
 }
+
+/* ------------ */
+
+#network_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#network_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#network_border {
+    margin-left: 35px;
+}
+
+
+
+
+#stats_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#stats_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+
+#statsSlideIn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    height: 190px;
+    background-color: #eeeeee;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(0, 123, 255);
+    z-index: 1000;
+}
+
+#statsSlideIn.open {
+    transform: translateY(0);
+}
+
+#statsSlideInCloseButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+
+
+
 
 /* ------------ */
 

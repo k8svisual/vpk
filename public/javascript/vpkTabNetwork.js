@@ -23,26 +23,430 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 let networkInfo;
 let networkPodDetail = {};
+let networkSelectedData = [];        // populated with the data for the selected filter type
+let networkFilterType;
+let networkFilterLevel;
+let networkViewSelected = 'Node';    // What is the current view
+let networkFilterNodeData = [];
+let networkFilterServiceData = [];
+
+let networkFilterNodeType;
+let networkFilterNodeLevel;
+
+let networkFilterServiceType;
+let networkFilterServiceLevel;
+
+let networkDropDownsBuilt = false;
 
 const netNoDataMsg = '<div><span class="vpkfont vpkblue">No Snapshot data loaded</span></></div>';
 
-$('#networkDetail').hide();
 
-function getNetworkData() {
+function openNetworkTab() {
+    console.log('openNetworkTab()');
+
+    // Build and show the proper drop down filter network
+    // Depending on what view is shown, Node or Service, populate with the appropriate data
+
+    if (networkDropDownsBuilt === false) {
+        let options;
+        // populate Node options
+        options = '<option></option>'
+            + '<option value="Node name">Node name</option>'
+            + '<option value="Node ip">Node ip</option>';
+        $("#network-type-node-filter").html(options);
+
+        // populate Service options
+        options = '<option></option>'
+            + '<option value="Service name">Service name</option>'
+            + '<option value="Service ip">Service ip</option>'
+            + '<option value="Pod name">Pod name</option>'
+            + '<option value="Pod ip">Pod ip</option>'
+            + '<option value="Namespace">Namespace</option>';
+        $("#network-type-service-filter").html(options);
+        networkDropDownsBuilt = true;
+    }
+
+    $("#networkFilterModal").modal('hide')
+
+    if (networkViewSelected === 'Node') {
+        $('#net-service-data').hide();
+        $('#net-node-data').show();
+        $('#networkNodeDetail').show();
+        showNetworkNodeView();
+    } else {
+        $('#net-node-data').hide();
+        $('#net-service-data').show();
+        $('#networkServiceDetail').show();
+        showNetworkServiceView();
+    }
+}
+
+function openNetworkFilter() {
+    //console.log('openNetworkFilter()')
+    //console.log(`networkViewSelected: ${networkViewSelected}`);
+
+    if (networkViewSelected === 'Node') {
+        $('#net-service-data').hide();
+        $('#net-node-data').show();
+    } else {
+        $('#net-node-data').hide();
+        $('#net-service-data').show();
+    }
+
+    $("#networkFilterModal").modal('show')
+}
+
+function getNetworkFilterTypeLevel(selected) {
+    // Invoked from vpkMain.js on event $('#network-type-filter').on('select2:select', function (e)
+    //console.log('getNetwokFilterTypeLevel()');
+    let what = selected.split(' ');
+    networkFilterType = what[0];
+    networkFilterLevel = what[1];
+
+    if (networkViewSelected === 'Node') {
+        networkFilterNodeType = what[0];
+        networkFilterNodeLevel = what[1];
+    } else {
+        networkFilterServiceType = what[0];
+        networkFilterServiceLevel = what[1];
+    }
+
+    populateNetworkSecondDropDown();
+}
+
+function applyNetworkFilter() {
+    //console.log('applyNetworkFilter()');
+    if (networkViewSelected === 'Node') {
+        let options = $('#network-data-node-filter').select2('data');
+        networkFilterNodeData = [];
+        for (let i = 0; i < options.length; i++) {
+            networkFilterNodeData.push(options[i].text.trim());
+        };
+        showNetworkNodeView();
+        $("#networkFilterModal").modal('hide')
+    } else {
+        let options = $('#network-data-service-filter').select2('data');
+        networkFilterServiceData = [];
+        for (let i = 0; i < options.length; i++) {
+            networkFilterServiceData.push(options[i].text.trim());
+        };
+        showNetworkServiceView();
+        $("#networkFilterModal").modal('hide')
+    }
+}
+
+function clearNetworkFilters() {
+    //console.log('applyNetworkFilter()');
+    if (networkViewSelected === 'Node') {
+        networkFilterNodeData = [];
+        showNetworkNodeView();
+        $("#networkFilterModal").modal('hide')
+        setSelectValue('network-type-node-filter', '')
+        setSelectValue('network-data-node-filter', '')
+    } else {
+        networkFilterServiceData = [];
+        showNetworkServiceView();
+        $("#networkFilterModal").modal('hide')
+        setSelectValue('network-type-service-filter', '')
+        setSelectValue('network-data-service-filter', '')
+    }
+}
+
+function populateNetworkSecondDropDown() {
+    //console.log('populateNetworkSecondDropDown()')
+    // Populates the second dropdown with selected filter type
+    let options = [];
+    let data;
+    let keys;
+    // Node related filter
+    if (networkFilterType === 'Node' && networkFilterLevel === 'name') {
+        data = [];
+        data = Object.keys(networkNodes);
+    } else if (networkFilterType === 'Node' && networkFilterLevel === 'ip') {
+        keys = Object.keys(networkNodes);
+        data = {};
+        for (let i = 0; i < keys.length; i++) {
+            for (let p = 0; p < networkNodes[keys[i]].addresses.length; p++) {
+                if (networkNodes[keys[i]].addresses[p].type === 'InternalIP') {
+                    let tmp = networkNodes[keys[i]].addresses[p].address;
+                    if (typeof data[networkNodes[keys[i]].addresses[p].address] === 'undefined') {
+                        data[networkNodes[keys[i]].addresses[p].address] = 1;
+                    }
+                }
+            }
+        }
+        // Service related filter
+    } else if (networkFilterType === 'Service' && networkFilterLevel === 'name') {
+        keys = Object.keys(networkServicesToPods);
+        data = [];
+        for (let i = 0; i < keys.length; i++) {
+            data.push(networkServicesToPods[keys[i]].name)
+        }
+    } else if (networkFilterType === 'Service' && networkFilterLevel === 'ip') {
+        keys = Object.keys(networkServicesToPods);
+        data = {};
+        for (let i = 0; i < keys.length; i++) {
+            if (typeof data[networkServicesToPods[keys[i]].ip] === 'undefined') {
+                data[networkServicesToPods[keys[i]].ip] = 1;
+            }
+        }
+        // Pod related filter
+    } else if (networkFilterType === 'Pod' && networkFilterLevel === 'name') {
+        keys = Object.keys(networkServicesToPods);
+        data = [];
+        for (let i = 0; i < keys.length; i++) {
+            for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                data.push(networkServicesToPods[keys[i]].pods[p].name)
+            }
+        }
+    } else if (networkFilterType === 'Pod' && networkFilterLevel === 'ip') {
+        keys = Object.keys(networkServicesToPods);
+        data = {};
+        for (let i = 0; i < keys.length; i++) {
+            for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                if (typeof networkServicesToPods[keys[i]].pods[p].ips !== 'undefined') {
+                    for (let k = 0; k < networkServicesToPods[keys[i]].pods[p].ips.length; k++) {
+                        if (typeof data[networkServicesToPods[keys[i]].pods[p].ips[k].ip] === 'undefined') {
+                            data[networkServicesToPods[keys[i]].pods[p].ips[k].ip] = 1;
+                        }
+                    }
+                }
+            }
+        }
+        // Namespace related filter
+    } else if (networkFilterType === 'Namespace') {
+        keys = Object.keys(networkServicesToPods);
+        data = {};
+        for (let i = 0; i < keys.length; i++) {
+            for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                if (typeof data[networkServicesToPods[keys[i]].pods[p].ns] === 'undefined') {
+                    data[networkServicesToPods[keys[i]].pods[p].ns] = 1;
+                }
+            }
+        }
+    }
+    // Build the <options>
+    if (typeof data !== 'undefined') {
+        if (Array.isArray(data)) {
+            data.sort();
+            for (let i = 0; i < data.length; i++) {
+                options.push('<option value="' + data[i] + '">' + data[i] + '</option>')
+            }
+        } else {
+            let tmp = Object.keys(data)
+            tmp.sort();
+            for (let i = 0; i < tmp.length; i++) {
+                options.push('<option value="' + tmp[i] + '">' + tmp[i] + '</option>')
+            }
+        }
+    }
+
+    // Based on what is shown populate the appropriate drop down
+    if (networkViewSelected === 'Node') {
+        // Add data to the drop-down filter
+        $("#network-data-node-filter").empty();
+        $("#network-data-node-filter").html(options);
+    } else {
+        // Add data to the drop-down filter
+        $("#network-data-service-filter").empty();
+        $("#network-data-service-filter").html(options);
+    }
+}
+
+function getNetworkNodeData() {
+    //console.log('getNetworkNodeData()')
     let newData = null;
-    newData = new Object(networkNodes);
+    let keys;
+    if (networkFilterNodeData.length > 0) {
+        // Node related data population
+        if (networkFilterNodeType === 'Node' && networkFilterNodeLevel === 'name') {
+            keys = Object.keys(networkNodes);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                if (networkFilterNodeData.includes(keys[i])) {
+                    newData[keys[i]] = networkNodes[keys[i]]
+                }
+            }
+        } else if (networkFilterNodeType === 'Node' && networkFilterNodeLevel === 'ip') {
+            keys = Object.keys(networkNodes);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                for (let p = 0; p < networkNodes[keys[i]].addresses.length; p++) {
+                    if (networkNodes[keys[i]].addresses[p].type === 'InternalIP') {
+                        if (networkFilterNodeData.includes(networkNodes[keys[i]].addresses[p].address)) {
+                            newData[keys[i]] = networkNodes[keys[i]]
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        newData = new Object(networkNodes);
+    }
     return newData;
 }
 
-function getNetworkServices() {
-    let newData = null;
-    newData = new Object(networkServicesToPods);
-    return newData;
-}
-
-function loadNetworkServicesToPods() {
+function showNetworkNodeView() {
+    //console.log('showNetworkNodeView()')
+    networkViewSelected = 'Node'
+    $('#networkServiceDetail').hide();
+    $('#networkNodeDetail').show();
     let maxWidth = 1200;
     let maxHeight = 0;
+    let line = '';
+    let html = '';
+    let hdr = '';
+    let node = '';
+    let netCnt = 0;
+    let nodeIP;
+    let currentLine = 55;
+    let maxIPCnt = 0;
+    let data = getNetworkNodeData();
+    let netKeys;
+    let img;
+    let type;
+    networkPodDetail = {};
+    if (typeof data !== 'undefined') {
+        netKeys = Object.keys(data);
+    }
+
+    for (let i = 0; i < netKeys.length; i++) {
+        line = '';
+        hdr = '';
+        node = '';
+        for (let ip = 0; ip < data[netKeys[i]].addresses.length; ip++) {
+            if (data[netKeys[i]].addresses[ip].type === 'InternalIP') {
+                nodeIP = data[netKeys[i]].addresses[ip].address;
+                break;
+            }
+        }
+        currentLine = 55;
+        let newI = netUniqueIPs(data[netKeys[i]].pods);
+        networkPodDetail[netKeys[i]] = newI;
+        let newKeys = Object.keys(newI);
+        let baseIPS = getBaseIPS(newKeys);
+        newKeys = Object.keys(baseIPS);
+        maxIPCnt = newKeys.length;
+        maxHeight = (maxIPCnt * 35) + 70;
+        let tH = maxHeight - 55
+        let allH = maxHeight + 25;
+
+        if (data[netKeys[i]].type === 'm') {
+            img = "images/3d/3d-mstNode.png";
+            type = 'Master';
+        } else {
+            img = "images/3d/3d-wrkNode.png";
+            type = 'Worker';
+        }
+
+        node = '<div><svg xmlns="http://www.w3.org/2000/svg" width="' + maxWidth + '" height="' + allH + '">'
+            + '<rect x="5" y="6" width="400" rx="10px"'
+            + ' height="' + maxHeight + '" fill="#ffff00" '
+            + ' style="fill:rgb(255,255,0); stroke-width:2; stroke:rgb(0,0,200)"'
+            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')"'
+            + ' />'
+            + '<image x="10" y="10"  width="30" height="30" href="' + img + '"'
+            + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information\',0)" '
+            + ' onmouseout="hideVpkTooltip()" '
+            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')"/>'
+            + '<text text-anchor="start" x="170" y="25" fill="#666" class="fa-1x" '
+            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')">'
+            + nodeIP + '</text>';
+        hdr = '<rect x="40" y="35" width="325" rx="10px"'
+            + ' height="' + tH + '" fill="#bbbbbb" '
+            + ' style="fill:rgb(255,255,255); stroke-width:2; stroke:rgb(200,0,0)"'
+            + ' />'
+
+        for (let addr = 0; addr < newKeys.length; addr++) {
+            if (addr === 0) {
+                line = line + '<text text-anchor="start" x="45" y="' + currentLine + '" fill="#666" class="fa-1x">Pod IP ranges:</text>'
+                    + '<text text-anchor="start" x="155" y="' + currentLine + '" fill="#666" class="fa-sm">(click ranges to view details)</text>';
+                currentLine = currentLine + 25;
+            }
+            line = line + '<text text-anchor="start" x="170" y="' + currentLine + '" fill="#666" class="fa-1x"'
+                + ' onmousemove="showTooltipMessage(evt,\'Click to view ' + newKeys[addr] + '.xxx range information\',0)" '
+                + ' onmouseout="hideVpkTooltip()" '
+                + ' onclick="getPodRangeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + newKeys[addr] + '\')">'
+                + newKeys[addr] + '.xxx'
+                + '</text>';
+            currentLine = currentLine + 25;
+            netCnt++;
+        }
+        // Update the tab with the new html
+        html = html + node + hdr + line + '</svg></div>';
+    }
+    $('#networkNodeDetail').html(html);
+    $('#networkNodeDetail').show();
+}
+
+function getNetworkServiceData() {
+    //console.log('getNetworkServiceData()')
+    let newData = null;
+    let keys;
+    if (networkFilterServiceData.length > 0) {
+        // Node related data population
+        if (networkFilterServiceType === 'Service' && networkFilterServiceLevel === 'name') {
+            keys = Object.keys(networkServicesToPods);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                if (networkFilterServiceData.includes(networkServicesToPods[keys[i]].name)) {
+                    newData[keys[i]] = networkServicesToPods[keys[i]];
+                }
+            }
+        } else if (networkFilterServiceType === 'Service' && networkFilterServiceLevel === 'ip') {
+            keys = Object.keys(networkServicesToPods);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                if (networkFilterServiceData.includes(networkServicesToPods[keys[i]].ip)) {
+                    newData[keys[i]] = networkServicesToPods[keys[i]];
+                }
+            }
+        } else if (networkFilterServiceType === 'Pod' && networkFilterServiceLevel === 'name') {
+            keys = Object.keys(networkServicesToPods);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+
+                for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                    if (networkFilterServiceData.includes(networkServicesToPods[keys[i]].pods[p].name)) {
+                        newData[keys[i]] = networkServicesToPods[keys[i]];
+                    }
+                }
+            }
+        } else if (networkFilterServiceType === 'Pod' && networkFilterServiceLevel === 'ip') {
+            keys = Object.keys(networkServicesToPods);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                    for (let k = 0; k < networkServicesToPods[keys[i]].pods[p].ips.length; k++) {
+                        if (networkFilterServiceData.includes(networkServicesToPods[keys[i]].pods[p].ips[k].ip)) {
+                            newData[keys[i]] = networkServicesToPods[keys[i]];
+                        }
+                    }
+                }
+            }
+        } else if (networkFilterServiceType === 'Namespace') {
+            keys = Object.keys(networkServicesToPods);
+            newData = {};
+            for (let i = 0; i < keys.length; i++) {
+                for (let p = 0; p < networkServicesToPods[keys[i]].pods.length; p++) {
+                    if (networkFilterServiceData.includes(networkServicesToPods[keys[i]].pods[p].ns)) {
+                        newData[keys[i]] = networkServicesToPods[keys[i]];
+                    }
+                }
+            }
+        }
+    } else {
+        newData = new Object(networkServicesToPods);
+    }
+    return newData;
+}
+
+function showNetworkServiceView() {
+    //console.log('showNetworkServiceView()');
+    networkViewSelected = 'Service';
+    $('#networkNodeDetail').hide();
+    $('#networkServiceDetail').show();
+    let maxWidth = 1200;
     let line = '';
     let sLine = '';
     let nLine = '';
@@ -50,7 +454,7 @@ function loadNetworkServicesToPods() {
     let html = '';
     let svcY;
     let currentLine = 80;
-    let data = getNetworkServices();
+    let data = getNetworkServiceData();
     let netKeys = Object.keys(data);
     let imgGreen = "images/3d/3d-podGreen.png";
     let imgGrey = "images/3d/3d-podGrey.png";
@@ -104,7 +508,7 @@ function loadNetworkServicesToPods() {
             // Service info uses "sLine"
             if (p === 0) {
                 sLine = sLine + '<text text-anchor="start" x="20" y="25" fill="#666" class="fa-1x" '
-                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\')" '
+                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\',1)" '
                     + ' onmouseout="hideVpkTooltip()" '
                     + ' onclick="getDefFnum(\'' + pData[p].fnum + '\')">'
                     + 'Service: ' + data[netKeys[i]].name
@@ -117,7 +521,7 @@ function loadNetworkServicesToPods() {
                 }
 
                 sLine = sLine + '<text text-anchor="start" x="20" y="50" fill="#666" class="fa-1x" '
-                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\')" '
+                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\',1)" '
                     + ' onmouseout="hideVpkTooltip()" '
                     + ' onclick="getDefFnum(\'' + pData[p].fnum + '\')">'
                     + sIP
@@ -148,14 +552,14 @@ function loadNetworkServicesToPods() {
             nodeBottom = nodeBottom + 1;
 
             pLine = pLine + '<image x="240" y="' + (currentLine - 17) + '" height="25" href="' + img + '"'
-                + ' onmousemove="showTooltipMessage(evt,\'Click to view Pod information\')" '
+                + ' onmousemove="showTooltipMessage(evt,\'Click to view Pod information\',1)" '
                 + ' onmouseout="hideVpkTooltip()" '
                 + ' onclick="getDefFnum(\'' + pData[p].fnum + '\')"/>'
 
             for (x = 0; x < pData[p].ips.length; x++) {
                 //lineLinks.push(currentLine)
                 pLine = pLine + '<text text-anchor="start" x="280" y="' + currentLine + '" fill="#666" class="fa-1x" '
-                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Pod information\')" '
+                    + ' onmousemove="showTooltipMessage(evt,\'Click to view Pod information\',1)" '
                     + ' onmouseout="hideVpkTooltip()" '
                     + ' onclick="getDefFnum(\'' + pData[p].fnum + '\')">'
                     + pData[p].ips[x].ip + ' - ' + pData[p].name
@@ -179,13 +583,12 @@ function loadNetworkServicesToPods() {
                     currentLine = currentLine + 25;
                 }
             }
-
         }
         // Center the Y axis for the line start point
         if (pData.length === 1) {
             svcY = 80;
             sLine = sLine + '<image x="20" y="' + (svcY) + '" height="25" href="images/3d/3d-svc.png"'
-                + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\')" '
+                + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\',1)" '
                 + ' onmouseout="hideVpkTooltip()" '
                 + ' onclick="getDefFnum(\'' + netKeys[i] + '\')"/>'
             sLine = sLine + '<line x1="50" y1="' + (svcY + 12) + '" x2="200" y2="' + (svcY + 12) + '" stroke-width="1" stroke="black"/>'
@@ -193,7 +596,7 @@ function loadNetworkServicesToPods() {
         } else {
             svcY = parseInt((currentLine / 2))
             sLine = sLine + '<image x="20" y="' + (svcY - 12) + '" height="25" href="images/3d/3d-svc.png"'
-                + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\')" '
+                + ' onmousemove="showTooltipMessage(evt,\'Click to view Service information\',1)" '
                 + ' onmouseout="hideVpkTooltip()" '
                 + ' onclick="getDefFnum(\'' + netKeys[i] + '\')"/>'
 
@@ -201,8 +604,6 @@ function loadNetworkServicesToPods() {
                 sLine = sLine + '<line x1="50" y1="' + (svcY) + '" x2="200" y2="' + (lineLinks[c] - 3) + '" stroke-width="1" stroke="black"/>'
             }
         }
-
-
 
         hdr = '<div><svg xmlns="http://www.w3.org/2000/svg" width="' + maxWidth + '" height="' + (maxLine + 50) + '">'
             + '<rect x="5" y="6" width="970" rx="10px"'
@@ -214,9 +615,13 @@ function loadNetworkServicesToPods() {
         html = html + hdr + line + nLine + sLine + pLine + '</svg></div>';
         maxLine = 0;
     }
-    $('#networkDetail').html(html);
-    $('#networkDetail').show();
+    $('#networkServiceDetail').html(html);
+    $('#networkNodeDetail').hide();
+    $('#networkServiceDetail').show();
 }
+
+
+//================ Routines used to display the Node and Service views =====================
 
 function sortNodeIPs(a, b) {
     if (a.nodeIP < b.nodeIP) {
@@ -238,7 +643,6 @@ function sortPodIPs(a, b) {
     return 0;
 }
 
-
 function buildNodeRect(nodeTop, nodeBottom, oldNode, fnum, type, address) {
     let nLine = '';
     let img;
@@ -254,13 +658,13 @@ function buildNodeRect(nodeTop, nodeBottom, oldNode, fnum, type, address) {
         + ' />';
 
     nLine = nLine + '<image x="205" y="' + (nodeTop + 5) + '" height="25" href="' + img + '" '
-        + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information ' + fnum + '\')" '
+        + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information\',1)" '
         + ' onmouseout="hideVpkTooltip()" '
         + ' onclick="getDefFnum(\'' + fnum + '\')"/>';
 
 
     nLine = nLine + '<text text-anchor="start" x="240" y="' + (nodeTop + 20) + '" fill="#666" class="fa-1x" '
-        + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information ' + fnum + '\')" '
+        + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information\',1)" '
         + ' onmouseout="hideVpkTooltip()" '
         + ' onclick="getDefFnum(\'' + fnum + '\')">'
         + address + ' - ' + oldNode
@@ -273,93 +677,6 @@ function buildNodeRect(nodeTop, nodeBottom, oldNode, fnum, type, address) {
         + ' />';
 
     return nLine;
-}
-
-
-function loadNetworkIPS() {
-    let maxWidth = 1200;
-    let maxHeight = 0;
-    let line = '';
-    let html = '';
-    let hdr = '';
-    let node = '';
-    let netCnt = 0;
-    let nodeIP;
-    let currentLine = 55;
-    let maxIPCnt = 0;
-    let data = getNetworkData();
-    let netKeys = Object.keys(data);
-    let img;
-    let type;
-    networkPodDetail = {};
-
-    for (let i = 0; i < netKeys.length; i++) {
-        line = '';
-        hdr = '';
-        node = '';
-        for (let ip = 0; ip < data[netKeys[i]].addresses.length; ip++) {
-            if (data[netKeys[i]].addresses[ip].type === 'InternalIP') {
-                nodeIP = data[netKeys[i]].addresses[ip].address;
-                break;
-            }
-        }
-        currentLine = 55;
-        let newI = netUniqueIPs(data[netKeys[i]].pods);
-        networkPodDetail[netKeys[i]] = newI;
-        let newKeys = Object.keys(newI);
-        let baseIPS = getBaseIPS(newKeys);
-        newKeys = Object.keys(baseIPS);
-        maxIPCnt = newKeys.length;
-        maxHeight = (maxIPCnt * 35) + 70;
-        let tH = maxHeight - 55
-        let allH = maxHeight + 25;
-
-        if (data[netKeys[i]].type === 'm') {
-            img = "images/3d/3d-mstNode.png";
-            type = 'Master';
-        } else {
-            img = "images/3d/3d-wrkNode.png";
-            type = 'Worker';
-        }
-
-        node = '<div><svg xmlns="http://www.w3.org/2000/svg" width="' + maxWidth + '" height="' + allH + '">'
-            + '<rect x="5" y="6" width="400" rx="10px"'
-            + ' height="' + maxHeight + '" fill="#ffff00" '
-            + ' style="fill:rgb(255,255,0); stroke-width:2; stroke:rgb(0,0,200)"'
-            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')"'
-            + ' />'
-            + '<image x="10" y="10"  width="30" height="30" href="' + img + '"'
-            + ' onmousemove="showTooltipMessage(evt,\'Click to view Node information\')" '
-            + ' onmouseout="hideVpkTooltip()" '
-            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')"/>'
-            + '<text text-anchor="start" x="170" y="25" fill="#666" class="fa-1x" '
-            + ' onclick="getNodeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + type + '\')">'
-            + nodeIP + '</text>';
-        hdr = '<rect x="40" y="35" width="325" rx="10px"'
-            + ' height="' + tH + '" fill="#bbbbbb" '
-            + ' style="fill:rgb(255,255,255); stroke-width:2; stroke:rgb(200,0,0)"'
-            + ' />'
-
-        for (let addr = 0; addr < newKeys.length; addr++) {
-            if (addr === 0) {
-                line = line + '<text text-anchor="start" x="45" y="' + currentLine + '" fill="#666" class="fa-1x">Pod IP ranges:</text>'
-                    + '<text text-anchor="start" x="155" y="' + currentLine + '" fill="#666" class="fa-sm">(click ranges to view details)</text>';
-                currentLine = currentLine + 25;
-            }
-            line = line + '<text text-anchor="start" x="170" y="' + currentLine + '" fill="#666" class="fa-1x"'
-                + ' onmousemove="showTooltipMessage(evt,\'Click to view ' + newKeys[addr] + '.xxx range information\')" '
-                + ' onmouseout="hideVpkTooltip()" '
-                + ' onclick="getPodRangeInfo(\'' + netKeys[i] + '::' + nodeIP + '::' + newKeys[addr] + '\')">'
-                + newKeys[addr] + '.xxx'
-                + '</text>';
-            currentLine = currentLine + 25;
-            netCnt++;
-        }
-        // Update the tab with the new html
-        html = html + node + hdr + line + '</svg></div>';
-    }
-    $('#networkDetail').html(html);
-    $('#networkDetail').show();
 }
 
 function getBaseIPS(data) {

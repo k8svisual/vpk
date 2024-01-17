@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 //-------------------------------------------------------------------------
-// Owner reference variables to create graphical view
+// Owner reference variables to create ownerRef view
 let ownerRefExist = {}
 let oRefData = [];
 let oRefNS = [];
@@ -77,6 +77,7 @@ function getOwnerRefData() {
     ns = ns.trim();
     if (ns.text === '' || ns.length === 0) {
         showMessage('Select a namespace it cannot be blank.');
+        return;
     }
     // Save which namespaces to report
     oRefNS.push(ns);
