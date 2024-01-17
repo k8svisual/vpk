@@ -1,10 +1,10 @@
 <img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/vpk.png" width="70" height="70">
 
 
-## VpK - Visually presented Kubernetes
+### VpK - Visually presented Kubernetes
 
 An application that presents Kubernetes resources and configurations in a visual and graphic fashion.
-VpK can be installed and run on a local computer (requires Node.js and NPM) or run from a Docker container.  Refer to the appropriate section for installing the software.  
+VpK can be installed and run on a local computer (requires Node.js and NPM) or run from a Docker container.  Refer to the documentation website link for information on installing the software.  
 
 
 ### VpK key points
@@ -56,7 +56,7 @@ The following is a screenshot of the 3D view feature:
 
 ---
 
-## VpK Schematic view
+### VpK Schematic view
 
 The following a screenshot of the Workload Schematic view
 
@@ -68,9 +68,9 @@ The following a screenshot of the Workload Schematic view
 
 ### Vpk online documentation
 
-The online documenation website is available here:
+The complete VpK online documenation website is available here:
 
-![Documentation](https://k8svisual.github.io/vpk-docs/)
+    https://k8svisual.github.io/vpk-docs
 
 <br>
 
@@ -84,14 +84,14 @@ The online documenation website is available here:
 
 ---
 
-## VpK - Contributors
+### VpK - Contributors
 
 Dave Weilert   
 VJ Landon   
 Dave Krier   
 
 
-## License
+### License
 
 Copyright (c) 2018-2024 Dave Weilert
 
