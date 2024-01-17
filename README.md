@@ -6,45 +6,7 @@
 An application that presents Kubernetes resources and configurations in a visual and graphic fashion.
 VpK can be installed and run on a local computer (requires Node.js and NPM) or run from a Docker container.  Refer to the documentation website link for information on installing the software.  
 
-
-### VpK key points
-
-- VpK is designed to capture a point-in-time snapshot of the cluster.
-
-- VpK provides the ability to view the captured snapshot in a disconnected fashion.  Once the snapshot is created the user no longer needs to be connected to the cluster.
-
-- VpK will __not__ modify a Kubernetes cluster.  It is designed as read-only.
-
-- VpK is __not__ a real-time monitoring tool.
-
-
-### Application features
-
-- VpK accesses a Kubernetes cluster via an established kubectl CLI and saves query results, called a __snapshot__, in a local directory. 
-
-- The locally stored __snapshot__ can be reused. This snapshot enables disconnected use of VpK to review the K8s resource data.  Once a snapshot is created VpK does not require connecting to the K8s cluster to view the collected data.
- 
-- A interactive 3D view of the K8s cluster.  This view supports zoom, rotate, tilt, and filtering of resources.
-
-- Timelapse view of the 3D cluster to show the sequence of resource creation and removal.  The timelapse can be paused and viewed second-by-second along with interacting with the 3D view.
-
-- Schematic views of workloads deployed in the cluster.  Interact with the schematic and view detail resource definitions.  Mouse over items and drill down to view detail resource information.
-
-- View storage defined for the cluster by StorageClass, PV, PVC, CSI, along with node related storage.  
-
-- View network IP addresses and address ranges for services, pods, and nodes. 
-
-- View defined security roles, bindings, and subjects for the cluster or namespaces.
-
-- View Owner References chains for K8s resources defined in the cluster.
-
-- View event message statistics and timeline.
-
-- View container image repositories and associated images.
-
-- Search K8s resources with the ability to filter by namespaces, kinds, labels, resource names, and annotations.
-
---- 
+    The following screenshots are automatically created by VpK and not manually created.
 
 ### VpK 3D cluster view
 
@@ -84,12 +46,59 @@ The complete VpK online documenation website is available here:
 
 ---
 
+### VpK key points
+
+- VpK is designed to capture a point-in-time snapshot of the cluster.
+
+- VpK provides the ability to view the captured snapshot in a disconnected fashion.  Once the snapshot is created the user no longer needs to be connected to the cluster.
+
+- VpK will __not__ modify a Kubernetes cluster.  It is designed as read-only.
+
+- VpK is __not__ a real-time monitoring tool.
+
+<br>
+
+---
+
+### Application features
+
+- VpK accesses a Kubernetes cluster via an established kubectl CLI and saves query results, called a __snapshot__, in a local directory. 
+
+- The locally stored __snapshot__ can be reused. This snapshot enables disconnected use of VpK to review the K8s resource data.  Once a snapshot is created VpK does not require connecting to the K8s cluster to view the collected data.
+ 
+- A interactive 3D view of the K8s cluster.  This view supports zoom, rotate, tilt, and filtering of resources.
+
+- Timelapse view of the 3D cluster to show the sequence of resource creation and removal.  The timelapse can be paused and viewed second-by-second along with interacting with the 3D view.
+
+- Schematic views of workloads deployed in the cluster.  Interact with the schematic and view detail resource definitions.  Mouse over items and drill down to view detail resource information.
+
+- View storage defined for the cluster by StorageClass, PV, PVC, CSI, along with node related storage.  
+
+- View network IP addresses and address ranges for services, pods, and nodes. 
+
+- View defined security roles, bindings, and subjects for the cluster or namespaces.
+
+- View Owner References chains for K8s resources defined in the cluster.
+
+- View event message statistics and timeline.
+
+- View container image repositories and associated images.
+
+- Search K8s resources with the ability to filter by namespaces, kinds, labels, resource names, and annotations.
+
+<br>
+
+--- 
+
 ### VpK - Contributors
 
 Dave Weilert   
 VJ Landon   
 Dave Krier   
 
+<br>
+
+--- 
 
 ### License
 
