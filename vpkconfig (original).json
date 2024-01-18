@@ -1,0 +1,93 @@
+{
+    "defaults": {
+        "managedFields": false,
+        "statusSection": true,
+        "redactSecrets": false,
+        "reloadAction": true,
+        "lightTheme": false,
+        "clusterBackground": "Grey"
+    },
+    "snapshotDir": "/Users/bob/snaptest",
+    "clusterFilters": {
+        "clusterFilterNodes": true,
+        "clusterFilterCSI": true,
+        "clusterFilterStorage": true,
+        "clusterFilterNetwork": true,
+        "clusterFilterIngress": true,
+        "clusterFilterControlP": true,
+        "clusterFilterWorkload": false,
+        "clusterFilterService": false,
+        "clusterFilterConfigStorage": false,
+        "clusterFilterAuthentication": false,
+        "clusterFilterAuthorization": false,
+        "clusterFilterPolicy": false,
+        "clusterFilterExtend": false,
+        "clusterFilterCluster": false,
+        "clusterFilterOther": false,
+        "clusterFilterThirdParty": false,
+        "clusterFilterRunning": true,
+        "clusterFilterWarning": true,
+        "clusterFilterFailed": true,
+        "clusterFilterSuccessful": true,
+        "clusterFilterDSPods": false,
+        "clusterFilterNodeMemory": false,
+        "clusterFilterNodeCPU": false,
+        "clusterFilterNodeStorage": false,
+        "clusterFilterMemoryLimit": false,
+        "clusterFilterMemoryRequest": false,
+        "clusterFilterCPULimit": false,
+        "clusterFilterCPURequest": false,
+        "clusterFilterSound": false
+    },
+    "search": [
+        {
+            "type": "network",
+            "result": "Cilium",
+            "value": "cilium",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Flannel",
+            "value": "flannel",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Calico",
+            "value": "calico",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Canal",
+            "value": "canal",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Weave",
+            "value": "weave",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVS",
+            "value": "Open vSwitch",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVS",
+            "value": "Open_vSwitch",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        }
+    ]
+}

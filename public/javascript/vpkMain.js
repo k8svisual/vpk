@@ -113,9 +113,13 @@ $(document).ready(function () {
             documentationTabTopic = 'cluster';
             $('#cluster').show();
             $('#clusterHdr').show();
+            $('#cluster_filter').show();
+            $('#slideIn_box').show();
         } else {
             $('#cluster').hide();
             $('#clusterHdr').hide();
+            $('#cluster_filter').hide();
+            $('#slideIn_box').hide();
         }
         if (currentTab === "#schematic") {
             px = 120;
@@ -123,9 +127,11 @@ $(document).ready(function () {
             documentationTabTopic = 'schematics';
             $('#schematic').show();
             $('#schematicHdr').show();
+            $('#schematic_filter').show();
         } else {
             $('#schematic').hide();
             $('#schematicHdr').hide();
+            $('#schematic_filter').hide();
         }
         if (currentTab === "#storage") {
             px = 120;
@@ -143,10 +149,12 @@ $(document).ready(function () {
             documentationTabTopic = 'network';
             $('#network').show();
             $('#networkHdr').show();
+            $('#network_filter').show();
             openNetworkTab();
         } else {
             $('#network').hide();
             $('#networkHdr').hide();
+            $('#network_filter').hide();
         }
 
         if (currentTab === "#security") {
@@ -155,9 +163,11 @@ $(document).ready(function () {
             documentationTabTopic = 'security';
             $('#security').show();
             $('#securityHdr').show();
+            $('#security_filter').show();
         } else {
             $('#security').hide();
             $('#securityHdr').hide();
+            $('#security_filter').hide();
         }
 
         if (currentTab === "#ownerlinks") {
@@ -176,7 +186,6 @@ $(document).ready(function () {
             documentationTabTopic = 'eventmsgs';
             $('#evtMsgsHdr').show();
             $('#evtMsgs').show();
-            //$('[href="#evtMsgs"]').tab('show');
             if (evtLimitUid !== '') {
                 $('#evtFilter').show();
             } else {
@@ -186,17 +195,22 @@ $(document).ready(function () {
         } else {
             $('#evtMsgs').hide();
             $('#evtMsgsHdr').hide();
+            $('#evtFilter').hide();
         }
         if (currentTab === "#stats") {
             px = 120;
             checkIfDataLoaded();
-            documentationTabTopic = 'statsview';
+            documentationTabTopic = 'stats';
             $('#stats').show();
             $('#statsHdr').show();
+            $('#statsSlideIn').show();
+            $('#stats_filter').show();
             openStatsTab();
         } else {
             $('#stats').hide();
             $('#statsHdr').hide();
+            $('#statsSlideIn').hide();
+            $('#stats_filter').hide();
             statsFilterClose();
         }
         if (currentTab === "#containerImages") {

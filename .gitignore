@@ -3,7 +3,10 @@
 # VpK created runtime directories
 cluster/*
 usage/*
-userconfig.json
+
+#Developer files
+testing/*
+changes.txt
 
 # Node packages and other libs
 node_modules/*
