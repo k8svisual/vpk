@@ -54,6 +54,7 @@ let app = express();
 let server = http.createServer(app);
 let io = new Server(server);
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -116,7 +117,10 @@ if (typeof options.port !== 'undefined' && options.port !== null) {
 // -s snapshot volume
 if (typeof options.snapshot !== 'undefined' && options.snapshot !== null) {
     snapshot = options.snapshot;
-    vpk.snapshotDir = snapshot;
+
+    let nd = utl.formatDir(snapshot);
+
+    vpk.snapshotDir = nd;
 } else {
     vpk.snapshotDir = "none";
 }
@@ -205,7 +209,6 @@ function startServer() {
         console.log(err.stack)
     }
 }
-
 
 //------------------------------------------------------------------------------
 // Begin processing

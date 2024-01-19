@@ -7,7 +7,7 @@
         "lightTheme": true,
         "clusterBackground": "Stars"
     },
-    "snapshotDir": "/Users/bob/snaptest",
+    "snapshotDir": "\\Users/bob/snaptest",
     "clusterFilters": {
         "clusterFilterNodes": true,
         "clusterFilterCSI": true,
