@@ -313,6 +313,15 @@ function sendShutdownS2() {
     socket.emit('shutdownVpK');
 }
 
+function openCarousel() {
+    // Deselect all tabs
+    let tabLinks = document.querySelectorAll('#tabs .nav-link');
+    tabLinks.forEach(function (link) {
+        link.classList.remove('active');
+    });
+    // Show Carousel
+    setCurrentTab('instructions')
+}
 
 //----------------------------------------------------------
 console.log('loaded vpkTopScreen.js');

@@ -166,67 +166,11 @@ function createScene() {
     const scene = new BABYLON.Scene(engine);
     const clickSound = new BABYLON.Sound("clickSound", "sounds/LowDing.wav", scene, null, { loop: false, autoplay: true });
 
-    // let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-    // let skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-    // skyboxMaterial.backFaceCulling = false;
-    // skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
-    // skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-
-    // skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-    // skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-    // skybox.material = skyboxMaterial;
-
-
-
-    // // clusterBack is the variable that contains the selected 3d background used in the config modal
-    // if (clusterBack === 'Sky') {
-    //     var newSkyboxTexture = new BABYLON.CubeTexture("textures/clouds", scene);
-    //     scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-    //     scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-    //     scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-    //     stickColorDark = true;
-    // } else if (clusterBack === 'Stars') {
-    //     var newSkyboxTexture = new BABYLON.CubeTexture("textures/stars", scene);
-    //     scene.getMeshByName("skyBox").material.reflectionTexture = newSkyboxTexture;
-    //     scene.getMeshByName("skyBox").setEnabled(true); // Show the skybox
-    //     scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); // Reset background color
-    //     stickColorDark = false;
-    // } else if (clusterBack === 'Grey') {
-    //     scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
-    //     scene.getMeshByName("skyBox").setEnabled(false); // Hide the skybox
-    //     stickColorDark = true;
-    // }
-
-    // // set scene background
-    // if (sceneStars === true) {
-    //     scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-    //     skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-    //     skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-    //     skyboxMaterial.backFaceCulling = false;
-    //     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
-    //     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-    //     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-    //     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-    //     skybox.material = skyboxMaterial;
-    // } else if (sceneSky === true) {
-    //     scene.clearColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-    //     skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
-    //     skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
-    //     skyboxMaterial.backFaceCulling = false;
-    //     skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/clouds", scene);
-    //     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
-    //     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-    //     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
-    //     skybox.material = skyboxMaterial;
-    // } else {
-    //     scene.clearColor = new BABYLON.Color3(sceneColorR, sceneColorG, sceneColorB);
-    // }
-
-
     skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, scene);
     skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
     skyboxMaterial.backFaceCulling = false;
-    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    // skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene);
+    skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("textures/stars", scene, ["_px.png", "_py.png", "_pz.png", "_nx.png", "_ny.png", "_nz.png"]);
     skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
     skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
     skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
@@ -985,7 +929,7 @@ function createScene() {
             nameFnum = 'unknown'
         }
         let stick;
-        stick = BABYLON.MeshBuilder.CreateCylinder(nameFnum, { height: height, diameterTop: .015, diameterBottom: .015, tessellation: 4 });
+        stick = BABYLON.MeshBuilder.CreateCylinder(nameFnum, { height: height, diameterTop: .025, diameterBottom: .025, tessellation: 4 });
         stick.position.x = x;
         stick.position.y = y;
         stick.position.z = z;
@@ -1116,7 +1060,7 @@ function createScene() {
             new BABYLON.Vector3(pCords.x, pCords.y - 1.35, pCords.z),
             new BABYLON.Vector3(cords.x, cords.y - 2.5, cords.z)
         ];
-        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+        let stick = BABYLON.MeshBuilder.CreateTube("tube", { path: epPath, radius: 0.015, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
         stick.material = stickColor;
         addMesh(stick, ns, 'PVCLine', fnum, '')
     }
@@ -1179,7 +1123,7 @@ function createScene() {
                 new BABYLON.Vector3(nCords.x, nCords.y + 5, nCords.z)
             ];
             sharedEndpoint.push(pFnum);
-            let stick = BABYLON.MeshBuilder.CreateTube(pFnum, { path: epPath, radius: 0.0075, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
+            let stick = BABYLON.MeshBuilder.CreateTube(pFnum, { path: epPath, radius: 0.015, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
             stick.material = stickColor;
             // Save info for Pod-to-EPLine
             if (typeof epToPodLinks[pFnum] === 'undefined') {

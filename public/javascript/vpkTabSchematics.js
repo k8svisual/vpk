@@ -278,6 +278,10 @@ function clearAllSchematicFilters() {
         $("#schematicFilterModal").modal('hide')
         return;
     }
+    if (schematicWKeys.length === 0) {
+        // No data to process
+        return;
+    }
     schematicCheckedRows = [];
     for (let i = 0; i < schematicWKeys.length; i++) {
         schematicWKeys[i].state = false;

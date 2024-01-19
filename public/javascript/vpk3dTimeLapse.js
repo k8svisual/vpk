@@ -212,6 +212,10 @@ function timeLapse() {
     timeLapseGo = true;
     timeLapseKeys = Object.keys(timeLapseData);
     timeLapseKeysHL = timeLapseKeys.length;
+    if (timeLapseKeysHL === 0) {
+        showMessage('No snapshot or running cluster has been connected.', 'fail');
+        return;
+    }
     timeLapseKeys.sort();
     lastTime = timeLapseKeys[timeLapseKeys.length - 1];
 
@@ -239,8 +243,13 @@ function timeLapse() {
 }
 
 function timeLapseSetUi() {
+
     timeLapseKeys = Object.keys(timeLapseData);
     timeLapseKeysHL = timeLapseKeys.length;
+    if (timeLapseKeysHL === 0) {
+        showMessage('No snapshot or running cluster has been connected.', 'fail');
+        return;
+    }
     timeLapseKeys.sort();
     lastTime = timeLapseKeys[timeLapseKeys.length - 1];
 

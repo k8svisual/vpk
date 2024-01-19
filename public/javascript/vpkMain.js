@@ -95,150 +95,150 @@ $(document).ready(function () {
         let element;
         hideVpkTooltip()
         timeLapseClose();
+        setCurrentTab(currentTab);
 
+        // // take action based on what tab was shown
+        // if (currentTab === "#instructions") {
+        //     px = 75;
+        //     documentationTabTopic = 'overview';
+        //     $('#instructions').show();
+        //     $('#instructionsHdr').show();
+        // } else {
+        //     $('#instructions').hide();
+        //     $('#instructionsHdr').hide();
+        // }
+        // if (currentTab === "#cluster") {
+        //     px = 110;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'cluster';
+        //     $('#cluster').show();
+        //     $('#clusterHdr').show();
+        //     $('#cluster_filter').show();
+        //     $('#slideIn_box').show();
+        // } else {
+        //     $('#cluster').hide();
+        //     $('#clusterHdr').hide();
+        //     $('#cluster_filter').hide();
+        //     $('#slideIn_box').hide();
+        // }
+        // if (currentTab === "#schematic") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'schematics';
+        //     $('#schematic').show();
+        //     $('#schematicHdr').show();
+        //     $('#schematic_filter').show();
+        // } else {
+        //     $('#schematic').hide();
+        //     $('#schematicHdr').hide();
+        //     $('#schematic_filter').hide();
+        // }
+        // if (currentTab === "#storage") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'storage';
+        //     $('#storage').show();
+        //     $('#storageHdr').show();
+        // } else {
+        //     $('#storage').hide();
+        //     $('#storageHdr').hide();
+        // }
+        // if (currentTab === "#network") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'network';
+        //     $('#network').show();
+        //     $('#networkHdr').show();
+        //     $('#network_filter').show();
+        //     openNetworkTab();
+        // } else {
+        //     $('#network').hide();
+        //     $('#networkHdr').hide();
+        //     $('#network_filter').hide();
+        // }
 
-        // take action based on what tab was shown
-        if (currentTab === "#instructions") {
-            px = 75;
-            documentationTabTopic = 'overview';
-            $('#instructions').show();
-            $('#instructionsHdr').show();
-        } else {
-            $('#instructions').hide();
-            $('#instructionsHdr').hide();
-        }
-        if (currentTab === "#cluster") {
-            px = 110;
-            checkIfDataLoaded();
-            documentationTabTopic = 'cluster';
-            $('#cluster').show();
-            $('#clusterHdr').show();
-            $('#cluster_filter').show();
-            $('#slideIn_box').show();
-        } else {
-            $('#cluster').hide();
-            $('#clusterHdr').hide();
-            $('#cluster_filter').hide();
-            $('#slideIn_box').hide();
-        }
-        if (currentTab === "#schematic") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'schematics';
-            $('#schematic').show();
-            $('#schematicHdr').show();
-            $('#schematic_filter').show();
-        } else {
-            $('#schematic').hide();
-            $('#schematicHdr').hide();
-            $('#schematic_filter').hide();
-        }
-        if (currentTab === "#storage") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'storage';
-            $('#storage').show();
-            $('#storageHdr').show();
-        } else {
-            $('#storage').hide();
-            $('#storageHdr').hide();
-        }
-        if (currentTab === "#network") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'network';
-            $('#network').show();
-            $('#networkHdr').show();
-            $('#network_filter').show();
-            openNetworkTab();
-        } else {
-            $('#network').hide();
-            $('#networkHdr').hide();
-            $('#network_filter').hide();
-        }
+        // if (currentTab === "#security") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'security';
+        //     $('#security').show();
+        //     $('#securityHdr').show();
+        //     $('#security_filter').show();
+        // } else {
+        //     $('#security').hide();
+        //     $('#securityHdr').hide();
+        //     $('#security_filter').hide();
+        // }
 
-        if (currentTab === "#security") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'security';
-            $('#security').show();
-            $('#securityHdr').show();
-            $('#security_filter').show();
-        } else {
-            $('#security').hide();
-            $('#securityHdr').hide();
-            $('#security_filter').hide();
-        }
+        // if (currentTab === "#ownerlinks") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'ownerref';
+        //     $('#ownerlinks').show();
+        //     $('#ownerlinksHdr').show();
+        // } else {
+        //     $('#ownerlinks').hide();
+        //     $('#ownerlinksHdr').hide();
+        // }
+        // if (currentTab === "#evtMsgs") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'eventmsgs';
+        //     $('#evtMsgsHdr').show();
+        //     $('#evtMsgs').show();
+        //     if (evtLimitUid !== '') {
+        //         $('#evtFilter').show();
+        //     } else {
+        //         $('#evtFilter').hide();
+        //     }
+        //     loadEvtMsgs();
+        // } else {
+        //     $('#evtMsgs').hide();
+        //     $('#evtMsgsHdr').hide();
+        //     $('#evtFilter').hide();
+        // }
+        // if (currentTab === "#stats") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'stats';
+        //     $('#stats').show();
+        //     $('#statsHdr').show();
+        //     $('#statsSlideIn').show();
+        //     $('#stats_filter').show();
+        //     openStatsTab();
+        // } else {
+        //     $('#stats').hide();
+        //     $('#statsHdr').hide();
+        //     $('#statsSlideIn').hide();
+        //     $('#stats_filter').hide();
+        //     statsFilterClose();
+        // }
+        // if (currentTab === "#containerImages") {
+        //     px = 120;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'containerimages';
+        //     $('#containerImages').show();
+        //     $('#containerImagesHdr').show();
+        // } else {
+        //     $('#containerImages').hide();
+        //     $('#containerImagesHdr').hide();
+        // }
+        // if (currentTab === "#searchview") {
+        //     px = 255;
+        //     checkIfDataLoaded();
+        //     documentationTabTopic = 'search';
+        //     $('#searchview').show();
+        //     $('#searchviewHdr').show();
+        // } else {
+        //     $('#searchview').hide();
+        //     $('#searchviewHdr').hide();
+        // }
 
-        if (currentTab === "#ownerlinks") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'ownerref';
-            $('#ownerlinks').show();
-            $('#ownerlinksHdr').show();
-        } else {
-            $('#ownerlinks').hide();
-            $('#ownerlinksHdr').hide();
-        }
-        if (currentTab === "#evtMsgs") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'eventmsgs';
-            $('#evtMsgsHdr').show();
-            $('#evtMsgs').show();
-            if (evtLimitUid !== '') {
-                $('#evtFilter').show();
-            } else {
-                $('#evtFilter').hide();
-            }
-            loadEvtMsgs();
-        } else {
-            $('#evtMsgs').hide();
-            $('#evtMsgsHdr').hide();
-            $('#evtFilter').hide();
-        }
-        if (currentTab === "#stats") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'stats';
-            $('#stats').show();
-            $('#statsHdr').show();
-            $('#statsSlideIn').show();
-            $('#stats_filter').show();
-            openStatsTab();
-        } else {
-            $('#stats').hide();
-            $('#statsHdr').hide();
-            $('#statsSlideIn').hide();
-            $('#stats_filter').hide();
-            statsFilterClose();
-        }
-        if (currentTab === "#containerImages") {
-            px = 120;
-            checkIfDataLoaded();
-            documentationTabTopic = 'containerimages';
-            $('#containerImages').show();
-            $('#containerImagesHdr').show();
-        } else {
-            $('#containerImages').hide();
-            $('#containerImagesHdr').hide();
-        }
-        if (currentTab === "#searchview") {
-            px = 255;
-            checkIfDataLoaded();
-            documentationTabTopic = 'search';
-            $('#searchview').show();
-            $('#searchviewHdr').show();
-        } else {
-            $('#searchview').hide();
-            $('#searchviewHdr').hide();
-        }
-
-        element = document.getElementById("banner")
-        element.style['height'] = px + "px";
-        element = document.getElementById("viewarea")
-        px++;
-        element.style['top'] = px + "px";
+        // element = document.getElementById("banner")
+        // element.style['height'] = px + "px";
+        // element = document.getElementById("viewarea")
+        // px++;
+        // element.style['top'] = px + "px";
     });
 
     $("#tableSearch").on("click-cell.bs.table", function (field, value, row, $el) {
@@ -709,6 +709,154 @@ $(document).ready(function () {
     getConfig();
 
 });
+
+function setCurrentTab(currentTab) {
+    // take action based on what tab was shown
+    if (currentTab === "instructions") {
+        px = 75;
+        documentationTabTopic = 'overview';
+        $('#instructions').show();
+        $('#instructionsHdr').show();
+    } else {
+        $('#instructions').hide();
+        $('#instructionsHdr').hide();
+    }
+    if (currentTab === "#cluster") {
+        px = 110;
+        checkIfDataLoaded();
+        documentationTabTopic = 'cluster';
+        $('#cluster').show();
+        $('#clusterHdr').show();
+        $('#cluster_filter').show();
+        $('#slideIn_box').show();
+    } else {
+        $('#cluster').hide();
+        $('#clusterHdr').hide();
+        $('#cluster_filter').hide();
+        $('#slideIn_box').hide();
+    }
+    if (currentTab === "#schematic") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'schematics';
+        $('#schematic').show();
+        $('#schematicHdr').show();
+        $('#schematic_filter').show();
+    } else {
+        $('#schematic').hide();
+        $('#schematicHdr').hide();
+        $('#schematic_filter').hide();
+    }
+    if (currentTab === "#storage") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'storage';
+        $('#storage').show();
+        $('#storageHdr').show();
+    } else {
+        $('#storage').hide();
+        $('#storageHdr').hide();
+    }
+    if (currentTab === "#network") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'network';
+        $('#network').show();
+        $('#networkHdr').show();
+        $('#network_filter').show();
+        openNetworkTab();
+    } else {
+        $('#network').hide();
+        $('#networkHdr').hide();
+        $('#network_filter').hide();
+    }
+
+    if (currentTab === "#security") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'security';
+        $('#security').show();
+        $('#securityHdr').show();
+        $('#security_filter').show();
+    } else {
+        $('#security').hide();
+        $('#securityHdr').hide();
+        $('#security_filter').hide();
+    }
+
+    if (currentTab === "#ownerlinks") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'ownerref';
+        $('#ownerlinks').show();
+        $('#ownerlinksHdr').show();
+    } else {
+        $('#ownerlinks').hide();
+        $('#ownerlinksHdr').hide();
+    }
+    if (currentTab === "#evtMsgs") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'eventmsgs';
+        $('#evtMsgsHdr').show();
+        $('#evtMsgs').show();
+        if (evtLimitUid !== '') {
+            $('#evtFilter').show();
+        } else {
+            $('#evtFilter').hide();
+        }
+        loadEvtMsgs();
+    } else {
+        $('#evtMsgs').hide();
+        $('#evtMsgsHdr').hide();
+        $('#evtFilter').hide();
+    }
+    if (currentTab === "#stats") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'stats';
+        $('#stats').show();
+        $('#statsHdr').show();
+        $('#statsSlideIn').show();
+        $('#stats_filter').show();
+        openStatsTab();
+    } else {
+        $('#stats').hide();
+        $('#statsHdr').hide();
+        $('#statsSlideIn').hide();
+        $('#stats_filter').hide();
+        statsFilterClose();
+    }
+    if (currentTab === "#containerImages") {
+        px = 120;
+        checkIfDataLoaded();
+        documentationTabTopic = 'containerimages';
+        $('#containerImages').show();
+        $('#containerImagesHdr').show();
+    } else {
+        $('#containerImages').hide();
+        $('#containerImagesHdr').hide();
+    }
+    if (currentTab === "#searchview") {
+        px = 255;
+        checkIfDataLoaded();
+        documentationTabTopic = 'search';
+        $('#searchview').show();
+        $('#searchviewHdr').show();
+    } else {
+        $('#searchview').hide();
+        $('#searchviewHdr').hide();
+    }
+
+    element = document.getElementById("banner")
+    element.style['height'] = px + "px";
+    element = document.getElementById("viewarea")
+    px++;
+    element.style['top'] = px + "px";
+
+
+}
+
 
 //----------------------------------------------------------
 function editObj() {
