@@ -329,7 +329,7 @@ socket.on('getServerDataResult', function (data) {
     networkNodes = data.networkNodes;
     networkServicesToPods = data.networkServiceToPods;
     helmManaged = data.helm;
-    vpkstats = data.vpkstats;
+    vpkstats = data.stats;
 
     if (typeof data.filters !== 'undefined') {
         clusterFilters = data.filters;
@@ -347,6 +347,7 @@ socket.on('getServerDataResult', function (data) {
     $('#evtMinutesRange').html(`(Range 0 to ${evtMaxMinutes})`)
     evtShowStats();
     showClusterTab();
+    createClusterSummary();
     // loadNetworkIPS();
 
     $("#loadStatus").hide();

@@ -172,18 +172,17 @@ function filterTimeLapseData() {
 
 
 function timeLapseOpen() {
-    // if (typeof timeLapseData === 'undefined') {
-    //     showMessage('No snapshot or running cluster has been connected.', 'fail');
-    // } else {
     if ($("#timeLapse_filter").is(":visible")) {
         timeLapseClose();
     } else {
-        // const slideUpContainer = document.getElementById('clusterSlideUpContainer');
-        // clusterSlideUpContainer.classList.add('clusterShow');
+        $('#clusterReportView').hide();
+        $('#cluster3DView').show();
+        $('#cluster').show();
+        $('#slideIn_box').hide();
         filterTimeLapseView();
         timeLapse()
     }
-    // }
+
 }
 function timeLapseClose() {
     clearInterval(timeLapseLoop);

@@ -56,5 +56,13 @@ function showRegistry(registry, view, returnTo) {
     loadRepositoryData(registry, view, returnTo)
 }
 
+function openCluster3DView() {
+    timeLapseClose();
+    $('#clusterReportView').hide();
+    $('#cluster3DView').show();
+    $('#cluster').show();
+    $('#cluster_filter').show();
+    $('#slideIn_box').hide();
+}
 //----------------------------------------------------------
 console.log('loaded vpkTabCluster.js');

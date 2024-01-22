@@ -815,3 +815,46 @@ tr.border-top td {
 .ml-35 {
     margin-left: 35px;
 }
+
+.summary_tab {
+    background-color: rgb(0, 123, 255);
+    color: white;
+    border: 1pt solid #555555;
+}
+
+.summary_tab_border {
+    border: 1pt solid #555555;
+    background-color: rgb(230, 230, 230);
+}
+
+.summary_bar {
+    width: 700px;
+    background-color: rgb(0, 123, 255);
+    color: white;
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-right: 5px;
+}
+
+.button-400-wide {
+    width: 400px;
+    /* Set the width to 400px */
+}
+
+.button-500-wide {
+    width: 500px;
+    /* Set the width to 400px */
+}
+
+.button-600-wide {
+    width: 600px;
+    /* Set the width to 400px */
+}
+
+.report-600-wide {
+    width: 600px;
+    border: 1pt solid rgb(0, 123, 255);
+    background-color: #cccccc;
+    /* Set the width to 400px */
+}

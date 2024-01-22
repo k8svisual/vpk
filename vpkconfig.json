@@ -5,7 +5,7 @@
         "redactSecrets": false,
         "reloadAction": true,
         "lightTheme": true,
-        "clusterBackground": "Stars"
+        "clusterBackground": "Grey"
     },
     "snapshotDir": "/Users/bob/snaptest",
     "clusterFilters": {

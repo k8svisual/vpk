@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 //----------------------------------------------------------
-// Screen handling code for the Graphic View tab
+// Screen handling code for the Stats tab
 //----------------------------------------------------------
 
 
@@ -55,8 +55,6 @@ function showSnapshotView(type) {
         $('#statsDirKind').hide();
         $('#statsDirNS').hide();
     }
-
-
     // Check if data has bee pulled if not get data
     if (dsCounts === '') {
         dirStats()
@@ -64,6 +62,7 @@ function showSnapshotView(type) {
         createStatsView()
     }
 }
+
 
 function createStatsView() {
     if (statsViewType === 'graph') {
@@ -542,4 +541,4 @@ function statsShowReport(type) {
 
 
 //----------------------------------------------------------
-console.log('loaded vpkTabGraphics.js');
+console.log('loaded vpkTabStats.js');
