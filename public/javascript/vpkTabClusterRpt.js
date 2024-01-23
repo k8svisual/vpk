@@ -128,86 +128,110 @@ function clusterNodes(nodes) {
     //-------------------------------------------------------------------------
     // Cluster node details
     //-------------------------------------------------------------------------
-    let line1 = '';
+    let line = '';
+    let nodeLine = '';
     let img = '';
     let keys = Object.keys(nodes);
+    let newKeys = [];
+    let newNodes = [];
     let type = '';
 
-    line1 = '<div class="pl-2 mb-1">'
+    line = '<div class="pl-2 mb-1">'
         + '<div class="report-600-wide" data-toggle="collapse" data-target="#nodeSummaryALL">'
         + '<span class="px-1 py-1">Node information</span></div>'
         + '<div id="nodeSummaryALL" class="collapse in">'
 
-        + '<span class="vpkfont-sm">Click icon or text to toggle node detail view</span>'
-
+    // Locate null and blank nodes and skip them
     for (let i = 0; i < keys.length; i++) {
         if (keys[i] !== null && keys[i].length !== 0) {
             if (nodes[i] === null) {
                 continue;
+            } else {
+                newKeys.push(keys[i])
+                newNodes.push(nodes[keys[i]]);
             }
         }
-        // set type of Node
-        if (nodes[i][0].type === 'w') {
-            img = "images/3d/3d-wrkNode.png";
-            type = 'Worker'
-        } else {
-            img = "images/3d/3d-mstNode.png";
-            type = 'Master'
+    }
+
+    keys = new Object(newKeys);
+    nodes = new Object(newNodes);
+
+    if (keys.length > 0) {
+        line = line + '<span class="vpkfont-sm">Click icon or text to toggle node detail view</span>'
+        for (let i = 0; i < keys.length; i++) {
+            if (keys[i] !== null && keys[i].length !== 0) {
+                if (nodes[i] === null) {
+                    continue;
+                }
+            }
+
+            // set type of Node
+            if (nodes[i][0].type === 'w') {
+                img = "images/3d/3d-wrkNode.png";
+                type = 'Worker'
+            } else {
+                img = "images/3d/3d-mstNode.png";
+                type = 'Master'
+            }
+
+            line = line
+                + '<div class="panel-group">'
+                + '  <div class="panel panel-default">'
+                + '    <div class="panel-heading">'
+                + '      <img width="20" height="20" src="' + img + '"   data-toggle="collapse" href="#nodeSummary_' + i + '"/>'
+                + '      <span class="panel-title vpkfont-md">'
+                + '        <span data-toggle="collapse" href="#nodeSummary_' + i + '">' + nodes[i][0].name + '</span>'
+                + '      </span>'
+                + '    </div>'
+
+                + '    <div id="nodeSummary_' + i + '" class="panel-collapse collapse mb-3">'
+                + '      <div class="panel-body">'
+                + '      <table>'
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">Type:</td><td class="pl-3" style="width: 150px; border-right: 1pt solid #555555;">' + type + '</td>'
+                + '          <td class="text-right pl-2" style="width: 85px;">KubeProxy:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kubeProxyVersion + '</td>'
+                + '        </tr>'
+
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">Arch:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].nodeInfo.architecture + '</td>'
+                + '          <td class="text-right pl-2">Kubelet:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kubeletVersion + '</td>'
+                + '        </tr>'
+
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">CPU:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].c_cpu + '</td>'
+                + '          <td class="text-right pl-2">CRI:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.containerRuntimeVersion + '</td>'
+                + '        </tr>'
+
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">Memory:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].c_memory_gb + ' GB</td>'
+                + '          <td class="text-right pl-2">MachineID:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.machineID + '</td>'
+                + '        </tr>'
+
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">Op/Sys:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].nodeInfo.operatingSystem + '</td>'
+                + '          <td class="text-right pl-2">OS Image:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.osImage + '</td>'
+                + '        </tr>'
+
+                + '        <tr class="summary_tab_border">'
+                + '          <td class="text-right pl-2">IP:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].rootIP + '</td>'
+                + '          <td class="text-right pl-2">OS Kernel:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kernelVersion + '</td>'
+                + '        </tr>'
+                + '      </table>'
+
+                + '      </div>'
+                + '    </div>'
+                + '  </div>'
+                + '</div>'
         }
 
-        line1 = line1
-            + '<div class="panel-group">'
-            + '  <div class="panel panel-default">'
-            + '    <div class="panel-heading">'
-            + '      <img width="20" height="20" src="' + img + '"   data-toggle="collapse" href="#nodeSummary_' + i + '"/>'
-            + '      <span class="panel-title vpkfont-md">'
-            + '        <span data-toggle="collapse" href="#nodeSummary_' + i + '">' + nodes[i][0].name + '</span>'
-            + '      </span>'
-            + '    </div>'
-
-        line1 = line1
-            + '    <div id="nodeSummary_' + i + '" class="panel-collapse collapse mb-3">'
-            + '      <div class="panel-body">'
-            + '      <table>'
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">Type:</td><td class="pl-3" style="width: 150px; border-right: 1pt solid #555555;">' + type + '</td>'
-            + '          <td class="text-right pl-2" style="width: 85px;">KubeProxy:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kubeProxyVersion + '</td>'
-            + '        </tr>'
-
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">Arch:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].nodeInfo.architecture + '</td>'
-            + '          <td class="text-right pl-2">Kubelet:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kubeletVersion + '</td>'
-            + '        </tr>'
-
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">CPU:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].c_cpu + '</td>'
-            + '          <td class="text-right pl-2">CRI:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.containerRuntimeVersion + '</td>'
-            + '        </tr>'
-
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">Memory:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].c_memory_gb + ' GB</td>'
-            + '          <td class="text-right pl-2">MachineID:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.machineID + '</td>'
-            + '        </tr>'
-
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">Op/Sys:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].nodeInfo.operatingSystem + '</td>'
-            + '          <td class="text-right pl-2">OS Image:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.osImage + '</td>'
-            + '        </tr>'
-
-            + '        <tr class="summary_tab_border">'
-            + '          <td class="text-right pl-2">IP:</td><td class="pl-3"  style="width: 200px; border-right: 1pt solid #555555;">' + nodes[i][0].rootIP + '</td>'
-            + '          <td class="text-right pl-2">OS Kernel:</td><td class="pl-3 pr-3">' + nodes[i][0].nodeInfo.kernelVersion + '</td>'
-            + '        </tr>'
-            + '      </table>'
-
-            + '      </div>'
-            + '    </div>'
-            + '  </div>'
+    } else {
+        line = line
+            + '<div class="mt-1 mb-1">No node data located</div>'
             + '</div>'
     }
 
-    line1 = line1 + '</div>'
-    $('#summaryNodes').html(line1);
+    line = line + nodeLine + '</div>'
+    $('#summaryNodes').html(line);
 }
 
 function clusterTop10(hogs) {
@@ -217,7 +241,7 @@ function clusterTop10(hogs) {
     line2 = '';
     line2 = '<div class="pl-2 mb-1">'
         + '<div class="report-600-wide" data-toggle="collapse" data-target="#hogsSummaryALL">'
-        + '<span class="px-1 py-1">Top 10 Requests & Limits</span></button></div>'
+        + '<span class="px-1 py-1">Top 10 Requests & Limits</span></div>'
         + '<div id="hogsSummaryALL" class="collapse in">'
 
     line2 = line2 + '<div class="mt-1 mb-2 vpkfont-md vpkblue"><div>'
