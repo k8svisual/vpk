@@ -53,23 +53,36 @@ function clusterReadyz(stats) {
     // Output from kubectl get --raw="/readyz?verbose"
     //-------------------------------------------------------------------------
     let line = '';
-    line = '<div class="pl-2 mb-1">'
-        + '<div class="report-600-wide" data-toggle="collapse" data-target="#readyZSummaryALL">'
-        + '<span class="px-1 py-1">Ready status of components</span></div>'
-        + '<div id="readyZSummaryALL" class="collapse in">'
+    try {
+        line = '<div class="pl-2 mb-1">'
+            + '<div class="report-600-wide" data-toggle="collapse" data-target="#readyZSummaryALL">'
+            + '<span class="px-1 py-1">Ready status of components</span></div>'
+            + '<div id="readyZSummaryALL" class="collapse in">'
 
-        + '<div class="mt-1 vpkfont-md vpkblue">'
-        + '<table><tr>'
-        + '<th class="text-center summary_tab" style="width: 600px;">Ready status</th><tr>';
+            + '<div class="mt-1 vpkfont-md vpkblue">'
+            + '<table><tr>'
+            + '<th class="text-center summary_tab" style="width: 600px;">Ready status</th><tr>';
 
-    for (let i = 0; i < stats.k8sReadyz.length; i++) {
-        line = line
-            + '<tr class="summary_tab_border vkpfont-md">'
-            + '  <td class="text-left pr-2 pl-2">' + stats.k8sReadyz[i] + '</td>'
-            + '</tr>';
+        if (typeof stats.k8sReadyz !== 'undefined') {
+            for (let i = 0; i < stats.k8sReadyz.length; i++) {
+                line = line
+                    + '<tr class="summary_tab_border vkpfont-md">'
+                    + '  <td class="text-left pr-2 pl-2">' + stats.k8sReadyz[i] + '</td>'
+                    + '</tr>';
+            }
+        } else {
+            line = line
+                + '<tr class="summary_tab_border vkpfont-md">'
+                + '  <td class="text-left pr-2 pl-2">No data located</td>'
+                + '</tr>';
+        }
+
+        line = line + '</table></div>'
+
+    } catch (e) {
+        console.log(`error processing clusterReadyZ: ${e}`)
+        line = line + '</table></div>'
     }
-
-    line = line + '</table></div>'
     $('#summaryReadyz').html(line);
 }
 
@@ -77,26 +90,38 @@ function clusterInfoDump(stats) {
     //-------------------------------------------------------------------------
     // Output from kubectl cluster-info dump
     //-------------------------------------------------------------------------
-    let line4 = '';
-    line4 = '<div class="pl-2 mb-1">'
-        + '<div class="report-600-wide" data-toggle="collapse" data-target="#dumpCSummaryALL">'
-        + '<span class="px-1 py-1">Output from cluster-info dump</span></div>'
-        + '<div id="dumpCSummaryALL" class="collapse in">'
+    let line = '';
+    try {
+        line = '<div class="pl-2 mb-1">'
+            + '<div class="report-600-wide" data-toggle="collapse" data-target="#dumpCSummaryALL">'
+            + '<span class="px-1 py-1">Output from cluster-info dump</span></div>'
+            + '<div id="dumpCSummaryALL" class="collapse in">'
 
-        + '<div class="mt-1 vpkfont-md vpkblue">'
-        + '<table><tr>'
-        + '<th class="text-center summary_tab" style="width: 600px;">Cluster-info dump</th><tr>';
+            + '<div class="mt-1 vpkfont-md vpkblue">'
+            + '<table><tr>'
+            + '<th class="text-center summary_tab" style="width: 600px;">Cluster-info dump</th><tr>';
 
-    for (let i = 0; i < stats.k8sComponents.components.length; i++) {
-        info = stats.k8sComponents.components[i].substring(0, stats.k8sComponents.components[i].length - 5)
-        line4 = line4
-            + '<tr class="summary_tab_border vkpfont-md">'
-            + '  <td class="text-left pr-2 pl-2">' + info + '</td>'
-            + '</tr>';
+        if (typeof stats.k8sComponents !== 'undefined') {
+            for (let i = 0; i < stats.k8sComponents.components.length; i++) {
+                info = stats.k8sComponents.components[i].substring(0, stats.k8sComponents.components[i].length - 5)
+                line = line
+                    + '<tr class="summary_tab_border vkpfont-md">'
+                    + '  <td class="text-left pr-2 pl-2">' + info + '</td>'
+                    + '</tr>';
+            }
+        } else {
+            line = line
+                + '<tr class="summary_tab_border vkpfont-md">'
+                + '  <td class="text-left pr-2 pl-2">No data located</td>'
+                + '</tr>';
+        }
+    } catch (e) {
+        console.log(`error processing clusterInfoDump: ${e}`)
+        line = line + '</table></div>'
     }
 
-    line4 = line4 + '</table></div>'
-    $('#summaryDumpC').html(line4);
+    line = line + '</table></div>'
+    $('#summaryDumpC').html(line);
 }
 
 function clusterNodes(nodes) {
