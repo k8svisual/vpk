@@ -33,15 +33,15 @@
                 <div class="mb-1 ml-1 mt-1">
                     <div class="mb-1 ml-1 mt-1">
                         <button class="btn btn-outline-primary btn-sm vpkButtons px-2" onclick="openCluster3DView()">
-                            <i class="fa-brands fa-codepen vpkgrey pt-1 pr-1" onclick="openCluster3DView()"></i>
+                            <i class="fa-brands fa-codepen  pt-1 pr-1" onclick="openCluster3DView()"></i>
                             3D View
                         </button>
                         <button class="btn btn-outline-primary btn-sm vpkButtons px-2" onclick="timeLapseOpen()">
-                            <i class="fa fa-lg fa-stopwatch vpkgrey pt-1 pr-1" onclick="timeLapseOpen()"></i>
+                            <i class="fa fa-lg fa-stopwatch pt-1 pr-1" onclick="timeLapseOpen()"></i>
                             Timelapse
                         </button>
                         <button class="btn btn-outline-primary btn-sm vpkButtons px-2" onclick="openClusterRptView()">
-                            <i class="fa fa-lg fa-list vpkgrey pt-1 pr-1" onclick="openClusterRptView()"></i>
+                            <i class="fa fa-lg fa-list pt-1 pr-1" onclick="openClusterRptView()"></i>
                             Report
                         </button>
                     </div>
@@ -62,13 +62,14 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">Namespace</span>
                     <select id="schematic-ns-filter">
                         <option>all-namespaces</option>
                         <option>default</option>
                     </select>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="getSchematic()">
+                        <i class="fa-solid fa-table  pt-1 pr-1" onclick="getSchematic()"></i>
                         Retrieve Schematic
                     </button>
                     <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
@@ -84,28 +85,28 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2">View</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">View</span>
                     <div class="col-auto">
                         <a href=" #storageWrapper" class="btn btn-sm storage-color fa-sm px-2 vpk-padStorage"
-                            data-toggle="collapse">
+                            data-toggle="collapse"><i class="fa fa-lg fa-database"></i>
                             SC / PV / PVC
                         </a>
                     </div>
                     <div class="col-auto">
                         <a href="#countVol" class="btn btn-sm btn-primary fa-sm px-2  vpk-padStorage"
-                            data-toggle="collapse">
+                            data-toggle="collapse"><i class="fa fa-lg fa-list"></i>
                             Counts by Volume Types
                         </a>
                     </div>
                     <div class="col-auto">
                         <a href=" #countNode" class="btn btn-sm btn-secondary fa-sm px-2  vpk-padStorage"
-                            data-toggle="collapse">
+                            data-toggle="collapse"><i class="fa fa-lg fa-list"></i>
                             Counts by Cluster Node
                         </a>
                     </div>
                     <div class="col-auto">
-                        <a href=" #countNamespace" class="btn btn-sm btn-success fa-sm px-2  vpk-padStorage"
-                            data-toggle="collapse">
+                        <a href=" #countNamespace" class="btn btn-sm btn-success fa-sm px-2 px-0 vpk-padStorage"
+                            data-toggle="collapse"><i class="fa fa-lg fa-list"></i>
                             Counts by Namespace
                         </a>
                     </div>
@@ -122,10 +123,12 @@
                 <div class="d-flex flex-row mt-1">
                     <button type=" button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="showNetworkNodeView()">
+                        <i class="fa fa-lg fa-network-wired" onclick="showNetworkNodeView()"></i>
                         View Node & Pod IPs
                     </button>
                     <button type=" button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="showNetworkServiceView()">
+                        <i class="fa fa-lg fa-diagram-project" onclick="showNetworkServiceView()"></i>
                         View Services-To-Pods
                     </button>
                 </div>
@@ -139,13 +142,14 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">Namespace</span>
                     <select id="security-ns-filter">
                         <option>all-namespaces</option>
                     </select>
 
                     <button type=" button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="getSecurityViewData()">
+                        <i class="fa fa-lg fa-shield-halved" onclick="getSecurityViewData()"></i>
                         View selected namespace
                     </button>
                     <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
@@ -161,13 +165,14 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2">Namespace</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">Namespace</span>
                     <select id="ownerRef-ns-filter">
                         <option>all-namespaces</option>
                         <option>default</option>
                     </select>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="getOwnerRefData()">
+                        <i class="fa fa-lg fa-sitemap" onclick="getOwnerRefData()"></i>
                         View selected namespace
                     </button>
                     <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
@@ -186,14 +191,17 @@
                     <span class="vpkfont-md vpkblue px-2 pt-1">View</span>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="evtShowStats()">
+                        <i class="fa fa-lg fa-chart-column" onclick="evtShowStats()"></i>
                         Statistics
                     </button>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="evtShowTimeline()">
+                        <i class="fa fa-lg fa-bars-staggered" onclick="evtShowTimeline()"></i>
                         Timeline
                     </button>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
                         onclick="evtShowTable()">
+                        <i class="fa fa-lg fa-table-list" onclick="evtShowTable()"></i>
                         Table view
                     </button>
                     </span>
@@ -231,13 +239,15 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2 pt-1">View</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">View</span>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2 py-1"
                         onclick="showSnapshotView('graph')">
+                        <i class="fa fa-lg fa-table-cells" onclick="showSnapshotView('graph')"></i>
                         Graph
                     </button>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2 py-1"
                         onclick="showSnapshotView('report')">
+                        <i class="fa fa-lg fa-list" onclick="showSnapshotView('report')"></i>
                         Report
                     </button>
                 </div>
@@ -251,7 +261,7 @@
         <div class="row">
             <div class="col">
                 <div class="d-flex flex-row mt-1">
-                    <span class="vpkfont vpkblue px-2 pt-1">Repository</span>
+                    <span class="vpkfont-md vpkblue px-2 pt-1">Repository</span>
                     <span id="container-images-select" class="ml-1 mr-1 vpkfont-md">
                         <select id="repository-list" style="width: 300px">
                             <option>all-repositories</option>
@@ -260,11 +270,14 @@
                     </span>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
                         onclick="getRepositoryData()">
+                        <i class="fa-solid fa-box" onclick="getRepositoryData()"></i>
                         View selected repository
                     </button>
                     <button type="button" class="btn btn-outline-primary btn-sm vpkButtons vpkwhite pl-1 pr-1"
                         onclick="toggleImagesView()">
-                        Toggle views (table/graph)
+                        Toggle views
+                        <i class="px-1 fa-solid fa-table"></i> /
+                        <i class="px-1 fa-solid fa-chart-gantt"></i>
                     </button>
                     <i class="fa fa-lg fa-info-circle vpkblue header-right pt-1 pr-2 pl-2"
                         onclick="tellMe('container-01')"></i>
@@ -315,6 +328,7 @@
         </div>
         <div class="float-left mt-2 mb-1 ml-0">
             <button type="button" class="btn btn-sm btn-primary vpkButtons px-2 vpkwhite" onclick="searchObj()">
+                <i class="fa-brands fa-searchengin"></i>
                 Search
             </button>
         </div>
