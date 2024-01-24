@@ -279,7 +279,7 @@ function clusterNetwork(stats) {
         if (typeof stats.networkSearchResults !== 'undefined') {
             line = '<div class="pl-2 mb-1">'
                 + '<div class="report-600-wide" data-toggle="collapse" data-target="#cniSummaryALL">'
-                + '<span class="px-1 py-1">CNI locate search results</span></div>'
+                + '<span class="px-1 py-1">CNI search results</span></div>'
                 + '<div id="cniSummaryALL" class="collapse in">'
                 + '<div class="mt-1 vpkfont-md vpkblue">'
 

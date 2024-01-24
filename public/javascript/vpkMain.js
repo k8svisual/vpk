@@ -571,7 +571,7 @@ function setCurrentTab(currentTab) {
     // take action based on what tab was shown
     if (currentTab === "instructions") {
         px = 75;
-        documentationTabTopic = 'overview';
+        documentationTabTopic = 'introduction';
         $('#instructions').show();
         $('#instructionsHdr').show();
     } else {
@@ -680,6 +680,7 @@ function setCurrentTab(currentTab) {
         openStatsTab();
     } else {
         $('#stats').hide();
+        statsHdr
         $('#statsHdr').hide();
         $('#statsSlideIn').hide();
         $('#stats_filter').hide();

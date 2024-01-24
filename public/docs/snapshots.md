@@ -17,19 +17,45 @@ Two methods exist to create a VpK Snapshot.  These are:
 
 __NOTE:__ Both above options require the user to have connected to a running cluster with the kubectl CLI (or other CLI tool) prior to using VpK.  VpK will issue the kubectl command (or other command) with the needed parameters to query the K8s cluster and obtain the data to create the snapshot. 
 
+
+A validated connection to the Kubernetes cluster must be established outside of VpK.  VpK will __not__ obtain data from the cluster
+if a valid kubectl connection does not exist.  
+
+Once a valid connection has been established with a Kubernetes cluster VpK can be used to create the snapshot.  VpK will invoke a series of commands that will obtain information from the running cluster. 
+
+
+The following table provides the command, output file name if one is created, and a brief description.
+
+
+| Command | Output file| Description |
+|---|---|---|
+| kubectl version | version.json | The version of the K8s cluster and client. |
+| kubectl get --raw="/readyz?verbose" | readyz.json | Ready status of resources in the cluster. |
+| kubectl cluster-info dump  | components.json | Parsed output from the command to located components in the cluster. |
+| kubectl api-resources -o wide | n/a  | A list of all defined resource kinds in the cluster.  Information is parsed and the kind and namespaced data is used with the get command. |
+| kubectl get &lt;kind&gt; -n &lt;namespace&gt; -o json | vpk.snapshot.json  | A single file with all string formatted output from the get commands. The &lt;kind&gt; and &lt;namespace&gt; values are obtained from the parsed output from the api-resources command. |
+| kubectl explain &lt;kind&gt; | version.json  | The explain information for each resource located in the cluster.|
+
+<br>
+
 ---
 
 ### Local machine running VpK
 
-The VpK server communicates with the kubectl command CLI to query the K8s cluster.
+The following diagram is an overview of when VpK has been installed locally with npm and running as a node.js application. 
+The VpK server component communicates with the K8s cluster using the kubectl command CLI.  
 
 <img style="float: center;" src="docs/docimages/overview_local.png" width="1024">
+
+The above diagram depicts the Kubernetes cluster as not running on the same machine as VpK.  This does not have to be the case when minikube, 
+kind, or other like solutions are used.  When using those solutions to host the K8s cluster VpK will obtain information from the cluster that is 
+running on the same machine as VpK. 
 
 ---
 
 ### Docker container running VpK
 
-The VpK server communicates with the kubectl command CLI to query the K8s cluster from the Docker container to the local host via SSH.
+The following diagram is an overview of when the docker container for VpK is running.  The VpK server communicates with the kubectl command CLI to query the K8s cluster from the Docker container to the local host via SSH.
 
 <img style="float: center;" src="docs/docimages/overview_container.png" width="1024">
 

@@ -80,7 +80,7 @@ In the upper portion of this tab is a button labeled __Timelapse__.  When clicke
 
 The timelapse will automatically display all snapshot collected changes for the cluster. The view can also be manually advanced or reversed with the use of the appropriate buttons shown in the control portion of the screen. 
 
-#### Timelapse view
+#### Timelapse button
 
 The initial view of the timelapse will have no resources shown, only a circle that is divided into the number of nodes in the cluster.  When started the first recorded change is shown. The next change is then shown and so on. The speed of displaying the changes is controlled by the __Timelapse delay interval__ located in the filter slide-out for the timelapse.
 
@@ -107,12 +107,28 @@ The filter slide-out provides the ability to control showing of the Network or S
 </p>
 
 
-#### Interval detail
+#### Interval detail view
 
-Once the auto display is paused the detail changes for the currently displayed time interval can be viewed by pressing the blue circle with an 'i'.  Pressing this blue circle will display all changes in the current interval in a tabular form.
+Once the auto display is paused the detail changes for the currently displayed time interval can be viewed by pressing the blue eye icon. Pressing this will display all changes in the current interval in a tabular form.
+
 
 <p align="center">
   <img style="float: center;" src="docs/docimages/tab_cluster_timelapse_detail.png" width="1024">
+</p>
+
+<hr style="border:1px solid #aaaaaa">
+
+
+### Report button
+
+In the upper portion of this tab is a button labeled __Report__.  When clicked this button will clear the 3D view and open a view with 
+categories of cluster information for the selected snapshot.  Click a category title and the view will expand to present the associated information. Clicking the category title again will toggle the view data.
+
+Drilling down within the associated information is supported when approriate.
+
+
+<p align="center">
+  <img style="float: center;" src="docs/docimages/tab_cluster_report.png" width="1024">
 </p>
 
 <hr style="border:1px solid #aaaaaa">
