@@ -4,7 +4,7 @@
         "statusSection": true,
         "redactSecrets": false,
         "reloadAction": true,
-        "lightTheme": true,
+        "lightTheme": false,
         "clusterBackground": "Sky"
     },
     "snapshotDir": "/Users/bob/snaptest",
@@ -38,5 +38,56 @@
         "clusterFilterCPULimit": false,
         "clusterFilterCPURequest": false,
         "clusterFilterSound": false
-    }
+    },
+    "search": [
+        {
+            "type": "network",
+            "result": "Cilium",
+            "value": "cilium",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Flannel",
+            "value": "flannel",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Calico",
+            "value": "calico",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Canal",
+            "value": "canal",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "Weave",
+            "value": "weave",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVS",
+            "value": "Open vSwitch",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        },
+        {
+            "type": "network",
+            "result": "OVS",
+            "value": "Open_vSwitch",
+            "kinds": "::Pod::Deployment::",
+            "ns": "::all-namespaces::"
+        }
+    ]
 }

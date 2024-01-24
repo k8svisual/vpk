@@ -27,6 +27,7 @@ const softwareVersion = '6.2.3';
 //------------------------------------------------------------------------------
 import vpk from './lib/vpk.js';
 import utl from './lib/utl.js';
+import flh from './lib/fileHandler.js';
 import vpkReset from './lib/vpkReset.js';
 import docm from './lib/documentation.js';
 import appRoutes from './lib/appRoutes.js';
@@ -119,7 +120,7 @@ if (typeof options.port !== 'undefined' && options.port !== null) {
 if (typeof options.snapshot !== 'undefined' && options.snapshot !== null) {
     snapshot = options.snapshot;
 
-    let nd = utl.formatDir(snapshot);
+    let nd = flh.formatDir(snapshot);
 
     vpk.snapshotDir = nd;
 } else {
@@ -149,7 +150,7 @@ if (startMsg.length > 0) {
 //------------------------------------------------------------------------------
 // read vpk configuration file
 //------------------------------------------------------------------------------
-let gcstatus = utl.readConfig();
+let gcstatus = flh.readConfig();
 if (gcstatus !== 'OK') {
     utl.logMsg('vpkMNL095 - Terminating application error processing configuration file vpkconfig.json');
     process.exit(-1);
@@ -198,12 +199,12 @@ vpkReset.resetAll();
 function startServer() {
     try {
         server.listen(port);              // start server
-        utl.readLicenseFile();            // read license text into global vpk
+        flh.readLicenseFile();            // read license text into global vpk
         // create the cluster directory if it does not exist
         if (vpk.snapshotDir === "") {
-            utl.makedir('cluster');
+            flh.makedir('cluster');
         }
-        utl.makedir('usage');             // create the usage directory if it does not exist
+        flh.makedir('usage');             // create the usage directory if it does not exist
 
         docm.buildDocumentation();        // read, parse, and load documentation markdown files into global vpk
     } catch (err) {

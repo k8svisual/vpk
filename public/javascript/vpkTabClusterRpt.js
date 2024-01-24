@@ -21,6 +21,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // Screen handling code for the report section of the Cluster tab
 //----------------------------------------------------------
 
+let summaryCRIData = [];
+
 function openClusterRptView() {
     $('#cluster').hide();
     // $('#clusterHdr').hide();
@@ -42,10 +44,295 @@ function createClusterSummary() {
         return;
     }
 
-    clusterNodes(vpkstats.nodes)
-    clusterReadyz(vpkstats.stats)
-    clusterInfoDump(vpkstats.stats)
-    clusterTop10(vpkstats.hogs)
+    summaryCRIData = [];
+    clusterVersion(vpkstats.stats.k8sVersion)
+    clusterNodes(vpkstats.nodes);
+    clusterReadyz(vpkstats.stats);
+    clusterInfoDump(vpkstats.stats);
+    clusterTop10(vpkstats.hogs);
+    clusterNetwork(vpkstats.stats);
+    clusterCSI(vpkstats.csiDriver);
+    clusterCRI();
+    clusterPodStats(vpkstats.stats.pods)
+}
+
+function clusterPodStats(data) {
+    //-------------------------------------------------------------------------
+    // Review pod counts
+    //-------------------------------------------------------------------------
+    let line = '';
+
+    try {
+        keys = Object.keys(data);
+        if (keys.length > 0) {
+            line = '<div class="pl-2 mb-1">'
+                + '<div class="report-600-wide" data-toggle="collapse" data-target="#podsSummaryALL">'
+                + '<span class="px-1 py-1">Pod status counts</span></div>'
+                + '<div id="podsSummaryALL" class="collapse in">'
+                + '<div class="mt-1 vpkfont-md vpkblue">'
+                + '<div class="mb-1 mt-1">'
+
+            for (let i = 0; i < keys.length; i++) {
+                line = line
+                    + '  <div class="ml-3"><span class="pr-2">' + keys[i] + ':</span>' + data[keys[i]].cnt + '</div>'
+            }
+            line = line
+                + '<div>'
+                + '</div>'
+        } else {
+            $('#summaryPods').html('');
+        }
+        if (keys.length === 0) {
+            $('#summaryPods').html('');
+        } else {
+            $('#summaryPods').html(line);
+        }
+    } catch (e) {
+        console.log(`error processing clusterPodStats: ${e}`)
+        $('#summaryPods').html('');
+    }
+}
+
+
+function clusterVersion(data) {
+    //-------------------------------------------------------------------------
+    // Review versions of cluster software
+    //-------------------------------------------------------------------------
+    let line = '';
+    let ver = '';
+
+    try {
+        keys = Object.keys(data);
+        if (keys.length > 0) {
+            line = '<div class="pl-2 mb-1">'
+                + '<div class="report-600-wide" data-toggle="collapse" data-target="#versionSummaryALL">'
+                + '<span class="px-1 py-1">Cluster version information</span></div>'
+                + '<div id="versionSummaryALL" class="collapse in">'
+                + '<div class="mt-1 vpkfont-md vpkblue">'
+                + '<div class="mb-1 mt-1">'
+
+            for (let i = 0; i < keys.length; i++) {
+                if (typeof data[keys[i]].gitVersion !== 'undefined') {
+                    ver = data[keys[i]].gitVersion;
+                } else {
+                    ver = data[keys[i]];
+                }
+                line = line
+                    + '  <div class="ml-3"><span class="pr-2">' + keys[i] + ':</span>' + ver + '</div>'
+            }
+            line = line
+                + '<div>'
+                + '</div>'
+        } else {
+            $('#summaryVersion').hide();
+            $('#summaryVersionInfo').html('');
+        }
+        if (keys.length === 0) {
+            $('#summaryVersion').hide();
+            $('#summaryVersionInfo').html('');
+        } else {
+            $('#summaryVersionInfo').html(line);
+            $('#summaryVersion').show();
+        }
+    } catch (e) {
+        console.log(`error processing clusterVersion: ${e}`)
+        $('#summaryVersion').hide();
+        $('#summaryVersionInfo').html('');
+    }
+}
+
+
+function clusterCRI() {
+    //-------------------------------------------------------------------------
+    // Review if any results from network searches exist
+    //-------------------------------------------------------------------------
+    let line = '';
+    let keys = [];
+    let data;
+    let found = {};
+    try {
+        if (summaryCRIData.length > 0) {
+            for (let i = 0; i < summaryCRIData.length; i++) {
+                if (summaryCRIData[i].startsWith('cri-o')) {
+                    if (typeof found['cri-o'] === 'undefined') {
+                        found['cri-o'] = 1;
+                    } else {
+                        found['cri-o'] + found['cri-o'] + 1;
+                    }
+                } else if (summaryCRIData[i].startsWith('docker')) {
+                    if (typeof found['docker'] === 'undefined') {
+                        found['docker'] = 1;
+                    } else {
+                        found['docker'] + found['docker'] + 1;
+                    }
+                } else if (summaryCRIData[i].startsWith('contain')) {
+                    if (typeof found['contain'] === 'undefined') {
+                        found['containerd'] = 1;
+                    } else {
+                        found['containerd'] + found['containerd'] + 1;
+                    }
+                } else if (summaryCRIData[i].startsWith('frakti')) {
+                    if (typeof found['frakti'] === 'undefined') {
+                        found['frakti'] = 1;
+                    } else {
+                        found['frakti'] + found['frakti'] + 1;
+                    }
+                } else {
+                    if (typeof found['unknown'] === 'undefined') {
+                        found['unknown'] = 1;
+                    } else {
+                        found['unknown'] + found['unknown'] + 1;
+                    }
+                }
+            }
+        }
+        // Get keys of located CRIs
+        keys = Object.keys(found);
+        if (keys.length > 0) {
+            line = '<div class="pl-2 mb-1">'
+                + '<div class="report-600-wide" data-toggle="collapse" data-target="#criSummaryALL">'
+                + '<span class="px-1 py-1">CRI summary</span></div>'
+                + '<div id="criSummaryALL" class="collapse in">'
+                + '<div class="mt-1 vpkfont-md vpkblue">'
+                + '<div class="mb-1 mt-1">'
+
+
+            for (let f = 0; f < keys.length; f++) {
+                line = line
+                    + '  <div class="ml-3">' + keys[i] + '</div>'
+            }
+            line = line
+                + '<div>'
+                + '</div>'
+        } else {
+            $('#summaryCRI').hide();
+            $('#summaryCRIInfo').html('');
+        }
+        if (keys.length === 0) {
+            $('#summaryCRI').hide();
+            $('#summaryCRIInfo').html('');
+        } else {
+            $('#summaryCRIInfo').html(line);
+            $('#summaryCRI').show();
+        }
+    } catch (e) {
+        console.log(`error processing clusterCRI: ${e}`)
+        $('#summaryCRI').hide();
+        $('#summaryCRIInfo').html('');
+    }
+}
+
+
+function clusterCSI(csi) {
+    //-------------------------------------------------------------------------
+    // Review if any results from network searches exist
+    //-------------------------------------------------------------------------
+    let line = '';
+    let keys = [];
+    try {
+        if (typeof csi !== 'undefined') {
+            line = '<div class="pl-2 mb-1">'
+                + '<div class="report-600-wide" data-toggle="collapse" data-target="#csiSummaryALL">'
+                + '<span class="px-1 py-1">CSI drivers</span></div>'
+                + '<div id="csiSummaryALL" class="collapse in">'
+                + '<div class="mt-1 vpkfont-md vpkblue">'
+                + '<div class="mb-1 mt-1 ml-3">'
+                + '<table>'
+            keys = Object.keys(csi);
+            for (let i = 0; i < keys.length; i++) {
+                line = line
+                    + '  <tr class="summary_tab_border vkpfont-md">'
+                    + '    <td class="text-left pr-2 pl-2" onclick="getDefFnum(\'' + csi[keys[i]][0].fnum + '\')">' + csi[keys[i]][0].name + '</td>'
+                    + '  </tr>'
+
+            }
+            line = line
+                + '</table>'
+                + '<div>'
+                + '</div>'
+        } else {
+            $('#summaryCSI').hide();
+            $('#summaryCSIInfo').html('');
+        }
+        if (keys.length === 0) {
+            $('#summaryCSI').hide();
+            $('#summaryCSIInfo').html('');
+        } else {
+            $('#summaryCSIInfo').html(line);
+            $('#summaryCSI').show();
+        }
+    } catch (e) {
+        console.log(`error processing clusterCSI: ${e}`)
+        $('#summaryCNI').hide();
+        $('#summaryCSIInfo').html('');
+    }
+}
+
+function clusterNetwork(stats) {
+    //-------------------------------------------------------------------------
+    // Review if any results from network searches exist
+    //-------------------------------------------------------------------------
+    let line = '';
+    let keys = [];
+    let data;
+    try {
+        if (typeof stats.networkSearchResults !== 'undefined') {
+            line = '<div class="pl-2 mb-1">'
+                + '<div class="report-600-wide" data-toggle="collapse" data-target="#cniSummaryALL">'
+                + '<span class="px-1 py-1">CNI locate search results</span></div>'
+                + '<div id="cniSummaryALL" class="collapse in">'
+                + '<div class="mt-1 vpkfont-md vpkblue">'
+
+            keys = Object.keys(stats.networkSearchResults);
+            for (let i = 0; i < keys.length; i++) {
+                line = line
+                    + '<div class="mb-2 mt-2 ml-3 vpkfont-md vpkblue">' + keys[i] + '</div>'
+                    + '<div class="mb-1 ml-3">'
+
+                // Loop through the results
+                data = stats.networkSearchResults[keys[i]]
+                if (data.length > 0) {
+
+                    for (let f = 0; f < data.length; f++) {
+                        line = line
+                            + '<div class="mb-1 mt-1">'
+                            + '<table>'
+                            + '  <tr class="summary_tab_border vkpfont-md">'
+                            + '    <td class="text-right pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">Kind:</td>'
+                            + '    <td class="text-left pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">' + data[f].kind + '</td>'
+                            + '  </tr>'
+                            + '  <tr class="summary_tab_border vkpfont-md">'
+                            + '    <td class="text-right pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">Namespace:</td>'
+                            + '    <td class="text-left pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">' + data[f].namespace + '</td>'
+                            + '  </tr>'
+                            + '  <tr class="summary_tab_border vkpfont-md">'
+                            + '    <td class="text-right pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">Name:</td>'
+                            + '    <td class="text-left pr-2 pl-2" onclick="getDefFnum(\'' + data[f].fnum + '\')">' + data[f].name + '</td>'
+                            + '  </tr>'
+                            + '</table>'
+                            + '<div>'
+                    }
+                    line = line + '</div>'
+                }
+            }
+        } else {
+            $('#summaryCNI').hide();
+            $('#summaryCNIInfo').html('');
+        }
+
+        if (keys.length === 0) {
+            $('#summaryCNI').hide();
+            $('#summaryCNIInfo').html('');
+        } else {
+            $('#summaryCNIInfo').html(line);
+            $('#summaryCNI').show();
+        }
+
+    } catch (e) {
+        console.log(`error processing clusterCSI: ${e}`)
+        $('#summaryCNI').hide();
+        $('#summaryCNIInfo').html('');
+    }
 }
 
 function clusterReadyz(stats) {
@@ -59,7 +346,7 @@ function clusterReadyz(stats) {
             + '<span class="px-1 py-1">Ready status of components</span></div>'
             + '<div id="readyZSummaryALL" class="collapse in">'
 
-            + '<div class="mt-1 vpkfont-md vpkblue">'
+            + '<div class="mt-1 ml-3 vpkfont-md vpkblue">'
             + '<table><tr>'
             + '<th class="text-center summary_tab" style="width: 600px;">Ready status</th><tr>';
 
@@ -97,7 +384,7 @@ function clusterInfoDump(stats) {
             + '<span class="px-1 py-1">Output from cluster-info dump</span></div>'
             + '<div id="dumpCSummaryALL" class="collapse in">'
 
-            + '<div class="mt-1 vpkfont-md vpkblue">'
+            + '<div class="mt-1 ml-3 vpkfont-md vpkblue">'
             + '<table><tr>'
             + '<th class="text-center summary_tab" style="width: 600px;">Cluster-info dump</th><tr>';
 
@@ -157,13 +444,16 @@ function clusterNodes(nodes) {
     nodes = new Object(newNodes);
 
     if (keys.length > 0) {
-        line = line + '<span class="vpkfont-sm">Click icon or text to toggle node detail view</span>'
+        line = line + '<span class="vpkfont-sm">Click icon for resource information or click text to toggle node summayr view</span>'
         for (let i = 0; i < keys.length; i++) {
             if (keys[i] !== null && keys[i].length !== 0) {
                 if (nodes[i] === null) {
                     continue;
                 }
             }
+
+            // Save CRI data for later use in clusterCRI function
+            summaryCRIData.push(nodes[i][0].nodeInfo.containerRuntimeVersion);
 
             // set type of Node
             if (nodes[i][0].type === 'w') {
@@ -175,10 +465,10 @@ function clusterNodes(nodes) {
             }
 
             line = line
-                + '<div class="panel-group">'
+                + '<div class="panel-group ml-3">'
                 + '  <div class="panel panel-default">'
                 + '    <div class="panel-heading">'
-                + '      <img width="20" height="20" src="' + img + '"   data-toggle="collapse" href="#nodeSummary_' + i + '"/>'
+                + '      <img width="20" height="20" src="' + img + '"  onclick="getDefFnum(\'' + nodes[i][0].fnum + '\')"/>'
                 + '      <span class="panel-title vpkfont-md">'
                 + '        <span data-toggle="collapse" href="#nodeSummary_' + i + '">' + nodes[i][0].name + '</span>'
                 + '      </span>'
@@ -244,27 +534,27 @@ function clusterTop10(hogs) {
         + '<span class="px-1 py-1">Top 10 Requests & Limits</span></div>'
         + '<div id="hogsSummaryALL" class="collapse in">'
 
-    line2 = line2 + '<div class="mt-1 mb-2 vpkfont-md vpkblue"><div>'
+    line2 = line2 + '<div class="mt-1 mb-2 ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.cpuR, 'cpuR')
     line2 = line2 + '</div></div>'
 
-    line2 = line2 + '<div class="mb-2 vpkfont-md vpkblue"><div>'
+    line2 = line2 + '<div class="mb-2  ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.cpuL, 'cpuL')
     line2 = line2 + '</div></div>'
 
-    line2 = line2 + '<div class="mb-2 vpkfont-md vpkblue"><div>'
+    line2 = line2 + '<div class="mb-2  ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.memR, 'memR')
     line2 = line2 + '</div></div>'
 
-    line2 = line2 + '<div class="mb-2 vpkfont-md vpkblue">t<div>'
+    line2 = line2 + '<div class="mb-2  ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.memL, 'memL')
     line2 = line2 + '</div></div>'
 
-    line2 = line2 + '<div class="mb-2 vpkfont-md vpkblue"><div>'
+    line2 = line2 + '<div class="mb-2  ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.diskR, 'diskR')
     line2 = line2 + '</div></div>'
 
-    line2 = line2 + '<div class="mb-2 vpkfont-md vpkblue"><div>'
+    line2 = line2 + '<div class="mb-2  ml-3 vpkfont-md vpkblue"><div>'
     line2 = line2 + createTop10Table(hogs.diskL, 'diskL')
     line2 = line2 + '</div></div>'
 
