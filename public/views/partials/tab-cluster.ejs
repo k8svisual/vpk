@@ -62,7 +62,6 @@
             </label>
         </div>
 
-
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterStorage"
                 name="clusterFilterStorage" checked>
@@ -108,7 +107,6 @@
             </label>
         </div>
 
-
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterWorkload"
                 name="clusterFilterWorkload" checked>
@@ -126,7 +124,6 @@
                 Service level plane
             </label>
         </div>
-
 
         <div class="form-check vpkfont-filter ml-1 vpk-vert-mid">
             <input class="form-check-input filter-checkbox" type="checkbox" value="" id="clusterFilterConfigStorage"
@@ -200,11 +197,12 @@
             </label>
         </div>
 
-
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
         <div class="form-check vpkfont-filter">
             <span class="vpkblue">Pods</span>
         </div>
+
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
@@ -256,6 +254,7 @@
         <div class="form-check vpkfont-filter">
             <span class="vpkblue">Resource CPU & Memory</span>
         </div>
+
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
@@ -321,11 +320,12 @@
             </label>
         </div>
 
-
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
         <div class="form-check vpkfont-filter">
             <span class="vpkblue">Namespace (default: all-namespace)</span>
         </div>
+
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div id="cluster-bar1-select" class="form-check mr-1 mt-1 vpkfont-filter">
@@ -337,9 +337,11 @@
         </div>
 
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
         <div class="form-check vpkfont-filter">
             <span class="vpkblue">Sound</span>
         </div>
+
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
 
         <div class="form-check vpkfont-filter ml-1">
@@ -350,8 +352,8 @@
             </label>
         </div>
 
-
         <hr style="margin-left: -10px; margin-bottom: 2px; margin-right: -5px; margin-top: 2px;">
+
         <div class="mb-2 mt-2 text-center">
             <button type="button" id="c3DBackground" class="btn btn-primary btn-sm vpkButtons px-2"
                 onclick="saveClusterFilters()">Save current filter settings as default</button>
@@ -365,15 +367,12 @@
     <div id="clusterScreenShot" class="text-center vpkfont-lg mt-1 mb-2"></div>
 </div>
 
-
-<!-- ============================== Time Lapse slide-up ===============================-->
+<!-- =============== Time Lapse slide-up control buttons ================== -->
 <div class="container-3d">
     <div class="cluster-slide-up-container" id="clusterSlideUpContainer">
         <div class="container-fluid mt-2">
             <div class="row align-items-center">
                 <div class="col-auto">&NonBreakingSpace;
-                    <!-- <button type="button" class="btn btn-outline-primary btn-sm vpkButtons px-2"
-                        onclick="timeLapseFilterOpen()">Filter</button> -->
                 </div>
                 <div class="col">
                     <div class="d-flex flex-row justify-content-center">
@@ -416,7 +415,7 @@
     </div>
 </div>
 
-<!-- ============================== Time Lapse filter ===============================-->
+<!-- ======================== Time Lapse filter =========================== -->
 <span id="timeLapse_filter" class="vpkhidden" onclick="timeLapseFilterOpen()">Filter timelapse</span>
 
 <div id="timeLapseSlideIn">
@@ -454,13 +453,14 @@
         </label>
     </div>
 
-
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
     <div class="form-check vpkfont-filter">
         <span class="vpkblue">Namespace (default: all-namespaces)</span>
     </div>
 
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
     <div id="timeLapse-bar-select" class="form-check mr-1 mt-2 mb-2 vpkfont-filter">
         <select id="timeLapse-ns-filter">
             <option>all-namespaces</option>
@@ -470,11 +470,13 @@
     </div>
 
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
     <div class="form-check vpkfont-filter">
         <span class="vpkblue">Timelapse delay interval (1 - 30)</span>
     </div>
 
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
     <div class="row row justify-content-center mt-2">
         <span class="pr-2 vpkblue">
             <span class="px-1 vpkfont">Fast</span><i class="fas fa-125x fa-caret-square-left vpkblue vpkfont-lg"
@@ -490,12 +492,14 @@
     </div>
 </div>
 
-<!-- ============ Cluster summary data ============= -->
+<!-- ======================== Cluster Report data ========================= -->
 <div id="clusterReportView" class="ml-35 vpkhidden">
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
     <div class="'ml-3 vpkfont-md vpkblue">
         Clicks titles to toggle views
     </div>
+
     <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
 
     <div id="summaryVersion" class="mt-2 ml-2 mb-2">
@@ -542,6 +546,4 @@
         <div id="summaryDumpC" class="vpkfont-md vpkblue">
         </div>
     </div>
-
-
 </div>

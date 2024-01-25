@@ -18,7 +18,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 //----------------------------------------------------------
-// create the 3d view for the cluster
+// Create the 3d view for the cluster
 //----------------------------------------------------------
 
 let ownerRefButton;
