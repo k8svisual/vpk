@@ -199,7 +199,7 @@ function clusterCRI() {
 
             for (let f = 0; f < keys.length; f++) {
                 line = line
-                    + '  <div class="ml-3">' + keys[i] + '</div>'
+                    + '  <div class="ml-3">' + keys[f] + '</div>'
             }
             line = line
                 + '<div>'
