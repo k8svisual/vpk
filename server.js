@@ -201,9 +201,10 @@ function startServer() {
         server.listen(port);              // start server
         flh.readLicenseFile();            // read license text into global vpk
         // create the cluster directory if it does not exist
-        if (vpk.snapshotDir === "") {
-            flh.makedir('cluster');
-        }
+        // if (vpk.snapshotDir === "") {
+        //     flh.makedir('cluster');
+        // }
+        flh.makedir('cluster');
         flh.makedir('usage');             // create the usage directory if it does not exist
 
         docm.buildDocumentation();        // read, parse, and load documentation markdown files into global vpk
