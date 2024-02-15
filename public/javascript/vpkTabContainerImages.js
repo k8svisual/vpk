@@ -109,7 +109,7 @@ function graphImageTable() {
         $('#containerImageGraphic').show();
     } catch (err) {
         console.log(`Failed to process selected Container Images to graph, message: ${err}`)
-        console.l0g(`Error stack: ${err.stack}`)
+        console.log(`Error stack: ${err.stack}`)
     }
 }
 

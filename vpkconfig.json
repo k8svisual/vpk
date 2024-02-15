@@ -4,7 +4,7 @@
         "statusSection": true,
         "redactSecrets": false,
         "reloadAction": true,
-        "lightTheme": false,
+        "lightTheme": true,
         "clusterBackground": "Grey"
     },
     "snapshotDir": "/Users/bob/snaptest",

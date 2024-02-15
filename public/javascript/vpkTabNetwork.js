@@ -42,7 +42,6 @@ const netNoDataMsg = '<div><span class="vpkfont vpkblue">No Snapshot data loaded
 
 
 function openNetworkTab() {
-    console.log('openNetworkTab()');
 
     // Build and show the proper drop down filter network
     // Depending on what view is shown, Node or Service, populate with the appropriate data
@@ -713,6 +712,7 @@ function netUniqueIPs(data) {
     for (let i = 0; i < newK.length; i++) {
         ip = newK[i].split('::')
         newD[ip[1]] = data[ip[1]];
+        //newD.push(data[ip[1]]);
     }
     return newD;
 }

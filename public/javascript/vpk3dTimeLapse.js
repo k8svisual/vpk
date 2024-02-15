@@ -720,22 +720,26 @@ function timeLapseSpeedMore() {
 function timeLapseIntervalDetail() {
     let key = timeLapseKeys[timeLapseI];
     let data = timeLapseData[key];
-    data.sort();
     if (typeof data !== 'undefined') {
-        let detail = '<div class="mt-1 mb-3 vpkblue vpkfont-lg"><b>'
-            + key.substring(0, 10) + ' ' + key.substring(11, 20)
-            + '</b></div>'
-            + '<table><tr><th>Action</th><th>Kind</th><th>Namespace</th><th>Name</th></tr>';
-        for (let i = 0; i < data.length; i++) {
-            detail = detail + '<tr>'
-                + '<td>' + data[i].act + '</td>'
-                + '<td>' + data[i].kind + '</td>'
-                + '<td>' + data[i].ns + '</td>'
-                + '<td>' + data[i].name + '</td></tr>'
+        data.sort();
+        if (typeof data !== 'undefined') {
+            let detail = '<div class="mt-1 mb-3 vpkblue vpkfont-lg"><b>'
+                + key.substring(0, 10) + ' ' + key.substring(11, 20)
+                + '</b></div>'
+                + '<table><tr><th>Action</th><th>Kind</th><th>Namespace</th><th>Name</th></tr>';
+            for (let i = 0; i < data.length; i++) {
+                detail = detail + '<tr>'
+                    + '<td>' + data[i].act + '</td>'
+                    + '<td>' + data[i].kind + '</td>'
+                    + '<td>' + data[i].ns + '</td>'
+                    + '<td>' + data[i].name + '</td></tr>'
+            }
+            detail = detail + '</table>'
+            $('#timeLapseBody').html(detail);
+            $("#timeLapseModal").modal('show');
+        } else {
+            showMessage('No data to display for this time interval.')
         }
-        detail = detail + '</table>'
-        $('#timeLapseBody').html(detail);
-        $("#timeLapseModal").modal('show');
     } else {
         showMessage('No data to display for this time interval.')
     }
