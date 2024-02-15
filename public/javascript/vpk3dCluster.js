@@ -2573,12 +2573,12 @@ function parseClusterResc() {
             continue;
         }
     }
-    // add configMaps and secrets if they exist
+    // add configMap and secret if they exist
     if (configMapsFound === true) {
-        clusterRescConfigStorage.push('ConfigMaps')
+        clusterRescConfigStorage.push('ConfigMap')
     }
     if (secretsFound === true) {
-        clusterRescConfigStorage.push('Secrets')
+        clusterRescConfigStorage.push('Secret')
     }
 }
 

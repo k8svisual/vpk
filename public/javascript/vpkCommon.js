@@ -290,8 +290,10 @@ function openSearch(val, requestor) {
 		}
 
 	} else if (requestor === 'Cluster') {
-		nsSelect = val;
+		nsSelect = 'all-namespaces';
+		nsVal = '::all-namespaces::';
 		kindSelect = val;
+		kVal = '::' + val + '::'
 	}
 
 
