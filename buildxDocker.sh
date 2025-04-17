@@ -45,7 +45,12 @@ fi
 
 echo $DASH
 echo " "
+
+export DOCKER_BUILDKIT=1
+docker buildx create --use --name mybuilder --driver docker-container
+docker buildx inspect mybuilder --bootstrap
 docker buildx build  --platform linux/amd64,linux/arm64 -t ${TR}/${IMG}:${TAG} . --push
+
 # docker push ${TR}/${IMG}:${TAG}
 echo " "
 echo $DASH

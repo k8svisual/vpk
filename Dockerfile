@@ -1,9 +1,10 @@
 # VpK (Visually presented Kubernetes)
 # Docker build file base image
-# FROM node:18.17.1
-# FROM node:20
-FROM node:21.5-slim
+FROM node:23.11-slim AS builder
 LABEL maintainer="k8svisual"
+
+# Declare build-time architecture
+ARG TARGETARCH
 
 # Create directories
 RUN mkdir /vpk
@@ -12,27 +13,27 @@ RUN mkdir /vpk/usage
 
 # Copy files to container image
 WORKDIR /vpk
-COPY lib/ ./lib
-COPY public/ ./public
+COPY dist/ ./dist
 COPY package.json .
-COPY server.js .
 COPY vpkconfig.json .
 COPY LICENSE .
 COPY README.md .
 
-# Install curl and latest version of kubectl inside image
-# and ensure kubectl is executable
-
-RUN apt-get update \ 
-    && apt-get install -y  curl \
-    && apt-get install -y sshpass \
-    && npm install \
-    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \ 
+# Install app packages
+# Install curl 
+# Install latest version of kubectl inside image and ensure kubectl is executable
+RUN apt-get update \
+    && apt-get install -y curl ca-certificates sshpass gnupg \
+    && npm install --omit=dev \
+    && ARCH_SUFFIX="$TARGETARCH" \
+    && KUBECTL_VERSION="$(curl -sSL https://dl.k8s.io/release/stable.txt)" \
+    && curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH_SUFFIX}/kubectl" \
     && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
-    && rm kubectl
+    && rm kubectl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Add command to start VpK with option to indicate running in container '-c yes'
-CMD ["sh", "-c", "node server.js -c yes"]
+CMD ["sh", "-c", "node dist/server/server.js -c yes"]
 
 # Expose the default web port so browser can communicate
 EXPOSE 4200/tcp
@@ -53,7 +54,7 @@ EXPOSE 4200/tcp
 #EXAMPLE docker command to open shell via exec
 # docker ps
 # copy k8svisual/vpk CONTAINER ID to clip board
-#docker exec -it (paste Containe ID) sh
+#docker exec -it (paste Container ID) sh
 
 #EXAMPLE docker command to run command in vpk container
 #docker run -it k8svisual/vpk sh
