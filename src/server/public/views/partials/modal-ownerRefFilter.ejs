@@ -1,0 +1,90 @@
+<!-- ==================================== -->
+<!-- Owner Referrnce filter Modal section       -->
+<!-- ==================================== -->
+<div class="modal fade" id="ownerRefFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="ml-2 vkpfont-lg vpkblue">
+                    OwnerRef filter -
+                    <span class="ml-2 vpkfont vpkblue">for selected namespace:
+                        <span id="oRefSelectedNS" style="font-weight: bold;">
+                            none
+                        </span>
+                    </span>
+                </div>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applyOwnerRefFilter()">Apply
+                        filter
+                    </button>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2"
+                            onclick="clearAllOwnerRefFilters()">Clear all filters
+                        </button>
+                    </span>
+                    <hr>
+                    <div id="oRef-filter" class="row filterBack pl-1 mt-1">
+                        <!-- <div class="vpkfont vpkblue mt-2 ml-2">
+                            <span>Selected namespace: <span id="oRefSelectedNS"
+                                    style="font-weight: bold;"></span></span>
+                        </div> -->
+                        <div class="vpkfont vpkblue mt-2 ml-2 filterWidthORef">
+                            Kind(s):
+                        </div>
+                        <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                            <select id="ownerRef-kind-filter" multiple="multiple" style="width: 250px">
+                                <option>No namespace selected</option>
+                            </select>
+                        </div>
+                        <div class="mt-1">
+                            <button type="button" class="btn btn-sm btn-primary ml-2" onclick="findORefNames()">Populate
+                                resource names information
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr>
+                    <div id="oRef-message">
+                        <span class="mt-2 mb-2 ml-2" style="color: red; display: none;">Message goes here</span>
+                    </div>
+
+
+                    <div class="vpkfont vpkblue ml-2 ">
+                        Resource names:
+                    </div>
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <!-- Workload schematic keys table-->
+                            <div id="ORefResults" class="ml-2 mr-2 mt-1">
+                                <table id="tableORef" class="table table-bordered table-sm" data-buttons-class="primary"
+                                    data-buttons-prefix="btn-sm btn" data-icon-size="sm"
+                                    data-loading-template="loadingTemplate" data-maintain-meta-data="true"
+                                    data-page-list="[10, 25, 50, 100, 200, All]" data-pagination="true"
+                                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                                    data-show-columns="false" data-show-export="false" data-show-fullscreen="false"
+                                    data-show-print="false" data-show-refresh="false" data-show-toggle="false"
+                                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false"
+                                    data-toggle="table" data-visible="true" data-click-to-select="true">
+                                    <thead class='thead-light'>
+                                        <tr>
+                                            <th data-field="state" data-checkbox="true"></th>
+                                            <th data-field="kind" data-sortable="true">Kind</th>
+                                            <th data-field="name" data-sortable="true">Name</th>
+                                            <th data-field="id" data-sortable="true">Fnum</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mt-0 pt-1">
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of schematic filter Modal -->
+</div>

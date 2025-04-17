@@ -1,0 +1,589 @@
+#clusterCanvas {
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+#sliceKey {
+    display: none;
+}
+
+#slideIn_box {
+    position: fixed;
+    top: 80px;
+    right: 0;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 10px 22px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform-origin: bottom right;
+    transform: rotate(-90deg);
+}
+
+#slideIn_box:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#slideIn {
+    /* Initially, it's off-screen to the right */
+    position: fixed;
+    top: 120px;
+    right: -300px;
+    width: 300px;
+    height: 290px;
+    overflow-x: hidden;
+    transition: 0.5s;
+    z-index: 1000;
+    padding: 5px;
+    background: #eee;
+    color: #555;
+    border: 1px solid rgb(0, 123, 255);
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Content styling */
+#slideIn.content {
+    padding: 20px;
+}
+
+/* Show it when active */
+#slideIn.active {
+    right: 0;
+}
+
+#cluster_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#cluster_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#cluster_filter_box {
+    position: fixed;
+    left: 0;
+    top: 120px;
+    /* bottom: 200px; */
+    width: 300px;
+    height: 465px;
+    z-index: 1000;
+    padding: 5px;
+    background: #eee;
+    color: #555;
+    border: 1px solid rgb(0, 123, 255);
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease-in-out;
+    min-height: 200px;
+    transform: translateX(-120%);
+    overflow-y: scroll;
+}
+
+#cluster_filter_box.active {
+    transform: translateX(0%);
+}
+
+/* ---------------- */
+
+#schematic_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#schematic_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#schematic_border {
+    margin-left: 35px;
+}
+
+#oref_border {
+    margin-left: 40px;
+}
+
+/* ---------------- */
+
+#ownerRef_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#ownerRef_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#ownerRef_border {
+    margin-left: 35px;
+}
+
+
+/* ---------------- */
+
+#security_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#security_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#security_border {
+    margin-left: 35px;
+}
+
+/* ---------------- */
+
+#evtMsgs_filter {
+    position: fixed;
+    left: -40px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#evtMsgs_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#evtMsgs_border {
+    margin-left: 35px;
+}
+
+/* ------------ */
+
+#network_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#network_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+#network_border {
+    margin-left: 35px;
+}
+
+
+
+
+#stats_filter {
+    position: fixed;
+    left: -21px;
+    top: 182px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 21px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#stats_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}
+
+
+#statsSlideIn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    height: 190px;
+    background-color: #eeeeee;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(0, 123, 255);
+    z-index: 1000;
+}
+
+#statsSlideIn.open {
+    transform: translateY(0);
+}
+
+#statsSlideInCloseButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+
+
+
+
+/* ------------ */
+
+.filter-checkbox {
+    margin-top: 1px;
+}
+
+.memoryRequest {
+    background-color: #1e18ef;
+}
+
+.memoryLimit {
+    background-color: #f4a8e6;
+}
+
+.cpuRequest {
+    background-color: #66b0aa;
+}
+
+.cpuLimit {
+    background-color: #ef5818;
+}
+
+.podRunning {
+    background-color: #00ff00;
+}
+
+.podWarn {
+    background-color: #ffff00;
+}
+
+.podFail {
+    background-color: #bf0000;
+}
+
+.podSuccessful {
+    background-color: #00a6ff;
+}
+
+.podDaemon {
+    background-color: #808080;
+}
+
+.nodeMst {
+    background-color: #804040;
+}
+
+.nodeWrk {
+    background-color: #c4bec4
+}
+
+.endpoint {
+    background-color: #0000ef
+}
+
+.service {
+    background-color: #80bfbf
+}
+
+.pvc {
+    background-color: #bfbf1a
+}
+
+.pv {
+    background-color: #ba8759
+}
+
+.storageClass {
+    background-color: #fa9903
+}
+
+.csiStorage {
+    background: rgba(255, 0, 0, 0.55)
+}
+
+.ingress {
+    background: rgba(255, 255, 0, 0.45)
+}
+
+.nodeMemory {
+    background-color: #7b737b
+}
+
+.nodeCPU {
+    background-color: #f58b4e
+}
+
+.nodeStorage {
+    background-color: #f72141
+}
+
+.controlPlane {
+    background-color: #725db7
+}
+
+.filterBorder {
+    padding-top: 15px;
+}
+
+.hideBox {
+    display: none;
+}
+
+.workloadPlane {
+    background-color: #972AFF
+}
+
+.servicePlane {
+    background-color: #88BBDD
+}
+
+.configStoragePlane {
+    background-color: #ff4500
+}
+
+.authorizationPlane {
+    background-color: #CC9900
+}
+
+.authenticationPlane {
+    background-color: #FFBED7
+}
+
+.policyPlane {
+    background-color: #66CC99
+}
+
+.extendPlane {
+    background-color: #FFABAB
+}
+
+.clusterPlane {
+    background-color: #BAEEE5
+}
+
+.otherPlane {
+    background-color: #CCCCCC
+}
+
+.thirdPartyPlane {
+    background-color: #FF0099
+}
+
+.vpkScroll-Y {
+    overflow-y: scroll;
+}
+
+.container-3d {
+    position: relative;
+    height: 100%;
+}
+
+.cluster-slide-up-container {
+    position: fixed;
+    bottom: -100%;
+    /* Start off-screen */
+    left: 0;
+    width: 100%;
+    background-color: rgba(200, 200, 200, 0.45);
+    transition: bottom 0.3s ease-in-out;
+    /* Add smooth transition */
+    border-top: 1px solid rgb(0, 123, 255);
+}
+
+.cluster-slide-up-content {
+    padding: 10px;
+}
+
+.clusterShow {
+    bottom: 0;
+}
+
+.timeLapseTime,
+.timeLapseDate,
+.timeLapseInt {
+    color: black;
+    background-color: white;
+    font-size: 1.00rem;
+    border-style: solid;
+    border-width: 1px;
+    border-color: grey;
+    border-radius: 4px;
+    padding: 3px;
+    display: inline;
+    margin-right: 10p;
+}
+
+.timeLapseStart,
+.timeLapseEnd {
+    font-size: .75rem;
+    color: grey;
+}
+
+.timeLapseIconBox {
+    background-color: white;
+    border-radius: 30px;
+    border-width: 2px;
+    border-color: grey;
+    padding: 5px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.timeLapseIconGroup {
+    margin: 2px;
+}
+
+.timeLapseIconCenter {
+    justify-content: center;
+}
+
+.timeLapseControlColor {
+    color: black;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+#timeLapseSlideIn {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    height: 250px;
+    background-color: #eeeeee;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    border-style: solid;
+    border-width: 1px;
+    border-color: rgb(0, 123, 255);
+    z-index: 1000;
+}
+
+#timeLapseSlideIn.open {
+    transform: translateY(0);
+}
+
+#timeLapseSlideInCloseButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+#timeLapseBody table,
+#timeLapseBody th,
+#timeLapseBody td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+#timeLapseBody th {
+    color: white;
+    background-color: rgb(0, 123, 255);
+    text-align: center;
+}
+
+#timeLapseBody td {
+    color: rgb(0, 123, 255);
+    background-color: white;
+}
+
+#timeLapse_filter {
+    position: fixed;
+    left: -40px;
+    bottom: 40px;
+    background: #bbbbbb;
+    color: #fff;
+    padding: 6px 5px;
+    box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    transform: translateY(-50%) rotate(-90deg);
+    border-radius: 0 0 5px 5px;
+    z-index: 100;
+}
+
+#timeLapse_filter:hover {
+    color: #fff;
+    text-decoration: none;
+    /* background: #bbbbbb; */
+    background: rgb(0, 123, 255);
+}

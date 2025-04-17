@@ -1,0 +1,76 @@
+<!-- Tab: STORAGE  -->
+<div id="storage" class="tab-pane">
+
+    <div id="storageReturnSection">
+        <!-- Return button shows here if needed -->
+    </div>
+
+    <div id="storageWrapper" class="collapse">
+        <!-- <hr style="margin-top: 2px;"> -->
+        <div class="ml-4 mt-2 vpkfont-sm vpkblue">
+            <span px-4>
+                Legend:
+            </span>
+            <span class="pl-3 pt-1">
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #F8BBD0; color: black;">KiloByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #B39DDB; color: white;">MegaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #90CAF9; color: black;">GigaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4CAF50; color: white;">TeraByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #C0CA33; color: black;">PetaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #FFA000; color: black;">ExaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #D84315; color: white;">ZettaByte</span>
+                <span class="pl-3 pr-3 pb-1 pt-1 mr-2" style="background-color: #4E342E; color: white;">YottaByte</span>
+            </span>
+            <div class="ml-1 mt-3 vpkfont-sm vpkblue">
+                Click shaded bars below to view storage detail.
+            </div>
+        </div>
+
+        <div id="storageDetail" class="ml-2 mt-1 collapse">
+            <!-- Dynamically created detail goes here-->
+        </div>
+    </div>
+    <div id="countsDetail" class="ml-2 mt-1">
+        <div id="countsReturnSection">
+            <!-- Return button will show here if needed. -->
+        </div>
+
+        <div id="volumeCounts" class="mb-4 ml-3 mr-3">
+            <!-- Blue -->
+            <div id="countVol" class="collapse volCounts-bg">
+                <div class="vpkfont vpkblue ml-4">
+                    Click icons in any row to drill-down.
+                </div>
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countVolFnum" class="mt-2"></div>
+                    <div id="countVolNS" class="mt-2"></div>
+                    <div id="countVolNode" class="mt-2"></div>
+                    <div id="countVolType" class="mt-2">Nothing defined</div>
+                </div>
+            </div>
+            <!-- Grey -->
+            <div id="countNode" class="collapse nodeCounts-bg">
+                <div class="vpkfont vpkblue ml-4">
+                    Click icons in any row to drill-down.
+                </div>
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countNodeFnum" class="mt-2"></div>
+                    <div id="countNodeNS" class="mt-2"></div>
+                    <div id="countNodeNode" class="mt-2"></div>
+                    <div id="countNodeType" class="mt-2 ">Nothing defined</div>
+                </div>
+            </div>
+            <!-- Green -->
+            <div id="countNamespace" class="collapse namespaceCounts-bg">
+                <div class="vpkfont vpkblue ml-4">
+                    Click icons in any row to drill-down.
+                </div>
+                <div class="ml-3 mr-3 mb-3">
+                    <div id="countNSFnum" class="mt-2"></div>
+                    <div id="countNSNode" class="mt-2"></div>
+                    <div id="countNSType" class="mt-2">Nothing defined</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

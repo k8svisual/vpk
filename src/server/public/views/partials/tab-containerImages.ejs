@@ -1,0 +1,42 @@
+<!-- Tab: CONTAINER IMAGES  -->
+<div id="containerImages" class="tab-pane">
+    <div style="margin-left: 40px; margin-right: 10px;">
+        <div style="margin-left: -40px; margin-right: -10px;">
+            <div id="containerImagesReturn" class="vpk-rtn-bg">
+                <!-- dynamic content-->
+            </div>
+        </div>
+        <div id="containerImageTable" class="schematic_border vpkhidden">
+            <div id="containerImagesDetail">
+                <div class="mt-2" style="margin-left: -40px;">
+                    <button type="button" class="btn btn-sm btn-primary  vpkButtons vpkwhite ml-2 px-2"
+                        onclick="graphImageTable()">Graph selected table rows
+                    </button>
+                </div>
+                <table id="tableContainerImages" class="table table-bordered table-sm" data-buttons-class="primary"
+                    data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
+                    data-maintain-meta-data="true" data-page-list="[10, 20, 40, 80, All]" data-pagination="true"
+                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                    data-show-columns="true" data-show-export="false" data-show-fullscreen="false"
+                    data-show-print="false" data-show-refresh="true" data-show-toggle="true"
+                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false" data-toggle="table"
+                    data-visible="true">
+                    <thead class='thead-light'>
+                        <tr>
+                            <th data-field="state" data-checkbox="true"></th>
+                            <th data-field="image" data-sortable="true">Image Name and Label</th>
+                            <th data-field="ns" data-sortable="true">Namespace</th>
+                            <th data-field="kind" data-sortable="true">Kind</th>
+                            <th data-field="c_name">Container Name</th>
+                            <th data-field="c_type">Type</th>
+                            <th data-field="fnum">Fnum</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+
+        <div id="containerImageGraphic">
+        </div>
+    </div>
+</div>

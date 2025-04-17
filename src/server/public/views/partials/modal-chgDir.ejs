@@ -1,0 +1,48 @@
+<!-- ==================================== -->
+<!-- Change directory Modal section       -->
+<!-- ==================================== -->
+
+<!-- Removed tabindex="-1" to ensure the Select2 search works -->
+<div class="modal fade" id="chgDirModal" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkblue">Previous captured snapshot</h6>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body docBackground">
+
+                <!-- Drop down for existing saved cluster info instances -->
+                <div class="form-group col-4 mt-3" style="margin: -15px; padding-bottom: 15px;">
+                    <select id="dsInstances" class="vpkfont-md">
+                        <!-- style="width: 500px; height: 30px; vertical-align:middle;"> -->
+                    </select>
+                </div>
+
+                <div class="mt-2 float-left">
+                    <button id="validateBtn" type="button" class="btn btn-outline-primary btn-sm" onclick="reload()"
+                        style="margin: 5px;">
+                        Connect
+                    </button>
+                    <div id="loadStatus" class="row ml-4 mt-2">
+
+                        <img style="float:left" src="images/loading.gif" alt="loading" width="40" height="40" />
+                        <div class="vpkfont-md vpkblue ml-2 mt-2">
+                            <span>&nbsp;&nbsp;Processing connect request </span>
+                            <!-- </div> -->
+                        </div>
+
+                        <div id="parseStatus" class="mt-5 vpkfont vpkblue">
+
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div id="chgDirFooter" class="modal-footer">
+                <button id="closeChgDir" type="button" class="btn btn-sm btn-primary"
+                    onclick="closeChgDir()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

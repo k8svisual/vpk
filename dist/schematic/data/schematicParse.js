@@ -1,0 +1,15 @@
+//-----------------------------------------------------------------------------
+// ???
+//-----------------------------------------------------------------------------
+import { logMessage } from '../../utils/logging.js';
+import { showTimeDiff } from '../../utils/showtimedif.js';
+import { getPTime } from '../../utils/getptime.js';
+import { parseSchematic } from './parseSchematic.js';
+export function schematicParse() {
+    let startT = getPTime();
+    logMessage('SCM001 - svgSchematic invoked');
+    parseSchematic();
+    let stopT = getPTime();
+    showTimeDiff(startT, stopT, 'svgSchematic.parseSchematic()');
+    return;
+}

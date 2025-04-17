@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="26px" height="26px" viewBox="0 0 26 26" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 57 (83077) - https://sketch.com -->
+    <title>launch</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="launch" fill="#0062FF" fill-rule="nonzero">
+            <path d="M22,26 L2,26 C0.8954305,26 0,25.1045695 0,24 L0,4 C0,2.8954305 0.8954305,2 2,2 L11,2 L11,4 L2,4 L2,24 L22,24 L22,15 L24,15 L24,24 C24,25.1045695 23.1045695,26 22,26 Z" id="Path"></path>
+            <polygon id="Path" points="17 0 17 2 22.59 2 14 10.59 15.41 12 24 3.41 24 9 26 9 26 0"></polygon>
+        </g>
+    </g>
+</svg>

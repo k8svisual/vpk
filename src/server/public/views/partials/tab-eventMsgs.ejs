@@ -1,0 +1,84 @@
+<!-- Tab: EVENT MSGS  -->
+<div id="evtMsgs" class="tab-pane">
+
+    <div id="evtReturn" class="vpkfont vpk-rtn-bg">
+    </div>
+
+    <div id="evtStatsGroup" style="margin-left: 40px;">
+        <div id="evtStatInfoTop" class="mt-2" style="margin-left: 20px; padding: 3px;">
+            <span class="fa-1x vpkblue">Event messages by minute intervals for
+                <span id="evtRptNS"></span>
+            </span>
+        </div>
+        <div id="evtStats" class="mt-2 ml-2">
+        </div>
+        <div id="evtStatInfoBottom" class="ml-2">
+            <!-- Display RED warning message is needed-->
+        </div>
+    </div>
+
+    <div style="margin-left: 42px; margin-right: 10px; margin-top: 5px;">
+        <div class="schematic_border">
+            <div id="evtMsgsDetail">
+                <table id="tableEvents" class="table table-bordered table-sm" data-buttons-class="primary"
+                    data-buttons-prefix="btn-sm btn" data-icon-size="sm" data-loading-template="loadingTemplate"
+                    data-maintain-meta-data="true" data-page-list="[10, 20, 40, 80, 100]" data-pagination="true"
+                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                    data-show-columns="true" data-show-export="false" data-show-fullscreen="false"
+                    data-show-print="false" data-show-refresh="true" data-show-toggle="true"
+                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false" data-toggle="table"
+                    data-visible="true">
+                    <thead class='thead-light'>
+                        <tr>
+                            <th data-field="type" data-sortable="true" data-cell-style="cellStyle">
+                                Type
+                            </th>
+                            <th data-field="reason" data-sortable="true">Reason</th>
+                            <th data-field="message" data-sortable="true">Message</th>
+                            <th data-field="namespace" data-sortable="true">Namespace</th>
+                            <th data-field="involvedKind" data-sortable="true">Kind</th>
+                            <th data-field="involvedName" data-sortable="true">Name</th>
+                            <th data-field="firstTime" data-sortable="true">First</th>
+                            <th data-field="lastTime" data-sortable="true">Last</th>
+                            <th data-field="root" data-sortable="true">Root</th>
+                            <th data-field="fnum" data-sortable="true">Fnum</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="evtControl" class="ml-5 mr-5">
+        <div class="vpkfont">
+            <div class="row">
+                <div class="col-4">
+                    <span class="pr-2 pb-2 vpkfont vpkblue">Viewing</span>
+                    <span class="pr-2">
+                        <a href="javascript:evtScrollPageLess()" style="text-decoration:none">
+                            <i class="fas fa-125x fa-caret-square-left vpkblue vpkfont-lg"></i>
+                        </a>
+                    </span>
+                    <span class="vpkfont vpkblue text-center" style="width: 40px important;">
+                        <span id="evtPage">1</span>
+                    </span>
+                    <span class="pl-2">
+                        <a href="javascript:evtScrollPageMore()" style="text-decoration:none">
+                            <i class="fas fa-125x fa-caret-square-right vpkblue vpkfont-lg"></i>
+                        </a>
+                    </span>
+                    <span id="evtGroupCnt" class="pl-2 pb-2 vpkfont vpkblue"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="evtSpan">
+        <div style="margin-left: 40px; margin-right: 40px; border: 2px solid orange">
+            <div id="evtLeft" style="width: 600px; float: left; background-color: #f2f2f2;">
+            </div>
+            <div id="evtRight" style="margin-left: 600px; overflow-x: scroll;">
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,342 @@
+<!-- ==================================== -->
+<!-- Cluster Legend Modal section          -->
+<!-- ==================================== -->
+<div class="modal fade" id="clusterLegendModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkblue">3D Cluster Legend:</h6>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="mt-1 pl-3 vpkfont">Nodes (square cube)</div>
+                <div class="pl-3 pt-3">
+                    <svg width="400" height="65">
+                        <g>
+                            <rect x="25" y="1" width="40" height="40" fill="#804040"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="40" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Master node</text>
+                        </g>
+                        <g>
+                            <rect x="110" y="1" width="40" height="40" fill="#c4bec4"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="125" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Worker node</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+                <div class="mt-1 pl-3 vpkfont">Pods (hexagon prism)</div>
+                <div class="pl-3 pt-3">
+                    <svg width="450" height="65">
+                        <g>
+                            <polygon points="22,20 37,1 57,1 72,20 57,40 37,40 22,20"
+                                style="fill:#00ff00; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="47" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Running</text>
+                        </g>
+                        <g>
+                            <polygon points="105,20 120,1 140,1 155,20 140,40 120,40 105,20"
+                                style="fill:#00a6ff; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="130" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Successful</text>
+                        </g>
+                        <g>
+                            <polygon points="188,20 203,1 223,1 237,20 223,40 203,40 188,20"
+                                style="fill:#ffff00; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="213" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Warning</text>
+                        </g>
+                        <g>
+                            <polygon points="271,20 286,1 306,1 321,20 306,40 286,40 271,20"
+                                style="fill:#808080; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="296" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">DaemonSet</text>
+                        </g>
+                        <g>
+                            <polygon points="354,20 369,1 389,1 404,20 389,40 369,40 354,20"
+                                style="fill:#bf0000; stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="379" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Failed</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Network (sphere)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="85">
+
+                        <defs>
+                            <radialGradient id="highlight" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" style="stop-color:white; stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:white; stop-opacity:0" />
+                            </radialGradient>
+                        </defs>
+
+                        <g>
+                            <circle cx="45" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#0000ef" />
+                            <circle cx="45" cy="25" r="10" fill="url(#highlight)" />
+                            <text text-anchor="middle" x="45" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Endpoint</text>
+                        </g>
+                        <g>
+                            <circle cx="130" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#80bfbf" />
+                            <circle cx="130" cy="25" r="10" fill="url(#highlight)" />
+                            <text text-anchor="middle" x="130" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Service</text>
+                        </g>
+                        <g>
+                            <circle cx="215" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#ffff00" />
+                            <circle cx="215" cy="25" r="10" fill="url(#highlight)" />
+                            <text text-anchor="middle" x="215" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Ingress &</text>
+                            <text text-anchor="middle" x="215" y="78" font-family="Times 100" font-size="12.00"
+                                fill="#000000">IngressControl</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Storage (cylinder and open cylinder plane)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="120">
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="45" cy="55" rx="20" ry="10" fill="#ba8759" />
+                            <!-- Side faces -->
+                            <rect x="25" y="15" width="40" height="40" fill="#ba8759" style="stroke: #ba8759" />
+                            <!-- Top face -->
+                            <ellipse cx="45" cy="15" rx="20" ry="10" fill="#ba8759"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="45" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Persistent</text>
+                            <text text-anchor="middle" x="45" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Volume</text>
+                            <text text-anchor="middle" x="45" y="110" font-family="Times 100" font-size="12.00"
+                                fill="#000000">PV</text>
+                        </g>
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="125" cy="55" rx="20" ry="10" fill="#bfbf1a" />
+                            <!-- Side faces -->
+                            <rect x="105" y="15" width="40" height="40" fill="#bfbf1a" style="stroke: #bfbf1a" />
+                            <!-- Top face -->
+                            <ellipse cx="125" cy="15" rx="20" ry="10" fill="#bfbf1a"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="125" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Persistent</text>
+                            <text text-anchor="middle" x="125" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Volume Claim</text>
+                            <text text-anchor="middle" x="125" y="110" font-family="Times 100" font-size="12.00"
+                                fill="#000000">PVC</text>
+                        </g>
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="205" cy="55" rx="20" ry="10" fill="#fa9903" />
+                            <!-- Side faces -->
+                            <rect x="185" y="15" width="40" height="40" fill="#fa9903" style="stroke: #fa9903" />
+                            <!-- Top face -->
+                            <ellipse cx="205" cy="15" rx="20" ry="10" fill="#fa9903"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="205" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Storage</text>
+                            <text text-anchor="middle" x="205" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Class</text>
+                        </g>
+                        <g>
+                            <rect x="280" y="20" width="40" height="40" fill="#ff0000" fill-opacity="0.45"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="300" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">CSI</text>
+                            <text text-anchor="middle" x="300" y="95" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Storage</text>
+                            <text text-anchor="middle" x="300" y="110" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Control Plane (open cylinder plane, triangle cube, and sphere)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="700" height="95">
+                        <defs>
+                            <radialGradient id="highlight" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" style="stop-color:white; stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:white; stop-opacity:0" />
+                            </radialGradient>
+                        </defs>
+                        <g>
+                            <rect x="25" y="1" width="40" height="40" fill="#725db7" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="40" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Control</text>
+                            <text text-anchor="middle" x="40" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                        </g>
+                        <g>
+                            <polygon points="108,10 133,1 138,10 108,10"
+                                style=" fill:#725db7; fill-opacity: 0.25; stroke: #ffffff; stroke-width:2" />
+                            <rect x="108" y="10" width="30" height="30" fill="#725db7" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="120" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Component</text>
+                        </g>
+                        <g>
+                            <circle cx="205" cy="25" r="20" stroke="#ffffff" stroke-width="2" fill="#725db7"
+                                fill-opacity="0.25" />
+                            <circle cx="205" cy="25" r="10" fill="url(#highlight)" />
+                            <text text-anchor="middle" x="205" y="58" font-family="Times 100" font-size="12.00"
+                                fill="#000000">kubectl</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">API Resource Planes (curved rectangle planes with spheres)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="700" height="195">
+                        <defs>
+                            <radialGradient id="highlight" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" style="stop-color:white; stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:white; stop-opacity:0" />
+                            </radialGradient>
+                        </defs>
+                        <g>
+                            <rect x="25" y="1" width="40" height="40" fill="#972AFF" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="40" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Workload</text>
+                            <text text-anchor="middle" x="40" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="45" cy="20" r="10" fill="#972AFF" />
+                            <circle cx="45" cy="20" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="110" y="1" width="40" height="40" fill="#88BBDD" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="125" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Service</text>
+                            <text text-anchor="middle" x="125" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="130" cy="20" r="10" fill="#88BBDD" />
+                            <circle cx="130" cy="20" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="195" y="1" width="40" height="40" fill="#ff4500" fill-opacity="0.55"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="210" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Config/Storage</text>
+                            <text text-anchor="middle" x="210" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="215" cy="20" r="10" fill="#ff4500" />
+                            <circle cx="215" cy="20" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="280" y="1" width="40" height="40" fill="#CC9900" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="295" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Authorization</text>
+                            <text text-anchor="middle" x="295" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="300" cy="20" r="10" fill="#CC9900" />
+                            <circle cx="300" cy="20" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="365" y="1" width="40" height="40" fill="#FFBED7" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="380" y="60" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Authentication</text>
+                            <text text-anchor="middle" x="380" y="80" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="385" cy="20" r="10" fill="#FFBED7" />
+                            <circle cx="385" cy="20" r="6" fill="url(#highlight)" />
+                        </g>
+
+                        <!--- Second Row -->
+
+                        <g>
+                            <rect x="25" y="100" width="40" height="40" fill="#66CC99" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="40" y="160" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Policy</text>
+                            <text text-anchor="middle" x="40" y="180" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="45" cy="120" r="10" fill="#66CC99" />
+                            <circle cx="45" cy="120" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="110" y="100" width="40" height="40" fill="#FFABAB" fill-opacity="0.45"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="125" y="160" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Extend</text>
+                            <text text-anchor="middle" x="125" y="180" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="130" cy="120" r="10" fill="#FFABAB" />
+                            <circle cx="130" cy="120" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="195" y="100" width="40" height="40" fill="#BAEEE5" fill-opacity="0.35"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="210" y="160" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Cluster</text>
+                            <text text-anchor="middle" x="210" y="180" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="215" cy="120" r="10" fill="#BAEEE5" />
+                            <circle cx="215" cy="120" r="4" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="280" y="100" width="40" height="40" fill="#CCCCCC" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="295" y="160" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Other</text>
+                            <text text-anchor="middle" x="295" y="180" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="300" cy="120" r="10" fill="#CCCCC" />
+                            <circle cx="300" cy="120" r="10" fill="url(#highlight)" />
+                        </g>
+                        <g>
+                            <rect x="365" y="100" width="40" height="40" fill="#FF0099" fill-opacity="0.25"
+                                style="stroke: #ffffff; stroke-width:2" />
+                            <text text-anchor="middle" x="380" y="160" font-family="Times 100" font-size="12.00"
+                                fill="#000000">3rd Party</text>
+                            <text text-anchor="middle" x="380" y="180" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Plane</text>
+                            <circle cx="385" cy="120" r="10" fill="#FF0099" />
+                            <circle cx="385" cy="120" r="10" fill="url(#highlight)" />
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+
+
+                <div class="mt-1 pl-3 vpkfont">Registry (cylinder)</div>
+                <div class="pl-3 pt-2">
+                    <svg width="400" height="85">
+                        <g>
+                            <!-- Bottom face -->
+                            <ellipse cx="45" cy="25" rx="20" ry="10" fill="#66cc33" />
+                            <!-- Side faces -->
+                            <rect x="25" y="15" width="40" height="10" fill="#66cc33" style="stroke: #66cc33" />
+                            <!-- Top face -->
+                            <ellipse cx="45" cy="15" rx="20" ry="10" fill="#66cc33"
+                                style="stroke: #ffffff; stroke-width:1" />
+                            <text text-anchor="middle" x="45" y="55" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Container</text>
+                            <text text-anchor="middle" x="45" y="70" font-family="Times 100" font-size="12.00"
+                                fill="#000000">Registry</text>
+                        </g>
+                    </svg>
+                    <hr>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

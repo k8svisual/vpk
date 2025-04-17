@@ -1,0 +1,57 @@
+<!-- ==================================== -->
+<!-- schematic filter Modal section       -->
+<!-- ==================================== -->
+<div class="modal fade" id="schematicFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="ml-2 vkpfont vpkblue">
+                    Workload schematic filter
+                </div>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applySchematicFilter()">Apply
+                        filter
+                    </button>
+                    <span class="ml-3">Select one or more Pods to filter the Workload view.</span>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2"
+                            onclick="clearAllSchematicFilters()">Clear all filters
+                        </button>
+                    </span </div>
+
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <!-- Workload schematic keys table-->
+                            <div id="WSResults" class="ml-2 mr-2 mt-1">
+                                <table id="tableWS" class="table table-bordered table-sm" data-buttons-class="primary"
+                                    data-buttons-prefix="btn-sm btn" data-icon-size="sm"
+                                    data-loading-template="loadingTemplate" data-maintain-meta-data="true"
+                                    data-page-list="[10, 25, 50, 100, 200, All]" data-pagination="true"
+                                    data-pagination-v-align="both" data-search="true" data-search-highlight="true"
+                                    data-show-columns="false" data-show-export="false" data-show-fullscreen="false"
+                                    data-show-print="false" data-show-refresh="false" data-show-toggle="false"
+                                    data-sort-class="table-active" data-sortable="true" data-trim-on-search="false"
+                                    data-toggle="table" data-visible="true" data-click-to-select="true">
+                                    <thead class='thead-light'>
+                                        <tr>
+                                            <th data-field="state" data-checkbox="true"></th>
+                                            <th data-field="ns" data-sortable="true">Namespace</th>
+                                            <th data-field="pod" data-sortable="true">Pod Name</th>
+                                            <th data-field="id" data-sortable="true">Fnum</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer mt-0 pt-1">
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of schematic filter Modal -->
+</div>

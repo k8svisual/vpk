@@ -1,0 +1,36 @@
+<div id="header-bar" class="header ml-1 mr-0 pt-1 pb-1" style="background-color: #f2f2f2;">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <img class="vpk-vert-mid" src='images/vpk.png' alt="vpk icon" width='30' height='30'
+                    onclick="openCarousel()">
+                <!-- onclick="getDocumentation('toc')"-->
+            </div>
+            <div class="col-auto">
+                <span class="vpkblue vpkfont pl-1 vpkinline vpk-vert-mid" onclick="getDocumentation('toc')">
+                    <span class="vpkfont-lg">V</span><span class="vpkfont">isually </span>
+                    <span class="vpkfont">presented</span>
+                    <span class="vpkfont-lg">K</span><span class="vpkfont">ubernetes</span>
+                </span>
+            </div>
+            <div class="col">
+                <div class="d-flex flex-row">
+                    <span id="sourceDropDown">
+                        <!-- dymanic content -->
+                    </span>
+                    <button class="btn btn-outline-primary btn-sm" onclick="dirStats()">
+                        <span id="baseDir" onclick="dirStats()">No Snapshot selected</span>
+                    </button>
+
+                </div>
+            </div>
+            <div class="col-auto">
+                <span class="header-right">
+                    <a href="javascript:getDocumentation()"><i class="fas fa-question mr-3 vpkblue"></i></a>
+                    <a href="javascript:showConfig()"><i class="fas fa-cog fa-lg mr-3 vpkblue"></i></a>
+                    <a href="javascript:closeVpK()"><i class="fas fa-window-close fa-lg mr-3 vpkblue"></i></a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>

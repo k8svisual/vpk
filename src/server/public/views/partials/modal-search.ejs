@@ -1,0 +1,107 @@
+<!-- ==================================== -->
+<!-- Search value Modal section           -->
+<!-- ==================================== -->
+<div class="modal fade" id="searchModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkblue">Search value</h6>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="vpkfont vpkblue">
+                    <p>The Search value input field can be used standalone or in conjunction with the Namespace(s)
+                        and/or
+                        Kind(s) inputs. The Namespace(s) and Kind(s) searches are performed before the Seach value
+                        input.
+                        <span class="vpkfont-bold">All entered information is case sensitive.</span>
+                    </p>
+                    <ul>
+                        <li>
+                            <p class="vpkfont-bold">Full search</p>
+                        </li>
+                        <span>
+                            <p> Enter any text in the input field. Kubernetes resource definitions will
+                                be searched for the value regardless of where the value is located.
+                            </p>
+                        </span>
+                        <li>
+                            <p class="vpkfont-bold">Limited searches </p>
+                        </li>
+                        <span>
+                            <p>There are three types of limited searches. Each requires a specific keyword to indicate
+                                the associated search is to be performed. Keywords are case sensitive and must be
+                                entered
+                                in lowercase.
+                            </p>
+                            <ol>
+                                <li><span class="vpkfont-bold">name</span> - search for a resource by name. Keyword -
+                                    name: </li>
+                                <li><span class="vpkfont-bold">labels</span> - search labels of the metadata section.
+                                    Keyword - labels: </li>
+                                <li><span class="vpkfont-bold">annotations</span> - search annotations of the metadata
+                                    section. Keyword - annotations: </li>
+                            </ol>
+                            <p class="pt-2">The optional parameter of "::value::" can be used with labels and
+                                annotations.
+                                If a matching label or annotation is found the value defined for the label or annotation
+                                is then compared for a matching value against this parameter.</p>
+                            <p>The ::value:: parameter can be used to locate all matching values regardless of the label
+                                or
+                                annotation name. This is accomplished by using an "*" astrick as the value for the
+                                labels: or
+                                annotations: parameters.</p>
+                        </span>
+                        <li>
+                            <p class="vpkfont-bold">JSON search with attribute and value</p>
+                        </li>
+                        <span>
+                            <p> When searching for a value that is a JSON attribute and value the items need to be
+                                inclued in double quotes.
+                                Searching for the following attribute and value app: ovs is accomplished by enclosing
+                                both in double quotes
+                                without spaces, "app":"ovs".
+                            </p>
+                        </span>
+
+                    </ul>
+                    <hr>
+                    Example searches:
+                    <p class="pl-3">Search all resources for any occurrence of text 'Part=a7be5c9d'.<br>
+                        <span class="pl-5 vpkfont-bold">Part=a7be5c9d</span>
+                    </p>
+
+                    <p class="pl-3">Search for resources defined with the name 'bookinfo'.<br>
+                        <span class="pl-5 vpkfont-bold">name: bookinfo</span>
+                    </p>
+
+                    <p class="pl-3">Search resource metadata labels that match 'app.kubernetes.io'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: app.kubernetes.io</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata labels that match 'release' and have the value
+                        'production'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: release ::value:: production
+                    </p>
+                    <p class="pl-3">Search all resource metadata labels for the value 'server'.<br>
+                        <span class="pl-5 vpkfont-bold">labels: * ::value:: server</span>
+                    </p>
+
+                    <p class="pl-3">Search resource metadata annotations that match 'productName'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: productName</span>
+                    </p>
+                    <p class="pl-3">Search resource metadata annotations that match 'network' and have the value
+                        'wifi'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: network ::value:: wifi</span>
+                    </p>
+                    <p class="pl-3">Search all resource metadata annotations for the value 'click'.<br>
+                        <span class="pl-5 vpkfont-bold">annotations: * ::value:: operational-task</span>
+                    </p>
+                    </span>
+
+                </div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>

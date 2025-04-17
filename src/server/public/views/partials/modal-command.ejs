@@ -1,0 +1,35 @@
+<!-- ==================================== -->
+<!-- Run command Modal section            -->
+<!-- ==================================== -->
+<div class="modal fade" id="commandModal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkblue">Run command in container</h6>
+            </div>
+            <div class="modal-body docBackground">
+                <div class="container mt-2">
+                    <span class="vpkfont">Enter command to send container running VpK</span>
+                    <form>
+                        <div class="form-group">
+                            <label class="vpkfont-md" for="commandInput">Command:</label>
+                            <textarea id="commandInput" rows="3" class="form-control"></textarea>
+                            <p class="vpkfont-md">Output</p>
+                            <textarea id="commandOutput" rows="10" class="form-control vpkfont-decode"
+                                style="font-family: 'Courier New', monospace;">
+                            </textarea>
+                        </div>
+                    </form>
+                    <div id="sendCommand">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="sendCommand()">Send
+                            command</button>
+                    </div>
+                </div>
+            </div>
+            <div id="clusterModalFooter" class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" onclick="closeRunCommand()">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div>

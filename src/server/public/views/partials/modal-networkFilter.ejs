@@ -1,0 +1,78 @@
+<!-- ==================================== -->
+<!-- Network filter Modal section         -->
+<!-- ==================================== -->
+<div class="modal fade" id="networkFilterModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="ml-2 vkpfont-lg vpkblue">
+                    Network filter -
+                </div>
+                <i class="fa fa-lg fa-x vpkblue" data-dismiss="modal"></i>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <button type="button" class="btn btn-sm btn-primary ml-2" onclick="applyNetworkFilter()">
+                        Apply filter
+                    </button>
+
+                    <span class="header-right">
+                        <button type="button" class="btn btn-sm btn-primary ml-2" onclick="clearNetworkFilters()">
+                            Clear filters
+                        </button>
+                    </span>
+                    <hr>
+
+                    <div id="net-node-data">
+                        <div class="row filterBack pl-1 mt-1">
+                            <div class="vpkfont vpkblue mt-2 ml-2" style="width: 100px">
+                                Filter type:
+                            </div>
+                            <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="network-type-node-filter" style="width: 200px">
+                                    <option>No type selected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row filterBack pl-1 mt-1">
+                            <div class="vpkfont vpkblue mt-2 ml-2" style="width: 100px">
+                                Filter data:
+                            </div>
+                            <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="network-data-node-filter" multiple="multiple" style="width: 400px">
+                                    <option>No data defined</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="net-service-data">
+                        <div class="row filterBack pl-1 mt-1">
+                            <div class="vpkfont vpkblue mt-2 ml-2" style="width: 100px">
+                                Filter type:
+                            </div>
+                            <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="network-type-service-filter" style="width: 200px">
+                                    <option>No type selected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row filterBack pl-1 mt-1">
+                            <div class="vpkfont vpkblue mt-2 ml-2" style="width: 100px">
+                                Filter data:
+                            </div>
+                            <div class="ml-1 mr-1 mt-1 vpkfont-md">
+                                <select id="network-data-service-filter" multiple="multiple" style="width: 400px">
+                                    <option>No data defined</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer mt-2 pt-1">
+                </div>
+            </div>
+        </div>
+    </div> <!-- End of schematic filter Modal -->
+</div>

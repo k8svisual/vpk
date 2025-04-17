@@ -1,0 +1,129 @@
+<!-- Tab: STATS  -->
+<div id="stats" class="tab-pane">
+
+    <!-- ============ Stats d3 treeMap ============= -->
+    <div id="statsTreeMapSection">
+        <div class="mt-2 vpkfont vpkblue" id="chartInfo">
+        </div>
+        <div id="dirStatsChart" class="vpkhidden">
+            <div class="mt-2 ml-5 mb-3">
+                <div id="statsHeader">
+                    <div class="vpkblue mb-1">
+                        <span class="vpkblue">
+                            Snapshot Counts Graph
+                        </span>
+                        <span class="pl-3 pr-3">
+                            <button type="button" class="btn btn-sm btn-outline-primary vpkfont-sm"
+                                onclick="buildStatsToggle()">
+                                Toggle view Kinds / Namespaces
+                            </button>
+                        </span>
+
+                        <span class="pl-3">
+                            <input class="form-check-input" type="checkbox" value="" id="dirStatLabels" checked>
+                            <label class="form-check-label" for="dirStatLabels">
+                                Show labels
+                            </label>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="ml-5 mt-1 mr-5">
+                <div id="snapshot_treeMap" class="mb-5">
+                </div>
+            </div>
+        </div>
+
+        <div class="ml-5 mr-5">
+            <div id="statContents" class="vpkfont-md text-center">
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Stats tables ============= -->
+    <div id="statsTableSection" class="vpkhidden ml-35">
+        <div class="mt-2 ml-5 mb-3">
+            <div id="statsHeader">
+                <div class="vpkblue mb-1">
+                    <span class="vpkblue">
+                        Snapshot Counts Report
+                    </span>
+                    <span class="pl-3 pr-3">
+                        <button type="button" class="btn btn-sm btn-outline-primary vpkfont-sm"
+                            onclick="buildStatsTableToggle()">
+                            Toggle view for Kinds/Namespaces
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div id="statContentsTable" class="vpkfont-md vpk-ml-40">
+            <p>Stats data</P>
+        </div>
+    </div>
+    <span id="stats_filter" class="vpkhidden" onclick="statsFilterOpen()">Filter</span>
+</div>
+
+
+<!-- ============================== Stats filter ===============================-->
+
+
+<div id="statsSlideIn">
+    <div style="display: inline;" class="mb-1 text-center">
+        <div class="form-check mb-1 mt-1">
+            <span class="vpkblue vkpfont-md align-left" style="margin-bottom: 5px;">Filter View</span>
+            <button type="button" class="btn btn-outline-primary vpkButtons vpkwhite header-right vpkfont-filter px-1"
+                onclick="statsFilterClose()" style="margin-bottom: 5px;">Close
+            </button>
+        </div>
+    </div>
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+    <div class="form-check vpkfont-filter">
+        <span class="vpkblue">Enter parameter(s) to filter view</span>
+    </div>
+    <hr style="margin-left: -10px; margin-bottom: 2px; margin-top: 2px;">
+
+    <div class="mt-2 vpkfont vpkblue">
+        <div class="ml-2 mb-2">
+            <table>
+                <tr>
+                    <td>Minimum count:</td>
+                    <td style="width: 20px"></td>
+                    <td>
+                        <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;" id="dirStatMin">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Maximum count:</td>
+                    <td style="width: 20px"></td>
+                    <td>
+                        <input type="text" class="vpkfont vpkblue" style="width: 60px; height: 25px;" id="dirStatMax">
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div>
+            <span id="dirStatType" class="pl-2">
+            </span>
+        </div>
+
+        <div class="mb-2">
+            <span id="statsDirNS">
+                <span id="stats-ns-select" class="p2-1 pr-2">
+                    <select id="stats-ns-filter" style="width: 275px;">
+                        <option>all-namespaces</option>
+                    </select>
+                </span>
+            </span>
+            <span id="statsDirKind">
+                <span id="stats-kind-select" class="pl-2 pr-2">
+                    <select id="stats-kind-filter" style="width: 275px">
+                        <option>all-kinds</option>
+                    </select>
+                </span>
+            </span>
+        </div>
+    </div>
+</div>

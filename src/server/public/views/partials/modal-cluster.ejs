@@ -1,0 +1,113 @@
+<!-- ==================================== -->
+<!-- Running cluster Modal section        -->
+<!-- ==================================== -->
+<div class="modal fade" id="clusterModal" tabindex="-1" role="dialog" data-backdrop="static">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title vpkblue">Cluster Information</h6>
+            </div>
+            <div class="modal-body docBackground">
+                <div id="clusterInfo" class="vpkblue vpkfont">
+                    <div class="form-row">
+                        <label class="col-sm-4 col-form-label" for="snapshot_prefix">
+                            Snapshot prefix
+                        </label>
+                        <input id="snapshot_prefix" type="text" class="form-control col-sm-8" value="vpk">
+                    </div>
+                    <div class="form-row mt-1">
+                        <label class="col-sm-4 col-form-label" for="get_cmd">
+                            kubectl or other command</label>
+                        <input id="get_cmd" type="text" class="form-control col-sm-8" value="kubectl">
+                    </div>
+                    <div class="form-row mt-1">
+                        <label class="col-sm-4 col-form-label" for="k8_namespace">
+                            Namespace</label>
+                        <input id="k8_namespace" type="text" class="form-control col-sm-8" value="&lt;all&gt;">
+                    </div>
+
+                    <div id="sshInfo" class="vpkhidden">
+                        <hr class="hrDatasource">
+                        <div class="mb-4 mt-4">
+                            <div class="mb-2 vpkgreyBanner">
+                                Running from Container: 
+                            </div>
+                            <p>
+                                <b>Note: </b>
+                            </p>
+                            <p>
+                                Because VpK is running in a container, it will utilize SSH to pass commands from the 
+                                container to the host for execution.  If the host running this container
+                                does not support or have Remote Login enabled, this operation will fail. If the connection fails,
+                                you will need to enable Remote Login. Once a successful connection has been made 
+                                the <code>kubectl</code> command, or any other specified command, will be executed. 
+                                <br>
+                                If the specified command (e.g. <code>kubectl</code> is not on the default system path, an
+                                error may occur. If that case, provide the fully qualified path to the command.
+                            </p>
+                            <p>
+                                The following parameters values are required and will be used with the <code>sshpass</code>  
+                                and <code>ssh</code> commands.   
+                            </p>
+                        </div>
+
+                        <div class="form-row">
+                            <label class="col-sm-4 col-form-label" for="host_ip">
+                                Host-IP (required)</label>
+                            <input id="host_ip" type="text" class="form-control col-sm-8" value=""
+                                placeholder="host IP address for ssh">
+                        </div>
+                        <div class="form-row mt-1">
+                            <label class="col-sm-4 col-form-label" for="host_user">
+                                User (required)</label>
+                            <input id="host_user" type="text" class="form-control col-sm-8" value=""
+                                placeholder="user name for ssh">
+                        </div>
+                        <div class="form-row mt-1">
+                            <label class="col-sm-4 col-form-label" for="host_password">
+                                Password (required)</label>
+                            <input id="host_password" type="password" class="form-control col-sm-8" value=""
+                                placeholder="password for ssh user">
+                        </div>
+
+                        <div class="mb-2 mt-4 vpkgreyBanner">
+                            <span class="vpkfont-md pl-1">Example command passed to host from VpK container:</span>
+                        </div>
+                        <div class="mt-2 ml-4">
+                            <p>
+                                sshpass -p
+                                <span class="vpk-font-bold-italic pl-1">
+                                    'password'
+                                </span>
+                                <span class="pl-2">
+                                    ssh -o StrictHostKeyChecking=no
+                                </span>
+                                <span class="vpk-font-bold-italic pl-1">
+                                    user@host-ip
+                                </span>
+                                <span class="vpk-font-bold-italic pl-1">
+                                    'kubectl parms'
+                                </span>
+                            </p>
+                        </div>
+                        <hr class="hrDatasource">
+                    </div>
+                    <div id="clusterButton">
+                        <div class="'vpk-pt-10">
+                            <button id="clusterBtn" type="button" class="btn btn-outline-primary btn-sm mt-2"
+                                onclick="dynamic()">Connect</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="clusterStatus" class="ml-3">
+            </div>
+
+            <div id="clusterModalFooter" class="modal-footer">
+                <button type="button" class="btn btn-sm btn-primary" onclick="closeGetCluster()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
