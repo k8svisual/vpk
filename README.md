@@ -1,4 +1,4 @@
-<img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/viewk8s/main/public/docs/docimages/vpk.png" width="70" height="70">
+<img style="float: center;" src="https://raw.githubusercontent.com/k8svisual/vpk-docs/master/docs/images/vpk.png" width="70" height="70">
 
 ### VpK - Visually presented Kubernetes
 
