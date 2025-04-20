@@ -398,12 +398,14 @@ function clusterInfoDump(stats) {
             + '<th class="text-center summary_tab" style="width: 600px;">Cluster-info dump</th><tr>';
 
         if (typeof stats.k8sComponents !== 'undefined') {
-            for (let i = 0; i < stats.k8sComponents.components.length; i++) {
-                info = stats.k8sComponents.components[i].substring(0, stats.k8sComponents.components[i].length - 5)
-                line = line
-                    + '<tr class="summary_tab_border vkpfont-md">'
-                    + '  <td class="text-left pr-2 pl-2">' + info + '</td>'
-                    + '</tr>';
+            if (typeof stats.k8sComponents.components !== 'undefined') {
+                for (let i = 0; i < stats.k8sComponents.components.length; i++) {
+                    info = stats.k8sComponents.components[i].substring(0, stats.k8sComponents.components[i].length - 5)
+                    line = line
+                        + '<tr class="summary_tab_border vkpfont-md">'
+                        + '  <td class="text-left pr-2 pl-2">' + info + '</td>'
+                        + '</tr>';
+                }
             }
         } else {
             line = line

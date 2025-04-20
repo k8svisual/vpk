@@ -452,8 +452,9 @@ function createScene() {
     //---------------------------------------------------
     // build node walls and node objects
     mstCount = 0;
+    let adjF = (PI2 / max) * 2 * -1;
     for (let index = 0; index < max; index++) {
-        buildNodesAndWall(index);
+        buildNodesAndWall(index, adjF);
     }
 
     //---------------------------------------------------
@@ -660,7 +661,7 @@ function createScene() {
                 lc++;
                 // increase length pointer
                 nLen = lc * LINEFACTOR + RADIUSINNER + INNERFACTOR;
-            }
+            } 
 
             ///////////////////////////////////////////////////////////////////
             // Pod related namespace, fnum, and status. Status is also used to set color
@@ -988,6 +989,15 @@ function createScene() {
                     cPtr = cPtr + 10;
                 }
             }
+        }
+
+            // } else {
+            //     highPtr = cPtr;
+            //     highAngle = angleArray[highPtr];
+            // }
+
+        if (highAngle === 0) {
+            highAngle = angleArray[stop];
         }
 
         nodeEndAngles.push(highAngle);
@@ -2024,16 +2034,18 @@ function createScene() {
         addControlP(sphere2, 'Kube-Proxy');
     }
 
-    function buildNodesAndWall(index) {
-        let adjF = (PI2 / max) * 2 * -1;
-        angle += adjF;
+    function buildNodesAndWall(index, adjF) {
+        angle = angle + adjF;
         let size;
         let nName = cluster.nodes[nodePtr].name;
+
         if (buildWall === false) {
             // set x,y,z points for node icon
             pX = (maxRings + NODE_ICON_ADJ) * Math.sin(angle);
             pY = 0;
             pZ = (maxRings + NODE_ICON_ADJ) * Math.cos(angle);
+
+            //console.log(`${index} = Node at angle: ${angle}   Node X: ${pX} Y: ${pY} Z: ${pZ}  Node name: ${nName} `)
 
             let csiDrvX = (maxRings + NODE_ICON_ADJ + 0.75) * Math.sin(angle);
             let csiDrvZ = (maxRings + NODE_ICON_ADJ + 0.75) * Math.cos(angle);
@@ -2042,7 +2054,7 @@ function createScene() {
             node.position.y = pY;
             node.position.x = pX;
             node.position.z = pZ;
-
+            
             // Find the closet angleArray value and use that position in
             // the array as the angle in degrees
             let faceAngle = 0;
@@ -2357,6 +2369,7 @@ function createScene() {
             nodePtr++;
         } else {
             // set start points for wall and adjust
+
             if (index === 0) {
                 angle = nodeEndAngles[index] - 0.04;
             } else {
@@ -2370,6 +2383,10 @@ function createScene() {
             pX = maxRings * Math.sin(angle);
             pY = 0;
             pZ = maxRings * Math.cos(angle);
+
+            // console.log(`${index} = Wall at angle: ${angle}   Node X: ${pX} Y: ${pY} Z: ${pZ}`)
+
+
             // if single node in cluster no wall is built
             if (max !== 2) {
                 createWall(pX, pY, pZ, sX, sY, sZ, WALL_HEIGHT, index);
@@ -2378,8 +2395,9 @@ function createScene() {
                 buildWall = false;
             }
         }
+
         // update angle for next item to be defined
-        angle += PI2 / max;
+        angle = angle + (PI2 / max);
     }
 
     //==============================================

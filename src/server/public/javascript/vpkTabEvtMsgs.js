@@ -228,19 +228,21 @@ function evtNsSelection() {
     let ns;
     let option
     option = $('#events-ns-filter').select2('data');
-    ns = option[0].text;
-    ns = ns.trim();
-    if (ns.text === '' || ns.length === 0) {
-        evtNamespace = 'all-namespaces';
-    } else {
-        evtNamespace = ns;
+    if (typeof option[0] !== null) {
+        ns = option[0].text;
+        ns = ns.trim();
+        if (ns.text === '' || ns.length === 0) {
+            evtNamespace = 'all-namespaces';
+        } else {
+            evtNamespace = ns;
+        }
+        evtFirstMinuteToShow = $('#evtPageToStart').val();
+        if (evtFirstMinuteToShow > evtMaxMinutes) {
+            return false;
+        }
+        offSetAdjustment = (evtFirstMinuteToShow * 60);
+        return true;
     }
-    evtFirstMinuteToShow = $('#evtPageToStart').val();
-    if (evtFirstMinuteToShow > evtMaxMinutes) {
-        return false;
-    }
-    offSetAdjustment = (evtFirstMinuteToShow * 60);
-    return true;
 }
 
 function evtApplyNamespace() {
