@@ -56,3 +56,7 @@ echo " "
 echo $DASH
 echo " "
 
+#   docker pull k8svisual/vpk:7.0.2
+#   docker tag k8svisual/vpk:7.0.2 k8svisual/vpk:latest
+#   docker push k8svisual/vpk:latest
+
