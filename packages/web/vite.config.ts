@@ -15,6 +15,7 @@ export default defineConfig({
       '/network': API,
       '/security': API,
       '/storage': API,
+      '/schematic': API,
       '/load': API,
       '/capture': API,
     },

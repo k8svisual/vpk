@@ -9,6 +9,7 @@ import { captureCore } from './capture/cliSource';
 import { listResources } from './resources';
 import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
+import { getSchematic } from './schematic';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -89,6 +90,16 @@ app.get('/network/nodes', async () => listNetworkNodes(graph));
 app.get('/security', async () => projectSecuritySubjects(graph));
 
 app.get('/storage', async () => listStorageGroups(graph));
+
+app.get('/schematic', async (req, reply) => {
+  const q = req.query as { id?: string };
+  const dto = q.id ? getSchematic(graph, q.id) : undefined;
+  if (!dto) {
+    reply.code(404);
+    return { error: 'not found (not a Pod id in this snapshot)' };
+  }
+  return dto;
+});
 
 app.get('/ownerref', async (req, reply) => {
   const q = req.query as { ns?: string; id?: string };
