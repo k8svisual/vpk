@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens (DESIGN.md "UI shell extras"): CSS vars toggled by data-theme so server-SVG (which reads
+ * var(--vpk-*) directly) re-themes with no round-trip. Only the light theme is implemented for now —
+ * dark/forest/ocean are follow-up work, structured so adding them is just another [data-theme=...] block.
+ */
+:root,
+[data-theme='light'] {
+  --vpk-bg: #f6f6f4;
+  --vpk-surface: #ffffff;
+  --vpk-border: #d9d9d5;
+  --vpk-fg: #1f1f1d;
+  --vpk-fg-muted: #6b6b66;
+  --vpk-accent: #2a5db0;
+  --vpk-accent-fg: #ffffff;
+  --vpk-rail-bg: #232326;
+  --vpk-rail-fg: #c7c7c9;
+  --vpk-rail-fg-active: #ffffff;
+  --vpk-rail-active-bg: #3a3a40;
+
+  --vpk-status-ok: #2e8b57;
+  --vpk-status-warn: #d4a017;
+  --vpk-status-error: #c0392b;
+  --vpk-status-unknown: #8a8a86;
+}

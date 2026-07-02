@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState, type MouseEvent, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers } from 'lucide-react';
+import { NavRail, type RailGroup } from './NavRail';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -13,14 +15,25 @@ interface Snapshots {
 }
 
 type ViewId = 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic' | 'images';
-const VIEWS: { id: ViewId; label: string }[] = [
-  { id: 'ownerref', label: 'OwnerRef' },
-  { id: 'search', label: 'Search' },
-  { id: 'network', label: 'Network' },
-  { id: 'security', label: 'Security' },
-  { id: 'storage', label: 'Storage' },
-  { id: 'schematic', label: 'Schematic' },
-  { id: 'images', label: 'Images' },
+
+const RAIL_GROUPS: RailGroup<ViewId>[] = [
+  {
+    title: 'Explore',
+    items: [
+      { id: 'search', label: 'Search', icon: Search },
+      { id: 'ownerref', label: 'OwnerRef', icon: Share2 },
+      { id: 'schematic', label: 'Schematic', icon: LayoutTemplate },
+    ],
+  },
+  {
+    title: 'Lenses',
+    items: [
+      { id: 'network', label: 'Network', icon: Network },
+      { id: 'security', label: 'Security', icon: Shield },
+      { id: 'storage', label: 'Storage', icon: Database },
+      { id: 'images', label: 'Images', icon: Layers },
+    ],
+  },
 ];
 
 export function App() {
@@ -91,65 +104,77 @@ export function App() {
     if (id) selectResource(id);
   }
 
-  const label: CSSProperties = { fontSize: 13, color: '#555' };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'system-ui, sans-serif' }}>
-      <header
-        style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #d0d0d0', flexWrap: 'wrap' }}
-      >
-        <strong>VpK</strong>
-        <nav style={{ display: 'flex', gap: 4 }}>
-          {VIEWS.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setView(v.id)}
-              style={{
-                padding: '4px 10px',
-                border: '1px solid #d0d0d0',
-                background: view === v.id ? '#333' : '#fff',
-                color: view === v.id ? '#fff' : '#333',
-                cursor: 'pointer',
-              }}
-            >
-              {v.label}
-            </button>
-          ))}
-        </nav>
-        <label style={label}>
-          snapshot{' '}
-          <select value={snaps.current} onChange={(e) => void onSelectSnapshot(e.target.value)}>
-            {snaps.files.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={label}>
-          namespace{' '}
-          <input value={ns} onChange={(e) => setNs(e.target.value)} onBlur={() => loadGraph(ns)} style={{ width: 140 }} />
-        </label>
-        <button onClick={() => void onCapture()} disabled={!!busy}>
-          Capture from cluster
-        </button>
-        <span style={{ ...label, color: '#c0392b' }}>{busy}</span>
-      </header>
+    <div
+      className="flex h-screen font-sans text-sm"
+      style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+    >
+      <NavRail groups={RAIL_GROUPS} active={view} onSelect={setView} />
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <main style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-          {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
-          {view === 'search' && <SearchView onSelect={selectResource} />}
-          {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
-          {view === 'security' && <SecurityView onSelect={selectResource} />}
-          {view === 'storage' && <StorageView onSelect={selectResource} />}
-          {view === 'schematic' && <SchematicView podId={selected} onSelect={selectResource} />}
-          {view === 'images' && <ContainerImagesView onSelect={selectResource} />}
-        </main>
-        <aside style={{ width: 460, borderLeft: '1px solid #d0d0d0', overflow: 'auto', padding: 12, background: '#f6f6f4' }}>
-          <h3 style={{ marginTop: 4, fontWeight: 500 }}>{selected ? 'Definition' : 'Click a node'}</h3>
-          <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{definition}</pre>
-        </aside>
+      <div className="flex flex-1 flex-col min-w-0">
+        <header
+          className="flex items-center gap-3 border-b px-3 py-2 flex-wrap"
+          style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)' }}
+        >
+          <strong className="tracking-tight">VpK</strong>
+          <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+            snapshot
+            <select
+              value={snaps.current}
+              onChange={(e) => void onSelectSnapshot(e.target.value)}
+              className="rounded border px-1 py-0.5"
+              style={{ borderColor: 'var(--vpk-border)' }}
+            >
+              {snaps.files.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+            namespace
+            <input
+              value={ns}
+              onChange={(e) => setNs(e.target.value)}
+              onBlur={() => loadGraph(ns)}
+              className="w-36 rounded border px-1.5 py-0.5"
+              style={{ borderColor: 'var(--vpk-border)' }}
+            />
+          </label>
+          <button
+            onClick={() => void onCapture()}
+            disabled={!!busy}
+            className="rounded border px-2 py-1 text-xs cursor-pointer disabled:cursor-default disabled:opacity-50"
+            style={{ borderColor: 'var(--vpk-border)' }}
+          >
+            Capture from cluster
+          </button>
+          <span className="text-xs" style={{ color: 'var(--vpk-status-error)' }}>
+            {busy}
+          </span>
+        </header>
+
+        <div className="flex flex-1 min-h-0">
+          <main className="flex-1 overflow-auto p-3">
+            {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
+            {view === 'search' && <SearchView onSelect={selectResource} />}
+            {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
+            {view === 'security' && <SecurityView onSelect={selectResource} />}
+            {view === 'storage' && <StorageView onSelect={selectResource} />}
+            {view === 'schematic' && <SchematicView podId={selected} onSelect={selectResource} />}
+            {view === 'images' && <ContainerImagesView onSelect={selectResource} />}
+          </main>
+          <aside
+            className="w-[460px] shrink-0 overflow-auto border-l p-3"
+            style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)' }}
+          >
+            <h3 className="mt-1 mb-2 font-medium" style={{ color: 'var(--vpk-fg)' }}>
+              {selected ? 'Definition' : 'Click a node'}
+            </h3>
+            <pre className="whitespace-pre-wrap break-words text-xs">{definition}</pre>
+          </aside>
+        </div>
       </div>
     </div>
   );
