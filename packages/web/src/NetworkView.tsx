@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NetworkNodeIpsView } from './NetworkNodeIpsView';
 
 interface NetworkPod {
   id: string;
@@ -26,7 +27,46 @@ const phaseColor: Record<string, string> = {
   Unknown: '#999',
 };
 
+type Mode = 'services' | 'nodes';
+
 export function NetworkView({ namespace, onSelect }: { namespace: string; onSelect: (id: string) => void }) {
+  const [mode, setMode] = useState<Mode>('services');
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+        {(
+          [
+            ['services', 'Services-To-Pods'],
+            ['nodes', 'Node & Pod IPs'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setMode(id)}
+            style={{
+              padding: '3px 10px',
+              fontSize: 12,
+              border: '1px solid #d0d0d0',
+              background: mode === id ? '#333' : '#fff',
+              color: mode === id ? '#fff' : '#333',
+              cursor: 'pointer',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {mode === 'services' ? (
+        <ServicesToPodsMode namespace={namespace} onSelect={onSelect} />
+      ) : (
+        <NetworkNodeIpsView onSelect={onSelect} />
+      )}
+    </div>
+  );
+}
+
+function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSelect: (id: string) => void }) {
   const [cards, setCards] = useState<NetworkService[]>([]);
 
   useEffect(() => {

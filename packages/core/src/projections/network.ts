@@ -86,6 +86,46 @@ function podsFromEndpoints(
   return entries.filter((e): e is NetworkPodEntry => e !== undefined);
 }
 
+export interface NodeIpPod {
+  pod: Resource;
+  podIp?: string;
+}
+
+export interface NodeIpCard {
+  node: Resource;
+  internalIp?: string;
+  podCidr?: string;
+  pods: NodeIpPod[];
+}
+
+/**
+ * "Node & Pod IPs" network mode (DESIGN §6.10): one containment card per Node — its host InternalIP + podCIDR
+ * (host-network subnet vs pod-network subnet), and every Pod scheduled to it with its podIP. Prefix-range
+ * aggregation of pod IPs is a presentation concern, left to the view layer.
+ */
+export function projectNetworkNodeIps(graph: ResourceGraph): NodeIpCard[] {
+  const podsByNode = new Map<string, NodeIpPod[]>();
+  for (const pod of graph.nodes.values()) {
+    if (pod.kind !== 'Pod') continue;
+    const nodeName = (pod.raw.spec as { nodeName?: string } | undefined)?.nodeName;
+    if (!nodeName) continue;
+    const list = podsByNode.get(nodeName) ?? [];
+    list.push({ pod, podIp: (pod.raw.status as { podIP?: string } | undefined)?.podIP });
+    podsByNode.set(nodeName, list);
+  }
+
+  const cards: NodeIpCard[] = [];
+  for (const node of graph.nodes.values()) {
+    if (node.kind !== 'Node') continue;
+    const addresses = (node.raw.status as { addresses?: NodeAddress[] } | undefined)?.addresses ?? [];
+    const internalIp = addresses.find((a) => a.type === 'InternalIP')?.address;
+    const podCidr = (node.raw.spec as { podCIDR?: string } | undefined)?.podCIDR;
+    const pods = (podsByNode.get(node.name) ?? []).sort((a, b) => a.pod.name.localeCompare(b.pod.name));
+    cards.push({ node, internalIp, podCidr, pods });
+  }
+  return cards.sort((a, b) => a.node.name.localeCompare(b.node.name));
+}
+
 function toEntry(
   addr: EndpointAddress,
   ready: boolean,

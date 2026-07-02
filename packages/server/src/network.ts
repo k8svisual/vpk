@@ -1,4 +1,4 @@
-import { projectNetworkServicesToPods, type ResourceGraph } from '@vpk/core';
+import { projectNetworkServicesToPods, projectNetworkNodeIps, type ResourceGraph } from '@vpk/core';
 
 /** Lean DTO for the Network (Services-To-Pods) view — no raw payloads over the wire. */
 export interface NetworkServiceDto {
@@ -34,5 +34,24 @@ export function listNetworkServices(graph: ResourceGraph, namespace?: string): N
       nodeName: p.nodeName,
       nodeIp: p.nodeIp,
     })),
+  }));
+}
+
+/** Lean DTO for the Node & Pod IPs network view mode — no raw payloads over the wire. */
+export interface NetworkNodeDto {
+  id: string;
+  name: string;
+  internalIp?: string;
+  podCidr?: string;
+  pods: { id: string; name: string; namespace?: string; podIp?: string }[];
+}
+
+export function listNetworkNodes(graph: ResourceGraph): NetworkNodeDto[] {
+  return projectNetworkNodeIps(graph).map((card) => ({
+    id: card.node.id,
+    name: card.node.name,
+    internalIp: card.internalIp,
+    podCidr: card.podCidr,
+    pods: card.pods.map((p) => ({ id: p.pod.id, name: p.pod.name, namespace: p.pod.namespace, podIp: p.podIp })),
   }));
 }

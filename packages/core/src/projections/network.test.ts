@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { buildGraph } from '../graph';
-import { projectNetworkServicesToPods } from './network';
+import { projectNetworkServicesToPods, projectNetworkNodeIps } from './network';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fixturePath = join(here, '../../../server/test/fixtures/minikube.snapshot.json');
@@ -35,5 +35,25 @@ describe('projectNetworkServicesToPods', () => {
     expect(all.length).toBeGreaterThanOrEqual(2);
     const names = all.map((c) => c.service.name);
     expect([...names].sort()).toEqual(names);
+  });
+});
+
+describe('projectNetworkNodeIps', () => {
+  const graph = buildGraph(fixture.items as never);
+
+  it('lists all 8 pods scheduled to the minikube node, with the node internalIp + podCIDR', () => {
+    const [minikube] = projectNetworkNodeIps(graph);
+    expect(minikube?.node.name).toBe('minikube');
+    expect(minikube?.internalIp).toBe('192.168.49.2');
+    expect(minikube?.podCidr).toBe('10.244.0.0/24');
+    expect(minikube?.pods).toHaveLength(8);
+  });
+
+  it('distinguishes pod-network IPs from host-network IPs', () => {
+    const [minikube] = projectNetworkNodeIps(graph);
+    const coredns = minikube?.pods.find((p) => p.pod.name === 'coredns-668d6bf9bc-9x645');
+    const etcd = minikube?.pods.find((p) => p.pod.name === 'etcd-minikube');
+    expect(coredns?.podIp).toBe('10.244.0.2'); // pod-network (podCIDR)
+    expect(etcd?.podIp).toBe('192.168.49.2'); // host-network
   });
 });

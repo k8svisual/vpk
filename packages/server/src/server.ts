@@ -7,7 +7,7 @@ import { loadSnapshotFile } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { captureCore } from './capture/cliSource';
 import { listResources } from './resources';
-import { listNetworkServices } from './network';
+import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
@@ -83,6 +83,8 @@ app.get('/network', async (req) => {
   const q = req.query as { ns?: string };
   return listNetworkServices(graph, q.ns || undefined);
 });
+
+app.get('/network/nodes', async () => listNetworkNodes(graph));
 
 app.get('/security', async () => projectSecuritySubjects(graph));
 
