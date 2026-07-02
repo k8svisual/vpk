@@ -16,12 +16,12 @@ const base: SchematicDto = {
   ],
   config: { configMaps: [{ id: 'cm-1', name: 'coredns' }], secrets: [] },
   network: { services: [{ id: 'svc-1', name: 'kube-dns' }] },
-  storage: { pvcs: [] },
+  storage: { pvcs: [], pvs: [], storageClasses: [] },
   security: { serviceAccount: { id: 'sa-1', name: 'coredns' } },
 };
 
 describe('renderSchematicSvg', () => {
-  it('renders valid SVG with data-resource-id on the pod, owner chain, and every group item', () => {
+  it('renders valid SVG with data-resource-id on the pod, owner chain, and every single-item group icon', () => {
     const svg = renderSchematicSvg(base);
     expect(svg).toMatch(/^<svg/);
     expect(svg).toContain('data-resource-id="pod-1"');
@@ -37,20 +37,36 @@ describe('renderSchematicSvg', () => {
     expect(svg).not.toContain('Storage');
   });
 
-  it('draws a dashed Creates edge between owner-chain links and a solid References edge to each group', () => {
+  it('draws dashed-red Creates arrowheads on the owner chain and solid References arrowheads to groups', () => {
     const svg = renderSchematicSvg(base);
-    expect(svg).toContain('sch-creates');
-    expect(svg).toContain('sch-refs');
+    expect(svg).toContain('url(#sch-arrow-dashed)');
+    expect(svg).toContain('url(#sch-arrow-solid)');
   });
 
-  it('aggregates a group into a single count row when it has more than the threshold of items', () => {
+  it('collapses a group with more than one item to a single aggregate icon + count, not one node per item', () => {
     const many: SchematicDto = {
       ...base,
       config: { configMaps: Array.from({ length: 8 }, (_, i) => ({ id: `cm-${i}`, name: `cm-${i}` })), secrets: [] },
     };
     const svg = renderSchematicSvg(many);
-    expect(svg).toContain('ConfigMap (8)');
+    expect(svg).toContain('(8)');
     expect(svg).not.toContain('data-resource-id="cm-0"');
+  });
+
+  it('renders the pvc -> pv -> storageClass chain with a solid edge then a dashed (Creates) edge', () => {
+    const withStorage: SchematicDto = {
+      ...base,
+      storage: {
+        pvcs: [{ id: 'pvc-1', name: 'data-claim' }],
+        pvs: [{ id: 'pv-1', name: 'pv-001' }],
+        storageClasses: [{ id: 'sc-1', name: 'fast-ssd' }],
+      },
+    };
+    const svg = renderSchematicSvg(withStorage);
+    expect(svg).toContain('data-resource-id="pvc-1"');
+    expect(svg).toContain('data-resource-id="pv-1"');
+    expect(svg).toContain('data-resource-id="sc-1"');
+    expect(svg).toContain('Storage');
   });
 
   it('renders a Pod with no owner chain and no groups (fully adaptive, still valid SVG)', () => {
@@ -64,7 +80,7 @@ describe('renderSchematicSvg', () => {
       ownerChain: [],
       config: { configMaps: [], secrets: [] },
       network: { services: [] },
-      storage: { pvcs: [] },
+      storage: { pvcs: [], pvs: [], storageClasses: [] },
       security: {},
     };
     const svg = renderSchematicSvg(bare);

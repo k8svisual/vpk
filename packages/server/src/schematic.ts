@@ -12,7 +12,7 @@ export interface SchematicDto {
   generatorLabel?: string;
   config: { configMaps: { id: string; name: string }[]; secrets: { id: string; name: string }[] };
   network: { services: { id: string; name: string }[] };
-  storage: { pvcs: { id: string; name: string }[] };
+  storage: { pvcs: { id: string; name: string }[]; pvs: { id: string; name: string }[]; storageClasses: { id: string; name: string }[] };
   security: { serviceAccount?: { id: string; name: string } };
 }
 
@@ -34,7 +34,11 @@ export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto 
       secrets: s.config.secrets.map((c) => ({ id: c.id, name: c.name })),
     },
     network: { services: s.network.services.map((sv) => ({ id: sv.id, name: sv.name })) },
-    storage: { pvcs: s.storage.pvcs.map((p) => ({ id: p.id, name: p.name })) },
+    storage: {
+      pvcs: s.storage.pvcs.map((p) => ({ id: p.id, name: p.name })),
+      pvs: s.storage.pvs.map((p) => ({ id: p.id, name: p.name })),
+      storageClasses: s.storage.storageClasses.map((p) => ({ id: p.id, name: p.name })),
+    },
     security: s.security.serviceAccount
       ? { serviceAccount: { id: s.security.serviceAccount.id, name: s.security.serviceAccount.name } }
       : {},

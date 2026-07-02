@@ -54,7 +54,8 @@ export interface PodSchematic {
   generatorLabel?: string;
   config: { configMaps: SchematicRef[]; secrets: SchematicRef[] };
   network: { services: SchematicRef[] };
-  storage: { pvcs: SchematicRef[] };
+  /** pvcs -> their bound pvs -> those pvs' storage classes (DESIGN §6.9 pvc<-pv<-sc chain). */
+  storage: { pvcs: SchematicRef[]; pvs: SchematicRef[]; storageClasses: SchematicRef[] };
   security: { serviceAccount?: SchematicRef };
 }
 
@@ -128,8 +129,25 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     }
   }
 
+  const clusterLookup = (kind: string, name: string): Resource | undefined => byNsKindName.get(`|${kind}|${name}`);
+
   const pvcs = new Map<string, SchematicRef>();
   for (const v of spec?.volumes ?? []) addRef(pvcs, 'PersistentVolumeClaim', v.persistentVolumeClaim?.claimName);
+
+  const pvs = new Map<string, SchematicRef>();
+  const storageClasses = new Map<string, SchematicRef>();
+  for (const pvcRef of pvcs.values()) {
+    const pvcResource = graph.nodes.get(pvcRef.id);
+    const volumeName = (pvcResource?.raw.spec as { volumeName?: string } | undefined)?.volumeName;
+    if (!volumeName) continue;
+    const pv = clusterLookup('PersistentVolume', volumeName);
+    pvs.set(volumeName, { id: pv?.id ?? `PersistentVolume/${volumeName}`, name: volumeName, kind: 'PersistentVolume' });
+    const scName = (pv?.raw.spec as { storageClassName?: string } | undefined)?.storageClassName;
+    if (scName) {
+      const sc = clusterLookup('StorageClass', scName);
+      storageClasses.set(scName, { id: sc?.id ?? `StorageClass/${scName}`, name: scName, kind: 'StorageClass' });
+    }
+  }
 
   const services: SchematicRef[] = [];
   for (const svc of graph.nodes.values()) {
@@ -170,7 +188,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     generatorLabel,
     config: { configMaps: [...configMaps.values()], secrets: [...secrets.values()] },
     network: { services },
-    storage: { pvcs: [...pvcs.values()] },
+    storage: { pvcs: [...pvcs.values()], pvs: [...pvs.values()], storageClasses: [...storageClasses.values()] },
     security: { serviceAccount: sa ? { id: sa.id, name: sa.name, kind: 'ServiceAccount' } : undefined },
   };
 }
