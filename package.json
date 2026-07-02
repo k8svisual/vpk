@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/web/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "dev:server": "bun packages/server/src/server.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

@@ -33,6 +33,13 @@ describe('projectOwnerRef', () => {
     expect(view.nodes).toHaveLength(3);
   });
 
+  it('namespace focus excludes standalone (ownerless) resources', () => {
+    const cm: RawObject = { apiVersion: 'v1', kind: 'ConfigMap', metadata: { uid: 'cm', name: 'cfg', namespace: 'ns' } };
+    const view = projectOwnerRef(buildGraph([...chain(3), cm]), { namespace: 'ns' });
+    expect(view.nodes).toHaveLength(3); // the chain, not the standalone ConfigMap
+    expect(view.nodes.some((n) => n.id === 'cm')).toBe(false);
+  });
+
   it('returns empty for an unknown focus', () => {
     expect(projectOwnerRef(buildGraph(chain(3)), { resourceId: 'nope' }).nodes).toHaveLength(0);
   });

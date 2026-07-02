@@ -18,13 +18,16 @@ export function projectOwnerRef(graph: ResourceGraph, focus: OwnerRefFocus): Own
 
   const parents = new Map<ResourceId, ResourceId[]>();
   const children = new Map<ResourceId, ResourceId[]>();
+  const participants = new Set<ResourceId>();
   for (const e of ownerEdges) {
     push(children, e.from, e.to);
     push(parents, e.to, e.from);
+    participants.add(e.from);
+    participants.add(e.to);
   }
 
   const seen = new Set<ResourceId>();
-  const stack = seedIds(graph, focus);
+  const stack = seedIds(graph, focus, participants);
   while (stack.length > 0) {
     const id = stack.pop() as ResourceId;
     if (seen.has(id)) continue;
@@ -40,9 +43,16 @@ export function projectOwnerRef(graph: ResourceGraph, focus: OwnerRefFocus): Own
   return { nodes, edges };
 }
 
-function seedIds(graph: ResourceGraph, focus: OwnerRefFocus): ResourceId[] {
+function seedIds(
+  graph: ResourceGraph,
+  focus: OwnerRefFocus,
+  participants: Set<ResourceId>,
+): ResourceId[] {
   if ('resourceId' in focus) return graph.nodes.has(focus.resourceId) ? [focus.resourceId] : [];
-  return [...graph.nodes.values()].filter((r) => r.namespace === focus.namespace).map((r) => r.id);
+  // namespace focus: only resources that take part in an ownership chain (skip standalone objects)
+  return [...graph.nodes.values()]
+    .filter((r) => r.namespace === focus.namespace && participants.has(r.id))
+    .map((r) => r.id);
 }
 
 function push(map: Map<ResourceId, ResourceId[]>, key: ResourceId, value: ResourceId): void {

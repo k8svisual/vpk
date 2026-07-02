@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@vpk/core": "workspace:*"
+    "@vpk/core": "workspace:*",
+    "fastify": "^5.1.0"
   }
 }
