@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type MouseEvent, type CSSProperties }
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
+import { StorageView } from './StorageView';
 
 interface Snapshots {
   dir: string;
@@ -9,12 +10,13 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'ownerref' | 'search' | 'network' | 'security';
+type ViewId = 'ownerref' | 'search' | 'network' | 'security' | 'storage';
 const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'ownerref', label: 'OwnerRef' },
   { id: 'search', label: 'Search' },
   { id: 'network', label: 'Network' },
   { id: 'security', label: 'Security' },
+  { id: 'storage', label: 'Storage' },
 ];
 
 export function App() {
@@ -136,6 +138,7 @@ export function App() {
           {view === 'search' && <SearchView onSelect={selectResource} />}
           {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
           {view === 'security' && <SecurityView onSelect={selectResource} />}
+          {view === 'storage' && <StorageView onSelect={selectResource} />}
         </main>
         <aside style={{ width: 460, borderLeft: '1px solid #d0d0d0', overflow: 'auto', padding: 12, background: '#f6f6f4' }}>
           <h3 style={{ marginTop: 4, fontWeight: 500 }}>{selected ? 'Definition' : 'Click a node'}</h3>
