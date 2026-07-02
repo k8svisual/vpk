@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box } from 'lucide-react';
 import { NavRail, type RailGroup } from './NavRail';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
@@ -7,6 +7,7 @@ import { SecurityView } from './SecurityView';
 import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
 import { ContainerImagesView } from './ContainerImagesView';
+import { Scene3D } from './Scene3D';
 
 interface Snapshots {
   dir: string;
@@ -14,9 +15,13 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic' | 'images';
+type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic' | 'images';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
+  {
+    title: 'Cluster',
+    items: [{ id: 'cluster3d', label: '3D Cluster', icon: Box }],
+  },
   {
     title: 'Explore',
     items: [
@@ -156,7 +161,9 @@ export function App() {
         </header>
 
         <div className="flex flex-1 min-h-0">
-          <main className="flex-1 overflow-auto p-3">
+          <main className={`flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
+            {/* Scene3D stays mounted (visibility toggle inside) so there's at most one WebGL context ever. */}
+            <Scene3D active={view === 'cluster3d'} onSelect={selectResource} />
             {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
             {view === 'search' && <SearchView onSelect={selectResource} />}
             {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}

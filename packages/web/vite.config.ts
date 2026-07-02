@@ -18,6 +18,7 @@ export default defineConfig({
       '/storage': API,
       '/schematic': API,
       '/container-images': API,
+      '/scene': API,
       '/load': API,
       '/capture': API,
     },
