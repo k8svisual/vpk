@@ -2,10 +2,12 @@ import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename } from 'node:path';
 import { readdirSync, writeFileSync } from 'node:fs';
-import { buildGraph, projectOwnerRef, type ResourceGraph, type OwnerRefFocus } from '@vpk/core';
+import { buildGraph, projectOwnerRef, projectSecuritySubjects, type ResourceGraph, type OwnerRefFocus } from '@vpk/core';
 import { loadSnapshotFile } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { captureCore } from './capture/cliSource';
+import { listResources } from './resources';
+import { listNetworkServices } from './network';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -73,6 +75,15 @@ app.post('/capture', async (req, reply) => {
     return { error: String(e) };
   }
 });
+
+app.get('/resources', async () => listResources(graph));
+
+app.get('/network', async (req) => {
+  const q = req.query as { ns?: string };
+  return listNetworkServices(graph, q.ns || undefined);
+});
+
+app.get('/security', async () => projectSecuritySubjects(graph));
 
 app.get('/ownerref', async (req, reply) => {
   const q = req.query as { ns?: string; id?: string };

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState, type MouseEvent, type CSSProperties } from 'react';
+import { SearchView } from './SearchView';
+import { NetworkView } from './NetworkView';
+import { SecurityView } from './SecurityView';
 
 interface Snapshots {
   dir: string;
@@ -6,7 +9,16 @@ interface Snapshots {
   files: string[];
 }
 
+type ViewId = 'ownerref' | 'search' | 'network' | 'security';
+const VIEWS: { id: ViewId; label: string }[] = [
+  { id: 'ownerref', label: 'OwnerRef' },
+  { id: 'search', label: 'Search' },
+  { id: 'network', label: 'Network' },
+  { id: 'security', label: 'Security' },
+];
+
 export function App() {
+  const [view, setView] = useState<ViewId>('ownerref');
   const [snaps, setSnaps] = useState<Snapshots>({ dir: '', current: '', files: [] });
   const [ns, setNs] = useState('kube-system');
   const [svg, setSvg] = useState('');
@@ -58,16 +70,19 @@ export function App() {
     setBusy(res.error ? `error: ${res.error}` : '');
   }
 
-  function onGraphClick(e: MouseEvent<HTMLDivElement>) {
-    const node = (e.target as Element).closest('[data-resource-id]');
-    const id = node?.getAttribute('data-resource-id');
-    if (!id) return;
+  function selectResource(id: string) {
     setSelected(id);
     setDefinition('loading…');
     fetch(`/definition?id=${encodeURIComponent(id)}`)
       .then((r) => r.json())
       .then((raw: unknown) => setDefinition(JSON.stringify(raw, null, 2)))
       .catch((err: unknown) => setDefinition(String(err)));
+  }
+
+  function onGraphClick(e: MouseEvent<HTMLDivElement>) {
+    const node = (e.target as Element).closest('[data-resource-id]');
+    const id = node?.getAttribute('data-resource-id');
+    if (id) selectResource(id);
   }
 
   const label: CSSProperties = { fontSize: 13, color: '#555' };
@@ -78,6 +93,23 @@ export function App() {
         style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid #d0d0d0', flexWrap: 'wrap' }}
       >
         <strong>VpK</strong>
+        <nav style={{ display: 'flex', gap: 4 }}>
+          {VIEWS.map((v) => (
+            <button
+              key={v.id}
+              onClick={() => setView(v.id)}
+              style={{
+                padding: '4px 10px',
+                border: '1px solid #d0d0d0',
+                background: view === v.id ? '#333' : '#fff',
+                color: view === v.id ? '#fff' : '#333',
+                cursor: 'pointer',
+              }}
+            >
+              {v.label}
+            </button>
+          ))}
+        </nav>
         <label style={label}>
           snapshot{' '}
           <select value={snaps.current} onChange={(e) => void onSelectSnapshot(e.target.value)}>
@@ -100,7 +132,10 @@ export function App() {
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <main style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-          <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />
+          {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
+          {view === 'search' && <SearchView onSelect={selectResource} />}
+          {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
+          {view === 'security' && <SecurityView onSelect={selectResource} />}
         </main>
         <aside style={{ width: 460, borderLeft: '1px solid #d0d0d0', overflow: 'auto', padding: 12, background: '#f6f6f4' }}>
           <h3 style={{ marginTop: 4, fontWeight: 500 }}>{selected ? 'Definition' : 'Click a node'}</h3>
