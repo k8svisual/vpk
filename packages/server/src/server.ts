@@ -18,6 +18,7 @@ import { listResources } from './resources';
 import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 import { getSchematic } from './schematic';
+import { renderSchematicSvg } from './render/schematicSvg';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -111,6 +112,17 @@ app.get('/schematic', async (req, reply) => {
     return { error: 'not found (not a Pod id in this snapshot)' };
   }
   return dto;
+});
+
+app.get('/schematic.svg', async (req, reply) => {
+  const q = req.query as { id?: string };
+  const dto = q.id ? getSchematic(graph, q.id) : undefined;
+  if (!dto) {
+    reply.code(404);
+    return { error: 'not found (not a Pod id in this snapshot)' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  return renderSchematicSvg(dto);
 });
 
 app.get('/ownerref', async (req, reply) => {
