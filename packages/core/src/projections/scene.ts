@@ -26,7 +26,7 @@ const PRESSURE_TYPES = new Set(['MemoryPressure', 'DiskPressure', 'PIDPressure',
  * "Follow red down" status rollup (DESIGN §6.8): Ready=False/Unknown -> error; any pressure condition
  * True -> warn; unschedulable (cordoned) -> warn (unless already error); else ok.
  */
-function nodeHealth(conditions: NodeConditionRaw[], unschedulable: boolean): NodeHealth {
+export function nodeHealth(conditions: NodeConditionRaw[], unschedulable: boolean): NodeHealth {
   const ready = conditions.find((c) => c.type === 'Ready');
   if (ready && ready.status !== 'True') return 'error';
   const hasPressure = conditions.some((c) => c.type && PRESSURE_TYPES.has(c.type) && c.status === 'True');

@@ -8,6 +8,7 @@ import {
   projectSecuritySubjects,
   projectContainerImages,
   projectClusterNodeField,
+  projectClusterWheel,
   type ResourceGraph,
   type OwnerRefFocus,
 } from '@vpk/core';
@@ -103,6 +104,8 @@ app.get('/storage', async () => listStorageGroups(graph));
 app.get('/container-images', async () => projectContainerImages(graph));
 
 app.get('/scene/nodes', async () => projectClusterNodeField(graph));
+
+app.get('/scene/wheel', async () => projectClusterWheel(graph));
 
 app.get('/schematic', async (req, reply) => {
   const q = req.query as { id?: string };
