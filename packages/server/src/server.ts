@@ -2,7 +2,14 @@ import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename } from 'node:path';
 import { readdirSync, writeFileSync } from 'node:fs';
-import { buildGraph, projectOwnerRef, projectSecuritySubjects, type ResourceGraph, type OwnerRefFocus } from '@vpk/core';
+import {
+  buildGraph,
+  projectOwnerRef,
+  projectSecuritySubjects,
+  projectContainerImages,
+  type ResourceGraph,
+  type OwnerRefFocus,
+} from '@vpk/core';
 import { loadSnapshotFile } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { captureCore } from './capture/cliSource';
@@ -90,6 +97,8 @@ app.get('/network/nodes', async () => listNetworkNodes(graph));
 app.get('/security', async () => projectSecuritySubjects(graph));
 
 app.get('/storage', async () => listStorageGroups(graph));
+
+app.get('/container-images', async () => projectContainerImages(graph));
 
 app.get('/schematic', async (req, reply) => {
   const q = req.query as { id?: string };

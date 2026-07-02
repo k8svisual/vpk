@@ -4,6 +4,7 @@ import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
 import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
+import { ContainerImagesView } from './ContainerImagesView';
 
 interface Snapshots {
   dir: string;
@@ -11,7 +12,7 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic';
+type ViewId = 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic' | 'images';
 const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'ownerref', label: 'OwnerRef' },
   { id: 'search', label: 'Search' },
@@ -19,6 +20,7 @@ const VIEWS: { id: ViewId; label: string }[] = [
   { id: 'security', label: 'Security' },
   { id: 'storage', label: 'Storage' },
   { id: 'schematic', label: 'Schematic' },
+  { id: 'images', label: 'Images' },
 ];
 
 export function App() {
@@ -142,6 +144,7 @@ export function App() {
           {view === 'security' && <SecurityView onSelect={selectResource} />}
           {view === 'storage' && <StorageView onSelect={selectResource} />}
           {view === 'schematic' && <SchematicView podId={selected} onSelect={selectResource} />}
+          {view === 'images' && <ContainerImagesView onSelect={selectResource} />}
         </main>
         <aside style={{ width: 460, borderLeft: '1px solid #d0d0d0', overflow: 'auto', padding: 12, background: '#f6f6f4' }}>
           <h3 style={{ marginTop: 4, fontWeight: 500 }}>{selected ? 'Definition' : 'Click a node'}</h3>

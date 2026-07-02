@@ -9,3 +9,4 @@ export * from './projections/network';
 export * from './projections/security';
 export * from './projections/storage';
 export * from './projections/schematic';
+export * from './projections/containerImages';
