@@ -10,6 +10,9 @@ export default defineConfig({
       '/ownerref': API,
       '/definition': API,
       '/health': API,
+      '/snapshots': API,
+      '/load': API,
+      '/capture': API,
     },
   },
 });
