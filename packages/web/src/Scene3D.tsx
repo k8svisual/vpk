@@ -94,6 +94,8 @@ interface WheelPoint {
 }
 interface WheelNode extends WheelPoint {
   health: 'ok' | 'warn' | 'error';
+  healthColor: string;
+  role: 'master' | 'worker';
   podCount: number;
 }
 interface WheelTierItem extends WheelPoint {
@@ -187,6 +189,7 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
       </line>
       {wheel.nodes.map((n) => (
         <group key={n.id}>
+          {/* box color = role (master vs worker); small dot = health, so neither signal is lost */}
           <mesh
             position={[n.x, 0.3, n.z]}
             onClick={(e) => {
@@ -196,6 +199,10 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
           >
             <boxGeometry args={[0.7, 0.6, 0.7]} />
             <meshStandardMaterial color={n.color} />
+          </mesh>
+          <mesh position={[n.x + 0.4, 0.6, n.z + 0.4]}>
+            <sphereGeometry args={[0.14, 8, 8]} />
+            <meshStandardMaterial color={n.healthColor} />
           </mesh>
           <Text position={[n.x, 0.75, n.z]} fontSize={0.24} color="#1f1f1d" anchorX="center" anchorY="bottom">
             {n.name}

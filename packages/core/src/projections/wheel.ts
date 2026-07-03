@@ -1,5 +1,6 @@
 import { nodeHealth, type NodeHealth } from './scene';
 import { colorForKind } from '../kindColors';
+import { nodeRole, nodeRoleColor, podStatusColor, type NodeRole } from '../podStatus';
 import type { ResourceGraph } from '../graph';
 import type { ResourceId } from '../identity';
 import type { Resource } from '../types';
@@ -14,6 +15,8 @@ export interface WheelPoint {
 }
 export interface WheelNode extends WheelPoint {
   health: NodeHealth;
+  healthColor: string;
+  role: NodeRole;
   podCount: number;
 }
 export interface WheelPod extends WheelPoint {
@@ -45,13 +48,6 @@ export interface ClusterWheel {
 }
 
 const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#2e8b57', warn: '#d4a017', error: '#c0392b' };
-const PHASE_COLOR: Record<string, string> = {
-  Running: '#2e8b57',
-  Succeeded: '#3a7bd5',
-  Pending: '#d4a017',
-  Failed: '#c0392b',
-  Unknown: '#8a8a86',
-};
 
 /** Render at most this many items per linked tier — even after restricting to actually-referenced resources,
  *  a real cluster can reference hundreds of Services/PVCs. `totalCount` always reports what's cut. */
@@ -151,8 +147,20 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
     const status = nodeRes.raw.status as { conditions?: { type?: string; status?: string }[] } | undefined;
     const spec = nodeRes.raw.spec as { unschedulable?: boolean } | undefined;
     const health = nodeHealth(status?.conditions ?? [], spec?.unschedulable === true);
+    const role = nodeRole(nodeRes);
     const nodePods = podsByNode.get(nodeRes.name) ?? [];
-    nodes.push({ id: nodeRes.id, name: nodeRes.name, x, y: 0, z, color: HEALTH_COLOR[health], health, podCount: nodePods.length });
+    nodes.push({
+      id: nodeRes.id,
+      name: nodeRes.name,
+      x,
+      y: 0,
+      z,
+      color: nodeRoleColor(role),
+      health,
+      healthColor: HEALTH_COLOR[health],
+      role,
+      podCount: nodePods.length,
+    });
 
     const wedgeAngle = ((2 * Math.PI) / n) * WEDGE_FRACTION;
     nodePods.forEach((pod, j) => {
@@ -161,7 +169,6 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
       const indexInRow = j % PODS_PER_ROW;
       const podAngle = angle + (indexInRow - (podsInRow - 1) / 2) * (wedgeAngle / Math.max(podsInRow, 1));
       const radius = INNER_R + (row + 0.5) * ROW_STEP;
-      const phase = (pod.raw.status as { phase?: string } | undefined)?.phase ?? 'Unknown';
       const wp: WheelPod = {
         id: pod.id,
         name: pod.name,
@@ -170,7 +177,7 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
         x: radius * Math.cos(podAngle),
         y: 0,
         z: radius * Math.sin(podAngle),
-        color: PHASE_COLOR[phase] ?? '#8a8a86',
+        color: podStatusColor(pod),
       };
       pods.push(wp);
       podPosById.set(pod.id, wp);

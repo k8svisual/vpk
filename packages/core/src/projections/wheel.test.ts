@@ -21,6 +21,16 @@ function pod(name: string, nodeName: string, phase = 'Running'): RawObject {
   };
 }
 
+function daemonSetPod(name: string, nodeName: string): RawObject {
+  return {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: { uid: `pod-${name}`, name, namespace: 'ns', ownerReferences: [{ kind: 'DaemonSet', name: 'ds', uid: 'ds-1' }] },
+    spec: { nodeName },
+    status: { phase: 'Running' },
+  };
+}
+
 describe('projectClusterWheel geometry', () => {
   it('places nodes exactly on the outer perimeter and their pods inside it', () => {
     const graph = buildGraph([node('a'), node('b'), node('c'), pod('p1', 'a'), pod('p2', 'a'), pod('p3', 'b')]);
@@ -41,11 +51,35 @@ describe('projectClusterWheel geometry', () => {
     expect(projectClusterWheel(graphBusy).outerRadius).toBeGreaterThan(projectClusterWheel(graphSmall).outerRadius);
   });
 
-  it('rolls unready nodes to error (red) color', () => {
+  it('reports health separately from color now that color encodes node role', () => {
     const graph = buildGraph([node('bad', false)]);
     const wheel = projectClusterWheel(graph);
-    expect(wheel.nodes[0]?.color).toBe('#c0392b');
     expect(wheel.nodes[0]?.health).toBe('error');
+    expect(wheel.nodes[0]?.healthColor).toBe('#c0392b');
+    expect(wheel.nodes[0]?.role).toBe('worker');
+  });
+
+  it('colors master and worker nodes distinctly by role', () => {
+    const master: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: { uid: 'node-master', name: 'master', labels: { 'node-role.kubernetes.io/master': '' } },
+      status: { conditions: [{ type: 'Ready', status: 'True' }] },
+    };
+    const graph = buildGraph([master, node('worker')]);
+    const wheel = projectClusterWheel(graph);
+    const masterNode = wheel.nodes.find((n) => n.name === 'master')!;
+    const workerNode = wheel.nodes.find((n) => n.name === 'worker')!;
+    expect(masterNode.role).toBe('master');
+    expect(workerNode.role).toBe('worker');
+    expect(masterNode.color).not.toBe(workerNode.color);
+  });
+
+  it('colors a DaemonSet-owned pod grey even though it is Running (not green)', () => {
+    const graph = buildGraph([node('a'), pod('regular', 'a'), daemonSetPod('ds', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.pods.find((p) => p.name === 'regular')?.color).toBe('#2e8b57');
+    expect(wheel.pods.find((p) => p.name === 'ds')?.color).toBe('#9a9a9a');
   });
 
   it('handles an empty cluster (no nodes) without dividing by zero', () => {
