@@ -99,13 +99,19 @@ interface WheelNode extends WheelPoint {
 interface WheelTierItem extends WheelPoint {
   kind: string;
 }
+interface WheelEdge {
+  podId: string;
+  itemId: string;
+}
 interface ClusterWheel {
-  ringRadius: number;
+  outerRadius: number;
   nodes: WheelNode[];
   pods: WheelPoint[];
   network: { items: WheelTierItem[]; totalCount: number };
   config: { items: WheelTierItem[]; totalCount: number };
   storage: { items: WheelTierItem[]; totalCount: number };
+  podToNetwork: WheelEdge[];
+  podToStorage: WheelEdge[];
 }
 
 function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id: string) => void }) {
@@ -123,8 +129,25 @@ function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id
   );
 }
 
-/** Faint vertical connector from a tier item down/up to the main ring plane — a stylistic approximation of
- *  the reference image's fan-lines, not a literal per-resource edge (that would be a hairball at real scale). */
+/** A real Pod -> resource line (References a Service it's backed by, or a PVC it mounts) — not a generic
+ *  drop to the ring plane. Colored to match the resource kind at the far end. */
+function LinkLine({ a, b, color }: { a: WheelPoint; b: WheelPoint; color: string }) {
+  const points: [number, number, number][] = [
+    [a.x, a.y, a.z],
+    [b.x, b.y, b.z],
+  ];
+  return (
+    <line>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
+      </bufferGeometry>
+      <lineBasicMaterial color={color} transparent opacity={0.55} />
+    </line>
+  );
+}
+
+/** Faint vertical connector for the ambient (unlinked) Config tier — ConfigMaps/Secrets aren't tied to one
+ *  pod the way Services/PVCs are, so there's no single real edge to draw for them. */
 function DropLine({ p }: { p: WheelPoint }) {
   const points: [number, number, number][] = [
     [p.x, p.y, p.z],
@@ -135,7 +158,7 @@ function DropLine({ p }: { p: WheelPoint }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
       </bufferGeometry>
-      <lineBasicMaterial color="#bbbbbb" transparent opacity={0.5} />
+      <lineBasicMaterial color="#bbbbbb" transparent opacity={0.4} />
     </line>
   );
 }
@@ -143,8 +166,16 @@ function DropLine({ p }: { p: WheelPoint }) {
 function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: string) => void }) {
   const ringPoints: [number, number, number][] = Array.from({ length: 65 }, (_, i) => {
     const a = (2 * Math.PI * i) / 64;
-    return [wheel.ringRadius * Math.cos(a), 0, wheel.ringRadius * Math.sin(a)];
+    return [wheel.outerRadius * Math.cos(a), 0, wheel.outerRadius * Math.sin(a)];
   });
+
+  const byId = useMemo(() => {
+    const map = new Map<string, WheelPoint>();
+    for (const p of wheel.pods) map.set(p.id, p);
+    for (const item of wheel.network.items) map.set(item.id, item);
+    for (const item of wheel.storage.items) map.set(item.id, item);
+    return map;
+  }, [wheel]);
 
   return (
     <>
@@ -175,30 +206,35 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
         <Dot key={p.id} p={p} size={0.09} onSelect={onSelect} />
       ))}
       {wheel.network.items.map((item) => (
-        <group key={item.id}>
-          <DropLine p={item} />
-          <Dot p={item} size={0.12} onSelect={onSelect} />
-        </group>
+        <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} />
       ))}
+      {wheel.podToNetwork.map((e) => {
+        const a = byId.get(e.podId);
+        const b = byId.get(e.itemId);
+        return a && b ? <LinkLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} /> : null;
+      })}
+      {wheel.storage.items.map((item) => (
+        <mesh
+          key={item.id}
+          position={[item.x, item.y, item.z]}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(item.id);
+          }}
+        >
+          <cylinderGeometry args={[0.12, 0.12, 0.22, 8]} />
+          <meshStandardMaterial color={item.color} />
+        </mesh>
+      ))}
+      {wheel.podToStorage.map((e) => {
+        const a = byId.get(e.podId);
+        const b = byId.get(e.itemId);
+        return a && b ? <LinkLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} /> : null;
+      })}
       {wheel.config.items.map((item) => (
         <group key={item.id}>
           <DropLine p={item} />
           <Dot p={item} size={0.1} onSelect={onSelect} />
-        </group>
-      ))}
-      {wheel.storage.items.map((item) => (
-        <group key={item.id}>
-          <DropLine p={item} />
-          <mesh
-            position={[item.x, item.y, item.z]}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(item.id);
-            }}
-          >
-            <cylinderGeometry args={[0.12, 0.12, 0.22, 8]} />
-            <meshStandardMaterial color={item.color} />
-          </mesh>
         </group>
       ))}
     </>

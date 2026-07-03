@@ -1,3 +1,4 @@
+import { colorForKind } from '@vpk/core';
 import type { SchematicDto } from '../schematic';
 
 interface Ref {
@@ -33,7 +34,6 @@ const KIND_ABBR: Record<string, string> = {
   StorageClass: 'sc',
 };
 
-const ICON_FILL = '#3d6fd6';
 const STATUS_OK = '#2e8b57';
 const STATUS_WARN = '#d4a017';
 const STATUS_ERROR = '#c0392b';
@@ -214,7 +214,7 @@ function kindIcon(id: string, kind: string, name: string, cx: number, cy: number
   const abbr = KIND_ABBR[kind] ?? kind.slice(0, 4).toLowerCase();
   return (
     `<g data-resource-id="${esc(id)}" style="cursor:pointer">` +
-    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${ICON_FILL})" stroke="#00000033" />` +
+    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})" stroke="#00000033" />` +
     `<text class="sch-icon-label" x="${cx}" y="${cy + 3}">${esc(abbr)}</text>` +
     `<text class="sch-icon-name" x="${cx}" y="${cy + ICON_R + 13}">${esc(clip(name, 16))}</text>` +
     `</g>`
@@ -230,7 +230,7 @@ function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number): stri
   const label = clickable ? clip(items[0]!.name, 16) : kind;
   return (
     openTag +
-    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${ICON_FILL})" stroke="#00000033" />` +
+    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})" stroke="#00000033" />` +
     `<text class="sch-icon-label" x="${cx}" y="${cy + 3}">${esc(abbr)}</text>` +
     `<text class="sch-icon-name" x="${cx}" y="${cy + ICON_R + 13}">${esc(label)}</text>` +
     (items.length > 1 ? `<text class="sch-count" x="${cx + ICON_R + 4}" y="${cy + 4}">(${items.length})</text>` : '') +
@@ -271,7 +271,7 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
   return (
     `<g data-resource-id="${esc(s.podId)}" style="cursor:pointer">` +
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f2f2f0" stroke="#666" stroke-width="1.4" />` +
-    `<polygon points="${heptagonPoints(x + w / 2, iconY, ICON_R)}" fill="var(--vpk-kind-pod, ${ICON_FILL})" stroke="#00000033" />` +
+    `<polygon points="${heptagonPoints(x + w / 2, iconY, ICON_R)}" fill="var(--vpk-kind-pod, ${colorForKind('Pod')})" stroke="#00000033" />` +
     `<text class="sch-icon-label" x="${x + w / 2}" y="${iconY + 3}">pod</text>` +
     `<line x1="${x}" y1="${y + 40 + 8}" x2="${x + w}" y2="${y + 40 + 8}" stroke="#ccc" />` +
     `<text class="sch-pod-label" x="${x + 12}" y="${y + 40 + 22}">Phase</text>` +

@@ -1,5 +1,6 @@
 export * from './identity';
 export * from './quantity';
+export * from './kindColors';
 export * from './types';
 export * from './normalize';
 export * from './graph';

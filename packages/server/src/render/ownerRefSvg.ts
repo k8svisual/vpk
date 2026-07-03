@@ -1,4 +1,4 @@
-import type { OwnerRefView } from '@vpk/core';
+import { colorForKind, type OwnerRefView } from '@vpk/core';
 
 /**
  * Render an ownerRef view to SVG, server-side (DESIGN §6.3). Layered top-down layout (owners on top),
@@ -90,23 +90,8 @@ function computeLevels(ids: readonly string[], incoming: Map<string, string[]>):
   return level;
 }
 
-const KIND_FILL: Record<string, string> = {
-  Pod: '#17a2b8',
-  Deployment: '#dab894',
-  ReplicaSet: '#dc3545',
-  StatefulSet: '#99f692',
-  DaemonSet: '#77bad4',
-  Job: '#b4547c',
-  CronJob: '#b4547c',
-  Service: '#afcbff',
-  Secret: '#5b9877',
-  ConfigMap: '#cc89d6',
-  ServiceAccount: '#aff8d8',
-  Node: '#804040',
-};
-
 function fill(kind: string): string {
-  return KIND_FILL[kind] ?? '#6b6b6b';
+  return colorForKind(kind);
 }
 function cssKind(kind: string): string {
   return kind.toLowerCase().replace(/[^a-z0-9]/g, '-');
