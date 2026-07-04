@@ -5,30 +5,34 @@
  * color via a deterministic hash, so nothing collapses to a single "unknown" gray.
  */
 export const KIND_COLOR: Record<string, string> = {
-  Pod: '#17a2b8',
-  Node: '#804040',
-  Namespace: '#6c7a89',
-  Deployment: '#dab894',
-  ReplicaSet: '#dc3545',
-  StatefulSet: '#3fae6a',
-  DaemonSet: '#77bad4',
-  Job: '#b4547c',
-  CronJob: '#8a3f5c',
+  Pod: '#78c9d6',
+  Node: '#b59090',
+  Namespace: '#aab2bb',
+  Deployment: '#ead6c1',
+  ReplicaSet: '#eb8a93',
+  StatefulSet: '#90d0a9',
+  DaemonSet: '#b0d7e6',
+  Job: '#d49cb3',
+  CronJob: '#bb90a0',
+  // Network-family kinds share the blue hue (per the schematic reference's blue "Network" category box, and
+  // the legacy filter-panel legend's vivid Network swatch) — Endpoints is a lighter tint of Service's blue,
+  // not an unrelated cyan. Kept vivid, not pastel, to match that legend.
   Service: '#3d6fd6',
-  Endpoints: '#5bc0de',
-  ConfigMap: '#cc89d6',
-  Secret: '#5b9877',
-  ServiceAccount: '#3aab7c',
-  PersistentVolumeClaim: '#f0ad4e',
-  PersistentVolume: '#c9974f',
+  Endpoints: '#4a86e0',
+  ConfigMap: '#e1bbe7',
+  Secret: '#a0c3b0',
+  ServiceAccount: '#8dceb3',
+  // Storage-family kinds, vivid per the legacy filter-panel legend's Storage swatch.
+  PersistentVolumeClaim: '#e0a030',
+  PersistentVolume: '#c98a3a',
   StorageClass: '#8a5a2b',
-  Role: '#9b7ede',
-  RoleBinding: '#7e5cc9',
-  ClusterRole: '#6a4bb0',
-  ClusterRoleBinding: '#563f96',
+  Role: '#c5b4ec',
+  RoleBinding: '#b4a0e0',
+  ClusterRole: '#a997d1',
+  ClusterRoleBinding: '#9d90c2',
 };
 
-const FALLBACK_PALETTE = ['#5c7a99', '#8f6a4d', '#4d8f7a', '#8f4d6a', '#6a8f4d', '#4d6a8f', '#8f7a4d'];
+const FALLBACK_PALETTE = ['#a0b2c4', '#bea998', '#98beb2', '#be98a9', '#a9be98', '#98a9be', '#beb298'];
 
 /** Deterministic (not random) color for a kind not in KIND_COLOR, stable across calls/processes. */
 function hashColor(kind: string): string {

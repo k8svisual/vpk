@@ -1,6 +1,7 @@
 export * from './identity';
 export * from './quantity';
 export * from './kindColors';
+export * from './kindIcons';
 export * from './podStatus';
 export * from './types';
 export * from './normalize';

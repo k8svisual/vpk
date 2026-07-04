@@ -18,4 +18,21 @@ describe('colorForKind', () => {
     const colors = new Set(['Foo', 'Bar', 'Baz', 'Qux', 'Quux'].map(colorForKind));
     expect(colors.size).toBeGreaterThan(1);
   });
+
+  it('keeps Endpoints in the same blue hue family as Service (network category, per the schematic reference)', () => {
+    expect(hueOf(KIND_COLOR.Service as string) - hueOf(KIND_COLOR.Endpoints as string)).toBeLessThan(20);
+  });
 });
+
+function hueOf(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return 0;
+  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}

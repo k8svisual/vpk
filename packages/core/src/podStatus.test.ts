@@ -29,8 +29,8 @@ describe('nodeRole', () => {
 
 describe('podStatusColor', () => {
   const kinds: [string, string][] = [
-    ['Running', '#2e8b57'],
-    ['Pending', '#d4a017'],
+    ['Running', '#2e9e4f'],
+    ['Pending', '#e6b800'],
     ['Failed', '#c0392b'],
     ['Succeeded', '#3a7bd5'],
   ];
@@ -50,6 +50,6 @@ describe('podStatusColor', () => {
       status: { phase: 'Running' },
     };
     const graph = buildGraph([raw]);
-    expect(podStatusColor([...graph.nodes.values()].find((r) => r.kind === 'Pod')!)).toBe('#9a9a9a');
+    expect(podStatusColor([...graph.nodes.values()].find((r) => r.kind === 'Pod')!)).toBe('#8c8c8c');
   });
 });

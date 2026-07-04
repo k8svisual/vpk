@@ -1,6 +1,14 @@
 import { nodeHealth, type NodeHealth } from './scene';
 import { colorForKind } from '../kindColors';
-import { nodeRole, nodeRoleColor, podStatusColor, type NodeRole } from '../podStatus';
+import {
+  isDaemonSetOwned,
+  nodeRole,
+  nodeRoleColor,
+  podStatusCategory,
+  podStatusColor,
+  type NodeRole,
+  type PodStatusCategory,
+} from '../podStatus';
 import type { ResourceGraph } from '../graph';
 import type { ResourceId } from '../identity';
 import type { Resource } from '../types';
@@ -22,6 +30,9 @@ export interface WheelNode extends WheelPoint {
 export interface WheelPod extends WheelPoint {
   namespace?: string;
   nodeId?: ResourceId;
+  /** Independent of `color` so the 3D filter panel filters on semantics, not on a rendered hex string. */
+  status: PodStatusCategory;
+  daemonSet: boolean;
 }
 export interface WheelTierItem extends WheelPoint {
   kind: string;
@@ -47,7 +58,7 @@ export interface ClusterWheel {
   podToStorage: WheelEdge[];
 }
 
-const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#2e8b57', warn: '#d4a017', error: '#c0392b' };
+const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#86bc9e', warn: '#e6c878', error: '#da8c84' };
 
 /** Render at most this many items per linked tier — even after restricting to actually-referenced resources,
  *  a real cluster can reference hundreds of Services/PVCs. `totalCount` always reports what's cut. */
@@ -116,7 +127,8 @@ function podToPvcIds(graph: ResourceGraph): Map<ResourceId, Set<ResourceId>> {
  * that maximum determines how many concentric pod-rows are needed, which in turn sets the ring diameter.
  * Every pod draws a real line up to the Service(s) that back it and down to the PVC(s) it mounts — not a
  * generic drop-line to the ring plane. Positions/colors are computed server-side (the "server scene-model
- * contract" decision).
+ * contract" decision). DaemonSet pods always occupy the innermost row (closest to the open donut-hole center)
+ * regardless of graph order — they're the one pod kind pinned to a fixed radius rather than packed by index.
  */
 export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
   const nodeResources = [...graph.nodes.values()].filter((r) => r.kind === 'Node').sort((a, b) => a.name.localeCompare(b.name));
@@ -162,10 +174,14 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
       podCount: nodePods.length,
     });
 
+    // DaemonSet pods go first — since row 0 sits at the smallest radius, this always groups them in the
+    // innermost ring nearest the donut hole, regardless of what order the graph happened to return pods in.
+    const orderedPods = [...nodePods.filter(isDaemonSetOwned), ...nodePods.filter((p) => !isDaemonSetOwned(p))];
+
     const wedgeAngle = ((2 * Math.PI) / n) * WEDGE_FRACTION;
-    nodePods.forEach((pod, j) => {
+    orderedPods.forEach((pod, j) => {
       const row = Math.floor(j / PODS_PER_ROW);
-      const podsInRow = Math.min(PODS_PER_ROW, nodePods.length - row * PODS_PER_ROW);
+      const podsInRow = Math.min(PODS_PER_ROW, orderedPods.length - row * PODS_PER_ROW);
       const indexInRow = j % PODS_PER_ROW;
       const podAngle = angle + (indexInRow - (podsInRow - 1) / 2) * (wedgeAngle / Math.max(podsInRow, 1));
       const radius = INNER_R + (row + 0.5) * ROW_STEP;
@@ -178,6 +194,8 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
         y: 0,
         z: radius * Math.sin(podAngle),
         color: podStatusColor(pod),
+        status: podStatusCategory(pod),
+        daemonSet: isDaemonSetOwned(pod),
       };
       pods.push(wp);
       podPosById.set(pod.id, wp);

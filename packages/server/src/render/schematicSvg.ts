@@ -1,4 +1,4 @@
-import { colorForKind } from '@vpk/core';
+import { iconForKind } from '@vpk/core';
 import type { SchematicDto } from '../schematic';
 
 interface Ref {
@@ -16,23 +16,9 @@ const POD_W = 260;
 const MARGIN = 24;
 const CONTAINER_ROW_H = 20;
 
-/** Kind -> short glyph drawn inside the heptagon icon, matching the reference mockups' abbreviations. */
-const KIND_ABBR: Record<string, string> = {
-  Pod: 'pod',
-  Deployment: 'deploy',
-  ReplicaSet: 'rs',
-  StatefulSet: 'sts',
-  DaemonSet: 'ds',
-  Job: 'job',
-  CronJob: 'cj',
-  Service: 'svc',
-  ConfigMap: 'cm',
-  Secret: 'secret',
-  ServiceAccount: 'sa',
-  PersistentVolumeClaim: 'pvc',
-  PersistentVolume: 'pv',
-  StorageClass: 'sc',
-};
+/** Served statically by @vpk/web (ported from the legacy app's images/k8/*.svg) — resolves against whatever
+ *  origin the browser loaded this inlined SVG from, so no absolute host is needed here. */
+const ICON_BASE = '/icons/k8/';
 
 const STATUS_OK = '#2e8b57';
 const STATUS_WARN = '#d4a017';
@@ -171,7 +157,6 @@ export function renderSchematicSvg(s: SchematicDto): string {
     defs() +
     `<style>` +
     `.sch-title{font-size:11px;font-weight:600;fill:#444}` +
-    `.sch-icon-label{font-size:9px;fill:#fff;font-weight:600;text-anchor:middle}` +
     `.sch-icon-name{font-size:9px;fill:#333;text-anchor:middle;cursor:pointer}` +
     `.sch-count{font-size:10px;fill:#333;font-weight:600}` +
     `.sch-pod-name{font-size:13px;font-weight:600;fill:#222;text-anchor:middle}` +
@@ -200,22 +185,17 @@ function categoryBox(kind: keyof typeof CATEGORY_STYLE, title: string, x: number
   );
 }
 
-/** Heptagon path centered at (cx, cy) with radius r, point-up — the authentic Kubernetes resource-icon shape. */
-function heptagonPoints(cx: number, cy: number, r: number): string {
-  const pts: string[] = [];
-  for (let i = 0; i < 7; i++) {
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / 7;
-    pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
-  }
-  return pts.join(' ');
+/** The real Kubernetes icon image for `kind`, centered at (cx, cy) — matches the reference mockups exactly
+ *  (every kind's icon is the same Kubernetes blue; differentiation comes from the category box + label, not
+ *  per-kind tinting — that's `colorForKind`'s job elsewhere, e.g. the 3D wheel). */
+function iconImage(kind: string, cx: number, cy: number): string {
+  return `<image href="${ICON_BASE}${iconForKind(kind)}" x="${cx - ICON_R}" y="${cy - ICON_R}" width="${ICON_R * 2}" height="${ICON_R * 2}" />`;
 }
 
 function kindIcon(id: string, kind: string, name: string, cx: number, cy: number): string {
-  const abbr = KIND_ABBR[kind] ?? kind.slice(0, 4).toLowerCase();
   return (
     `<g data-resource-id="${esc(id)}" style="cursor:pointer">` +
-    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})" stroke="#00000033" />` +
-    `<text class="sch-icon-label" x="${cx}" y="${cy + 3}">${esc(abbr)}</text>` +
+    iconImage(kind, cx, cy) +
     `<text class="sch-icon-name" x="${cx}" y="${cy + ICON_R + 13}">${esc(clip(name, 16))}</text>` +
     `</g>`
   );
@@ -224,14 +204,12 @@ function kindIcon(id: string, kind: string, name: string, cx: number, cy: number
 /** One icon representing every item of a kind, with a "(N)" count when there's more than one (matches the
  *  reference mockups' `cm (7)` / `secret (5)` pattern) — clickable only when it resolves to exactly one item. */
 function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number): string {
-  const abbr = KIND_ABBR[kind] ?? kind.slice(0, 4).toLowerCase();
   const clickable = items.length === 1;
   const openTag = clickable ? `<g data-resource-id="${esc(items[0]!.id)}" style="cursor:pointer">` : `<g>`;
   const label = clickable ? clip(items[0]!.name, 16) : kind;
   return (
     openTag +
-    `<polygon points="${heptagonPoints(cx, cy, ICON_R)}" fill="var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})" stroke="#00000033" />` +
-    `<text class="sch-icon-label" x="${cx}" y="${cy + 3}">${esc(abbr)}</text>` +
+    iconImage(kind, cx, cy) +
     `<text class="sch-icon-name" x="${cx}" y="${cy + ICON_R + 13}">${esc(label)}</text>` +
     (items.length > 1 ? `<text class="sch-count" x="${cx + ICON_R + 4}" y="${cy + 4}">(${items.length})</text>` : '') +
     `</g>`
@@ -271,8 +249,7 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
   return (
     `<g data-resource-id="${esc(s.podId)}" style="cursor:pointer">` +
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f2f2f0" stroke="#666" stroke-width="1.4" />` +
-    `<polygon points="${heptagonPoints(x + w / 2, iconY, ICON_R)}" fill="var(--vpk-kind-pod, ${colorForKind('Pod')})" stroke="#00000033" />` +
-    `<text class="sch-icon-label" x="${x + w / 2}" y="${iconY + 3}">pod</text>` +
+    iconImage('Pod', x + w / 2, iconY) +
     `<line x1="${x}" y1="${y + 40 + 8}" x2="${x + w}" y2="${y + 40 + 8}" stroke="#ccc" />` +
     `<text class="sch-pod-label" x="${x + 12}" y="${y + 40 + 22}">Phase</text>` +
     `<rect x="${x + 60}" y="${y + 40 + 12}" width="70" height="16" rx="3" fill="${phaseColor}" />` +
@@ -315,9 +292,6 @@ function solidEdge(x1: number, y1: number, x2: number, y2: number): string {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1.3" marker-end="url(#sch-arrow-solid)" />`;
 }
 
-function cssKind(kind: string): string {
-  return kind.toLowerCase().replace(/[^a-z0-9]/g, '-');
-}
 function clip(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + '…' : str;
 }

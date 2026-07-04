@@ -8,6 +8,7 @@ import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
 import { ContainerImagesView } from './ContainerImagesView';
 import { Scene3D } from './Scene3D';
+import { DefinitionModal } from './DefinitionModal';
 
 interface Snapshots {
   dir: string;
@@ -47,7 +48,7 @@ export function App() {
   const [ns, setNs] = useState('kube-system');
   const [svg, setSvg] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
-  const [definition, setDefinition] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState<string>('');
 
   const loadGraph = useCallback((namespace: string) => {
@@ -82,7 +83,7 @@ export function App() {
     await refreshSnaps();
     loadGraph(ns);
     setSelected(null);
-    setDefinition('');
+    setModalOpen(false);
     setBusy('');
   }
 
@@ -96,11 +97,13 @@ export function App() {
 
   function selectResource(id: string) {
     setSelected(id);
-    setDefinition('loading…');
-    fetch(`/definition?id=${encodeURIComponent(id)}`)
-      .then((r) => r.json())
-      .then((raw: unknown) => setDefinition(JSON.stringify(raw, null, 2)))
-      .catch((err: unknown) => setDefinition(String(err)));
+    setModalOpen(true);
+  }
+
+  // 3D clicks show the small Properties popup first (matching the legacy app), not the full editor —
+  // Scene3D opens the editor only when that popup's own "Open Editor" button is clicked.
+  function select3D(id: string) {
+    setSelected(id);
   }
 
   function onGraphClick(e: MouseEvent<HTMLDivElement>) {
@@ -163,7 +166,13 @@ export function App() {
         <div className="flex flex-1 min-h-0">
           <main className={`flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
             {/* Scene3D stays mounted (visibility toggle inside) so there's at most one WebGL context ever. */}
-            <Scene3D active={view === 'cluster3d'} onSelect={selectResource} />
+            <Scene3D
+              active={view === 'cluster3d'}
+              onSelect={select3D}
+              selected={selected}
+              onOpenEditor={() => setModalOpen(true)}
+              onViewSchematic={() => setView('schematic')}
+            />
             {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
             {view === 'search' && <SearchView onSelect={selectResource} />}
             {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
@@ -172,17 +181,10 @@ export function App() {
             {view === 'schematic' && <SchematicView podId={selected} onSelect={selectResource} />}
             {view === 'images' && <ContainerImagesView onSelect={selectResource} />}
           </main>
-          <aside
-            className="w-[460px] shrink-0 overflow-auto border-l p-3"
-            style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)' }}
-          >
-            <h3 className="mt-1 mb-2 font-medium" style={{ color: 'var(--vpk-fg)' }}>
-              {selected ? 'Definition' : 'Click a node'}
-            </h3>
-            <pre className="whitespace-pre-wrap break-words text-xs">{definition}</pre>
-          </aside>
         </div>
       </div>
+
+      <DefinitionModal resourceId={modalOpen ? selected : null} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

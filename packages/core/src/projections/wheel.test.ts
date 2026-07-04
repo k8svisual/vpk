@@ -55,7 +55,7 @@ describe('projectClusterWheel geometry', () => {
     const graph = buildGraph([node('bad', false)]);
     const wheel = projectClusterWheel(graph);
     expect(wheel.nodes[0]?.health).toBe('error');
-    expect(wheel.nodes[0]?.healthColor).toBe('#c0392b');
+    expect(wheel.nodes[0]?.healthColor).toBe('#da8c84');
     expect(wheel.nodes[0]?.role).toBe('worker');
   });
 
@@ -78,8 +78,27 @@ describe('projectClusterWheel geometry', () => {
   it('colors a DaemonSet-owned pod grey even though it is Running (not green)', () => {
     const graph = buildGraph([node('a'), pod('regular', 'a'), daemonSetPod('ds', 'a')]);
     const wheel = projectClusterWheel(graph);
-    expect(wheel.pods.find((p) => p.name === 'regular')?.color).toBe('#2e8b57');
-    expect(wheel.pods.find((p) => p.name === 'ds')?.color).toBe('#9a9a9a');
+    expect(wheel.pods.find((p) => p.name === 'regular')?.color).toBe('#2e9e4f');
+    expect(wheel.pods.find((p) => p.name === 'ds')?.color).toBe('#8c8c8c');
+  });
+
+  it('reports status/daemonSet as fields independent of color, for the 3D filter panel', () => {
+    const graph = buildGraph([node('a'), pod('regular', 'a', 'Failed'), daemonSetPod('ds', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.pods.find((p) => p.name === 'regular')).toMatchObject({ status: 'failed', daemonSet: false });
+    expect(wheel.pods.find((p) => p.name === 'ds')).toMatchObject({ status: 'running', daemonSet: true });
+  });
+
+  it('always groups DaemonSet pods in the innermost row, even when added after regular pods fill row 0', () => {
+    const regulars = Array.from({ length: 15 }, (_, i) => pod(`r${i}`, 'a'));
+    const graph = buildGraph([node('a'), ...regulars, daemonSetPod('ds', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    const dsPod = wheel.pods.find((p) => p.name === 'ds')!;
+    const dsRadius = Math.hypot(dsPod.x, dsPod.z);
+    for (const p of wheel.pods) {
+      if (p.name === 'ds') continue;
+      expect(dsRadius).toBeLessThanOrEqual(Math.hypot(p.x, p.z) + 1e-9);
+    }
   });
 
   it('handles an empty cluster (no nodes) without dividing by zero', () => {

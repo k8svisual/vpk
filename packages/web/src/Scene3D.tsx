@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text } from '@react-three/drei';
+import { DoubleSide } from 'three';
+import { PropertiesPanel } from './PropertiesPanel';
+import { FilterPanel, DEFAULT_FILTERS, type FilterState } from './FilterPanel';
 
 interface SceneNode {
   id: string;
@@ -14,15 +17,34 @@ interface SceneNode {
 }
 
 const HEALTH_COLOR: Record<SceneNode['health'], string> = {
-  ok: '#2e8b57',
-  warn: '#d4a017',
-  error: '#c0392b',
+  ok: '#86bc9e',
+  warn: '#e6c878',
+  error: '#da8c84',
 };
 
 const GRID_GAP = 2.2;
+const SELECTION_RING_COLOR = '#e63946';
+
+/** Persistent selection marker: a flat ring lying in the XZ plane (parallel to the wheel/grid plane, same
+ *  orientation as the outer node ring) that dissects the selected item at its own height — independent of
+ *  whether its definition modal is open, so it stays lit after the modal closes and moves when selection
+ *  changes. */
+function SelectionRing({ x, y, z, radius }: { x: number; y: number; z: number; radius: number }) {
+  return (
+    <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
+      <ringGeometry args={[radius * 0.72, radius, 40]} />
+      <meshBasicMaterial color={SELECTION_RING_COLOR} side={DoubleSide} transparent opacity={0.95} depthTest={false} />
+    </mesh>
+  );
+}
+
+/** Footprint half-width used both to size the node box and to size its selection ring consistently. */
+function nodeBoxWidth(node: SceneNode): number {
+  return 1 + Math.min(2, (node.cpuCapacity ?? 1) / 8);
+}
 
 function NodeBox({ node, position, onSelect }: { node: SceneNode; position: [number, number, number]; onSelect: (id: string) => void }) {
-  const width = 1 + Math.min(2, (node.cpuCapacity ?? 1) / 8);
+  const width = nodeBoxWidth(node);
   const height = 0.5 + Math.min(2, (node.memCapacityBytes ?? 0) / (16 * 1024 ** 3));
   const [hovered, setHovered] = useState(false);
 
@@ -54,7 +76,15 @@ function NodeBox({ node, position, onSelect }: { node: SceneNode; position: [num
   );
 }
 
-function FieldScene({ onSelect }: { onSelect: (id: string) => void }) {
+function FieldScene({
+  onSelect,
+  selected,
+  filters,
+}: {
+  onSelect: (id: string) => void;
+  selected: string | null;
+  filters: FilterState;
+}) {
   const [nodes, setNodes] = useState<SceneNode[]>([]);
 
   useEffect(() => {
@@ -75,11 +105,20 @@ function FieldScene({ onSelect }: { onSelect: (id: string) => void }) {
     [nodes, cols],
   );
 
+  if (!filters.showNodes) return null;
+
+  const selectedIndex = nodes.findIndex((n) => n.id === selected);
+  const selectedNode = selectedIndex >= 0 ? nodes[selectedIndex] : undefined;
+  const selectedPos = selectedIndex >= 0 ? positions[selectedIndex] : undefined;
+
   return (
     <>
       {nodes.map((n, i) => (
         <NodeBox key={n.id} node={n} position={positions[i] as [number, number, number]} onSelect={onSelect} />
       ))}
+      {selectedNode && selectedPos && (
+        <SelectionRing x={selectedPos[0]} y={0.05} z={selectedPos[2]} radius={nodeBoxWidth(selectedNode) * 0.75} />
+      )}
     </>
   );
 }
@@ -98,6 +137,10 @@ interface WheelNode extends WheelPoint {
   role: 'master' | 'worker';
   podCount: number;
 }
+interface WheelPod extends WheelPoint {
+  status: 'running' | 'pending' | 'failed' | 'succeeded' | 'unknown';
+  daemonSet: boolean;
+}
 interface WheelTierItem extends WheelPoint {
   kind: string;
 }
@@ -108,12 +151,21 @@ interface WheelEdge {
 interface ClusterWheel {
   outerRadius: number;
   nodes: WheelNode[];
-  pods: WheelPoint[];
+  pods: WheelPod[];
   network: { items: WheelTierItem[]; totalCount: number };
   config: { items: WheelTierItem[]; totalCount: number };
   storage: { items: WheelTierItem[]; totalCount: number };
   podToNetwork: WheelEdge[];
   podToStorage: WheelEdge[];
+}
+
+/** Whether a pod passes the Pods section of the filter panel — DaemonSet-ness takes priority over phase,
+ *  mirroring the color rule (a DaemonSet pod is always grey regardless of phase). */
+function podPassesFilter(p: WheelPod, filters: FilterState): boolean {
+  if (p.daemonSet) return filters.podDaemonSet;
+  return { running: filters.podRunning, pending: filters.podWarning, failed: filters.podFailed, succeeded: filters.podSucceeded, unknown: true }[
+    p.status
+  ];
 }
 
 function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id: string) => void }) {
@@ -126,7 +178,27 @@ function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id
       }}
     >
       <sphereGeometry args={[size, 10, 10]} />
-      <meshStandardMaterial color={p.color} />
+      {/* Unlit: these dots are a color-coded status legend, not lit geometry — meshStandardMaterial let the
+          scene's directional light wash the (already-lightened) palette out to near-grey on the shaded side. */}
+      <meshBasicMaterial color={p.color} />
+    </mesh>
+  );
+}
+
+/** Pods render as a hexagonal puck (a 6-sided cylinder — its cross-section is a hexagon by construction,
+ *  cylinder's height axis is Y by default so the hex faces lie flat in the wheel's ground plane) rather than
+ *  the generic sphere used for tier items, so pods read as a distinct shape at a glance. */
+function PodHex({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id: string) => void }) {
+  return (
+    <mesh
+      position={[p.x, p.y, p.z]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(p.id);
+      }}
+    >
+      <cylinderGeometry args={[size, size, size * 0.7, 6]} />
+      <meshBasicMaterial color={p.color} />
     </mesh>
   );
 }
@@ -165,19 +237,52 @@ function DropLine({ p }: { p: WheelPoint }) {
   );
 }
 
-function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: string) => void }) {
+/** Radius a selection ring should draw at for each wheel category, roughly enclosing that category's own
+ *  geometry (node role box, pod/tier dot, storage cylinder). */
+function findWheelSelection(wheel: ClusterWheel, selected: string | null): { x: number; y: number; z: number; radius: number } | null {
+  if (!selected) return null;
+  const node = wheel.nodes.find((n) => n.id === selected);
+  if (node) return { x: node.x, y: 0.3, z: node.z, radius: 0.55 };
+  const pod = wheel.pods.find((p) => p.id === selected);
+  if (pod) return { x: pod.x, y: pod.y, z: pod.z, radius: 0.17 };
+  const net = wheel.network.items.find((i) => i.id === selected);
+  if (net) return { x: net.x, y: net.y, z: net.z, radius: 0.2 };
+  const store = wheel.storage.items.find((i) => i.id === selected);
+  if (store) return { x: store.x, y: store.y, z: store.z, radius: 0.22 };
+  const cfg = wheel.config.items.find((i) => i.id === selected);
+  if (cfg) return { x: cfg.x, y: cfg.y, z: cfg.z, radius: 0.18 };
+  return null;
+}
+
+function WheelScene({
+  wheel,
+  onSelect,
+  selected,
+  filters,
+}: {
+  wheel: ClusterWheel;
+  onSelect: (id: string) => void;
+  selected: string | null;
+  filters: FilterState;
+}) {
   const ringPoints: [number, number, number][] = Array.from({ length: 65 }, (_, i) => {
     const a = (2 * Math.PI * i) / 64;
     return [wheel.outerRadius * Math.cos(a), 0, wheel.outerRadius * Math.sin(a)];
   });
 
+  const visiblePods = wheel.pods.filter((p) => podPassesFilter(p, filters));
+  const visibleNetwork = filters.showNetwork ? wheel.network.items : [];
+  const visibleStorage = filters.showStorage ? wheel.storage.items : [];
+
   const byId = useMemo(() => {
     const map = new Map<string, WheelPoint>();
-    for (const p of wheel.pods) map.set(p.id, p);
-    for (const item of wheel.network.items) map.set(item.id, item);
-    for (const item of wheel.storage.items) map.set(item.id, item);
+    for (const p of visiblePods) map.set(p.id, p);
+    for (const item of visibleNetwork) map.set(item.id, item);
+    for (const item of visibleStorage) map.set(item.id, item);
     return map;
-  }, [wheel]);
+  }, [wheel, filters]);
+
+  const selection = findWheelSelection(wheel, selected);
 
   return (
     <>
@@ -185,34 +290,35 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[new Float32Array(ringPoints.flat()), 3]} />
         </bufferGeometry>
-        <lineBasicMaterial color="#c0392b" transparent opacity={0.5} />
+        <lineBasicMaterial color="#da8c84" transparent opacity={0.5} />
       </line>
-      {wheel.nodes.map((n) => (
-        <group key={n.id}>
-          {/* box color = role (master vs worker); small dot = health, so neither signal is lost */}
-          <mesh
-            position={[n.x, 0.3, n.z]}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(n.id);
-            }}
-          >
-            <boxGeometry args={[0.7, 0.6, 0.7]} />
-            <meshStandardMaterial color={n.color} />
-          </mesh>
-          <mesh position={[n.x + 0.4, 0.6, n.z + 0.4]}>
-            <sphereGeometry args={[0.14, 8, 8]} />
-            <meshStandardMaterial color={n.healthColor} />
-          </mesh>
-          <Text position={[n.x, 0.75, n.z]} fontSize={0.24} color="#1f1f1d" anchorX="center" anchorY="bottom">
-            {n.name}
-          </Text>
-        </group>
+      {filters.showNodes &&
+        wheel.nodes.map((n) => (
+          <group key={n.id}>
+            {/* box color = role (master vs worker); small dot = health, so neither signal is lost */}
+            <mesh
+              position={[n.x, 0.3, n.z]}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(n.id);
+              }}
+            >
+              <boxGeometry args={[0.7, 0.6, 0.7]} />
+              <meshBasicMaterial color={n.color} />
+            </mesh>
+            <mesh position={[n.x + 0.4, 0.6, n.z + 0.4]}>
+              <sphereGeometry args={[0.14, 8, 8]} />
+              <meshBasicMaterial color={n.healthColor} />
+            </mesh>
+            <Text position={[n.x, 0.75, n.z]} fontSize={0.24} color="#1f1f1d" anchorX="center" anchorY="bottom">
+              {n.name}
+            </Text>
+          </group>
+        ))}
+      {visiblePods.map((p) => (
+        <PodHex key={p.id} p={p} size={0.1} onSelect={onSelect} />
       ))}
-      {wheel.pods.map((p) => (
-        <Dot key={p.id} p={p} size={0.09} onSelect={onSelect} />
-      ))}
-      {wheel.network.items.map((item) => (
+      {visibleNetwork.map((item) => (
         <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} />
       ))}
       {wheel.podToNetwork.map((e) => {
@@ -220,7 +326,7 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
         const b = byId.get(e.itemId);
         return a && b ? <LinkLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} /> : null;
       })}
-      {wheel.storage.items.map((item) => (
+      {visibleStorage.map((item) => (
         <mesh
           key={item.id}
           position={[item.x, item.y, item.z]}
@@ -230,7 +336,7 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
           }}
         >
           <cylinderGeometry args={[0.12, 0.12, 0.22, 8]} />
-          <meshStandardMaterial color={item.color} />
+          <meshBasicMaterial color={item.color} />
         </mesh>
       ))}
       {wheel.podToStorage.map((e) => {
@@ -244,6 +350,7 @@ function WheelScene({ wheel, onSelect }: { wheel: ClusterWheel; onSelect: (id: s
           <Dot p={item} size={0.1} onSelect={onSelect} />
         </group>
       ))}
+      {selection && <SelectionRing {...selection} />}
     </>
   );
 }
@@ -269,9 +376,31 @@ type Mode = 'field' | 'wheel';
  * 3D hero view (DESIGN §6.8), scaling model: field (all nodes, flat grid) -> wheel (small-N radial layout with
  * network/config/storage tiers) -> pill/single-node (not built yet). Toggle between the two built modes.
  */
-export function Scene3D({ onSelect, active }: { onSelect: (id: string) => void; active: boolean }) {
+export function Scene3D({
+  onSelect,
+  active,
+  selected,
+  onOpenEditor,
+  onViewSchematic,
+}: {
+  onSelect: (id: string) => void;
+  active: boolean;
+  selected: string | null;
+  onOpenEditor: () => void;
+  onViewSchematic: () => void;
+}) {
   const [mode, setMode] = useState<Mode>('field');
   const [wheel, setWheel] = useState<ClusterWheel | null>(null);
+  // Separate from `selected`/the ring: a 3D click shows the small Properties popup first (matching the
+  // legacy app), not the full editor — the editor only opens when the popup's own button is clicked.
+  const [propsOpen, setPropsOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+
+  function handleSelect(id: string) {
+    onSelect(id);
+    setPropsOpen(true);
+  }
 
   useEffect(() => {
     if (mode !== 'wheel' || wheel) return;
@@ -305,12 +434,34 @@ export function Scene3D({ onSelect, active }: { onSelect: (id: string) => void; 
             {label}
           </button>
         ))}
+        <button
+          onClick={() => setFilterOpen((v) => !v)}
+          className="rounded border px-2 py-1 text-xs cursor-pointer"
+          style={{
+            borderColor: 'var(--vpk-border)',
+            background: filterOpen ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
+            color: filterOpen ? '#fff' : 'var(--vpk-fg)',
+          }}
+        >
+          Filter
+        </button>
       </div>
       {mode === 'wheel' && <WheelLegend wheel={wheel} />}
+      {filterOpen && <FilterPanel filters={filters} onChange={setFilters} onClose={() => setFilterOpen(false)} />}
+      <PropertiesPanel
+        resourceId={propsOpen ? selected : null}
+        onOpenEditor={onOpenEditor}
+        onViewSchematic={onViewSchematic}
+        onClose={() => setPropsOpen(false)}
+      />
       <Canvas camera={{ position: mode === 'wheel' ? [0, 10, 22] : [4, 4, 8], fov: 50 }} style={{ background: 'var(--vpk-bg)' }}>
         <ambientLight intensity={0.7} />
         <directionalLight position={[5, 8, 5]} intensity={0.6} />
-        {mode === 'field' ? <FieldScene onSelect={onSelect} /> : wheel ? <WheelScene wheel={wheel} onSelect={onSelect} /> : null}
+        {mode === 'field' ? (
+          <FieldScene onSelect={handleSelect} selected={selected} filters={filters} />
+        ) : wheel ? (
+          <WheelScene wheel={wheel} onSelect={handleSelect} selected={selected} filters={filters} />
+        ) : null}
         <gridHelper args={[40, 40, '#d9d9d5', '#e8e8e5']} />
         <OrbitControls makeDefault />
       </Canvas>
