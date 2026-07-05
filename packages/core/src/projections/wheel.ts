@@ -46,16 +46,50 @@ export interface WheelEdge {
   podId: ResourceId;
   itemId: ResourceId;
 }
+/** A short local hop between two tier items themselves (e.g. Service -> its Endpoints/EndpointSlice) — not
+ *  pod-anchored, so it gets its own shape distinct from WheelEdge. */
+export interface WheelLinkEdge {
+  fromId: ResourceId;
+  toId: ResourceId;
+}
+/** One registered CSI driver entry from a Node's CSINode object — several of these stack vertically below
+ *  their Node (down to the CSI ring), so each carries `nodeId` for Scene3D to group and chain-connect them
+ *  client-side without a separate edge list (they always connect straight down to the SAME node). */
+export interface WheelCsiNodeDriver extends WheelPoint {
+  kind: string;
+  nodeId: ResourceId;
+}
+/** A Node's own local/ephemeral storage — not a distinct K8s object (no `spec.capacity` sub-resource), so its
+ *  `id` is the Node's own id (clicking it opens the Node's definition, where the real capacity field lives). */
+export interface WheelLocalStorage extends WheelPoint {
+  kind: string;
+  nodeId: ResourceId;
+}
 
 export interface ClusterWheel {
   outerRadius: number;
+  /** Radius of the CSI ring — a short torus outside the node ring. Sent explicitly (rather than left for the
+   *  client to re-derive from `outerRadius`) because CSIDriver items are positioned AT this exact radius, so
+   *  server and client must agree on one number, not two independently-maintained copies of it. */
+  csiRingRadius: number;
   nodes: WheelNode[];
   pods: WheelPod[];
   network: WheelTier;
-  config: WheelTier;
+  endpoints: WheelTier;
   storage: WheelTier;
+  persistentVolumes: WheelTier;
+  storageClasses: WheelTier;
+  volumeAttachments: WheelTier;
+  csiNodeDrivers: WheelCsiNodeDriver[];
+  csiDrivers: WheelTier;
+  localStorage: WheelLocalStorage[];
   podToNetwork: WheelEdge[];
+  serviceToEndpoints: WheelLinkEdge[];
   podToStorage: WheelEdge[];
+  storageToPv: WheelLinkEdge[];
+  pvToStorageClass: WheelLinkEdge[];
+  pvToVolumeAttachment: WheelLinkEdge[];
+  storageClassToCsiDriver: WheelLinkEdge[];
 }
 
 const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#86bc9e', warn: '#e6c878', error: '#da8c84' };
@@ -63,14 +97,90 @@ const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#86bc9e', warn: '#e6c878
 /** Render at most this many items per linked tier — even after restricting to actually-referenced resources,
  *  a real cluster can reference hundreds of Services/PVCs. `totalCount` always reports what's cut. */
 const TIER_CAP = 120;
-const PODS_PER_ROW = 10;
 const ROW_STEP = 0.6;
 const INNER_R = 1.4;
 const NODE_MARGIN = 1.3;
 const WEDGE_FRACTION = 0.8; // leave a visual gap between adjacent node wedges
 const NET_Y = 5;
-const STORAGE_Y = -5;
-const CONFIG_Y = -2.2;
+const ENDPOINTS_Y = 6.5; // above the Service tier — Service -> Endpoints/EndpointSlice is one more hop up
+// PVC sits close to the Pod ring (was -5 — pushed far below); PV steps down further, then StorageClass AND
+// VolumeAttachment both branch off PV as siblings (two separate hops from PV, not chained to each other) —
+// each gets its own Y band so an SC item and a VA item can never land on top of each other even if they
+// happen to anchor near the same PV.
+const STORAGE_Y = -1.8;
+const PV_Y = -3.2;
+const STORAGE_CLASS_Y = -4.6;
+const VOLUME_ATTACHMENT_Y = -5.4;
+/** Below the node's bottom (nodes sit at y=0..0.6) — the "CSI ring" that node-side CSINode driver entries
+ *  drop down to, and that CSIDriver's cluster-wide definition also connects up to. */
+const CSI_RING_Y = -0.3;
+/** The CSI ring is a short torus OUTSIDE the node ring (nodes sit at outerRadius) — this is how far past it. */
+const CSI_RING_RADIUS_OFFSET = 1.6;
+/** Radius of a rendered CSINode driver dot (mirrors Scene3D's `<Dot size={0.06}>`) — used only to size the
+ *  minimum gap between stacked dots, never sent over the wire itself. */
+const CSI_DOT_RADIUS = 0.06;
+/** Minimum center-to-center vertical gap between adjacent CSINode driver dots: enough for a full dot-radius of
+ *  clear space between their surfaces (radius + gap + radius), not a count-dependent lerp — a node with many
+ *  registered drivers must never visually overlap them. */
+const CSI_DOT_SPACING = CSI_DOT_RADIUS * 3;
+/** A Node's local/ephemeral storage sits between the node and the PVC tier, keeping the "storage renders
+ *  below the pod plane" rule; offset just outside the node ring so it doesn't collide with the node itself. */
+const LOCAL_STORAGE_Y = -1.0;
+const LOCAL_STORAGE_RADIAL_OFFSET = 0.9;
+/** Minimum center-to-center arc distance kept between adjacent pods sharing a row, in scene units — bigger
+ *  than the ~0.2-unit hex puck diameter Scene3D renders pods at, so pods never visually overlap. */
+const MIN_POD_ARC = 0.3;
+/** Minimum center-to-center distance kept between any two items in the same tier (Network/Endpoints/Storage),
+ *  bigger than the ~0.24-unit rendered size of those items, so tier items never visually overlap either. */
+const MIN_ITEM_DIST = 0.5;
+
+/** Nudges (x, z) outward in a deterministic spiral search until it clears every already-placed point by
+ *  `minDist` — keeps an item as close as possible to its real semantic anchor (e.g. "above the first Pod")
+ *  while guaranteeing no two tier items ever land on top of each other. */
+function deconflict(x: number, z: number, placed: { x: number; z: number }[], minDist: number): { x: number; z: number } {
+  const clearOf = (px: number, pz: number) => placed.every((p) => Math.hypot(p.x - px, p.z - pz) >= minDist);
+  if (clearOf(x, z)) return { x, z };
+  for (let ring = 1; ring <= 40; ring++) {
+    const radius = ring * minDist;
+    const steps = Math.max(6, Math.ceil((2 * Math.PI * radius) / minDist));
+    for (let s = 0; s < steps; s++) {
+      const angle = (2 * Math.PI * s) / steps;
+      const nx = x + radius * Math.cos(angle);
+      const nz = z + radius * Math.sin(angle);
+      if (clearOf(nx, nz)) return { x: nx, z: nz };
+    }
+  }
+  return { x, z }; // exhausted a generous search radius — leave as-is rather than loop forever
+}
+
+interface PodRowSlot {
+  row: number;
+  indexInRow: number;
+  podsInRow: number;
+  radius: number;
+}
+
+/**
+ * Assigns `count` pods to concentric rows so pods sharing a row stay at least MIN_POD_ARC apart. A fixed
+ * pods-per-row would overlap: arc length between two pods at angular delta `d` is `radius * d`, so the same
+ * angular slice packs pods closer together at a small radius than at a large one. Row capacity is instead
+ * derived from that arc-length relationship (capacity = wedgeAngle * radius / MIN_POD_ARC), so it naturally
+ * grows row-by-row as radius grows — real trigonometry, not a magic constant.
+ */
+function layoutPodRows(count: number, wedgeAngle: number): { slots: PodRowSlot[]; rows: number } {
+  const slots: PodRowSlot[] = [];
+  let row = 0;
+  let placed = 0;
+  while (placed < count) {
+    const radius = INNER_R + (row + 0.5) * ROW_STEP;
+    const capacity = Math.max(1, Math.floor((wedgeAngle * radius) / MIN_POD_ARC));
+    const podsInRow = Math.min(capacity, count - placed);
+    for (let i = 0; i < podsInRow; i++) slots.push({ row, indexInRow: i, podsInRow, radius });
+    placed += podsInRow;
+    row++;
+  }
+  return { slots, rows: row };
+}
 
 interface EndpointSubsetRaw {
   addresses?: { targetRef?: { kind?: string; uid?: string } }[];
@@ -99,6 +209,33 @@ function podToServiceIds(graph: ResourceGraph): Map<ResourceId, Set<ResourceId>>
   return result;
 }
 
+/** serviceId -> the Endpoints + EndpointSlice objects that back it. Endpoints is matched by ns/name equality
+ *  (the legacy 1:1 object); EndpointSlice is matched by the standard `kubernetes.io/service-name` label,
+ *  since a Service can fan out to several EndpointSlices (and modern clusters may have both at once). */
+function serviceToEndpointsIds(graph: ResourceGraph): Map<ResourceId, ResourceId[]> {
+  const servicesByNsName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'Service') servicesByNsName.set(`${r.namespace ?? ''}/${r.name}`, r);
+
+  const result = new Map<ResourceId, ResourceId[]>();
+  const add = (serviceId: ResourceId, epId: ResourceId) => {
+    const list = result.get(serviceId) ?? [];
+    list.push(epId);
+    result.set(serviceId, list);
+  };
+
+  for (const r of graph.nodes.values()) {
+    if (r.kind === 'Endpoints') {
+      const svc = servicesByNsName.get(`${r.namespace ?? ''}/${r.name}`);
+      if (svc) add(svc.id, r.id);
+    } else if (r.kind === 'EndpointSlice') {
+      const svcName = r.labels['kubernetes.io/service-name'];
+      const svc = svcName ? servicesByNsName.get(`${r.namespace ?? ''}/${svcName}`) : undefined;
+      if (svc) add(svc.id, r.id);
+    }
+  }
+  return result;
+}
+
 /** podId -> the PVC ids it mounts, via pod.spec.volumes[].persistentVolumeClaim.claimName. */
 function podToPvcIds(graph: ResourceGraph): Map<ResourceId, Set<ResourceId>> {
   const pvcByNsName = new Map<string, Resource>();
@@ -119,6 +256,125 @@ function podToPvcIds(graph: ResourceGraph): Map<ResourceId, Set<ResourceId>> {
     }
   }
   return result;
+}
+
+/** pvcId -> the PV it's bound to, via pvc.spec.volumeName (a PVC binds to exactly one PV; PVs are
+ *  cluster-scoped, matched by name only — no namespace). */
+function pvcToPvId(graph: ResourceGraph): Map<ResourceId, ResourceId> {
+  const pvByName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'PersistentVolume') pvByName.set(r.name, r);
+
+  const result = new Map<ResourceId, ResourceId>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'PersistentVolumeClaim') continue;
+    const volumeName = (r.raw.spec as { volumeName?: string } | undefined)?.volumeName;
+    const pv = volumeName ? pvByName.get(volumeName) : undefined;
+    if (pv) result.set(r.id, pv.id);
+  }
+  return result;
+}
+
+/** pvId -> its StorageClass, via pv.spec.storageClassName (cluster-scoped, matched by name — many PVs
+ *  commonly share one StorageClass, unlike the 1:1 PVC->PV bind). */
+function pvToStorageClassId(graph: ResourceGraph): Map<ResourceId, ResourceId> {
+  const scByName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'StorageClass') scByName.set(r.name, r);
+
+  const result = new Map<ResourceId, ResourceId>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'PersistentVolume') continue;
+    const scName = (r.raw.spec as { storageClassName?: string } | undefined)?.storageClassName;
+    const sc = scName ? scByName.get(scName) : undefined;
+    if (sc) result.set(r.id, sc.id);
+  }
+  return result;
+}
+
+/** pvId -> the VolumeAttachment that attaches it to a node, via va.spec.source.persistentVolumeName
+ *  (cluster-scoped, matched by PV name). A sibling of pvToStorageClassId — both branch off the PV, not off
+ *  each other. */
+function pvToVolumeAttachmentId(graph: ResourceGraph): Map<ResourceId, ResourceId> {
+  const pvByName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'PersistentVolume') pvByName.set(r.name, r);
+
+  const result = new Map<ResourceId, ResourceId>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'VolumeAttachment') continue;
+    const pvName = (r.raw.spec as { source?: { persistentVolumeName?: string } } | undefined)?.source?.persistentVolumeName;
+    const pv = pvName ? pvByName.get(pvName) : undefined;
+    if (pv) result.set(pv.id, r.id);
+  }
+  return result;
+}
+
+/** storageClassId -> its CSIDriver, via storageClass.provisioner matched against a CSIDriver's name — that's
+ *  the CSI spec convention (a CSI-backed StorageClass's `provisioner` field IS the driver name). Built-in
+ *  non-CSI provisioners (e.g. "kubernetes.io/no-provisioner") simply match no CSIDriver, correctly producing
+ *  no edge rather than a wrong one. */
+function storageClassToCsiDriverId(graph: ResourceGraph): Map<ResourceId, ResourceId> {
+  const driverByName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'CSIDriver') driverByName.set(r.name, r);
+
+  const result = new Map<ResourceId, ResourceId>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'StorageClass') continue;
+    const provisioner = (r.raw as { provisioner?: string }).provisioner;
+    const driver = provisioner ? driverByName.get(provisioner) : undefined;
+    if (driver) result.set(r.id, driver.id);
+  }
+  return result;
+}
+
+/** One dot per driver entry in each Node's CSINode object (cluster-scoped, matched by name === node name),
+ *  chained straight down from the node's own center — a plain vertical drop, not routed out to touch the CSI
+ *  ring (the ring is a separate, unconnected structural reference in this part of the scene). Each dot steps
+ *  down by a fixed CSI_DOT_SPACING regardless of driver count, so dots never overlap no matter how many a node
+ *  registers. All dots for one node share that CSINode's id, since they're really one object's driver list,
+ *  not separate resources. */
+function csiNodeDriverDots(graph: ResourceGraph, nodes: WheelNode[]): WheelCsiNodeDriver[] {
+  const csiNodeByName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) if (r.kind === 'CSINode') csiNodeByName.set(r.name, r);
+
+  const dots: WheelCsiNodeDriver[] = [];
+  for (const n of nodes) {
+    const csiNode = csiNodeByName.get(n.name);
+    const drivers = (csiNode?.raw.spec as { drivers?: unknown[] } | undefined)?.drivers ?? [];
+    if (!csiNode || drivers.length === 0) continue;
+    drivers.forEach((_, i) => {
+      dots.push({
+        id: csiNode.id,
+        name: csiNode.name,
+        kind: 'CSINode',
+        x: n.x,
+        y: CSI_RING_Y - (i + 1) * CSI_DOT_SPACING, // the first (i=0) dot already starts lower than the ring
+        z: n.z,
+        color: colorForKind('CSINode'),
+        nodeId: n.id,
+      });
+    });
+  }
+  return dots;
+}
+
+/** One fixed cylinder per Node for its own local/ephemeral storage — offset just outside the node ring and
+ *  dropped to a lower plane (storage always renders below the pod plane), not a separate tier since it isn't
+ *  a distinct K8s object: `id` is the Node's own id so clicking it opens the Node (where the real
+ *  `status.capacity['ephemeral-storage']` field lives). */
+function localStorageDots(nodes: WheelNode[]): WheelLocalStorage[] {
+  return nodes.map((n) => {
+    const angle = Math.atan2(n.z, n.x);
+    const radius = Math.hypot(n.x, n.z) + LOCAL_STORAGE_RADIAL_OFFSET;
+    return {
+      id: n.id,
+      name: n.name,
+      kind: 'Node',
+      x: radius * Math.cos(angle),
+      y: LOCAL_STORAGE_Y,
+      z: radius * Math.sin(angle),
+      color: '#c9c9c9',
+      nodeId: n.id,
+    };
+  });
 }
 
 /**
@@ -144,9 +400,11 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
     podsByNode.set(nodeName, list);
   }
 
+  const wedgeAngle = ((2 * Math.PI) / n) * WEDGE_FRACTION;
   const maxPods = Math.max(1, ...nodeResources.map((nd) => podsByNode.get(nd.name)?.length ?? 0));
-  const rows = Math.ceil(maxPods / PODS_PER_ROW);
+  const { rows } = layoutPodRows(maxPods, wedgeAngle);
   const outerRadius = INNER_R + rows * ROW_STEP + NODE_MARGIN;
+  const csiRingRadius = outerRadius + CSI_RING_RADIUS_OFFSET;
 
   const nodes: WheelNode[] = [];
   const pods: WheelPod[] = [];
@@ -177,14 +435,11 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
     // DaemonSet pods go first — since row 0 sits at the smallest radius, this always groups them in the
     // innermost ring nearest the donut hole, regardless of what order the graph happened to return pods in.
     const orderedPods = [...nodePods.filter(isDaemonSetOwned), ...nodePods.filter((p) => !isDaemonSetOwned(p))];
+    const { slots } = layoutPodRows(orderedPods.length, wedgeAngle);
 
-    const wedgeAngle = ((2 * Math.PI) / n) * WEDGE_FRACTION;
     orderedPods.forEach((pod, j) => {
-      const row = Math.floor(j / PODS_PER_ROW);
-      const podsInRow = Math.min(PODS_PER_ROW, orderedPods.length - row * PODS_PER_ROW);
-      const indexInRow = j % PODS_PER_ROW;
+      const { indexInRow, podsInRow, radius } = slots[j] as PodRowSlot;
       const podAngle = angle + (indexInRow - (podsInRow - 1) / 2) * (wedgeAngle / Math.max(podsInRow, 1));
-      const radius = INNER_R + (row + 0.5) * ROW_STEP;
       const wp: WheelPod = {
         id: pod.id,
         name: pod.name,
@@ -205,16 +460,55 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
   const podServiceMap = podToServiceIds(graph);
   const podPvcMap = podToPvcIds(graph);
 
-  const { tier: network, edges: podToNetwork } = linkedTier(graph, podServiceMap, podPosById, NET_Y);
+  const { tier: network, edges: podToNetwork } = serviceTier(graph, podServiceMap, podPosById, NET_Y);
+  const { tier: endpoints, edges: serviceToEndpoints } = endpointsTier(graph, serviceToEndpointsIds(graph), network.items, ENDPOINTS_Y);
   const { tier: storage, edges: podToStorage } = linkedTier(graph, podPvcMap, podPosById, STORAGE_Y);
-  const config = ambientTier(graph, ['ConfigMap', 'Secret'], outerRadius * 0.55, CONFIG_Y);
+  const { tier: persistentVolumes, edges: storageToPv } = oneHopTier(graph, pvcToPvId(graph), storage.items, PV_Y);
+  const { tier: storageClasses, edges: pvToStorageClass } = oneHopTier(graph, pvToStorageClassId(graph), persistentVolumes.items, STORAGE_CLASS_Y);
+  const { tier: volumeAttachments, edges: pvToVolumeAttachment } = oneHopTier(
+    graph,
+    pvToVolumeAttachmentId(graph),
+    persistentVolumes.items,
+    VOLUME_ATTACHMENT_Y,
+  );
+  const { tier: csiDrivers, edges: storageClassToCsiDriver } = csiDriverTier(
+    graph,
+    storageClassToCsiDriverId(graph),
+    storageClasses.items,
+    STORAGE_CLASS_Y, // same plane as the associated StorageClass — its own line back to the driver reads flat
+    csiRingRadius,
+  );
+  const csiNodeDrivers = csiNodeDriverDots(graph, nodes);
+  const localStorage = localStorageDots(nodes);
 
-  return { outerRadius, nodes, pods, network, config, storage, podToNetwork, podToStorage };
+  return {
+    outerRadius,
+    csiRingRadius,
+    nodes,
+    pods,
+    network,
+    endpoints,
+    storage,
+    persistentVolumes,
+    storageClasses,
+    volumeAttachments,
+    csiNodeDrivers,
+    csiDrivers,
+    localStorage,
+    podToNetwork,
+    serviceToEndpoints,
+    podToStorage,
+    storageToPv,
+    pvToStorageClass,
+    pvToVolumeAttachment,
+    storageClassToCsiDriver,
+  };
 }
 
 /** A tier whose items are exactly the resources actually referenced by rendered pods (not an arbitrary slice
- *  of every object of that kind), positioned above/below the centroid of their referencing pods so the
- *  connecting line is close to vertical — this is the real Pod->Service / Pod->PVC linkage. */
+ *  of every object of that kind), positioned at the centroid of their referencing pods (then deconflicted
+ *  against every other item already placed in this tier, so two items never land on top of each other) —
+ *  this is the real Pod->PVC linkage. */
 function linkedTier(
   graph: ResourceGraph,
   podToItemIds: Map<ResourceId, Set<ResourceId>>,
@@ -235,20 +529,15 @@ function linkedTier(
   const shown = ranked.slice(0, TIER_CAP);
   const shownIds = new Set(shown.map(([id]) => id));
 
+  const placed: { x: number; z: number }[] = [];
   const items: WheelTierItem[] = shown.map(([itemId, podIds]) => {
     const item = graph.nodes.get(itemId);
     const positions = podIds.map((id) => podPosById.get(id)).filter((p): p is WheelPod => !!p);
     const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
     const cz = positions.reduce((s, p) => s + p.z, 0) / positions.length;
-    return {
-      id: itemId,
-      name: item?.name ?? itemId,
-      kind: item?.kind ?? '',
-      x: cx,
-      y,
-      z: cz,
-      color: colorForKind(item?.kind ?? ''),
-    };
+    const { x, z } = deconflict(cx, cz, placed, MIN_ITEM_DIST);
+    placed.push({ x, z });
+    return { id: itemId, name: item?.name ?? itemId, kind: item?.kind ?? '', x, y, z, color: colorForKind(item?.kind ?? '') };
   });
 
   const edges: WheelEdge[] = [];
@@ -260,12 +549,179 @@ function linkedTier(
   return { tier: { items, totalCount: referencingPods.size }, edges };
 }
 
-function ambientTier(graph: ResourceGraph, kinds: string[], radius: number, y: number): WheelTier {
-  const all = [...graph.nodes.values()].filter((r) => kinds.includes(r.kind));
-  const shown = all.slice(0, TIER_CAP);
-  const items: WheelTierItem[] = shown.map((r, i) => {
-    const angle = (2 * Math.PI * i) / Math.max(1, shown.length);
-    return { id: r.id, name: r.name, kind: r.kind, x: radius * Math.cos(angle), y, z: radius * Math.sin(angle), color: colorForKind(r.kind) };
+/** The Network tier: each Service anchors directly above the referencing Pod with the EARLIEST creation
+ *  timestamp ("the first Pod"), not a centroid — every other referencing pod still gets a real edge, but
+ *  Scene3D renders it as an elbow (straight up, then over) rather than a direct diagonal, since the point is
+ *  "this pod also uses that shared Service" rather than implying the Service sits somewhere between them.
+ *  Items are deconflicted against each other the same way linkedTier's are. */
+function serviceTier(
+  graph: ResourceGraph,
+  podToItemIds: Map<ResourceId, Set<ResourceId>>,
+  podPosById: Map<ResourceId, WheelPod>,
+  y: number,
+): { tier: WheelTier; edges: WheelEdge[] } {
+  const referencingPods = new Map<ResourceId, ResourceId[]>();
+  for (const [podId, itemIds] of podToItemIds) {
+    if (!podPosById.has(podId)) continue;
+    for (const itemId of itemIds) {
+      const list = referencingPods.get(itemId) ?? [];
+      list.push(podId);
+      referencingPods.set(itemId, list);
+    }
+  }
+
+  const ranked = [...referencingPods.entries()].sort((a, b) => b[1].length - a[1].length);
+  const shown = ranked.slice(0, TIER_CAP);
+  const shownIds = new Set(shown.map(([id]) => id));
+
+  const placed: { x: number; z: number }[] = [];
+  const items: WheelTierItem[] = shown.map(([itemId, podIds]) => {
+    const item = graph.nodes.get(itemId);
+    const anchorPodId = [...podIds].sort((a, b) => {
+      const ta = graph.nodes.get(a)?.creationTimestamp;
+      const tb = graph.nodes.get(b)?.creationTimestamp;
+      if (!ta && !tb) return 0;
+      if (!ta) return 1; // pods with no timestamp sort last — we can't tell they're "first"
+      if (!tb) return -1;
+      return ta.localeCompare(tb);
+    })[0] as ResourceId;
+    const anchor = podPosById.get(anchorPodId);
+    const { x, z } = deconflict(anchor?.x ?? 0, anchor?.z ?? 0, placed, MIN_ITEM_DIST);
+    placed.push({ x, z });
+    return { id: itemId, name: item?.name ?? itemId, kind: item?.kind ?? '', x, y, z, color: colorForKind(item?.kind ?? '') };
   });
-  return { items, totalCount: all.length };
+
+  const edges: WheelEdge[] = [];
+  for (const [podId, itemIds] of podToItemIds) {
+    if (!podPosById.has(podId)) continue;
+    for (const itemId of itemIds) if (shownIds.has(itemId)) edges.push({ podId, itemId });
+  }
+
+  return { tier: { items, totalCount: referencingPods.size }, edges };
+}
+
+/** The Endpoints/EndpointSlice tier, one hop up from the Service they back — each backing object anchors near
+ *  its Service's own position (deconflicted the same as every other tier) so the up-link reads as "belongs to
+ *  that Service" without literally stacking on top of it. Only computed for Services that made it into the
+ *  (capped) network tier — a Service cut for exceeding TIER_CAP has nowhere to hang its Endpoints from either. */
+function endpointsTier(
+  graph: ResourceGraph,
+  serviceToEndpoints: Map<ResourceId, ResourceId[]>,
+  serviceItems: WheelTierItem[],
+  y: number,
+): { tier: WheelTier; edges: WheelLinkEdge[] } {
+  const serviceById = new Map(serviceItems.map((s) => [s.id, s]));
+  const placed: { x: number; z: number }[] = [];
+  const items: WheelTierItem[] = [];
+  const edges: WheelLinkEdge[] = [];
+  let totalCount = 0;
+
+  for (const [serviceId, epIds] of serviceToEndpoints) {
+    const service = serviceById.get(serviceId);
+    if (!service) continue;
+    totalCount += epIds.length;
+    if (items.length >= TIER_CAP) continue;
+    for (const epId of epIds) {
+      if (items.length >= TIER_CAP) break;
+      const item = graph.nodes.get(epId);
+      const { x, z } = deconflict(service.x, service.z, placed, MIN_ITEM_DIST);
+      placed.push({ x, z });
+      items.push({ id: epId, name: item?.name ?? epId, kind: item?.kind ?? '', x, y, z, color: colorForKind(item?.kind ?? '') });
+      edges.push({ fromId: serviceId, toId: epId });
+    }
+  }
+
+  return { tier: { items, totalCount }, edges };
+}
+
+/**
+ * A tier one hop further from a parent tier via a 1:1-or-shared link (PVC -> PV, or PV -> StorageClass — a
+ * StorageClass is commonly shared by many PVs, unlike the 1:1 PVC/PV bind, so this groups by CHILD id the
+ * same way serviceTier/linkedTier group by item id: each child anchors near its first referencing parent
+ * (deconflicted against every other child already placed), and gets an edge from every referencing parent,
+ * not just the anchor. Only computed for parents that made it into the (capped) parent tier — a parent cut
+ * for exceeding TIER_CAP has nowhere to hang its child from either.
+ */
+function oneHopTier(
+  graph: ResourceGraph,
+  parentToChildId: Map<ResourceId, ResourceId>,
+  parentItems: WheelTierItem[],
+  y: number,
+): { tier: WheelTier; edges: WheelLinkEdge[] } {
+  const parentById = new Map(parentItems.map((p) => [p.id, p]));
+  const referencingParents = new Map<ResourceId, ResourceId[]>();
+  for (const [parentId, childId] of parentToChildId) {
+    if (!parentById.has(parentId)) continue;
+    const list = referencingParents.get(childId) ?? [];
+    list.push(parentId);
+    referencingParents.set(childId, list);
+  }
+
+  const ranked = [...referencingParents.entries()].sort((a, b) => b[1].length - a[1].length);
+  const shown = ranked.slice(0, TIER_CAP);
+  const shownIds = new Set(shown.map(([id]) => id));
+
+  const placed: { x: number; z: number }[] = [];
+  const items: WheelTierItem[] = shown.map(([childId, parentIds]) => {
+    const item = graph.nodes.get(childId);
+    const anchor = parentById.get(parentIds[0] as ResourceId);
+    const { x, z } = deconflict(anchor?.x ?? 0, anchor?.z ?? 0, placed, MIN_ITEM_DIST);
+    placed.push({ x, z });
+    return { id: childId, name: item?.name ?? childId, kind: item?.kind ?? '', x, y, z, color: colorForKind(item?.kind ?? '') };
+  });
+
+  const edges: WheelLinkEdge[] = [];
+  for (const [parentId, childId] of parentToChildId) {
+    if (!parentById.has(parentId)) continue;
+    if (shownIds.has(childId)) edges.push({ fromId: parentId, toId: childId });
+  }
+
+  return { tier: { items, totalCount: referencingParents.size }, edges };
+}
+
+/**
+ * The CSIDriver tier: unlike every other one-hop tier, a CSIDriver is NOT anchored near its parent
+ * StorageClass's own position — a CSIDriver is a cluster-wide object, not owned by any one StorageClass, so it
+ * sits out at the CSI ring's own radius instead. Its ANGLE still comes from its StorageClass (the first
+ * referencing one, same tie-break as every other tier here), so it lands directly under the ring point closest
+ * to that StorageClass; its Y stays the StorageClass's own plane, so the line back to the StorageClass reads
+ * as a flat horizontal connector while the hop up to the ring is a plain vertical one.
+ */
+function csiDriverTier(
+  graph: ResourceGraph,
+  storageClassToDriverId: Map<ResourceId, ResourceId>,
+  storageClassItems: WheelTierItem[],
+  y: number,
+  ringRadius: number,
+): { tier: WheelTier; edges: WheelLinkEdge[] } {
+  const scById = new Map(storageClassItems.map((s) => [s.id, s]));
+  const referencingScs = new Map<ResourceId, ResourceId[]>();
+  for (const [scId, driverId] of storageClassToDriverId) {
+    if (!scById.has(scId)) continue;
+    const list = referencingScs.get(driverId) ?? [];
+    list.push(scId);
+    referencingScs.set(driverId, list);
+  }
+
+  const ranked = [...referencingScs.entries()].sort((a, b) => b[1].length - a[1].length);
+  const shown = ranked.slice(0, TIER_CAP);
+  const shownIds = new Set(shown.map(([id]) => id));
+
+  const placed: { x: number; z: number }[] = [];
+  const items: WheelTierItem[] = shown.map(([driverId, scIds]) => {
+    const item = graph.nodes.get(driverId);
+    const anchorSc = scById.get(scIds[0] as ResourceId);
+    const angle = Math.atan2(anchorSc?.z ?? 0, anchorSc?.x ?? ringRadius);
+    const { x, z } = deconflict(ringRadius * Math.cos(angle), ringRadius * Math.sin(angle), placed, MIN_ITEM_DIST);
+    placed.push({ x, z });
+    return { id: driverId, name: item?.name ?? driverId, kind: item?.kind ?? '', x, y, z, color: colorForKind(item?.kind ?? '') };
+  });
+
+  const edges: WheelLinkEdge[] = [];
+  for (const [scId, driverId] of storageClassToDriverId) {
+    if (!scById.has(scId)) continue;
+    if (shownIds.has(driverId)) edges.push({ fromId: scId, toId: driverId });
+  }
+
+  return { tier: { items, totalCount: referencingScs.size }, edges };
 }

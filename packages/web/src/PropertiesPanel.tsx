@@ -4,8 +4,10 @@ import { iconUrlForKind } from './kindIcons';
 interface ResourceInfo {
   kind: string;
   name: string;
-  namespace?: string;
+  namespace: string;
 }
+
+const CLUSTER_LEVEL = 'ClusterLevel';
 
 /**
  * Small persistent info popup for the 3D view, matching the legacy app's "Properties" slide-in: real
@@ -34,7 +36,7 @@ export function PropertiesPanel({
       .then((r) => r.json())
       .then((raw: unknown) => {
         const obj = raw as { kind?: string; metadata?: { name?: string; namespace?: string } };
-        setInfo({ kind: obj.kind ?? 'Resource', name: obj.metadata?.name ?? resourceId, namespace: obj.metadata?.namespace });
+        setInfo({ kind: obj.kind ?? 'Resource', name: obj.metadata?.name ?? resourceId, namespace: obj.metadata?.namespace ?? CLUSTER_LEVEL });
       })
       .catch(() => setInfo(null));
   }, [resourceId]);
@@ -70,14 +72,12 @@ export function PropertiesPanel({
             </td>
             <td className="break-all">{info.name}</td>
           </tr>
-          {info.namespace && (
-            <tr>
-              <td className="pr-2 align-top font-medium" style={{ color: 'var(--vpk-fg-muted)' }}>
-                Namespace
-              </td>
-              <td className="break-all">{info.namespace}</td>
-            </tr>
-          )}
+          <tr>
+            <td className="pr-2 align-top font-medium" style={{ color: 'var(--vpk-fg-muted)' }}>
+              Namespace
+            </td>
+            <td className="break-all">{info.namespace}</td>
+          </tr>
         </tbody>
       </table>
       <div className="flex flex-wrap gap-2">

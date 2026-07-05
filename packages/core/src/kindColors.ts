@@ -19,13 +19,18 @@ export const KIND_COLOR: Record<string, string> = {
   // not an unrelated cyan. Kept vivid, not pastel, to match that legend.
   Service: '#3d6fd6',
   Endpoints: '#4a86e0',
-  ConfigMap: '#e1bbe7',
+  EndpointSlice: '#5a7fd0',
   Secret: '#a0c3b0',
   ServiceAccount: '#8dceb3',
   // Storage-family kinds, vivid per the legacy filter-panel legend's Storage swatch.
   PersistentVolumeClaim: '#e0a030',
   PersistentVolume: '#c98a3a',
   StorageClass: '#8a5a2b',
+  VolumeAttachment: '#a8703f',
+  // CSI-family kinds get their own pale-red hue (per the 3D wheel's CSI ring/reference image) — distinct from
+  // both the storage-tier browns and the health/status reds used elsewhere.
+  CSINode: '#e0908c',
+  CSIDriver: '#e0908c',
   Role: '#c5b4ec',
   RoleBinding: '#b4a0e0',
   ClusterRole: '#a997d1',

@@ -101,6 +101,34 @@ describe('projectClusterWheel geometry', () => {
     }
   });
 
+  it('keeps a minimum arc-length gap between pods sharing a row, even with many nodes (a small per-node wedge)', () => {
+    // A large node count shrinks each node's wedge; a fixed pods-per-row would pack pods closer together at
+    // small radii than large ones (arc length = radius * angle). Row capacity must derive from the actual
+    // radius so pods never overlap regardless of wedge size.
+    const manyNodes = Array.from({ length: 40 }, (_, i) => node(`n${i}`));
+    const busyPods = Array.from({ length: 30 }, (_, i) => pod(`p${i}`, 'n0'));
+    const graph = buildGraph([...manyNodes, ...busyPods]);
+    const wheel = projectClusterWheel(graph);
+
+    const byRadius = new Map<number, { x: number; z: number }[]>();
+    for (const p of wheel.pods) {
+      const r = Math.round(Math.hypot(p.x, p.z) * 1e6) / 1e6;
+      const list = byRadius.get(r) ?? [];
+      list.push(p);
+      byRadius.set(r, list);
+    }
+
+    expect(byRadius.size).toBeGreaterThan(0);
+    for (const [radius, ptsAtRow] of byRadius) {
+      if (ptsAtRow.length < 2) continue;
+      const angles = ptsAtRow.map((p) => Math.atan2(p.z, p.x)).sort((a, b) => a - b);
+      for (let i = 1; i < angles.length; i++) {
+        const arc = radius * (angles[i]! - angles[i - 1]!);
+        expect(arc).toBeGreaterThanOrEqual(0.3 - 1e-6);
+      }
+    }
+  });
+
   it('handles an empty cluster (no nodes) without dividing by zero', () => {
     const wheel = projectClusterWheel(buildGraph([]));
     expect(wheel.nodes).toEqual([]);
@@ -149,5 +177,291 @@ describe('projectClusterWheel pod linkage', () => {
     const graph = buildGraph([node('a'), svc, endpoints, unusedSvc, pvc, podWithVolume]);
     const wheel = projectClusterWheel(graph);
     expect(wheel.network.items.map((i) => i.name)).not.toContain('unused');
+  });
+
+  it('anchors a Service above the earliest-created (the "first") referencing pod, not a centroid', () => {
+    const early: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-early', name: 'early', namespace: 'ns', creationTimestamp: '2020-01-01T00:00:00Z' },
+      spec: { nodeName: 'a' },
+      status: { phase: 'Running' },
+    };
+    const late: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-late', name: 'late', namespace: 'ns', creationTimestamp: '2022-01-01T00:00:00Z' },
+      spec: { nodeName: 'a' },
+      status: { phase: 'Running' },
+    };
+    const eps: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'eps-shared', name: 'shared', namespace: 'ns' },
+      subsets: [{ addresses: [{ targetRef: { kind: 'Pod', uid: 'pod-early' } }, { targetRef: { kind: 'Pod', uid: 'pod-late' } }] }],
+    };
+    const sharedSvc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-shared', name: 'shared', namespace: 'ns' } };
+    const graph = buildGraph([node('a'), sharedSvc, eps, early, late]);
+    const wheel = projectClusterWheel(graph);
+
+    const earlyPod = wheel.pods.find((p) => p.name === 'early')!;
+    const svcItem = wheel.network.items.find((i) => i.name === 'shared')!;
+    expect(svcItem.x).toBeCloseTo(earlyPod.x, 5);
+    expect(svcItem.z).toBeCloseTo(earlyPod.z, 5);
+  });
+
+  it('keeps a minimum distance between Network/Storage tier items even when their anchors coincide', () => {
+    // Two Services each backed by a distinct single pod that happen to render at the exact same spot would
+    // otherwise land on top of each other — the tier must deconflict, not just anchor.
+    const podA: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-a', name: 'a', namespace: 'ns' }, spec: { nodeName: 'a' } };
+    const podB: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-b', name: 'b', namespace: 'ns' }, spec: { nodeName: 'a' } };
+    const epsA: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'eps-a', name: 'svc-a', namespace: 'ns' },
+      subsets: [{ addresses: [{ targetRef: { kind: 'Pod', uid: 'pod-a' } }] }],
+    };
+    const epsB: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'eps-b', name: 'svc-b', namespace: 'ns' },
+      subsets: [{ addresses: [{ targetRef: { kind: 'Pod', uid: 'pod-b' } }] }],
+    };
+    const svcA: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-a', name: 'svc-a', namespace: 'ns' } };
+    const svcB: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-b', name: 'svc-b', namespace: 'ns' } };
+    const graph = buildGraph([node('a'), svcA, svcB, epsA, epsB, podA, podB]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.network.items).toHaveLength(2);
+    const [x1, x2] = wheel.network.items.map((i) => i.x) as [number, number];
+    const [z1, z2] = wheel.network.items.map((i) => i.z) as [number, number];
+    expect(Math.hypot(x1 - x2, z1 - z2)).toBeGreaterThanOrEqual(0.5 - 1e-9);
+  });
+
+  it('builds an Endpoints/EndpointSlice tier one hop above each Service, both matched correctly', () => {
+    const epSlice: RawObject = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'eps-slice-1', name: 'web-abcde', namespace: 'ns', labels: { 'kubernetes.io/service-name': 'web' } },
+    };
+    const graph = buildGraph([node('a'), svc, endpoints, epSlice, pvc, podWithVolume]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.endpoints.items.map((i) => i.name).sort()).toEqual(['web', 'web-abcde']);
+    expect(wheel.serviceToEndpoints).toContainEqual({ fromId: 'svc-1', toId: 'eps-1' });
+    expect(wheel.serviceToEndpoints).toContainEqual({ fromId: 'svc-1', toId: 'eps-slice-1' });
+  });
+
+  it('builds the PVC -> PV -> StorageClass chain, positioned close to the pod ring', () => {
+    const pvcBound: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-bound', name: 'data-bound', namespace: 'ns' },
+      spec: { volumeName: 'pv-1' },
+    };
+    const podWithBoundVolume: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-bound', name: 'bound', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'data-bound' } }] },
+      status: { phase: 'Running' },
+    };
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-1', name: 'pv-1' },
+      spec: { storageClassName: 'fast-ssd' },
+    };
+    const sc: RawObject = { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass', metadata: { uid: 'sc-1', name: 'fast-ssd' } };
+    const graph = buildGraph([node('a'), pvcBound, pv, sc, podWithBoundVolume]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.persistentVolumes.items.map((i) => i.name)).toEqual(['pv-1']);
+    expect(wheel.storageToPv).toEqual([{ fromId: 'pvc-bound', toId: 'pv-1' }]);
+    expect(wheel.storageClasses.items.map((i) => i.name)).toEqual(['fast-ssd']);
+    expect(wheel.pvToStorageClass).toEqual([{ fromId: 'pv-1', toId: 'sc-1' }]);
+
+    // PVC now sits close to the pod ring (not the old far-below placement).
+    const bpod = wheel.pods.find((p) => p.name === 'bound')!;
+    const pvcItem = wheel.storage.items.find((i) => i.name === 'data-bound')!;
+    expect(Math.abs(pvcItem.y - bpod.y)).toBeLessThan(2);
+  });
+
+  it('groups multiple PVs that share one StorageClass onto a single StorageClass item', () => {
+    const pvcA: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-a', name: 'claim-a', namespace: 'ns' },
+      spec: { volumeName: 'pv-a' },
+    };
+    const pvcB: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-b', name: 'claim-b', namespace: 'ns' },
+      spec: { volumeName: 'pv-b' },
+    };
+    const podA: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-sa', name: 'sa', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-a' } }] },
+    };
+    const podB: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-sb', name: 'sb', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-b' } }] },
+    };
+    const pvA: RawObject = { apiVersion: 'v1', kind: 'PersistentVolume', metadata: { uid: 'pv-a', name: 'pv-a' }, spec: { storageClassName: 'shared' } };
+    const pvB: RawObject = { apiVersion: 'v1', kind: 'PersistentVolume', metadata: { uid: 'pv-b', name: 'pv-b' }, spec: { storageClassName: 'shared' } };
+    const sharedSc: RawObject = { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass', metadata: { uid: 'sc-shared', name: 'shared' } };
+    const graph = buildGraph([node('a'), pvcA, pvcB, pvA, pvB, sharedSc, podA, podB]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.storageClasses.items).toHaveLength(1);
+    expect(wheel.pvToStorageClass).toContainEqual({ fromId: 'pv-a', toId: 'sc-shared' });
+    expect(wheel.pvToStorageClass).toContainEqual({ fromId: 'pv-b', toId: 'sc-shared' });
+  });
+
+  it('branches VolumeAttachment off the PV as a sibling of StorageClass, not chained off it', () => {
+    const pvcBound: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-bound', name: 'data-bound', namespace: 'ns' },
+      spec: { volumeName: 'pv-1' },
+    };
+    const podWithBoundVolume: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-bound', name: 'bound', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'data-bound' } }] },
+      status: { phase: 'Running' },
+    };
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-1', name: 'pv-1' },
+      spec: { storageClassName: 'fast-ssd' },
+    };
+    const sc: RawObject = { apiVersion: 'storage.k8s.io/v1', kind: 'StorageClass', metadata: { uid: 'sc-1', name: 'fast-ssd' } };
+    const va: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'VolumeAttachment',
+      metadata: { uid: 'va-1', name: 'csi-va-1' },
+      spec: { attacher: 'csi.example.com', nodeName: 'a', source: { persistentVolumeName: 'pv-1' } },
+    };
+    const graph = buildGraph([node('a'), pvcBound, pv, sc, va, podWithBoundVolume]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.volumeAttachments.items.map((i) => i.name)).toEqual(['csi-va-1']);
+    expect(wheel.pvToVolumeAttachment).toEqual([{ fromId: 'pv-1', toId: 'va-1' }]);
+    // StorageClass still resolves independently — VolumeAttachment is a sibling branch, not a replacement.
+    expect(wheel.storageClasses.items.map((i) => i.name)).toEqual(['fast-ssd']);
+
+    // Sibling tiers never share a Y-level, so they can't land on the exact same spot even when both anchor
+    // to the same PV.
+    const scItem = wheel.storageClasses.items[0]!;
+    const vaItem = wheel.volumeAttachments.items[0]!;
+    expect(scItem.y).not.toBe(vaItem.y);
+  });
+
+  it('links a StorageClass to its CSIDriver by provisioner name, on the same plane', () => {
+    const sc: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { uid: 'sc-csi', name: 'ceph-rbd' },
+      provisioner: 'openshift-storage.rbd.csi.ceph.com',
+    };
+    const driver: RawObject = {
+      apiVersion: 'storage.k8s.io/v1beta1',
+      kind: 'CSIDriver',
+      metadata: { uid: 'driver-1', name: 'openshift-storage.rbd.csi.ceph.com' },
+    };
+    // A built-in non-CSI provisioner should match nothing, not crash.
+    const scNoProvisioner: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { uid: 'sc-none', name: 'no-csi' },
+      provisioner: 'kubernetes.io/no-provisioner',
+    };
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-csi', name: 'pv-csi' },
+      spec: { storageClassName: 'ceph-rbd' },
+    };
+    const pvc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-csi', name: 'claim-csi', namespace: 'ns' },
+      spec: { volumeName: 'pv-csi' },
+    };
+    const p: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-csi', name: 'csi', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-csi' } }] },
+    };
+    const graph = buildGraph([node('a'), sc, scNoProvisioner, driver, pv, pvc, p]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.csiDrivers.items.map((i) => i.name)).toEqual(['openshift-storage.rbd.csi.ceph.com']);
+    expect(wheel.storageClassToCsiDriver).toEqual([{ fromId: 'sc-csi', toId: 'driver-1' }]);
+    const scItem = wheel.storageClasses.items.find((i) => i.id === 'sc-csi')!;
+    const driverItem = wheel.csiDrivers.items[0]!;
+    // Same plane as its StorageClass, so the line back to it reads as a flat connector...
+    expect(driverItem.y).toBe(scItem.y);
+    // ...but positioned out at the CSI ring's own radius (NOT anchored near the StorageClass's own, much
+    // smaller, radius) — a CSIDriver is cluster-wide, not owned by any one StorageClass's position.
+    expect(Math.hypot(driverItem.x, driverItem.z)).toBeCloseTo(wheel.csiRingRadius, 5);
+    // Its angle around the wheel still comes from the StorageClass, so it sits directly under the ring point
+    // closest to it, not at an arbitrary angle.
+    expect(Math.atan2(driverItem.z, driverItem.x)).toBeCloseTo(Math.atan2(scItem.z, scItem.x), 5);
+  });
+
+  it('stacks CSINode driver dots below the CSI ring, straight under the node, with a minimum gap', () => {
+    const csiNode: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'CSINode',
+      metadata: { uid: 'csinode-a', name: 'a' },
+      spec: {
+        drivers: [
+          { name: 'driver-one', nodeID: 'a' },
+          { name: 'driver-two', nodeID: 'a' },
+          { name: 'driver-three', nodeID: 'a' },
+        ],
+      },
+    };
+    const graph = buildGraph([node('a'), csiNode]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.csiNodeDrivers).toHaveLength(3);
+    expect(wheel.csiNodeDrivers.every((d) => d.id === 'csinode-a')).toBe(true);
+    expect(wheel.csiNodeDrivers.every((d) => d.nodeId === wheel.nodes[0]?.id)).toBe(true);
+    // Every dot — including the first, nearest the node — sits BELOW the ring (y=-0.3), not squeezed above it.
+    for (const d of wheel.csiNodeDrivers) expect(d.y).toBeLessThan(-0.3);
+    // Consecutive dots keep at least a fixed minimum vertical gap, regardless of how many drivers a node has.
+    const ys = wheel.csiNodeDrivers.map((d) => d.y).sort((a, b) => b - a);
+    for (let i = 1; i < ys.length; i++) expect(ys[i - 1]! - ys[i]!).toBeGreaterThanOrEqual(0.18 - 1e-9);
+    // A plain straight drop from the node's own center — not routed out to touch the ring.
+    const n = wheel.nodes[0]!;
+    for (const d of wheel.csiNodeDrivers) {
+      expect(d.x).toBeCloseTo(n.x, 5);
+      expect(d.z).toBeCloseTo(n.z, 5);
+    }
+  });
+
+  it('gives every node a local-storage cylinder, clickable back to the Node itself', () => {
+    const graph = buildGraph([node('a'), node('b')]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.localStorage).toHaveLength(2);
+    for (const ls of wheel.localStorage) {
+      const n = wheel.nodes.find((nd) => nd.id === ls.id);
+      expect(n).toBeDefined(); // id resolves back to a real Node, not a synthetic id
+      expect(ls.y).toBeLessThan(0);
+      // Offset further out than the node it belongs to, not stacked directly on it.
+      expect(Math.hypot(ls.x, ls.z)).toBeGreaterThan(Math.hypot(n!.x, n!.z));
+    }
   });
 });

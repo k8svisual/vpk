@@ -3,7 +3,7 @@ import { colorForKind, KIND_COLOR } from './kindColors';
 
 describe('colorForKind', () => {
   it('returns the canonical color for a listed kind', () => {
-    expect(colorForKind('ConfigMap')).toBe(KIND_COLOR.ConfigMap);
+    expect(colorForKind('Secret')).toBe(KIND_COLOR.Secret);
     expect(colorForKind('Service')).toBe(KIND_COLOR.Service);
   });
 
@@ -19,8 +19,9 @@ describe('colorForKind', () => {
     expect(colors.size).toBeGreaterThan(1);
   });
 
-  it('keeps Endpoints in the same blue hue family as Service (network category, per the schematic reference)', () => {
+  it('keeps Endpoints and EndpointSlice in the same blue hue family as Service (network category)', () => {
     expect(hueOf(KIND_COLOR.Service as string) - hueOf(KIND_COLOR.Endpoints as string)).toBeLessThan(20);
+    expect(hueOf(KIND_COLOR.Service as string) - hueOf(KIND_COLOR.EndpointSlice as string)).toBeLessThan(20);
   });
 });
 

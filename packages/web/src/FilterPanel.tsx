@@ -2,7 +2,7 @@
  * 3D filter panel, ported from the legacy app's left-side "Filter" slide-in (DESIGN §6.8's locked "filters =
  * visibility predicates over render-all scene" decision — this is the first real slice of that mechanism).
  * Only rows that map to something the 3D scene actually renders today are wired to real filtering (Nodes,
- * Network, Storage, Pod status) — everything else in the reference layout (CSI, Ingress, the 11 control/data
+ * Network, Storage, CSI, Pod status) — everything else in the reference layout (Ingress, the 11 control/data
  * "planes", CPU & Memory bars, namespace scoping, sound) is shown disabled so the eventual panel shape is
  * already in place, without pretending toggles do something they don't yet.
  */
@@ -10,6 +10,7 @@ export interface FilterState {
   showNodes: boolean;
   showNetwork: boolean;
   showStorage: boolean;
+  showCsi: boolean;
   podRunning: boolean;
   podWarning: boolean;
   podFailed: boolean;
@@ -21,6 +22,7 @@ export const DEFAULT_FILTERS: FilterState = {
   showNodes: true,
   showNetwork: true,
   showStorage: true,
+  showCsi: true,
   podRunning: true,
   podWarning: true,
   podFailed: true,
@@ -40,7 +42,7 @@ interface Row {
 // forward-looking palette for when those categories are actually modeled in the 3D scene.
 const TOP_ROWS: Row[] = [
   { key: 'showNodes', label: 'Nodes (Master, Worker)', swatch: ['#8b2e2e', '#9aa1a8'] },
-  { label: 'CSI (Container Storage Interface)', swatch: ['#d97a6e'] },
+  { key: 'showCsi', label: 'CSI (Container Storage Interface)', swatch: ['#e0908c'] },
   { key: 'showStorage', label: 'Storage (PVC, PV, StorageClass)', swatch: ['#e0a030', '#c98a3a', '#8a5a2b'] },
   { key: 'showNetwork', label: 'Network (Endpoint, Service)', swatch: ['#4a86e0', '#3d6fd6'] },
   { label: 'Ingress/IngressControl', swatch: ['#d9c94a'] },

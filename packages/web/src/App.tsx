@@ -172,6 +172,7 @@ export function App() {
               selected={selected}
               onOpenEditor={() => setModalOpen(true)}
               onViewSchematic={() => setView('schematic')}
+              snapshotKey={snaps.current}
             />
             {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
             {view === 'search' && <SearchView onSelect={selectResource} />}
