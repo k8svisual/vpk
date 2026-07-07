@@ -25,6 +25,26 @@ describe('renderOwnerRefSvg', () => {
     expect(svg).toContain('app-pod');
     expect(svg.match(/<line/g)?.length).toBe(2);
     expect(svg).toContain('var(--vpk-kind-deployment');
+    expect(svg).not.toContain('#ff3b30'); // no focusId passed — no node should get the halo
+  });
+
+  it('draws a bold halo around the focus node only, when a focusId is given', () => {
+    const view: OwnerRefView = {
+      nodes: [
+        { id: 'd1', kind: 'Deployment', apiVersion: 'apps/v1', name: 'app', labels: {}, annotations: {}, raw: {} },
+        { id: 'p1', kind: 'Pod', apiVersion: 'v1', name: 'app-pod', labels: {}, annotations: {}, raw: {} },
+      ],
+      edges: [{ type: 'ownerReference', from: 'd1', to: 'p1' }],
+    };
+    const svg = renderOwnerRefSvg(view, 'p1');
+    // Exactly one halo rect (the focus node's own <g> comes first in doc order for d1, then p1's halo+rect).
+    const haloMatches = [...svg.matchAll(/stroke="#ff3b30"/g)];
+    // One halo rect (stroke-width 4) + one bold rect stroke (stroke-width 3) = 2 uses of the focus color.
+    expect(haloMatches.length).toBe(2);
+    const p1Group = /<g class="orf-node" data-resource-id="p1"[^]*?<\/g>/.exec(svg)?.[0] ?? '';
+    const d1Group = /<g class="orf-node" data-resource-id="d1"[^]*?<\/g>/.exec(svg)?.[0] ?? '';
+    expect(p1Group).toContain('#ff3b30');
+    expect(d1Group).not.toContain('#ff3b30');
   });
 
   it('marks placeholder nodes and escapes text', () => {
@@ -51,8 +71,10 @@ describe('renderOwnerRefSvg', () => {
         ),
     );
     expect(pod).toBeDefined();
-    const svg = renderOwnerRefSvg(projectOwnerRef(g, { resourceId: pod!.id }));
+    const svg = renderOwnerRefSvg(projectOwnerRef(g, { resourceId: pod!.id }), pod!.id);
     expect(svg).toContain('data-kind="Deployment"');
     expect(svg).toContain('data-kind="Pod"');
+    const podGroup = new RegExp(`<g class="orf-node" data-resource-id="${pod!.id}"[^]*?</g>`).exec(svg)?.[0] ?? '';
+    expect(podGroup).toContain('#ff3b30');
   });
 });

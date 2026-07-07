@@ -1,15 +1,22 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens (DESIGN.md "UI shell extras"): CSS vars toggled by data-theme so server-SVG (which reads
- * var(--vpk-*) directly) re-themes with no round-trip. Only the light theme is implemented for now —
- * dark/forest/ocean are follow-up work, structured so adding them is just another [data-theme=...] block.
+ * Design tokens (DESIGN.md §"Theming": four themes — light, dark, forest, ocean — switchable in-app,
+ * persisted in localStorage, toggled via `data-theme` on <html>). CSS vars so server-SVG (which reads
+ * var(--vpk-*) directly, e.g. the Schematic/OwnerRef diagrams' tooltip and chrome) re-themes with no server
+ * round-trip. `:root` carries the light values as a pre-JS fallback (avoids a flash of unstyled content
+ * before main.tsx sets data-theme); each [data-theme=...] block below is later in source order and fully
+ * self-contained, so it cleanly overrides `:root` for every var regardless of selector-specificity ties.
  */
 :root,
 [data-theme='light'] {
   --vpk-bg: #f6f6f4;
   --vpk-surface: #ffffff;
   --vpk-border: #d9d9d5;
+  /* Border for form controls specifically — needs more contrast against the field's own fill than a hairline
+   *  between table rows does. Matches --vpk-border on the light-background themes; deliberately brighter than
+   *  it on dark, where a hairline all but disappears against the dark surface. */
+  --vpk-field-border: #d9d9d5;
   --vpk-fg: #1f1f1d;
   --vpk-fg-muted: #6b6b66;
   --vpk-accent: #2a5db0;
@@ -23,4 +30,89 @@
   --vpk-status-warn: #d4a017;
   --vpk-status-error: #c0392b;
   --vpk-status-unknown: #8a8a86;
+}
+
+[data-theme='dark'] {
+  --vpk-bg: #17181a;
+  --vpk-surface: #202124;
+  --vpk-border: #34363a;
+  --vpk-field-border: #61646d;
+  --vpk-fg: #e8e8e6;
+  --vpk-fg-muted: #9a9a96;
+  --vpk-accent: #6ea8fe;
+  --vpk-accent-fg: #0b0e14;
+  --vpk-rail-bg: #101113;
+  --vpk-rail-fg: #9a9a9e;
+  --vpk-rail-fg-active: #ffffff;
+  --vpk-rail-active-bg: #2b2c30;
+
+  --vpk-status-ok: #4cbb7d;
+  --vpk-status-warn: #e0b23a;
+  --vpk-status-error: #e2564a;
+  --vpk-status-unknown: #8a8a86;
+}
+
+[data-theme='forest'] {
+  --vpk-bg: #eef3ea;
+  --vpk-surface: #f7faf5;
+  --vpk-border: #c4d4bc;
+  --vpk-field-border: #c4d4bc;
+  --vpk-fg: #22301f;
+  --vpk-fg-muted: #5c6e56;
+  --vpk-accent: #2f7d4f;
+  --vpk-accent-fg: #ffffff;
+  --vpk-rail-bg: #24361f;
+  --vpk-rail-fg: #b9c9ae;
+  --vpk-rail-fg-active: #ffffff;
+  --vpk-rail-active-bg: #34492c;
+
+  --vpk-status-ok: #2e8b57;
+  --vpk-status-warn: #b58a17;
+  --vpk-status-error: #b0432f;
+  --vpk-status-unknown: #708068;
+}
+
+[data-theme='ocean'] {
+  --vpk-bg: #eaf2f6;
+  --vpk-surface: #f7fbfd;
+  --vpk-border: #bcd6e0;
+  --vpk-field-border: #bcd6e0;
+  --vpk-fg: #12303b;
+  --vpk-fg-muted: #4d6b76;
+  --vpk-accent: #1077a8;
+  --vpk-accent-fg: #ffffff;
+  --vpk-rail-bg: #0d2b3a;
+  --vpk-rail-fg: #a9c7d2;
+  --vpk-rail-fg-active: #ffffff;
+  --vpk-rail-active-bg: #163f52;
+
+  --vpk-status-ok: #26916d;
+  --vpk-status-warn: #c69324;
+  --vpk-status-error: #c1483a;
+  --vpk-status-unknown: #6b8892;
+}
+
+/*
+ * Every form control gets a visible, theme-aware border by default. Tailwind's preflight resets all borders
+ * to `0 solid` (via `*`), which leaves inline-styled `<select>`/`<input>` fields with no visible edge — they
+ * vanish against the page. This is in `@layer base` (specificity `select` > preflight's `*`, so it wins the
+ * reset) while staying below the utilities layer, so an explicit Tailwind `border`/`bg-*`/inline style still
+ * overrides it where a component deliberately sets its own. Checkboxes/radios keep their native appearance.
+ */
+@layer base {
+  select,
+  textarea,
+  input:not([type='checkbox']):not([type='radio']) {
+    border: 1px solid var(--vpk-field-border);
+    border-radius: 4px;
+    background: var(--vpk-surface);
+    color: var(--vpk-fg);
+  }
+
+  select:focus-visible,
+  textarea:focus-visible,
+  input:not([type='checkbox']):not([type='radio']):focus-visible {
+    outline: 2px solid var(--vpk-accent);
+    outline-offset: -1px;
+  }
 }

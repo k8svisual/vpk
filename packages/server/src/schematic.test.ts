@@ -22,4 +22,26 @@ describe('getSchematic', () => {
     const graph = buildGraph(loadSnapshotFile(fixture));
     expect(getSchematic(graph, 'not-a-real-id')).toBeUndefined();
   });
+
+  it('includes the Node the Pod runs on and an empty crds list when no CRD is involved', () => {
+    const graph = buildGraph(loadSnapshotFile(fixture));
+    const coredns = [...graph.nodes.values()].find((r) => r.kind === 'Pod' && r.name.startsWith('coredns-'));
+    const dto = getSchematic(graph, coredns!.id);
+    expect(dto?.node?.name).toBe('minikube');
+    expect(dto?.crds).toEqual([]);
+  });
+
+  it('includes an empty policies DTO (lean {id,name} shape) when no NetworkPolicy/ResourceQuota/LimitRange/RoleBinding applies', () => {
+    const graph = buildGraph(loadSnapshotFile(fixture));
+    const coredns = [...graph.nodes.values()].find((r) => r.kind === 'Pod' && r.name.startsWith('coredns-'));
+    const dto = getSchematic(graph, coredns!.id);
+    expect(dto?.policies).toEqual({ networkPolicies: [], resourceQuotas: [], limitRanges: [], roleBindings: [] });
+  });
+
+  it('includes an empty volumeAttachments list (lean {id,name} shape) when the Pod has no PVC at all', () => {
+    const graph = buildGraph(loadSnapshotFile(fixture));
+    const coredns = [...graph.nodes.values()].find((r) => r.kind === 'Pod' && r.name.startsWith('coredns-'));
+    const dto = getSchematic(graph, coredns!.id);
+    expect(dto?.storage.volumeAttachments).toEqual([]);
+  });
 });

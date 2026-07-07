@@ -1,11 +1,20 @@
 import { colorForKind, type OwnerRefView } from '@vpk/core';
 
+/** Bright, high-contrast color for the focus-node halo — deliberately NOT a color any `colorForKind` fill
+ *  uses (those are all pastel/muted), so it reads clearly as "this is the one you clicked" regardless of
+ *  the focus resource's own Kind color. */
+const FOCUS_COLOR = '#ff3b30';
+
 /**
  * Render an ownerRef view to SVG, server-side (DESIGN §6.3). Layered top-down layout (owners on top),
  * each node tagged with `data-resource-id` for the thin-client click→drill. Fills use CSS variables
  * (`--vpk-kind-*`) with hex fallbacks so the client can re-theme without a server round-trip (§6.7).
+ *
+ * `focusId` — set when this view was opened for one specific resource (e.g. the 3D Properties popup's
+ * "View OwnerRef" button, or a Pod's schematic) rather than browsing a whole namespace — that resource's
+ * node gets a bold halo so it's unmistakable among the rest of its owner chain.
  */
-export function renderOwnerRefSvg(view: OwnerRefView): string {
+export function renderOwnerRefSvg(view: OwnerRefView, focusId?: string): string {
   const W = 180;
   const H = 46;
   const HGAP = 26;
@@ -52,9 +61,19 @@ export function renderOwnerRefSvg(view: OwnerRefView): string {
       const kind = n.kind || '?';
       const name = n.placeholder && !n.name ? '<not defined>' : n.name || '<unnamed>';
       const dash = n.placeholder ? ' stroke-dasharray="4 3"' : '';
+      const isFocus = focusId !== undefined && n.id === focusId;
+      // The halo is a second, larger rect drawn BEHIND the node's own rect (same rounded corners, no fill)
+      // — a thicker stroke on the node's own rect alone reads as just "a slightly bolder box" next to its
+      // neighbors; an outer ring at a clearly different radius is what actually reads as "singled out" at
+      // a glance, independent of the node's own Kind color.
+      const halo = isFocus
+        ? `<rect x="-6" y="-6" width="${W + 12}" height="${H + 12}" rx="10" fill="none" stroke="${FOCUS_COLOR}" stroke-width="4" />`
+        : '';
+      const stroke = isFocus ? `stroke="${FOCUS_COLOR}" stroke-width="3"` : 'stroke="#00000033"';
       return (
         `<g class="orf-node" data-resource-id="${esc(n.id)}" data-kind="${esc(kind)}" transform="translate(${p.x},${p.y})">` +
-        `<rect width="${W}" height="${H}" rx="6" style="fill:var(--vpk-kind-${cssKind(kind)}, ${fill(kind)})" stroke="#00000033"${dash} />` +
+        halo +
+        `<rect width="${W}" height="${H}" rx="6" style="fill:var(--vpk-kind-${cssKind(kind)}, ${fill(kind)})" ${stroke}${dash} />` +
         `<text class="orf-name" x="10" y="20">${esc(clip(name, 26))}</text>` +
         `<text class="orf-kind" x="10" y="37">(${esc(kind)})</text>` +
         `</g>`

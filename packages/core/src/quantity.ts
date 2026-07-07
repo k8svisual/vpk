@@ -20,6 +20,19 @@ export function parseQuantity(value: string | undefined | null): number | undefi
   return undefined;
 }
 
+/** Parse a CPU quantity (cores, e.g. "2", "1500m") into a core count. CPU is the one K8s resource with its
+ *  own extra suffix beyond parseQuantity's binary/decimal ones — "m" (millicores, 1/1000 of a core) — so it
+ *  gets its own parser rather than teaching parseQuantity a unit that's meaningless for bytes. */
+export function parseCpuQuantity(value: string | undefined | null): number | undefined {
+  if (!value) return undefined;
+  const match = /^([+-]?[0-9.]+)m$/.exec(value.trim());
+  if (match) {
+    const num = Number(match[1]);
+    return Number.isNaN(num) ? undefined : num / 1000;
+  }
+  return parseQuantity(value);
+}
+
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
 /** Human-readable byte magnitude for the size-bar label (DESIGN §6.10 magnitude bar). */

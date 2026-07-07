@@ -20,13 +20,22 @@ export const KIND_COLOR: Record<string, string> = {
   Service: '#3d6fd6',
   Endpoints: '#4a86e0',
   EndpointSlice: '#5a7fd0',
+  // Ingress-family kinds (traffic routing INTO a Service, the mirror of Endpoints) share the legacy
+  // filter-panel's "Ingress/IngressControl" swatch color — one color for the whole category, same as CSI's.
+  // Route is OpenShift's own Ingress-equivalent (real clusters this tool targets commonly use it instead of,
+  // or alongside, standard Ingress).
+  Ingress: '#d9c94a',
+  HTTPRoute: '#d9c94a',
+  Route: '#d9c94a',
   Secret: '#a0c3b0',
   ServiceAccount: '#8dceb3',
-  // Storage-family kinds, vivid per the legacy filter-panel legend's Storage swatch.
-  PersistentVolumeClaim: '#e0a030',
-  PersistentVolume: '#c98a3a',
-  StorageClass: '#8a5a2b',
-  VolumeAttachment: '#a8703f',
+  // Storage-family kinds, vivid per the legacy filter-panel legend's Storage swatch. Same amber-brown hue as
+  // before, but stretched from bright gold to near-black brown (was a tight ~1.3-2.6 pairwise WCAG contrast
+  // band, easy to confuse in a 3D scene) so each of the four levels is unmistakable at a glance.
+  PersistentVolumeClaim: '#f4b942',
+  PersistentVolume: '#d9822a',
+  StorageClass: '#8a4a12',
+  VolumeAttachment: '#4a2a0a',
   // CSI-family kinds get their own pale-red hue (per the 3D wheel's CSI ring/reference image) — distinct from
   // both the storage-tier browns and the health/status reds used elsewhere.
   CSINode: '#e0908c',

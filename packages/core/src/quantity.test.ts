@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseQuantity, formatBytes } from './quantity';
+import { parseQuantity, parseCpuQuantity, formatBytes } from './quantity';
 
 describe('parseQuantity', () => {
   it('parses binary suffixes', () => {
@@ -21,6 +21,22 @@ describe('parseQuantity', () => {
     expect(parseQuantity(undefined)).toBeUndefined();
     expect(parseQuantity('')).toBeUndefined();
     expect(parseQuantity('not-a-quantity')).toBeUndefined();
+  });
+});
+
+describe('parseCpuQuantity', () => {
+  it('parses millicore suffix', () => {
+    expect(parseCpuQuantity('500m')).toBe(0.5);
+    expect(parseCpuQuantity('1500m')).toBe(1.5);
+  });
+
+  it('parses bare core counts the same as parseQuantity', () => {
+    expect(parseCpuQuantity('2')).toBe(2);
+  });
+
+  it('returns undefined for empty/unparseable input', () => {
+    expect(parseCpuQuantity(undefined)).toBeUndefined();
+    expect(parseCpuQuantity('')).toBeUndefined();
   });
 });
 

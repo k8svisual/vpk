@@ -136,6 +136,62 @@ describe('projectClusterWheel geometry', () => {
   });
 });
 
+describe('projectClusterWheel resource metrics (Resource CPU & Memory filter)', () => {
+  function nodeWithCapacity(name: string): RawObject {
+    return {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: { uid: `node-${name}`, name },
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+        capacity: { cpu: '4', memory: '16Gi', 'ephemeral-storage': '100Gi' },
+      },
+    };
+  }
+  function podWithResources(name: string, nodeName: string, containers: { cpu?: string; memory?: string }[]): RawObject {
+    return {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: `pod-${name}`, name, namespace: 'ns' },
+      spec: {
+        nodeName,
+        containers: containers.map((c) => ({ resources: { requests: { cpu: c.cpu, memory: c.memory } } })),
+      },
+      status: { phase: 'Running' },
+    };
+  }
+
+  it('parses Node capacity (cpu, memory, ephemeral-storage) onto WheelNode', () => {
+    const wheel = projectClusterWheel(buildGraph([nodeWithCapacity('a')]));
+    const n = wheel.nodes[0]!;
+    expect(n.cpuCapacity).toBe(4);
+    expect(n.memCapacityBytes).toBe(16 * 1024 ** 3);
+    expect(n.ephemeralStorageCapacityBytes).toBe(100 * 1024 ** 3);
+  });
+
+  it('sums container requests (including millicore CPU) onto WheelPod', () => {
+    const graph = buildGraph([
+      nodeWithCapacity('a'),
+      podWithResources('multi', 'a', [
+        { cpu: '500m', memory: '256Mi' },
+        { cpu: '250m', memory: '128Mi' },
+      ]),
+    ]);
+    const wheel = projectClusterWheel(graph);
+    const p = wheel.pods[0]!;
+    expect(p.cpuRequested).toBeCloseTo(0.75);
+    expect(p.memRequestedBytes).toBe(384 * 1024 ** 2);
+  });
+
+  it('leaves cpuRequested/memRequestedBytes undefined when no container specifies either', () => {
+    const graph = buildGraph([nodeWithCapacity('a'), pod('bare', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    const p = wheel.pods[0]!;
+    expect(p.cpuRequested).toBeUndefined();
+    expect(p.memRequestedBytes).toBeUndefined();
+  });
+});
+
 describe('projectClusterWheel pod linkage', () => {
   const svc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-1', name: 'web', namespace: 'ns' } };
   const endpoints: RawObject = {
@@ -250,6 +306,109 @@ describe('projectClusterWheel pod linkage', () => {
     expect(wheel.endpoints.items.map((i) => i.name).sort()).toEqual(['web', 'web-abcde']);
     expect(wheel.serviceToEndpoints).toContainEqual({ fromId: 'svc-1', toId: 'eps-1' });
     expect(wheel.serviceToEndpoints).toContainEqual({ fromId: 'svc-1', toId: 'eps-slice-1' });
+  });
+
+  it('positions the Service tier 25% closer to the pod plane than before (y=3.75, not 5)', () => {
+    const graph = buildGraph([node('a'), svc, endpoints, pvc, podWithVolume]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.network.items[0]!.y).toBe(3.75);
+  });
+
+  it('builds an Ingress/HTTPRoute tier above the Endpoints tier, matched by referenced Service name', () => {
+    const ingress: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'Ingress',
+      metadata: { uid: 'ing-1', name: 'web-ingress', namespace: 'ns' },
+      spec: { rules: [{ http: { paths: [{ backend: { service: { name: 'web' } } }] } }] },
+    };
+    const route: RawObject = {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'HTTPRoute',
+      metadata: { uid: 'route-1', name: 'web-route', namespace: 'ns' },
+      spec: { rules: [{ backendRefs: [{ name: 'web', kind: 'Service' }] }] },
+    };
+    const graph = buildGraph([node('a'), svc, endpoints, pvc, podWithVolume, ingress, route]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.ingress.items.map((i) => i.name).sort()).toEqual(['web-ingress', 'web-route']);
+    expect(wheel.ingress.items.every((i) => i.y > wheel.endpoints.items[0]!.y)).toBe(true);
+    expect(wheel.serviceToIngress).toContainEqual({ fromId: 'svc-1', toId: 'ing-1' });
+    expect(wheel.serviceToIngress).toContainEqual({ fromId: 'svc-1', toId: 'route-1' });
+  });
+
+  it('matches an Ingress via its defaultBackend too, and colors Ingress/HTTPRoute with the shared filter swatch', () => {
+    const defaultBackendIngress: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'Ingress',
+      metadata: { uid: 'ing-2', name: 'catch-all', namespace: 'ns' },
+      spec: { defaultBackend: { service: { name: 'web' } } },
+    };
+    const graph = buildGraph([node('a'), svc, endpoints, pvc, podWithVolume, defaultBackendIngress]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.serviceToIngress).toContainEqual({ fromId: 'svc-1', toId: 'ing-2' });
+    expect(wheel.ingress.items[0]!.color).toBe('#d9c94a');
+  });
+
+  it('ignores an HTTPRoute backendRef that explicitly targets a non-Service kind', () => {
+    const route: RawObject = {
+      apiVersion: 'gateway.networking.k8s.io/v1',
+      kind: 'HTTPRoute',
+      metadata: { uid: 'route-2', name: 'to-other-kind', namespace: 'ns' },
+      spec: { rules: [{ backendRefs: [{ name: 'web', kind: 'ServiceImport' }] }] },
+    };
+    const graph = buildGraph([node('a'), svc, endpoints, pvc, podWithVolume, route]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.ingress.items).toHaveLength(0);
+  });
+
+  it('does not duplicate an Ingress that lists the same backend Service more than once', () => {
+    const ingress: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'Ingress',
+      metadata: { uid: 'ing-3', name: 'multi-path', namespace: 'ns' },
+      spec: {
+        rules: [
+          { http: { paths: [{ backend: { service: { name: 'web' } } }, { backend: { service: { name: 'web' } } }] } },
+        ],
+      },
+    };
+    const graph = buildGraph([node('a'), svc, endpoints, pvc, podWithVolume, ingress]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.ingress.items).toHaveLength(1);
+  });
+
+  it('matches an OpenShift Route via spec.to and spec.alternateBackends, same as Ingress/HTTPRoute', () => {
+    const canarySvc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-canary', name: 'canary', namespace: 'ns' } };
+    const canaryPod: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-canary', name: 'canary', namespace: 'ns' },
+      spec: { nodeName: 'a' },
+      status: { phase: 'Running' },
+    };
+    const canaryEndpoints: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'eps-canary', name: 'canary', namespace: 'ns' },
+      subsets: [{ addresses: [{ targetRef: { kind: 'Pod', uid: 'pod-canary' } }] }],
+    };
+    const route: RawObject = {
+      apiVersion: 'route.openshift.io/v1',
+      kind: 'Route',
+      metadata: { uid: 'route-os-1', name: 'web-route', namespace: 'ns' },
+      spec: {
+        to: { kind: 'Service', name: 'web' },
+        alternateBackends: [{ kind: 'Service', name: 'canary' }],
+      },
+    };
+    const graph = buildGraph([node('a'), svc, canarySvc, endpoints, canaryEndpoints, pvc, podWithVolume, canaryPod, route]);
+    const wheel = projectClusterWheel(graph);
+
+    // One tier item even though it routes to two Services — not a duplicate per Service it targets.
+    expect(wheel.ingress.items.map((i) => i.name)).toEqual(['web-route']);
+    expect(wheel.serviceToIngress).toContainEqual({ fromId: 'svc-1', toId: 'route-os-1' });
+    expect(wheel.serviceToIngress).toContainEqual({ fromId: 'svc-canary', toId: 'route-os-1' });
   });
 
   it('builds the PVC -> PV -> StorageClass chain, positioned close to the pod ring', () => {
@@ -409,14 +568,90 @@ describe('projectClusterWheel pod linkage', () => {
     expect(wheel.storageClassToCsiDriver).toEqual([{ fromId: 'sc-csi', toId: 'driver-1' }]);
     const scItem = wheel.storageClasses.items.find((i) => i.id === 'sc-csi')!;
     const driverItem = wheel.csiDrivers.items[0]!;
-    // Same plane as its StorageClass, so the line back to it reads as a flat connector...
-    expect(driverItem.y).toBe(scItem.y);
+    // Pushed further below the ring than the StorageClass's own plane (not the same Y) — the newer
+    // VolumeAttachment link needs a visibly angled connector, not a nearly-flat one.
+    expect(driverItem.y).toBeLessThan(scItem.y);
     // ...but positioned out at the CSI ring's own radius (NOT anchored near the StorageClass's own, much
     // smaller, radius) — a CSIDriver is cluster-wide, not owned by any one StorageClass's position.
     expect(Math.hypot(driverItem.x, driverItem.z)).toBeCloseTo(wheel.csiRingRadius, 5);
     // Its angle around the wheel still comes from the StorageClass, so it sits directly under the ring point
     // closest to it, not at an arbitrary angle.
     expect(Math.atan2(driverItem.z, driverItem.x)).toBeCloseTo(Math.atan2(scItem.z, scItem.x), 5);
+  });
+
+  it('links a VolumeAttachment to its CSIDriver by attacher name, independent of its StorageClass', () => {
+    const sc: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { uid: 'sc-csi', name: 'ceph-rbd' },
+      provisioner: 'openshift-storage.rbd.csi.ceph.com',
+    };
+    const driver: RawObject = {
+      apiVersion: 'storage.k8s.io/v1beta1',
+      kind: 'CSIDriver',
+      metadata: { uid: 'driver-1', name: 'openshift-storage.rbd.csi.ceph.com' },
+    };
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-csi', name: 'pv-csi' },
+      spec: { storageClassName: 'ceph-rbd' },
+    };
+    const pvc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-csi', name: 'claim-csi', namespace: 'ns' },
+      spec: { volumeName: 'pv-csi' },
+    };
+    const p: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-csi', name: 'csi', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-csi' } }] },
+    };
+    const va: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'VolumeAttachment',
+      metadata: { uid: 'va-csi', name: 'csi-va-csi' },
+      spec: { attacher: 'openshift-storage.rbd.csi.ceph.com', nodeName: 'a', source: { persistentVolumeName: 'pv-csi' } },
+    };
+    const graph = buildGraph([node('a'), sc, driver, pv, pvc, p, va]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.volumeAttachmentToCsiDriver).toEqual([{ fromId: 'va-csi', toId: 'driver-1' }]);
+    // The driver sits clearly BELOW VolumeAttachment (not just closer to it) so their connecting line reads
+    // as a real angled connector rather than a nearly-flat one — see CSI_DRIVER_Y's own comment for why
+    // "further from the ring" has to mean past VolumeAttachment's own plane, not just toward it.
+    const driverItem = wheel.csiDrivers.items[0]!;
+    const vaItem = wheel.volumeAttachments.items[0]!;
+    expect(driverItem.y).toBeLessThan(vaItem.y);
+  });
+
+  it('drops a VolumeAttachment->CSIDriver edge silently when the attacher names no known CSIDriver', () => {
+    const pv: RawObject = { apiVersion: 'v1', kind: 'PersistentVolume', metadata: { uid: 'pv-orphan', name: 'pv-orphan' } };
+    const pvc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-orphan', name: 'claim-orphan', namespace: 'ns' },
+      spec: { volumeName: 'pv-orphan' },
+    };
+    const p: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-orphan', name: 'orphan', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-orphan' } }] },
+    };
+    const va: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'VolumeAttachment',
+      metadata: { uid: 'va-orphan', name: 'csi-va-orphan' },
+      spec: { attacher: 'no-such-driver.example.com', nodeName: 'a', source: { persistentVolumeName: 'pv-orphan' } },
+    };
+    const graph = buildGraph([node('a'), pv, pvc, p, va]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.volumeAttachments.items.map((i) => i.name)).toEqual(['csi-va-orphan']);
+    expect(wheel.volumeAttachmentToCsiDriver).toEqual([]);
   });
 
   it('stacks CSINode driver dots below the CSI ring, straight under the node, with a minimum gap', () => {

@@ -41,6 +41,16 @@ export interface SchematicOwnerLink {
   id: ResourceId;
   kind: string;
   name: string;
+  /** Set when this owner is a custom-resource instance backed by a real CustomResourceDefinition in the
+   *  graph — same letter as the matching entry in PodSchematic.crds, so the view can badge both with a
+   *  small black circle+letter to visually link the instance to its type definition (DESIGN §6.9 follow-on,
+   *  ported from the legacy app's Workload Schematics namespace/cluster split). */
+  crdLetter?: string;
+}
+export interface SchematicCrdRef {
+  letter: string;
+  id: ResourceId;
+  name: string;
 }
 
 export interface PodSchematic {
@@ -54,9 +64,29 @@ export interface PodSchematic {
   generatorLabel?: string;
   config: { configMaps: SchematicRef[]; secrets: SchematicRef[] };
   network: { services: SchematicRef[] };
-  /** pvcs -> their bound pvs -> those pvs' storage classes (DESIGN §6.9 pvc<-pv<-sc chain). */
-  storage: { pvcs: SchematicRef[]; pvs: SchematicRef[]; storageClasses: SchematicRef[] };
+  /** pvcs -> their bound pvs -> those pvs' storage classes (DESIGN §6.9 pvc<-pv<-sc chain). volumeAttachments
+   *  is a sibling branch off the same pvs, not chained through storageClasses — mirrors the 3D wheel's
+   *  pvToVolumeAttachment (see wheel.ts), which deliberately keeps VolumeAttachment and StorageClass as
+   *  independent branches off PV rather than one hanging off the other. */
+  storage: { pvcs: SchematicRef[]; pvs: SchematicRef[]; storageClasses: SchematicRef[]; volumeAttachments: SchematicRef[] };
   security: { serviceAccount?: SchematicRef };
+  /** The Node the Pod is scheduled on — cluster-scoped (no namespace), so the view renders it in the
+   *  separate "Cluster level resources" box rather than alongside the Pod's own namespaced resources. */
+  node?: SchematicRef;
+  /** Every distinct CustomResourceDefinition backing a custom-resource owner in `ownerChain`, in first-
+   *  appearance order, lettered a/b/c/... — rendered in the "Cluster level resources" box (CRDs are
+   *  cluster-scoped) alongside the matching lettered badge on the owner-chain instance in the namespace box. */
+  crds: SchematicCrdRef[];
+  /** Namespace-scoped governance resources that apply to this Pod — rendered as a row at the bottom of the
+   *  namespace box. NetworkPolicy applies via podSelector match; ResourceQuota/LimitRange apply to every Pod
+   *  in the namespace (no per-Pod selector in the K8s API); RoleBinding applies via a subject naming this
+   *  Pod's ServiceAccount. */
+  policies: {
+    networkPolicies: SchematicRef[];
+    resourceQuotas: SchematicRef[];
+    limitRanges: SchematicRef[];
+    roleBindings: SchematicRef[];
+  };
 }
 
 function stateLabel(state: ContainerStatusRaw['state']): string | undefined {
@@ -81,6 +111,56 @@ function toContainers(specList: ContainerRaw[], statusList: ContainerStatusRaw[]
   });
 }
 
+interface LabelSelectorRaw {
+  matchLabels?: Record<string, string>;
+  matchExpressions?: { key: string; operator?: string; values?: string[] }[];
+}
+
+/** Standard Kubernetes LabelSelector semantics (matchLabels + matchExpressions' In/NotIn/Exists/DoesNotExist)
+ *  against a resource's labels — an empty/missing selector (`{}`, as a NetworkPolicy with no podSelector
+ *  fields selects) matches everything, matching real cluster behavior. No existing helper for this in the
+ *  codebase (Service->Pod linkage instead uses the cluster's own Endpoints object, which has no equivalent
+ *  for NetworkPolicy), so this is written directly against the K8s API's own selector spec. */
+function matchesSelector(labels: Record<string, string>, selector: LabelSelectorRaw | undefined): boolean {
+  for (const [k, v] of Object.entries(selector?.matchLabels ?? {})) {
+    if (labels[k] !== v) return false;
+  }
+  for (const expr of selector?.matchExpressions ?? []) {
+    const has = Object.prototype.hasOwnProperty.call(labels, expr.key);
+    switch (expr.operator) {
+      case 'In':
+        if (!has || !(expr.values ?? []).includes(labels[expr.key] as string)) return false;
+        break;
+      case 'NotIn':
+        if (has && (expr.values ?? []).includes(labels[expr.key] as string)) return false;
+        break;
+      case 'Exists':
+        if (!has) return false;
+        break;
+      case 'DoesNotExist':
+        if (has) return false;
+        break;
+    }
+  }
+  return true;
+}
+
+/** The CustomResourceDefinition (if any) that defines `kind`/`apiVersion` — matched by CRD spec.group +
+ *  spec.names.kind, the same identity Kubernetes itself uses to bind a custom resource to its type. A
+ *  built-in kind's apiVersion never carries a "/" group for the bare core group, so this correctly never
+ *  matches core-group resources (Pod, ConfigMap, ...) against a CRD. */
+function findCrdDefinition(graph: ResourceGraph, kind: string, apiVersion: string): Resource | undefined {
+  const slash = apiVersion.indexOf('/');
+  if (slash === -1) return undefined;
+  const group = apiVersion.slice(0, slash);
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'CustomResourceDefinition') continue;
+    const spec = r.raw.spec as { group?: string; names?: { kind?: string } } | undefined;
+    if (spec?.group === group && spec?.names?.kind === kind) return r;
+  }
+  return undefined;
+}
+
 /**
  * Per-Pod schematic (DESIGN §6.9): the 2D twin of the 3D single-node view. Central pod status + adaptive
  * functional groups (Config/Network/Storage/Security) + the owner/generator chain. Only populated groups
@@ -91,7 +171,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   if (!pod || pod.kind !== 'Pod') return undefined;
 
   const spec = pod.raw.spec as
-    | { containers?: ContainerRaw[]; initContainers?: ContainerRaw[]; volumes?: VolumeRaw[]; serviceAccountName?: string }
+    | { containers?: ContainerRaw[]; initContainers?: ContainerRaw[]; volumes?: VolumeRaw[]; serviceAccountName?: string; nodeName?: string }
     | undefined;
   const status = pod.raw.status as
     | { phase?: string; conditions?: ConditionRaw[]; containerStatuses?: ContainerStatusRaw[]; initContainerStatuses?: ContainerStatusRaw[] }
@@ -134,8 +214,19 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   const pvcs = new Map<string, SchematicRef>();
   for (const v of spec?.volumes ?? []) addRef(pvcs, 'PersistentVolumeClaim', v.persistentVolumeClaim?.claimName);
 
+  // Same by-PV-name lookup wheel.ts's pvToVolumeAttachmentId uses — a VolumeAttachment names its PV via
+  // spec.source.persistentVolumeName, so it's the initiating/owning side of this edge (unlike StorageClass,
+  // which the PV itself names via spec.storageClassName).
+  const vaByPvName = new Map<string, Resource>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'VolumeAttachment') continue;
+    const pvName = (r.raw.spec as { source?: { persistentVolumeName?: string } } | undefined)?.source?.persistentVolumeName;
+    if (pvName) vaByPvName.set(pvName, r);
+  }
+
   const pvs = new Map<string, SchematicRef>();
   const storageClasses = new Map<string, SchematicRef>();
+  const volumeAttachments = new Map<string, SchematicRef>();
   for (const pvcRef of pvcs.values()) {
     const pvcResource = graph.nodes.get(pvcRef.id);
     const volumeName = (pvcResource?.raw.spec as { volumeName?: string } | undefined)?.volumeName;
@@ -147,6 +238,8 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
       const sc = clusterLookup('StorageClass', scName);
       storageClasses.set(scName, { id: sc?.id ?? `StorageClass/${scName}`, name: scName, kind: 'StorageClass' });
     }
+    const va = vaByPvName.get(volumeName);
+    if (va) volumeAttachments.set(volumeName, { id: va.id, name: va.name, kind: 'VolumeAttachment' });
   }
 
   const services: SchematicRef[] = [];
@@ -162,6 +255,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   const sa = saName ? lookup('ServiceAccount', saName) : undefined;
 
   const ownerChain: SchematicOwnerLink[] = [];
+  const ownerResources: Resource[] = [];
   let current: Resource | undefined = pod;
   const seen = new Set<ResourceId>();
   while (current) {
@@ -171,12 +265,58 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     const owner = graph.nodes.get(ownerEdge.from);
     if (!owner) break;
     ownerChain.unshift({ id: owner.id, kind: owner.kind, name: owner.name });
+    ownerResources.unshift(owner);
     current = owner;
   }
 
   const generatorLabel =
     pod.labels['app.kubernetes.io/managed-by'] ??
     (ownerChain[0] ? graph.nodes.get(ownerChain[0].id)?.labels['app.kubernetes.io/managed-by'] : undefined);
+
+  // Custom-resource detection (DESIGN §6.9 follow-on): an owner-chain entry backed by a real
+  // CustomResourceDefinition in this graph is namespace-scoped like everything else here, but its TYPE
+  // definition is cluster-scoped — so the view badges the instance and its CRD with a matching lettered
+  // circle instead of drawing them in the same box.
+  const crds: SchematicCrdRef[] = [];
+  const crdLetterByResourceId = new Map<ResourceId, string>();
+  for (const owner of ownerResources) {
+    const crd = findCrdDefinition(graph, owner.kind, owner.apiVersion);
+    if (!crd) continue;
+    let letter = crdLetterByResourceId.get(crd.id);
+    if (!letter) {
+      letter = String.fromCharCode(97 + crds.length);
+      crdLetterByResourceId.set(crd.id, letter);
+      crds.push({ letter, id: crd.id, name: crd.name });
+    }
+    const link = ownerChain.find((o) => o.id === owner.id);
+    if (link) link.crdLetter = letter;
+  }
+
+  const nodeName = spec?.nodeName;
+  const nodeResource = nodeName ? clusterLookup('Node', nodeName) : undefined;
+  const node: SchematicRef | undefined = nodeName
+    ? { id: nodeResource?.id ?? `Node/${nodeName}`, name: nodeName, kind: 'Node' }
+    : undefined;
+
+  const networkPolicies: SchematicRef[] = [];
+  const resourceQuotas: SchematicRef[] = [];
+  const limitRanges: SchematicRef[] = [];
+  const roleBindings: SchematicRef[] = [];
+  for (const r of graph.nodes.values()) {
+    if (r.namespace !== pod.namespace) continue;
+    if (r.kind === 'NetworkPolicy') {
+      const podSelector = (r.raw.spec as { podSelector?: LabelSelectorRaw } | undefined)?.podSelector;
+      if (matchesSelector(pod.labels, podSelector)) networkPolicies.push({ id: r.id, name: r.name, kind: 'NetworkPolicy' });
+    } else if (r.kind === 'ResourceQuota') {
+      resourceQuotas.push({ id: r.id, name: r.name, kind: 'ResourceQuota' });
+    } else if (r.kind === 'LimitRange') {
+      limitRanges.push({ id: r.id, name: r.name, kind: 'LimitRange' });
+    } else if (r.kind === 'RoleBinding' && saName) {
+      const subjects = (r.raw.subjects as { kind?: string; name?: string; namespace?: string }[] | undefined) ?? [];
+      const bindsThisSa = subjects.some((subj) => subj.kind === 'ServiceAccount' && subj.name === saName && (subj.namespace ?? pod.namespace) === pod.namespace);
+      if (bindsThisSa) roleBindings.push({ id: r.id, name: r.name, kind: 'RoleBinding' });
+    }
+  }
 
   return {
     pod,
@@ -188,7 +328,15 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     generatorLabel,
     config: { configMaps: [...configMaps.values()], secrets: [...secrets.values()] },
     network: { services },
-    storage: { pvcs: [...pvcs.values()], pvs: [...pvs.values()], storageClasses: [...storageClasses.values()] },
+    storage: {
+      pvcs: [...pvcs.values()],
+      pvs: [...pvs.values()],
+      storageClasses: [...storageClasses.values()],
+      volumeAttachments: [...volumeAttachments.values()],
+    },
     security: { serviceAccount: sa ? { id: sa.id, name: sa.name, kind: 'ServiceAccount' } : undefined },
+    node,
+    crds,
+    policies: { networkPolicies, resourceQuotas, limitRanges, roleBindings },
   };
 }

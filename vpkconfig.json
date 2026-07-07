@@ -1,0 +1,5 @@
+{
+  "snapshotDir": "/Users/bob/snaptest",
+  "redactSecrets": true,
+  "disablePullingSecrets": false
+}

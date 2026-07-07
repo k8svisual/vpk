@@ -9,7 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:server": "bun packages/server/src/server.ts",
-    "dev:web": "vite --config packages/web/vite.config.ts packages/web",
+    "dev:web": "cd packages/web && bun run dev",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
