@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X } from 'lucide-react';
 import { NavRail, type RailGroup } from './NavRail';
 import { SearchView } from './SearchView';
@@ -6,6 +6,7 @@ import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
 import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
+import { OwnerRefView } from './OwnerRefView';
 import { RbacView } from './RbacView';
 import { WhoCanView, EMPTY_WHOCAN_QUERY, type WhoCanQueryState } from './WhoCanView';
 import { ContainerImagesView } from './ContainerImagesView';
@@ -60,14 +61,15 @@ const VIEW_LABELS: Record<ViewId, string> = Object.fromEntries(
 ) as Record<ViewId, string>;
 
 /** Views that actually read the header's namespace selector — everything else hides it rather than showing a
- *  control with no effect. */
-const NEEDS_NAMESPACE = new Set<ViewId>(['ownerref', 'network']);
+ *  control with no effect. OwnerRef has its own internal Namespace→Resource picker (see OwnerRefView) instead
+ *  of using this shared one — a whole namespace's ownership graph is often an illegible tangle, so it needs a
+ *  specific resource named, not just a namespace. */
+const NEEDS_NAMESPACE = new Set<ViewId>(['network']);
 
 export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
   const [snaps, setSnaps] = useState<Snapshots>({ dir: '', current: '', files: [] });
   const [ns, setNs] = useState('kube-system');
-  const [svg, setSvg] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   // The Pod SchematicView actually renders — captured from `selected` only at the moment the user navigates
   // INTO the Schematic view (see the effect below), then left alone. Every icon inside the diagram itself
@@ -106,10 +108,9 @@ export function App() {
   // Same idea as `searchScope`, for Schematic: only set when entered via the 3D Properties popup's
   // "View Schematic" button, so a normal nav-rail visit to Schematic gets no stray "Return" pill either.
   const [schematicFrom3D, setSchematicFrom3D] = useState(false);
-  // Same pattern again, for OwnerRef: set only via a 3D Properties popup's "View OwnerRef" button. While set,
-  // OwnerRef fetches `/ownerref?id=` (focused on that ONE resource's connected ownership subgraph) instead of
-  // `/ownerref?ns=` (the whole namespace) — cleared by picking a namespace directly (an explicit "go back to
-  // browsing" action) or by Return, same as searchScope/schematicFrom3D.
+  // Same pattern again, for OwnerRef: set only via a 3D Properties popup's "View OwnerRef" button — while set,
+  // OwnerRefView fetches `/ownerref?id=` for that one resource instead of showing its own manual Namespace→
+  // Resource picker. Cleared by Return, same as searchScope/schematicFrom3D.
   const [ownerRefFocusId, setOwnerRefFocusId] = useState<string | null>(null);
   // Same pattern again, for Images: set only via the 3D Properties popup's image-registry "View Repository"
   // button, scoping the Container Images page to that registry hostname and showing its own "Return" pill.
@@ -124,27 +125,6 @@ export function App() {
   // — WhoCanView unmounts on navigation like every other non-3D view.
   const [whoCanQuery, setWhoCanQuery] = useState<WhoCanQueryState>(EMPTY_WHOCAN_QUERY);
   const [namespaces, setNamespaces] = useState<string[]>([]);
-
-  // Empty namespace = "All namespaces" selected in the header dropdown — deliberately does NOT fetch/draw the
-  // OwnerRef graph at all (a merged all-namespaces ownership graph would be an enormous, useless tangle for
-  // any real cluster), rather than falling back to some default namespace or drawing everything.
-  const loadGraph = useCallback((namespace: string) => {
-    if (!namespace) {
-      setSvg('');
-      return;
-    }
-    fetch(`/ownerref?ns=${encodeURIComponent(namespace)}`)
-      .then((r) => r.text())
-      .then(setSvg)
-      .catch((e: unknown) => setSvg(`<p style="padding:12px">failed: ${String(e)}</p>`));
-  }, []);
-
-  const loadGraphForResource = useCallback((resourceId: string) => {
-    fetch(`/ownerref?id=${encodeURIComponent(resourceId)}`)
-      .then((r) => r.text())
-      .then(setSvg)
-      .catch((e: unknown) => setSvg(`<p style="padding:12px">failed: ${String(e)}</p>`));
-  }, []);
 
   const refreshSnaps = useCallback(
     () => fetch('/snapshots').then((r) => r.json() as Promise<Snapshots>).then(setSnaps),
@@ -162,12 +142,12 @@ export function App() {
     if (view === 'schematic') setSchematicPodId(selected);
   }, [view]);
 
+  // Runs once on mount — refreshSnaps/refreshNamespaces are stable callbacks (empty dep arrays). OwnerRefView
+  // now owns its own data fetching entirely, so this no longer needs to depend on `ns`/`ownerRefFocusId`.
   useEffect(() => {
     void refreshSnaps();
     void refreshNamespaces();
-    if (ownerRefFocusId) loadGraphForResource(ownerRefFocusId);
-    else loadGraph(ns);
-  }, [loadGraph, loadGraphForResource, refreshSnaps, refreshNamespaces, ns, ownerRefFocusId]);
+  }, [refreshSnaps, refreshNamespaces]);
 
   async function post(path: string, body: unknown) {
     const r = await fetch(path, {
@@ -183,7 +163,6 @@ export function App() {
     await post('/load', { path: file });
     await Promise.all([refreshSnaps(), refreshNamespaces()]);
     setOwnerRefFocusId(null); // a resource id focused before this snapshot swap is almost certainly stale now
-    loadGraph(ns);
     setSelected(null);
     setModalOpen(false);
     setBusy('');
@@ -195,7 +174,6 @@ export function App() {
     const res = (await post('/capture', opts)) as { snapshot?: string; error?: string };
     await Promise.all([refreshSnaps(), refreshNamespaces()]);
     setOwnerRefFocusId(null);
-    loadGraph(ns);
     setBusy(res.error ? `error: ${res.error}` : '');
   }
 
@@ -282,12 +260,6 @@ export function App() {
 
   const rbacReturnLabel =
     rbacFrom === 'security' ? '← Return to Security' : rbacFrom === 'whocan' ? '← Return to Who Can' : '← Return to Schematic';
-
-  function onGraphClick(e: MouseEvent<HTMLDivElement>) {
-    const node = (e.target as Element).closest('[data-resource-id]');
-    const id = node?.getAttribute('data-resource-id');
-    if (id) selectResource(id);
-  }
 
   // Render the "stopped" screen from already-loaded client code BEFORE the fetch even resolves — the server
   // exits shortly after responding, so waiting on the response first could race a connection that's already
@@ -427,31 +399,12 @@ export function App() {
               snapshotKey={snaps.current}
             />
             {view === 'ownerref' && (
-              <>
-                {ownerRefFocusId && (
-                  <button
-                    onClick={returnFrom3DOwnerRef}
-                    style={{
-                      marginBottom: 10,
-                      padding: '4px 10px',
-                      borderRadius: 999,
-                      border: '1px solid #999',
-                      cursor: 'pointer',
-                      background: '#fff',
-                      fontSize: 13,
-                    }}
-                  >
-                    ← Return to 3D view
-                  </button>
-                )}
-                {ownerRefFocusId || ns ? (
-                  <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />
-                ) : (
-                  <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
-                    Select a namespace above to view its OwnerRef graph.
-                  </p>
-                )}
-              </>
+              <OwnerRefView
+                focusId={ownerRefFocusId}
+                onSelect={selectResource}
+                onReturn={ownerRefFocusId ? returnFrom3DOwnerRef : undefined}
+                snapshotKey={snaps.current}
+              />
             )}
             {view === 'search' && (
               <SearchView
