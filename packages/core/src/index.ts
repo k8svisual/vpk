@@ -10,6 +10,7 @@ export * from './edges';
 export * from './projections/ownerRef';
 export * from './projections/network';
 export * from './projections/security';
+export * from './projections/rbac';
 export * from './projections/storage';
 export * from './projections/schematic';
 export * from './projections/containerImages';

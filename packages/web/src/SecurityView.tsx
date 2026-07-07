@@ -33,7 +33,15 @@ function ruleSummary(r: Rule): string {
 
 const link: React.CSSProperties = { color: '#2a5db0', cursor: 'pointer', textDecoration: 'none' };
 
-export function SecurityView({ onSelect }: { onSelect: (id: string) => void }) {
+export function SecurityView({
+  onSelect,
+  onViewRbac,
+}: {
+  onSelect: (id: string) => void;
+  /** Opens the RBAC view pre-scoped to this subject (identity, not a resource id — User/Group subjects have
+   *  no backing resource in the snapshot). Rendered as a small "diagram" pill on each subject row. */
+  onViewRbac?: (subject: { kind: string; name: string; namespace?: string }) => void;
+}) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
 
   useEffect(() => {
@@ -62,6 +70,28 @@ export function SecurityView({ onSelect }: { onSelect: (id: string) => void }) {
             {list.map((s) => (
               <details key={`${s.kind}|${s.namespace ?? ''}|${s.name}`} style={{ marginBottom: 4 }}>
                 <summary style={{ cursor: 'pointer', padding: '2px 0' }}>
+                  {onViewRbac && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault(); // don't also toggle this row's <details>
+                        e.stopPropagation();
+                        onViewRbac({ kind: s.kind, name: s.name, namespace: s.namespace });
+                      }}
+                      title="View this subject's RBAC diagram"
+                      style={{
+                        marginRight: 8,
+                        fontSize: 11,
+                        padding: '1px 8px',
+                        borderRadius: 999,
+                        border: '1px solid #5fb37e',
+                        background: '#fff',
+                        color: '#2e7d4f',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      diagram
+                    </button>
+                  )}
                   {s.name}
                   {s.namespace && <span style={{ color: '#777' }}> ({s.namespace})</span>}
                   <span style={{ color: '#777' }}> — {s.bindings.length} binding{s.bindings.length === 1 ? '' : 's'}</span>
