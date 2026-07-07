@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X } from 'lucide-react';
-import { NavRail, type RailGroup } from './NavRail';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X, FlaskConical } from 'lucide-react';
+import { NavRail, type RailGroup, type RailItem } from './NavRail';
+import { DemoDataView } from './DemoDataView';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -26,7 +27,7 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images';
+type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images' | 'demo';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
@@ -54,22 +55,22 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
   },
 ];
 
+/** Pinned above the nav rail's own collapse/expand chevron, separate from the view groups above it — a
+ *  cluster-testing tool that belongs to the app shell, not a "lens" onto loaded cluster data like the rest
+ *  of the rail. */
+const DEMO_DATA_ITEM: RailItem<ViewId> = { id: 'demo', label: 'Demo Data', icon: FlaskConical };
+
 /** Screen title for the header's second row — one lookup shared with the nav rail's own labels, so the two
  *  never drift apart. */
 const VIEW_LABELS: Record<ViewId, string> = Object.fromEntries(
-  RAIL_GROUPS.flatMap((g) => g.items).map((item) => [item.id, item.label]),
+  RAIL_GROUPS.flatMap((g) => g.items)
+    .concat(DEMO_DATA_ITEM)
+    .map((item) => [item.id, item.label]),
 ) as Record<ViewId, string>;
-
-/** Views that actually read the header's namespace selector — everything else hides it rather than showing a
- *  control with no effect. OwnerRef has its own internal Namespace→Resource picker (see OwnerRefView) instead
- *  of using this shared one — a whole namespace's ownership graph is often an illegible tangle, so it needs a
- *  specific resource named, not just a namespace. */
-const NEEDS_NAMESPACE = new Set<ViewId>(['network']);
 
 export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
   const [snaps, setSnaps] = useState<Snapshots>({ dir: '', current: '', files: [] });
-  const [ns, setNs] = useState('kube-system');
   const [selected, setSelected] = useState<string | null>(null);
   // The Pod SchematicView actually renders — captured from `selected` only at the moment the user navigates
   // INTO the Schematic view (see the effect below), then left alone. Every icon inside the diagram itself
@@ -142,8 +143,7 @@ export function App() {
     if (view === 'schematic') setSchematicPodId(selected);
   }, [view]);
 
-  // Runs once on mount — refreshSnaps/refreshNamespaces are stable callbacks (empty dep arrays). OwnerRefView
-  // now owns its own data fetching entirely, so this no longer needs to depend on `ns`/`ownerRefFocusId`.
+  // Runs once on mount — refreshSnaps/refreshNamespaces are stable callbacks (empty dep arrays).
   useEffect(() => {
     void refreshSnaps();
     void refreshNamespaces();
@@ -288,7 +288,13 @@ export function App() {
       className="flex h-screen font-sans text-sm"
       style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
     >
-      <NavRail groups={RAIL_GROUPS} active={view} onSelect={setView} onAbout={() => setAboutOpen(true)} />
+      <NavRail
+        groups={RAIL_GROUPS}
+        active={view}
+        onSelect={setView}
+        onAbout={() => setAboutOpen(true)}
+        footerItem={DEMO_DATA_ITEM}
+      />
 
       <div className="flex flex-1 flex-col min-w-0">
         <header
@@ -361,27 +367,6 @@ export function App() {
           <span className="text-xs font-medium" style={{ color: 'var(--vpk-fg)' }}>
             {VIEW_LABELS[view]}
           </span>
-          {NEEDS_NAMESPACE.has(view) && (
-            <label className="ml-auto flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
-              namespace
-              <select
-                value={ns}
-                onChange={(e) => {
-                  setOwnerRefFocusId(null); // picking a namespace directly means "go back to browsing"
-                  setNs(e.target.value);
-                }}
-                className="w-44 cursor-pointer rounded border px-1.5 py-0.5"
-                style={{ borderColor: 'var(--vpk-field-border)' }}
-              >
-                <option value="">All namespaces</option>
-                {namespaces.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
         </div>
 
         <div className="flex flex-1 min-h-0">
@@ -413,7 +398,7 @@ export function App() {
                 onReturn={searchScope ? returnFrom3DSearch : undefined}
               />
             )}
-            {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
+            {view === 'network' && <NetworkView namespaces={namespaces} onSelect={selectResource} />}
             {view === 'security' && <SecurityView onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />}
             {view === 'whocan' && (
               <WhoCanView
@@ -448,6 +433,7 @@ export function App() {
                 onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}
               />
             )}
+            {view === 'demo' && <DemoDataView />}
           </main>
         </div>
       </div>

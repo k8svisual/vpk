@@ -16,6 +16,7 @@ import {
   type ResourceGraph,
   type OwnerRefFocus,
 } from '@vpk/core';
+import { DEMO_TEMPLATES } from '@vpk/demo-data';
 import { loadSnapshotFile } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
@@ -159,6 +160,10 @@ app.get('/container-images', async () => projectContainerImages(graph));
 app.get('/scene/nodes', async () => projectClusterNodeField(graph));
 
 app.get('/scene/wheel', async () => projectClusterWheel(graph));
+
+// Read-only for now — the Demo Data screen just lists what's available (see App.tsx). Generating and
+// injecting synthetic resources from these templates is a follow-up, not built yet.
+app.get('/demo/templates', async () => DEMO_TEMPLATES);
 
 app.get('/schematic', async (req, reply) => {
   const q = req.query as { id?: string };

@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "dependencies": {
     "@vpk/core": "workspace:*",
+    "@vpk/demo-data": "workspace:*",
     "fastify": "^5.1.0"
   }
 }

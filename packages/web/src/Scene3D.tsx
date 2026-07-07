@@ -1,26 +1,51 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text } from '@react-three/drei';
+import { Line, OrbitControls, Text } from '@react-three/drei';
 import { DoubleSide } from 'three';
 import { PropertiesPanel, localStorageSelectionId } from './PropertiesPanel';
 import { FilterPanel, loadDefaultFilters, METRIC_COLORS, CONTROL_PLANE_COLOR, PANES, type FilterState } from './FilterPanel';
+import { NodeFilterPanel, DEFAULT_NODE_FILTERS, nodePassesFilter, type NodeFilterState } from './NodeFilterPanel';
 
 interface SceneNode {
   id: string;
   name: string;
   cpuCapacity?: number;
+  cpuAllocatable?: number;
   memCapacityBytes?: number;
+  memAllocatableBytes?: number;
   podCapacity?: number;
+  podAllocatable?: number;
+  ephemeralStorageCapacityBytes?: number;
+  ephemeralStorageAllocatableBytes?: number;
   podCount: number;
   health: 'ok' | 'warn' | 'error';
   unschedulable: boolean;
+  role: 'master' | 'worker';
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+  taints: { key: string; value?: string; effect: string }[];
+  architecture?: string;
+  operatingSystem?: string;
+  osImage?: string;
+  kernelVersion?: string;
+  kubeletVersion?: string;
+  kubeProxyVersion?: string;
+  containerRuntimeVersion?: string;
 }
 
-const HEALTH_COLOR: Record<SceneNode['health'], string> = {
-  ok: '#86bc9e',
-  warn: '#e6c878',
-  error: '#da8c84',
+// Mirrors @vpk/core's podStatus.ts ROLE_COLOR — same master/worker shades the Wheel view's node dots use
+// (there, computed server-side via nodeRoleColor and sent as `color`; here, the Field view needs its own
+// client-side copy since it renders straight from `/scene/nodes` role data instead of a pre-colored point).
+const ROLE_COLOR: Record<SceneNode['role'], string> = {
+  master: '#8b2e2e',
+  worker: '#9aa1a8',
 };
+
+// Matches the Wheel/Filter panel's own Running/Failed pod colors (FilterPanel.tsx POD_ROWS) — a node's
+// included/excluded border reads as "green = passes, red = doesn't" using the same vocabulary the rest of the
+// app already uses for pass/fail, not a new ad-hoc color pair.
+const NODE_INCLUDED_COLOR = '#2e9e4f';
+const NODE_EXCLUDED_COLOR = '#c0392b';
 
 // Node cube footprint (nodeBoxWidth) maxes out at 3 (half-width 1.5 per side) for a high-CPU node. 10.5 is
 // triple the previous 3.5 spacing (itself already enough to clear the widest-node worst case with a visible
@@ -126,10 +151,51 @@ function nodeBoxWidth(node: SceneNode): number {
   return 1 + Math.min(2, (node.cpuCapacity ?? 1) / 8);
 }
 
-function NodeBox({ node, position, onSelect }: { node: SceneNode; position: [number, number, number]; onSelect: (id: string) => void }) {
+/** All 12 edges of a `width` x `height` x `width` box, centered on its own local origin, as consecutive
+ *  point pairs — one pair per segment (drei's `<Line segments>` draws every (2i, 2i+1) pair as its own
+ *  disconnected line, which is what actually outlines all SIX faces; a single closed polyline can't do that,
+ *  and drei's `<Outlines>` component only traces the silhouette — the outer boundary of whichever faces
+ *  happen to be visible from the camera, not the edges BETWEEN them). */
+function boxEdgePoints(width: number, height: number): [number, number, number][] {
+  const hx = width / 2;
+  const hy = height / 2;
+  const hz = width / 2;
+  const corners = {
+    a: [-hx, -hy, -hz],
+    b: [hx, -hy, -hz],
+    c: [hx, -hy, hz],
+    d: [-hx, -hy, hz],
+    e: [-hx, hy, -hz],
+    f: [hx, hy, -hz],
+    g: [hx, hy, hz],
+    h: [-hx, hy, hz],
+  } as const;
+  const edges: [keyof typeof corners, keyof typeof corners][] = [
+    ['a', 'b'], ['b', 'c'], ['c', 'd'], ['d', 'a'], // bottom face
+    ['e', 'f'], ['f', 'g'], ['g', 'h'], ['h', 'e'], // top face
+    ['a', 'e'], ['b', 'f'], ['c', 'g'], ['d', 'h'], // verticals
+  ];
+  return edges.flatMap(([p, q]) => [corners[p], corners[q]]) as [number, number, number][];
+}
+
+function NodeBox({
+  node,
+  position,
+  included,
+  onSelect,
+}: {
+  node: SceneNode;
+  position: [number, number, number];
+  /** Whether this node currently passes the Field view's own Node filter — drives the border color (green
+   *  included / red excluded) so the filter's effect is visible on every node at once, not just the ones it
+   *  hides. */
+  included: boolean;
+  onSelect: (id: string) => void;
+}) {
   const width = nodeBoxWidth(node);
   const height = 0.5 + Math.min(2, (node.memCapacityBytes ?? 0) / (16 * 1024 ** 3));
   const [hovered, setHovered] = useState(false);
+  const edgePoints = useMemo(() => boxEdgePoints(width, height), [width, height]);
 
   return (
     <group position={position}>
@@ -146,7 +212,8 @@ function NodeBox({ node, position, onSelect }: { node: SceneNode; position: [num
         onPointerOut={() => setHovered(false)}
       >
         <boxGeometry args={[width, height, width]} />
-        <meshStandardMaterial color={HEALTH_COLOR[node.health]} opacity={hovered ? 1 : 0.85} transparent />
+        <meshStandardMaterial color={ROLE_COLOR[node.role]} opacity={hovered ? 1 : 0.85} transparent />
+        <Line segments points={edgePoints} color={included ? NODE_INCLUDED_COLOR : NODE_EXCLUDED_COLOR} lineWidth={3} />
       </mesh>
       <Text position={[0, height + 0.05, 0]} fontSize={0.15} color="#6b6b66" anchorX="center" anchorY="bottom">
         {node.podCount}
@@ -160,24 +227,27 @@ function FieldScene({
   onSelect,
   selected,
   filters,
-  snapshotKey,
+  nodeFilters,
+  allNodes,
+  nodesHidden,
 }: {
   onSelect: (id: string) => void;
   selected: string | null;
   filters: FilterState;
-  snapshotKey: string;
+  nodeFilters: NodeFilterState;
+  allNodes: SceneNode[];
+  /** Once the "Hide excluded" button is clicked, nodes failing nodeFilters stop rendering entirely instead of
+   *  just showing a red border — toggled back by "Reset view" (see the button row in Scene3D). */
+  nodesHidden: boolean;
 }) {
-  const [nodes, setNodes] = useState<SceneNode[]>([]);
-
-  // Re-fetch whenever the loaded snapshot changes — Scene3D never unmounts (single persistent WebGL context),
-  // so unlike every other tab in the app (which remounts and refetches on navigation), this is the one place
-  // that must explicitly react to a snapshot swap or it keeps showing the previous snapshot's nodes forever.
-  useEffect(() => {
-    fetch('/scene/nodes')
-      .then((r) => r.json() as Promise<SceneNode[]>)
-      .then(setNodes)
-      .catch(() => setNodes([]));
-  }, [snapshotKey]);
+  // The Field view's own Node-field filter (role/health/hardware/OS/taints/labels) — separate from the Wheel
+  // view's FilterState, since the whole point here is narrowing the Node set down BEFORE switching to Wheel.
+  // Every node still renders (bordered green/red) until nodesHidden actually removes the excluded ones.
+  const included = useMemo(() => new Map(allNodes.map((n) => [n.id, nodePassesFilter(n, nodeFilters)])), [allNodes, nodeFilters]);
+  const nodes = useMemo(
+    () => (nodesHidden ? allNodes.filter((n) => included.get(n.id)) : allNodes),
+    [allNodes, nodesHidden, included],
+  );
 
   const cols = Math.max(1, Math.ceil(Math.sqrt(nodes.length)));
   const positions = useMemo<[number, number, number][]>(
@@ -199,7 +269,13 @@ function FieldScene({
   return (
     <>
       {nodes.map((n, i) => (
-        <NodeBox key={n.id} node={n} position={positions[i] as [number, number, number]} onSelect={onSelect} />
+        <NodeBox
+          key={n.id}
+          node={n}
+          position={positions[i] as [number, number, number]}
+          included={included.get(n.id) ?? true}
+          onSelect={onSelect}
+        />
       ))}
       {selectedNode && selectedPos && (
         <SelectionRing x={selectedPos[0]} y={0.05} z={selectedPos[2]} radius={nodeBoxWidth(selectedNode) * 0.75} />
@@ -1119,6 +1195,31 @@ export function Scene3D({
   const [filterOpen, setFilterOpen] = useState(false);
   // Lazy initializer: reads the user's saved default (if any) exactly once, at mount — not on every render.
   const [filters, setFilters] = useState<FilterState>(() => loadDefaultFilters());
+  // The Field view's own filter (role/health/cordon/labels over Node data) — the SAME "Filter" button opens
+  // this instead of the Wheel's FilterPanel when mode === 'field' (see the panel-choice below), since the two
+  // views filter fundamentally different things (a Node field vs. the Wheel's whole render model).
+  const [nodeFilters, setNodeFilters] = useState<NodeFilterState>(DEFAULT_NODE_FILTERS);
+  const [allNodes, setAllNodes] = useState<SceneNode[]>([]);
+  // "Hide excluded" (button, top-right of the Field view) flips this true, actually removing excluded nodes
+  // from the scene instead of just bordering them red; "Reset view" flips it back. Reset to false on every
+  // snapshot swap so a stale hide from the PREVIOUS snapshot's node set doesn't carry over silently.
+  const [nodesHidden, setNodesHidden] = useState(false);
+
+  // Fetched here (not inside FieldScene) so the NodeFilterPanel — a sibling, not a child, of FieldScene — can
+  // also see the full unfiltered Node set: it needs that to compute each field's available values/range and
+  // the included/excluded counts, independent of whichever filters are currently applied.
+  useEffect(() => {
+    fetch('/scene/nodes')
+      .then((r) => r.json() as Promise<SceneNode[]>)
+      .then(setAllNodes)
+      .catch(() => setAllNodes([]));
+    setNodesHidden(false);
+  }, [snapshotKey]);
+
+  // Recomputed on every filter tweak so the top-right count row and the "Hide excluded" button both reflect
+  // the CURRENT nodeFilters, not whatever was true the moment the button was last clicked.
+  const includedNodeCount = useMemo(() => allNodes.filter((n) => nodePassesFilter(n, nodeFilters)).length, [allNodes, nodeFilters]);
+  const excludedNodeCount = allNodes.length - includedNodeCount;
 
   function handleSelect(id: string) {
     onSelect(id);
@@ -1204,8 +1305,38 @@ export function Scene3D({
           Filter
         </button>
       </div>
+      {mode === 'field' && (
+        <div
+          className="absolute top-2 right-2 z-10 flex items-center gap-2 rounded border px-2 py-1 text-xs"
+          style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+        >
+          <span>
+            <span style={{ color: NODE_INCLUDED_COLOR }}>{nodesHidden ? includedNodeCount : allNodes.length}</span> shown ·{' '}
+            <span style={{ color: NODE_EXCLUDED_COLOR }}>{nodesHidden ? excludedNodeCount : 0}</span> hidden · {allNodes.length} total
+          </span>
+          <button
+            onClick={() => setNodesHidden(true)}
+            disabled={excludedNodeCount === 0}
+            className="cursor-pointer rounded border px-1.5 py-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderColor: 'var(--vpk-border)' }}
+          >
+            Hide excluded
+          </button>
+          <button
+            onClick={() => setNodesHidden(false)}
+            disabled={!nodesHidden}
+            className="cursor-pointer rounded border px-1.5 py-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderColor: 'var(--vpk-border)' }}
+          >
+            Reset view
+          </button>
+        </div>
+      )}
       {mode === 'wheel' && <WheelLegend wheel={wheel} />}
-      {filterOpen && (
+      {filterOpen && mode === 'field' && (
+        <NodeFilterPanel filters={nodeFilters} onChange={setNodeFilters} onClose={() => setFilterOpen(false)} nodes={allNodes} />
+      )}
+      {filterOpen && mode === 'wheel' && (
         <FilterPanel
           filters={filters}
           onChange={setFilters}
@@ -1228,7 +1359,14 @@ export function Scene3D({
         <ambientLight intensity={0.7} />
         <directionalLight position={[5, 8, 5]} intensity={0.6} />
         {mode === 'field' ? (
-          <FieldScene onSelect={handleSelect} selected={selected} filters={filters} snapshotKey={snapshotKey} />
+          <FieldScene
+            onSelect={handleSelect}
+            selected={selected}
+            filters={filters}
+            nodeFilters={nodeFilters}
+            allNodes={allNodes}
+            nodesHidden={nodesHidden}
+          />
         ) : wheel ? (
           <WheelScene wheel={wheel} onSelect={handleSelect} selected={selected} filters={filters} />
         ) : null}

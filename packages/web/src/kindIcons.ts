@@ -38,6 +38,9 @@ const KIND_ICON: Record<string, string> = {
   ResourceQuota: 'quota.svg',
   LimitRange: 'limits.svg',
   Event: 'evt.svg',
+  Gateway: 'gw.svg',
+  GatewayClass: 'gwclass.svg',
+  HTTPRoute: 'httproute.svg',
 };
 
 const FALLBACK_ICON = 'k8.svg';

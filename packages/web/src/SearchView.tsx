@@ -37,7 +37,7 @@ const CLUSTER_SCOPED = '(cluster-scoped)';
 /** Matches a Metadata (labels) / Annotation filter against a resource's key/value map. `key=value` requires
  *  the key to contain the part before `=` AND the value to contain the part after; with no `=`, the query
  *  matches if it appears in EITHER a key or a value. Case-insensitive; blank query always matches. */
-function matchesKV(map: Record<string, string>, query: string): boolean {
+export function matchesKV(map: Record<string, string>, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
   const eq = q.indexOf('=');

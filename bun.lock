@@ -17,11 +17,19 @@
       "name": "@vpk/core",
       "version": "0.0.0",
     },
+    "packages/demo-data": {
+      "name": "@vpk/demo-data",
+      "version": "0.0.0",
+      "dependencies": {
+        "@vpk/core": "workspace:*",
+      },
+    },
     "packages/server": {
       "name": "@vpk/server",
       "version": "0.0.0",
       "dependencies": {
         "@vpk/core": "workspace:*",
+        "@vpk/demo-data": "workspace:*",
         "fastify": "^5.1.0",
       },
     },
@@ -410,6 +418,8 @@
     "@vitest/utils": ["@vitest/utils@2.1.9", "", { "dependencies": { "@vitest/pretty-format": "2.1.9", "loupe": "^3.1.2", "tinyrainbow": "^1.2.0" } }, "sha512-v0psaMSkNJ3A2NMrUEHFRzJtDPFn+/VWZ5WxImB21T9fjucJRmS7xCS3ppEnARb9y11OAzaD+P2Ps+b+BGX5iQ=="],
 
     "@vpk/core": ["@vpk/core@workspace:packages/core"],
+
+    "@vpk/demo-data": ["@vpk/demo-data@workspace:packages/demo-data"],
 
     "@vpk/server": ["@vpk/server@workspace:packages/server"],
 

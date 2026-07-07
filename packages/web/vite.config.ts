@@ -43,6 +43,7 @@ export default defineConfig({
       '/who-can': API,
       '/container-images': API,
       '/scene': API,
+      '/demo': API,
       '/load': API,
       '/capture': API,
       '/settings': API,

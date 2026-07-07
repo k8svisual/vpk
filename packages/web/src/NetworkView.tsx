@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { iconUrlForKind } from './kindIcons';
 import { NetworkNodeIpsView } from './NetworkNodeIpsView';
 
 interface NetworkPod {
@@ -19,22 +20,48 @@ interface NetworkService {
   pods: NetworkPod[];
 }
 
-const phaseColor: Record<string, string> = {
-  Running: '#2e8b57',
-  Succeeded: '#2e8b57',
-  Pending: '#d4a017',
-  Failed: '#c0392b',
-  Unknown: '#999',
-};
+// Fixed column widths, shared by every service card's header row and every card's pod table — each card
+// sizes its own flex/table content independently, so without a shared width the same column drifts left and
+// right from one card to the next. Pixel widths (not `fr`/`auto`) are what make that alignment hold.
+const SVC_NAME_COL = '280px';
+const SVC_NS_COL = '150px';
+const SVC_IP_COL = '170px';
+const POD_ICON_SIZE = 20;
+const POD_ICON_INDENT = 22 + POD_ICON_SIZE * 0.5; // shifted right of the connector spine by at least half an icon width
+const POD_ICON_COL = POD_ICON_INDENT + POD_ICON_SIZE + 6;
+const POD_NAME_COL = 340;
+const POD_IP_COL = 150;
 
 type Mode = 'services' | 'nodes';
 
-export function NetworkView({ namespace, onSelect }: { namespace: string; onSelect: (id: string) => void }) {
+export function NetworkView({
+  namespaces,
+  onSelect,
+}: {
+  namespaces: string[];
+  onSelect: (id: string) => void;
+}) {
   const [mode, setMode] = useState<Mode>('services');
+  const [ns, setNs] = useState('kube-system');
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+      <div
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1,
+          background: 'var(--vpk-bg)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          paddingBottom: 10,
+        }}
+      >
+        {/* `main`'s own top padding sits above this sticky box but is still part of its scroll area, so
+            scrolled-past rows can peek through that gap as they pass behind it. This shim repaints that gap
+            in the same background, anchored to the sticky box so it scrolls/sticks along with it. */}
+        <div style={{ position: 'absolute', top: -13, left: -13, right: -13, height: 13, background: 'var(--vpk-bg)' }} />
         {(
           [
             ['services', 'Services-To-Pods'],
@@ -56,9 +83,26 @@ export function NetworkView({ namespace, onSelect }: { namespace: string; onSele
             {label}
           </button>
         ))}
+        {mode === 'services' && (
+          <label style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#555' }}>
+            namespace
+            <select
+              value={ns}
+              onChange={(e) => setNs(e.target.value)}
+              style={{ padding: '2px 4px', fontSize: 12, cursor: 'pointer' }}
+            >
+              <option value="">All namespaces</option>
+              {namespaces.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {mode === 'services' ? (
-        <ServicesToPodsMode namespace={namespace} onSelect={onSelect} />
+        <ServicesToPodsMode namespace={ns} onSelect={onSelect} />
       ) : (
         <NetworkNodeIpsView onSelect={onSelect} />
       )}
@@ -85,8 +129,8 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
           <div
             onClick={() => onSelect(svc.id)}
             style={{
-              display: 'flex',
-              gap: 12,
+              display: 'grid',
+              gridTemplateColumns: `${SVC_NAME_COL} ${SVC_NS_COL} ${SVC_IP_COL} 1fr`,
               alignItems: 'baseline',
               padding: '6px 10px',
               background: '#eef2f6',
@@ -94,47 +138,90 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
               fontSize: 13,
             }}
           >
-            <strong>{svc.name}</strong>
+            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <img
+                src={iconUrlForKind('Service')}
+                alt=""
+                style={{ display: 'inline', width: 17, height: 17, marginRight: 5, verticalAlign: 'text-bottom' }}
+              />
+              {svc.name}
+            </strong>
             <span style={{ color: '#555' }}>{svc.namespace}</span>
             <span style={{ color: '#555' }}>ClusterIP {svc.clusterIp ?? '—'}</span>
             <span style={{ color: '#555' }}>
               {svc.ports.map((p) => `${p.port}${p.protocol && p.protocol !== 'TCP' ? `/${p.protocol}` : ''}`).join(', ')}
             </span>
           </div>
-          <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+          <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: 12 }}>
+            <colgroup>
+              <col style={{ width: POD_ICON_COL }} />
+              <col style={{ width: POD_NAME_COL }} />
+              <col style={{ width: POD_IP_COL }} />
+              <col />
+            </colgroup>
             <tbody>
               {svc.pods.length === 0 && (
                 <tr>
-                  <td style={{ padding: '6px 10px', color: '#999' }}>no backing pods</td>
+                  <td colSpan={4} style={{ padding: '6px 10px', color: '#999' }}>
+                    no backing pods
+                  </td>
                 </tr>
               )}
-              {svc.pods.map((pod) => (
-                <tr
-                  key={pod.id}
-                  onClick={() => onSelect(pod.id)}
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8f8f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
-                >
-                  <td style={{ padding: '4px 10px', width: 12 }}>
-                    <span
-                      title={pod.phase ?? (pod.ready ? 'Ready' : 'NotReady')}
-                      style={{
-                        display: 'inline-block',
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        background: phaseColor[pod.phase ?? ''] ?? (pod.ready ? '#2e8b57' : '#c0392b'),
-                      }}
-                    />
-                  </td>
-                  <td style={{ padding: '4px 10px' }}>{pod.name}</td>
-                  <td style={{ padding: '4px 10px', color: '#555' }}>pod {pod.podIp ?? '—'}</td>
-                  <td style={{ padding: '4px 10px', color: '#555' }}>
-                    node {pod.nodeName ?? '—'} ({pod.nodeIp ?? '—'})
-                  </td>
-                </tr>
-              ))}
+              {svc.pods.map((pod, i) => {
+                const isLast = i === svc.pods.length - 1;
+                return (
+                  <tr
+                    key={pod.id}
+                    onClick={() => onSelect(pod.id)}
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f8f8f6')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                  >
+                    <td style={{ position: 'relative', width: POD_ICON_COL, padding: '4px 0', verticalAlign: 'middle' }}>
+                      {/* Tree connector back up to the service — spine down the left edge, joined by every
+                          pod's stub, so the whole column reads as one branching line rather than N floating
+                          icons. The spine stops halfway on the last row instead of running past it. */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 16,
+                          top: 0,
+                          bottom: isLast ? '50%' : 0,
+                          borderLeft: '1px solid #c8c8c8',
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 16,
+                          top: '50%',
+                          width: POD_ICON_INDENT - 16,
+                          borderTop: '1px solid #c8c8c8',
+                        }}
+                      />
+                      <img
+                        src={iconUrlForKind('Pod')}
+                        alt=""
+                        title={pod.phase ?? (pod.ready ? 'Ready' : 'NotReady')}
+                        style={{
+                          position: 'relative',
+                          display: 'inline-block',
+                          width: POD_ICON_SIZE,
+                          height: POD_ICON_SIZE,
+                          marginLeft: POD_ICON_INDENT,
+                        }}
+                      />
+                    </td>
+                    <td style={{ padding: '4px 10px', verticalAlign: 'middle' }}>{pod.name}</td>
+                    <td style={{ padding: '4px 10px', color: '#555', verticalAlign: 'middle' }}>
+                      pod {pod.podIp ?? '—'}
+                    </td>
+                    <td style={{ padding: '4px 10px', color: '#555', verticalAlign: 'middle' }}>
+                      node {pod.nodeName ?? '—'} ({pod.nodeIp ?? '—'})
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

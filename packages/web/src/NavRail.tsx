@@ -21,12 +21,16 @@ export function NavRail<T extends string>({
   active,
   onSelect,
   onAbout,
+  footerItem,
 }: {
   groups: RailGroup<T>[];
   active: T;
   onSelect: (id: T) => void;
   /** The VpK logo button at the top of the rail opens the About dialog — branding + Apache-2.0 copyright. */
   onAbout: () => void;
+  /** Pinned above the collapse/expand chevron, separated from the scrollable group list above it — for an
+   *  item that belongs to the rail itself rather than any view group (e.g. Demo Data). */
+  footerItem?: RailItem<T>;
 }) {
   const [collapsed, setCollapsed] = useState(true);
 
@@ -85,6 +89,25 @@ export function NavRail<T extends string>({
           </div>
         ))}
       </div>
+      {footerItem && (
+        <div className="flex flex-col gap-0.5 px-1.5 py-1.5 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <Tooltip label={footerItem.label}>
+            <button
+              type="button"
+              aria-label={footerItem.label}
+              onClick={() => onSelect(footerItem.id)}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors cursor-pointer"
+              style={{
+                color: footerItem.id === active ? 'var(--vpk-rail-fg-active)' : 'var(--vpk-rail-fg)',
+                background: footerItem.id === active ? 'var(--vpk-rail-active-bg)' : 'transparent',
+              }}
+            >
+              <footerItem.icon size={16} strokeWidth={footerItem.id === active ? 2.25 : 1.75} />
+              {!collapsed && <span>{footerItem.label}</span>}
+            </button>
+          </Tooltip>
+        </div>
+      )}
       <Tooltip label={collapsed ? 'Expand' : 'Collapse'}>
         <button
           type="button"
