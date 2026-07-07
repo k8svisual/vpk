@@ -1,21 +1,98 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { ResourceListModal, type ResourceListItem } from './ResourceListModal';
+import { SecretDecodeModal } from './SecretDecodeModal';
+
+const TOOLTIP_VIEWPORT_MARGIN = 8;
+const TOOLTIP_GAP = 6;
+const TOOLTIP_SHOW_DELAY_MS = 150;
+
+interface PodOption {
+  id: string;
+  name: string;
+  namespace?: string;
+}
 
 /**
  * Renders the server-generated schematic SVG (packages/server/src/render/schematicSvg.ts) — matches the
  * OwnerRef view's pattern: fetch SVG text, inline it, delegate clicks on data-resource-id up to the shared
  * selection bus. Replaces an earlier HTML/React card MVP (DESIGN §6.9 calls for real server-SVG rendering).
+ * A multi-item group icon (e.g. "secret (4)") instead carries data-resource-list/data-kind — clicking it
+ * opens a "Resources" list modal (own local state, not the shared selection bus) rather than jumping straight
+ * to one instance, since the icon stands for the whole aggregate.
+ *
+ * Every resource icon carries a `data-names` payload (JSON array — one name for a single item, all of them
+ * for an aggregate) instead of an always-visible name label under the icon; hovering shows them in a custom
+ * tooltip matching the same look as the nav rail / header icon buttons' Tooltip component (that one is
+ * children-based and can't wrap arbitrary nodes inside injected raw SVG, so this re-implements the same
+ * delayed-show / viewport-clamped positioning logic against whichever `[data-names]` element is hovered).
  */
-export function SchematicView({ podId, onSelect }: { podId: string | null; onSelect: (id: string) => void }) {
+export function SchematicView({
+  podId,
+  onSelect,
+  onViewRbac,
+  onReturn,
+}: {
+  podId: string | null;
+  /** The optional second argument is a YAML path (e.g. ['spec', 'containers', 2] or ['status', 'conditions'])
+   *  — set only for the Pod card's per-container rows and its Phase/Conditions area (see schematicSvg.ts's
+   *  data-focus-path), so the editor opens scrolled straight to the field the user actually clicked instead of
+   *  always landing on the Pod's generic default field. */
+  onSelect: (id: string, focusPath?: (string | number)[]) => void;
+  /** The Security box's "RBAC ▸" pill (schematicSvg's data-rbac-sa) routes here with the Pod's
+   *  ServiceAccount id — opens the RBAC view scoped to that subject instead of an editor. */
+  onViewRbac?: (saId: string) => void;
+  /** Shown as a "Return" pill when set — present only when Schematic was entered via the 3D view's "View
+   *  Schematic" button, matching SearchView's onReturn (see App.tsx's searchScope/schematicFrom3D). */
+  onReturn?: () => void;
+}) {
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
+  const [resourceList, setResourceList] = useState<{ kind: string; items: ResourceListItem[] } | null>(null);
+  const [decodeSecretId, setDecodeSecretId] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<{ el: Element; names: string[] } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+
+  // Manual Namespace → Pod picker, for the "arrived directly at this page" case (no onReturn — see onReturn's
+  // own doc comment). Not used at all when entered from the 3D view: there, `podId` already names the exact
+  // Pod that flow means to show, and the picker would just be a redundant, confusing second way to change it.
+  const [pods, setPods] = useState<PodOption[]>([]);
+  const [manualNamespace, setManualNamespace] = useState('');
+  const [manualPodId, setManualPodId] = useState('');
+
+  // Depends on nothing but mount: whether `onReturn` is set at all is fixed for this component's whole
+  // lifetime (App.tsx remounts SchematicView on every view change, so it never flips mid-mount).
+  useEffect(() => {
+    if (onReturn) return; // 3D-linked mode never needs the picker's data
+    fetch('/resources')
+      .then((r) => r.json() as Promise<{ id: string; kind: string; name: string; namespace?: string }[]>)
+      .then((rows) => setPods(rows.filter((r) => r.kind === 'Pod').map((r) => ({ id: r.id, name: r.name, namespace: r.namespace }))))
+      .catch(() => setPods([]));
+  }, []);
+
+  const namespaces = useMemo(
+    () => [...new Set(pods.map((p) => p.namespace).filter((n): n is string => !!n))].sort(),
+    [pods],
+  );
+  const podsInNamespace = useMemo(
+    () => pods.filter((p) => p.namespace === manualNamespace).sort((a, b) => a.name.localeCompare(b.name)),
+    [pods, manualNamespace],
+  );
+
+  // The Pod actually shown: the caller's `podId` when linked from 3D, otherwise whatever the picker has
+  // selected — the incoming `podId` prop is ignored entirely in that mode (see the picker's own comment).
+  const effectivePodId = onReturn ? podId : manualPodId || null;
 
   useEffect(() => {
-    if (!podId) {
+    if (showTimer.current) clearTimeout(showTimer.current);
+    setHovered(null);
+    if (!effectivePodId) {
       setSvg('');
       setError('');
       return;
     }
-    fetch(`/schematic.svg?id=${encodeURIComponent(podId)}`)
+    fetch(`/schematic.svg?id=${encodeURIComponent(effectivePodId)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found (not a Pod id in this snapshot)');
         return r.text();
@@ -28,17 +105,199 @@ export function SchematicView({ podId, onSelect }: { podId: string | null; onSel
         setSvg('');
         setError(String(e));
       });
-  }, [podId]);
+  }, [effectivePodId]);
 
-  function onClick(e: MouseEvent<HTMLDivElement>) {
-    const node = (e.target as Element).closest('[data-resource-id]');
-    const id = node?.getAttribute('data-resource-id');
-    if (id) onSelect(id);
+  // Same placement algorithm as Tooltip.tsx: prefer below-and-centered on the anchor, flip above if that
+  // would overflow the viewport's bottom, then clamp both axes so it's always fully on-screen.
+  useLayoutEffect(() => {
+    if (!hovered || !tipRef.current) {
+      setTooltipPos(null);
+      return;
+    }
+    const anchor = hovered.el.getBoundingClientRect();
+    const tip = tipRef.current.getBoundingClientRect();
+
+    let top = anchor.bottom + TOOLTIP_GAP;
+    if (top + tip.height > window.innerHeight - TOOLTIP_VIEWPORT_MARGIN) {
+      top = anchor.top - tip.height - TOOLTIP_GAP;
+    }
+    top = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(top, window.innerHeight - tip.height - TOOLTIP_VIEWPORT_MARGIN));
+
+    let left = anchor.left + anchor.width / 2 - tip.width / 2;
+    left = Math.max(TOOLTIP_VIEWPORT_MARGIN, Math.min(left, window.innerWidth - tip.width - TOOLTIP_VIEWPORT_MARGIN));
+
+    setTooltipPos({ top, left });
+  }, [hovered]);
+
+  function onMouseOver(e: MouseEvent<HTMLDivElement>) {
+    const el = (e.target as Element).closest('[data-names]');
+    if (!el || el === hovered?.el) return;
+    if (showTimer.current) clearTimeout(showTimer.current);
+    const namesAttr = el.getAttribute('data-names');
+    if (!namesAttr) return;
+    let names: string[];
+    try {
+      names = JSON.parse(namesAttr) as string[];
+    } catch {
+      return;
+    }
+    showTimer.current = setTimeout(() => setHovered({ el, names }), TOOLTIP_SHOW_DELAY_MS);
   }
 
-  if (!podId) return <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>Select a Pod (e.g. from Search) to view its schematic.</p>;
-  if (error) return <p className="text-sm" style={{ color: 'var(--vpk-status-error)' }}>{error}</p>;
-  if (!svg) return <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>loading…</p>;
+  function onMouseOut(e: MouseEvent<HTMLDivElement>) {
+    // Moving between an icon's own children (e.g. its <image>) fires mouseout/mouseover with the SAME
+    // ancestor [data-names] element on both sides — only actually hide when truly leaving that element.
+    const related = e.relatedTarget as Node | null;
+    const el = (e.target as Element).closest('[data-names]');
+    if (el && related && el.contains(related)) return;
+    if (showTimer.current) clearTimeout(showTimer.current);
+    setHovered(null);
+  }
 
-  return <div onClick={onClick} dangerouslySetInnerHTML={{ __html: svg }} />;
+  function onClick(e: MouseEvent<HTMLDivElement>) {
+    const rbacNode = (e.target as Element).closest('[data-rbac-sa]');
+    if (rbacNode) {
+      const saId = rbacNode.getAttribute('data-rbac-sa');
+      if (saId && onViewRbac) onViewRbac(saId);
+      return;
+    }
+    const listNode = (e.target as Element).closest('[data-resource-list]');
+    if (listNode) {
+      const items = JSON.parse(listNode.getAttribute('data-resource-list') ?? '[]') as ResourceListItem[];
+      const kind = listNode.getAttribute('data-kind') ?? '';
+      setResourceList({ kind, items });
+      return;
+    }
+    const node = (e.target as Element).closest('[data-resource-id]');
+    const id = node?.getAttribute('data-resource-id');
+    if (!id) return;
+    const focusPathAttr = node?.getAttribute('data-focus-path');
+    onSelect(id, focusPathAttr ? (JSON.parse(focusPathAttr) as (string | number)[]) : undefined);
+  }
+
+  const returnPill = onReturn && (
+    <button
+      onClick={onReturn}
+      style={{
+        marginBottom: 10,
+        padding: '4px 10px',
+        borderRadius: 999,
+        border: '1px solid #999',
+        cursor: 'pointer',
+        background: '#fff',
+        fontSize: 13,
+      }}
+    >
+      ← Return to 3D view
+    </button>
+  );
+
+  const picker = !onReturn && (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10, fontSize: 13 }}>
+      <label style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--vpk-fg-muted)' }}>
+        namespace
+        <select
+          value={manualNamespace}
+          onChange={(e) => {
+            setManualNamespace(e.target.value);
+            setManualPodId(''); // the previously picked Pod almost certainly isn't in the new namespace
+          }}
+          style={{ padding: '4px 8px' }}
+        >
+          <option value="">Select…</option>
+          {namespaces.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label style={{ display: 'flex', gap: 6, alignItems: 'center', color: 'var(--vpk-fg-muted)' }}>
+        pod
+        <select
+          value={manualPodId}
+          onChange={(e) => setManualPodId(e.target.value)}
+          disabled={!manualNamespace}
+          style={{ padding: '4px 8px', minWidth: 220 }}
+        >
+          <option value="">{manualNamespace ? 'Select…' : 'Select a namespace first'}</option>
+          {podsInNamespace.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+
+  const tooltip = hovered && (
+    <div
+      ref={tipRef}
+      role="tooltip"
+      className="pointer-events-none fixed z-[200] max-w-[280px] whitespace-pre-line rounded px-2 py-1 text-xs shadow-lg"
+      style={{
+        top: tooltipPos?.top ?? -9999,
+        left: tooltipPos?.left ?? -9999,
+        visibility: tooltipPos ? 'visible' : 'hidden',
+        background: 'var(--vpk-rail-bg)',
+        color: 'var(--vpk-rail-fg-active)',
+      }}
+    >
+      {hovered.names.join('\n')}
+    </div>
+  );
+
+  if (!effectivePodId) {
+    return (
+      <>
+        {returnPill}
+        {picker}
+        <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
+          {onReturn ? 'Select a Pod (e.g. from Search) to view its schematic.' : 'Select a namespace, then a Pod, to view its schematic.'}
+        </p>
+      </>
+    );
+  }
+  if (error) {
+    return (
+      <>
+        {returnPill}
+        {picker}
+        <p className="text-sm" style={{ color: 'var(--vpk-status-error)' }}>
+          {error}
+        </p>
+      </>
+    );
+  }
+  if (!svg) {
+    return (
+      <>
+        {returnPill}
+        {picker}
+        <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
+          loading…
+        </p>
+      </>
+    );
+  }
+
+  return (
+    <>
+      {returnPill}
+      {picker}
+      <div onClick={onClick} onMouseOver={onMouseOver} onMouseOut={onMouseOut} dangerouslySetInnerHTML={{ __html: svg }} />
+      {tooltip}
+      {resourceList && (
+        <ResourceListModal
+          kind={resourceList.kind}
+          items={resourceList.items}
+          onOpenDefinition={onSelect}
+          onDecodeSecret={resourceList.kind === 'Secret' ? setDecodeSecretId : undefined}
+          onClose={() => setResourceList(null)}
+        />
+      )}
+      <SecretDecodeModal resourceId={decodeSecretId} onClose={() => setDecodeSecretId(null)} />
+    </>
+  );
 }

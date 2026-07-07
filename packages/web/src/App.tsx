@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X } from 'lucide-react';
 import { NavRail, type RailGroup } from './NavRail';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
 import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
+import { RbacView } from './RbacView';
+import { WhoCanView, EMPTY_WHOCAN_QUERY, type WhoCanQueryState } from './WhoCanView';
 import { ContainerImagesView } from './ContainerImagesView';
 import { Scene3D } from './Scene3D';
-import { DefinitionModal } from './DefinitionModal';
+import { DefinitionModal, type FocusPath } from './DefinitionModal';
+import { SettingsModal } from './SettingsModal';
+import { StatsModal } from './StatsModal';
+import { StopConfirmModal } from './StopConfirmModal';
+import { AboutModal } from './AboutModal';
+import { CaptureConfirmModal, type CaptureOptions } from './CaptureConfirmModal';
+import { Tooltip } from './Tooltip';
+import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 
 interface Snapshots {
   dir: string;
@@ -16,31 +25,43 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'storage' | 'schematic' | 'images';
+type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
     title: 'Cluster',
-    items: [{ id: 'cluster3d', label: '3D Cluster', icon: Box }],
+    items: [
+      { id: 'search', label: 'Search', icon: Search },
+      { id: 'cluster3d', label: '3D Cluster', icon: Box },
+    ],
   },
   {
     title: 'Explore',
-    items: [
-      { id: 'search', label: 'Search', icon: Search },
-      { id: 'ownerref', label: 'OwnerRef', icon: Share2 },
-      { id: 'schematic', label: 'Schematic', icon: LayoutTemplate },
-    ],
+    items: [{ id: 'schematic', label: 'Schematic', icon: LayoutTemplate }],
   },
   {
     title: 'Lenses',
     items: [
       { id: 'network', label: 'Network', icon: Network },
       { id: 'security', label: 'Security', icon: Shield },
+      { id: 'rbac', label: 'RBAC', icon: KeyRound },
+      { id: 'whocan', label: 'Who Can', icon: UserSearch },
       { id: 'storage', label: 'Storage', icon: Database },
+      { id: 'ownerref', label: 'OwnerRef', icon: Share2 },
       { id: 'images', label: 'Images', icon: Layers },
     ],
   },
 ];
+
+/** Screen title for the header's second row — one lookup shared with the nav rail's own labels, so the two
+ *  never drift apart. */
+const VIEW_LABELS: Record<ViewId, string> = Object.fromEntries(
+  RAIL_GROUPS.flatMap((g) => g.items).map((item) => [item.id, item.label]),
+) as Record<ViewId, string>;
+
+/** Views that actually read the header's namespace selector — everything else hides it rather than showing a
+ *  control with no effect. */
+const NEEDS_NAMESPACE = new Set<ViewId>(['ownerref', 'network']);
 
 export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
@@ -48,11 +69,78 @@ export function App() {
   const [ns, setNs] = useState('kube-system');
   const [svg, setSvg] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
+  // The Pod SchematicView actually renders — captured from `selected` only at the moment the user navigates
+  // INTO the Schematic view (see the effect below), then left alone. Every icon inside the diagram itself
+  // (ConfigMap, PV, RoleBinding, the owner chain, ...) also calls selectResource to open ITS OWN editor,
+  // which reassigns `selected` to that (usually non-Pod) id — without this separate, frozen copy, that would
+  // re-trigger SchematicView's fetch for a non-Pod id, 404, and leave a stale "not found" error visible
+  // underneath as soon as the editor closes.
+  const [schematicPodId, setSchematicPodId] = useState<string | null>(null);
+  // Set only by Schematic's per-container rows and its Phase/Conditions area — an explicit path DefinitionModal
+  // jumps straight to instead of the Pod's generic default field. Reset to undefined on every OTHER selection
+  // path (selectResource's default param, and explicitly in select3D) so it can never leak onto an unrelated
+  // resource's editor view.
+  const [focusPath, setFocusPath] = useState<FocusPath | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState<string>('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Owned here (not inside SettingsModal) because DefinitionModal also needs the current theme, to pick a
+  // matching CodeMirror editor theme (see DefinitionModal.tsx's editorThemeFor) — main.tsx already applied
+  // the initial theme before this component ever mounted, so this just tracks it for both consumers.
+  const [theme, setTheme] = useState<Theme>(() => getStoredTheme() ?? initialTheme());
 
+  function changeTheme(next: Theme) {
+    setTheme(next);
+    applyTheme(next);
+    setStoredTheme(next);
+  }
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [confirmStopOpen, setConfirmStopOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [captureConfirmOpen, setCaptureConfirmOpen] = useState(false);
+  const [stopped, setStopped] = useState(false);
+  // Set only when Search was entered via a 3D resource-pane sphere's "Search" button — drives both the Kind
+  // pre-filter AND whether Search shows a "Return to 3D view" pill, so a normal nav-rail visit to Search
+  // behaves exactly as it did before (no stray scope, no button back to a view the user was never in).
+  const [searchScope, setSearchScope] = useState<{ kind: string } | null>(null);
+  // Same idea as `searchScope`, for Schematic: only set when entered via the 3D Properties popup's
+  // "View Schematic" button, so a normal nav-rail visit to Schematic gets no stray "Return" pill either.
+  const [schematicFrom3D, setSchematicFrom3D] = useState(false);
+  // Same pattern again, for OwnerRef: set only via a 3D Properties popup's "View OwnerRef" button. While set,
+  // OwnerRef fetches `/ownerref?id=` (focused on that ONE resource's connected ownership subgraph) instead of
+  // `/ownerref?ns=` (the whole namespace) — cleared by picking a namespace directly (an explicit "go back to
+  // browsing" action) or by Return, same as searchScope/schematicFrom3D.
+  const [ownerRefFocusId, setOwnerRefFocusId] = useState<string | null>(null);
+  // Same pattern again, for Images: set only via the 3D Properties popup's image-registry "View Repository"
+  // button, scoping the Container Images page to that registry hostname and showing its own "Return" pill.
+  const [imagesRegistryFilter, setImagesRegistryFilter] = useState<string | null>(null);
+  // Same pattern for RBAC, with two scoped entry points: the Schematic's "RBAC ▸" pill hands over the Pod's
+  // ServiceAccount id, the Security view's "diagram" pill hands over a subject identity (User/Group subjects
+  // have no resource id). `rbacFrom` remembers which view to Return to. A nav-rail visit starts unscoped.
+  const [rbacSaId, setRbacSaId] = useState<string | null>(null);
+  const [rbacSubject, setRbacSubject] = useState<{ kind: string; name: string; namespace?: string } | null>(null);
+  const [rbacFrom, setRbacFrom] = useState<'schematic' | 'security' | 'whocan' | null>(null);
+  // Held here (not in WhoCanView) so a query survives the round-trip out to a subject's RBAC diagram and back
+  // — WhoCanView unmounts on navigation like every other non-3D view.
+  const [whoCanQuery, setWhoCanQuery] = useState<WhoCanQueryState>(EMPTY_WHOCAN_QUERY);
+  const [namespaces, setNamespaces] = useState<string[]>([]);
+
+  // Empty namespace = "All namespaces" selected in the header dropdown — deliberately does NOT fetch/draw the
+  // OwnerRef graph at all (a merged all-namespaces ownership graph would be an enormous, useless tangle for
+  // any real cluster), rather than falling back to some default namespace or drawing everything.
   const loadGraph = useCallback((namespace: string) => {
+    if (!namespace) {
+      setSvg('');
+      return;
+    }
     fetch(`/ownerref?ns=${encodeURIComponent(namespace)}`)
+      .then((r) => r.text())
+      .then(setSvg)
+      .catch((e: unknown) => setSvg(`<p style="padding:12px">failed: ${String(e)}</p>`));
+  }, []);
+
+  const loadGraphForResource = useCallback((resourceId: string) => {
+    fetch(`/ownerref?id=${encodeURIComponent(resourceId)}`)
       .then((r) => r.text())
       .then(setSvg)
       .catch((e: unknown) => setSvg(`<p style="padding:12px">failed: ${String(e)}</p>`));
@@ -63,10 +151,23 @@ export function App() {
     [],
   );
 
+  const refreshNamespaces = useCallback(
+    () => fetch('/namespaces').then((r) => r.json() as Promise<string[]>).then(setNamespaces),
+    [],
+  );
+
+  // Deliberately depends on `view` ALONE — re-capturing `selected` only on the transition INTO 'schematic',
+  // not on every later change to `selected` while already there (see schematicPodId's own comment above).
+  useEffect(() => {
+    if (view === 'schematic') setSchematicPodId(selected);
+  }, [view]);
+
   useEffect(() => {
     void refreshSnaps();
-    loadGraph(ns);
-  }, [loadGraph, refreshSnaps, ns]);
+    void refreshNamespaces();
+    if (ownerRefFocusId) loadGraphForResource(ownerRefFocusId);
+    else loadGraph(ns);
+  }, [loadGraph, loadGraphForResource, refreshSnaps, refreshNamespaces, ns, ownerRefFocusId]);
 
   async function post(path: string, body: unknown) {
     const r = await fetch(path, {
@@ -80,31 +181,107 @@ export function App() {
   async function onSelectSnapshot(file: string) {
     setBusy('loading…');
     await post('/load', { path: file });
-    await refreshSnaps();
+    await Promise.all([refreshSnaps(), refreshNamespaces()]);
+    setOwnerRefFocusId(null); // a resource id focused before this snapshot swap is almost certainly stale now
     loadGraph(ns);
     setSelected(null);
     setModalOpen(false);
     setBusy('');
   }
 
-  async function onCapture() {
+  async function onCapture(opts: CaptureOptions) {
+    setCaptureConfirmOpen(false);
     setBusy('capturing from cluster…');
-    const res = (await post('/capture', {})) as { snapshot?: string; error?: string };
-    await refreshSnaps();
+    const res = (await post('/capture', opts)) as { snapshot?: string; error?: string };
+    await Promise.all([refreshSnaps(), refreshNamespaces()]);
+    setOwnerRefFocusId(null);
     loadGraph(ns);
     setBusy(res.error ? `error: ${res.error}` : '');
   }
 
-  function selectResource(id: string) {
+  function selectResource(id: string, path?: FocusPath) {
     setSelected(id);
+    setFocusPath(path);
     setModalOpen(true);
   }
 
   // 3D clicks show the small Properties popup first (matching the legacy app), not the full editor —
-  // Scene3D opens the editor only when that popup's own "Open Editor" button is clicked.
+  // Scene3D opens the editor only when that popup's own "View source" button is clicked. Explicitly clears
+  // any stale Schematic focusPath so a later "View source" here can't land on some earlier, unrelated field.
   function select3D(id: string) {
     setSelected(id);
+    setFocusPath(undefined);
   }
+
+  // A resource-pane sphere's Properties popup routes here — there's no single instance to open (the sphere
+  // stands for a whole Kind), so this hands off to Search instead, scoped to that Kind.
+  function searchKind(kind: string) {
+    setSearchScope({ kind });
+    setView('search');
+  }
+
+  function returnFrom3DSearch() {
+    setSearchScope(null);
+    setView('cluster3d');
+  }
+
+  function viewSchematicFrom3D() {
+    setSchematicFrom3D(true);
+    setView('schematic');
+  }
+
+  function returnFrom3DSchematic() {
+    setSchematicFrom3D(false);
+    setView('cluster3d');
+  }
+
+  function viewOwnerRefFrom3D(id: string) {
+    setOwnerRefFocusId(id);
+    setView('ownerref');
+  }
+
+  function returnFrom3DOwnerRef() {
+    setOwnerRefFocusId(null);
+    setView('cluster3d');
+  }
+
+  // The image-registry stack's Properties popup routes here — there's no single instance to open (the
+  // cylinder stands for every image reference under that registry hostname), so this hands off to Container
+  // Images instead, scoped to it.
+  function viewRepositoryFrom3D(registry: string) {
+    setImagesRegistryFilter(registry);
+    setView('images');
+  }
+
+  function returnFrom3DImages() {
+    setImagesRegistryFilter(null);
+    setView('cluster3d');
+  }
+
+  function viewRbacFromSchematic(saId: string) {
+    setRbacSaId(saId);
+    setRbacSubject(null);
+    setRbacFrom('schematic');
+    setView('rbac');
+  }
+
+  function viewRbacFromSubject(from: 'security' | 'whocan', subject: { kind: string; name: string; namespace?: string }) {
+    setRbacSubject(subject);
+    setRbacSaId(null);
+    setRbacFrom(from);
+    setView('rbac');
+  }
+
+  function returnFromRbac() {
+    const dest = rbacFrom === 'security' ? 'security' : rbacFrom === 'whocan' ? 'whocan' : 'schematic';
+    setRbacSaId(null);
+    setRbacSubject(null);
+    setRbacFrom(null);
+    setView(dest);
+  }
+
+  const rbacReturnLabel =
+    rbacFrom === 'security' ? '← Return to Security' : rbacFrom === 'whocan' ? '← Return to Who Can' : '← Return to Schematic';
 
   function onGraphClick(e: MouseEvent<HTMLDivElement>) {
     const node = (e.target as Element).closest('[data-resource-id]');
@@ -112,26 +289,47 @@ export function App() {
     if (id) selectResource(id);
   }
 
+  // Render the "stopped" screen from already-loaded client code BEFORE the fetch even resolves — the server
+  // exits shortly after responding, so waiting on the response first could race a connection that's already
+  // gone.
+  function onConfirmStop() {
+    setConfirmStopOpen(false);
+    setStopped(true);
+    void fetch('/shutdown', { method: 'POST' }).catch(() => {});
+  }
+
+  if (stopped) {
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}>
+        <div className="text-center">
+          <p className="text-lg font-medium">VpK has been stopped.</p>
+          <p className="text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+            You can close this tab.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex h-screen font-sans text-sm"
       style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
     >
-      <NavRail groups={RAIL_GROUPS} active={view} onSelect={setView} />
+      <NavRail groups={RAIL_GROUPS} active={view} onSelect={setView} onAbout={() => setAboutOpen(true)} />
 
       <div className="flex flex-1 flex-col min-w-0">
         <header
           className="flex items-center gap-3 border-b px-3 py-2 flex-wrap"
           style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)' }}
         >
-          <strong className="tracking-tight">VpK</strong>
           <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
             snapshot
             <select
               value={snaps.current}
               onChange={(e) => void onSelectSnapshot(e.target.value)}
               className="rounded border px-1 py-0.5"
-              style={{ borderColor: 'var(--vpk-border)' }}
+              style={{ borderColor: 'var(--vpk-field-border)' }}
             >
               {snaps.files.map((f) => (
                 <option key={f} value={f}>
@@ -140,18 +338,8 @@ export function App() {
               ))}
             </select>
           </label>
-          <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
-            namespace
-            <input
-              value={ns}
-              onChange={(e) => setNs(e.target.value)}
-              onBlur={() => loadGraph(ns)}
-              className="w-36 rounded border px-1.5 py-0.5"
-              style={{ borderColor: 'var(--vpk-border)' }}
-            />
-          </label>
           <button
-            onClick={() => void onCapture()}
+            onClick={() => setCaptureConfirmOpen(true)}
             disabled={!!busy}
             className="rounded border px-2 py-1 text-xs cursor-pointer disabled:cursor-default disabled:opacity-50"
             style={{ borderColor: 'var(--vpk-border)' }}
@@ -161,7 +349,68 @@ export function App() {
           <span className="text-xs" style={{ color: 'var(--vpk-status-error)' }}>
             {busy}
           </span>
+          <div className="ml-auto flex items-center gap-1">
+            <Tooltip label="Settings">
+              <button
+                onClick={() => setSettingsOpen(true)}
+                aria-label="Settings"
+                className="flex cursor-pointer items-center rounded border p-1.5"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+              >
+                <SettingsIcon size={15} />
+              </button>
+            </Tooltip>
+            <Tooltip label="Statistics">
+              <button
+                onClick={() => setStatsOpen(true)}
+                aria-label="Statistics"
+                className="flex cursor-pointer items-center rounded border p-1.5"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+              >
+                <BarChart3 size={15} />
+              </button>
+            </Tooltip>
+            <Tooltip label="Stop the VpK server">
+              <button
+                onClick={() => setConfirmStopOpen(true)}
+                aria-label="Stop the VpK server"
+                className="flex cursor-pointer items-center rounded border p-1.5"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-status-error)' }}
+              >
+                <X size={15} />
+              </button>
+            </Tooltip>
+          </div>
         </header>
+        <div
+          className="flex items-center gap-3 border-b px-3 py-1.5"
+          style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-bg)' }}
+        >
+          <span className="text-xs font-medium" style={{ color: 'var(--vpk-fg)' }}>
+            {VIEW_LABELS[view]}
+          </span>
+          {NEEDS_NAMESPACE.has(view) && (
+            <label className="ml-auto flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+              namespace
+              <select
+                value={ns}
+                onChange={(e) => {
+                  setOwnerRefFocusId(null); // picking a namespace directly means "go back to browsing"
+                  setNs(e.target.value);
+                }}
+                className="w-44 cursor-pointer rounded border px-1.5 py-0.5"
+                style={{ borderColor: 'var(--vpk-field-border)' }}
+              >
+                <option value="">All namespaces</option>
+                {namespaces.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
 
         <div className="flex flex-1 min-h-0">
           <main className={`flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
@@ -171,21 +420,106 @@ export function App() {
               onSelect={select3D}
               selected={selected}
               onOpenEditor={() => setModalOpen(true)}
-              onViewSchematic={() => setView('schematic')}
+              onViewSchematic={viewSchematicFrom3D}
+              onViewOwnerRef={viewOwnerRefFrom3D}
+              onSearchKind={searchKind}
+              onViewRepository={viewRepositoryFrom3D}
               snapshotKey={snaps.current}
             />
-            {view === 'ownerref' && <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />}
-            {view === 'search' && <SearchView onSelect={selectResource} />}
+            {view === 'ownerref' && (
+              <>
+                {ownerRefFocusId && (
+                  <button
+                    onClick={returnFrom3DOwnerRef}
+                    style={{
+                      marginBottom: 10,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: '1px solid #999',
+                      cursor: 'pointer',
+                      background: '#fff',
+                      fontSize: 13,
+                    }}
+                  >
+                    ← Return to 3D view
+                  </button>
+                )}
+                {ownerRefFocusId || ns ? (
+                  <div onClick={onGraphClick} dangerouslySetInnerHTML={{ __html: svg }} />
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
+                    Select a namespace above to view its OwnerRef graph.
+                  </p>
+                )}
+              </>
+            )}
+            {view === 'search' && (
+              <SearchView
+                onSelect={selectResource}
+                initialKind={searchScope?.kind}
+                onReturn={searchScope ? returnFrom3DSearch : undefined}
+              />
+            )}
             {view === 'network' && <NetworkView namespace={ns} onSelect={selectResource} />}
-            {view === 'security' && <SecurityView onSelect={selectResource} />}
+            {view === 'security' && <SecurityView onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />}
+            {view === 'whocan' && (
+              <WhoCanView
+                query={whoCanQuery}
+                onQueryChange={setWhoCanQuery}
+                onSelect={selectResource}
+                onViewRbac={(s) => viewRbacFromSubject('whocan', s)}
+              />
+            )}
             {view === 'storage' && <StorageView onSelect={selectResource} />}
-            {view === 'schematic' && <SchematicView podId={selected} onSelect={selectResource} />}
-            {view === 'images' && <ContainerImagesView onSelect={selectResource} />}
+            {view === 'schematic' && (
+              <SchematicView
+                podId={schematicPodId}
+                onSelect={selectResource}
+                onViewRbac={viewRbacFromSchematic}
+                onReturn={schematicFrom3D ? returnFrom3DSchematic : undefined}
+              />
+            )}
+            {view === 'rbac' && (
+              <RbacView
+                initialSaId={rbacSaId ?? undefined}
+                initialSubject={rbacSubject ?? undefined}
+                onSelect={selectResource}
+                onReturn={rbacFrom ? returnFromRbac : undefined}
+                returnLabel={rbacReturnLabel}
+              />
+            )}
+            {view === 'images' && (
+              <ContainerImagesView
+                onSelect={selectResource}
+                initialRegistry={imagesRegistryFilter ?? undefined}
+                onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}
+              />
+            )}
           </main>
         </div>
       </div>
 
-      <DefinitionModal resourceId={modalOpen ? selected : null} onClose={() => setModalOpen(false)} />
+      <DefinitionModal
+        resourceId={modalOpen ? selected : null}
+        focusPath={modalOpen ? focusPath : undefined}
+        onClose={() => setModalOpen(false)}
+        theme={theme}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={() => void refreshSnaps()}
+        theme={theme}
+        onThemeChange={changeTheme}
+      />
+      <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
+      <StopConfirmModal open={confirmStopOpen} onCancel={() => setConfirmStopOpen(false)} onConfirm={onConfirmStop} />
+      <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <CaptureConfirmModal
+        open={captureConfirmOpen}
+        onCancel={() => setCaptureConfirmOpen(false)}
+        onConfirm={(opts) => void onCapture(opts)}
+      />
     </div>
   );
 }

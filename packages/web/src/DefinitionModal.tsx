@@ -1,10 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import CodeMirror, { EditorView } from '@uiw/react-codemirror';
+import CodeMirror, { EditorView, type Extension } from '@uiw/react-codemirror';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';
-import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { vscodeLight, vscodeDark, vscodeLightInit } from '@uiw/codemirror-theme-vscode';
 import { stringify, parseDocument, LineCounter } from 'yaml';
+import type { Theme } from './theme';
 
-type FocusPath = (string | number)[];
+export type FocusPath = (string | number)[];
+
+// Forest/Ocean have no dedicated CodeMirror theme package — both are light-background app themes, so each
+// re-tints vscodeLight's editor/gutter background to match that theme's own --vpk-surface/--vpk-bg (see
+// index.css), keeping vscodeLight's syntax-highlighting token colors (proven readable) unchanged.
+const vscodeForest = vscodeLightInit({ settings: { background: '#f7faf5', gutterBackground: '#eef3ea' } });
+const vscodeOcean = vscodeLightInit({ settings: { background: '#f7fbfd', gutterBackground: '#eaf2f6' } });
+
+function editorThemeFor(theme: Theme): Extension {
+  switch (theme) {
+    case 'dark':
+      return vscodeDark;
+    case 'forest':
+      return vscodeForest;
+    case 'ocean':
+      return vscodeOcean;
+    default:
+      return vscodeLight;
+  }
+}
 
 const CONTAINER_IMAGE = ['spec', 'containers', 0, 'image'];
 const TEMPLATE_CONTAINER_IMAGE = ['spec', 'template', 'spec', 'containers', 0, 'image'];
@@ -41,10 +61,25 @@ function focusLineFor(yamlText: string, path: FocusPath | undefined): number | n
  * Universal drill target (DESIGN §6.3/6.9): clicking any resource icon anywhere in the app opens this. Shows
  * the captured/trimmed raw object (no managedFields) as foldable, syntax-highlighted YAML in a VSCode-like
  * editor. Editable for scratch/copy purposes only — edits are never sent back to the snapshot or the cluster.
- * On open, jumps to and selects the kind's key field (KIND_FOCUS_PATH) rather than always landing at line 1.
+ * On open, jumps to and selects the kind's key field (KIND_FOCUS_PATH) rather than always landing at line 1 —
+ * or, when the caller already knows exactly which field the user meant (e.g. Schematic's per-container rows
+ * or its Conditions area), an explicit `focusPath` overrides that kind-based default.
  * Esc / backdrop click closes it.
  */
-export function DefinitionModal({ resourceId, onClose }: { resourceId: string | null; onClose: () => void }) {
+export function DefinitionModal({
+  resourceId,
+  focusPath,
+  onClose,
+  theme,
+}: {
+  resourceId: string | null;
+  focusPath?: FocusPath;
+  onClose: () => void;
+  /** Picks the matching CodeMirror editor theme (see editorThemeFor above) — the app's 4 color themes are a
+   *  separate CSS-variable mechanism (theme.ts) that a syntax-highlighted editor can't just inherit via var(),
+   *  so this is passed down explicitly rather than read from some shared/global theme state. */
+  theme: Theme;
+}) {
   const [raw, setRaw] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   // State, not a ref: the underlying view is only created on a second, async commit (its container element
@@ -56,7 +91,10 @@ export function DefinitionModal({ resourceId, onClose }: { resourceId: string | 
     if (!resourceId) return;
     setRaw(null);
     setError(null);
-    fetch(`/definition?id=${encodeURIComponent(resourceId)}`)
+    // no-store: whether Secret data comes back redacted depends on the live "Redact Secrets" setting, which
+    // can be toggled between two views of the SAME id — a normally-cached GET would keep showing whichever
+    // state was current the first time this id was ever fetched.
+    fetch(`/definition?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((data: unknown) => setRaw(data))
       .catch((e: unknown) => setError(String(e)));
@@ -81,9 +119,9 @@ export function DefinitionModal({ resourceId, onClose }: { resourceId: string | 
       title: obj.kind ?? 'Definition',
       subtitle: obj.metadata?.namespace ? `${obj.metadata.namespace} / ${name}` : name,
       text: yamlText,
-      focusLine: focusLineFor(yamlText, obj.kind ? KIND_FOCUS_PATH[obj.kind] : undefined),
+      focusLine: focusLineFor(yamlText, focusPath ?? (obj.kind ? KIND_FOCUS_PATH[obj.kind] : undefined)),
     };
-  }, [raw, error, resourceId]);
+  }, [raw, error, resourceId, focusPath]);
 
   useEffect(() => {
     if (!view || focusLine == null) return;
@@ -132,7 +170,7 @@ export function DefinitionModal({ resourceId, onClose }: { resourceId: string | 
             <CodeMirror
               value={text}
               height="100%"
-              theme={vscodeDark}
+              theme={editorThemeFor(theme)}
               extensions={[yamlLang()]}
               editable={true}
               onCreateEditor={setView}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronsLeft, ChevronsRight, type LucideIcon } from 'lucide-react';
+import { Tooltip } from './Tooltip';
 
 export interface RailItem<T extends string> {
   id: T;
@@ -19,10 +20,13 @@ export function NavRail<T extends string>({
   groups,
   active,
   onSelect,
+  onAbout,
 }: {
   groups: RailGroup<T>[];
   active: T;
   onSelect: (id: T) => void;
+  /** The VpK logo button at the top of the rail opens the About dialog — branding + Apache-2.0 copyright. */
+  onAbout: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(true);
 
@@ -31,6 +35,22 @@ export function NavRail<T extends string>({
       className="flex flex-col shrink-0 border-r"
       style={{ background: 'var(--vpk-rail-bg)', borderColor: 'var(--vpk-border)', width: collapsed ? 52 : 176 }}
     >
+      <Tooltip label="About VpK">
+        <button
+          type="button"
+          aria-label="About VpK"
+          onClick={onAbout}
+          className="flex w-full items-center gap-2 px-2.5 py-2.5 cursor-pointer border-b"
+          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+        >
+          <img src="/vpk.png" alt="" width={22} height={22} className="rounded shrink-0" />
+          {!collapsed && (
+            <span className="text-xs font-semibold tracking-tight" style={{ color: 'var(--vpk-rail-fg-active)' }}>
+              VpK
+            </span>
+          )}
+        </button>
+      </Tooltip>
       <div className="flex flex-col gap-4 py-3 flex-1 overflow-y-auto">
         {groups.map((group) => (
           <div key={group.title}>
@@ -44,35 +64,38 @@ export function NavRail<T extends string>({
                 const Icon = item.icon;
                 const isActive = item.id === active;
                 return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    title={item.label}
-                    onClick={() => onSelect(item.id)}
-                    className="flex items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors cursor-pointer"
-                    style={{
-                      color: isActive ? 'var(--vpk-rail-fg-active)' : 'var(--vpk-rail-fg)',
-                      background: isActive ? 'var(--vpk-rail-active-bg)' : 'transparent',
-                    }}
-                  >
-                    <Icon size={16} strokeWidth={isActive ? 2.25 : 1.75} />
-                    {!collapsed && <span>{item.label}</span>}
-                  </button>
+                  <Tooltip key={item.id} label={item.label}>
+                    <button
+                      type="button"
+                      aria-label={item.label}
+                      onClick={() => onSelect(item.id)}
+                      className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors cursor-pointer"
+                      style={{
+                        color: isActive ? 'var(--vpk-rail-fg-active)' : 'var(--vpk-rail-fg)',
+                        background: isActive ? 'var(--vpk-rail-active-bg)' : 'transparent',
+                      }}
+                    >
+                      <Icon size={16} strokeWidth={isActive ? 2.25 : 1.75} />
+                      {!collapsed && <span>{item.label}</span>}
+                    </button>
+                  </Tooltip>
                 );
               })}
             </div>
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        onClick={() => setCollapsed((c) => !c)}
-        title={collapsed ? 'Expand' : 'Collapse'}
-        className="flex items-center justify-center py-2 cursor-pointer border-t"
-        style={{ color: 'var(--vpk-rail-fg)', borderColor: 'rgba(255,255,255,0.08)' }}
-      >
-        {collapsed ? <ChevronsRight size={15} /> : <ChevronsLeft size={15} />}
-      </button>
+      <Tooltip label={collapsed ? 'Expand' : 'Collapse'}>
+        <button
+          type="button"
+          aria-label={collapsed ? 'Expand' : 'Collapse'}
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex w-full items-center justify-center py-2 cursor-pointer border-t"
+          style={{ color: 'var(--vpk-rail-fg)', borderColor: 'rgba(255,255,255,0.08)' }}
+        >
+          {collapsed ? <ChevronsRight size={15} /> : <ChevronsLeft size={15} />}
+        </button>
+      </Tooltip>
     </nav>
   );
 }
