@@ -18,6 +18,8 @@ describe('listResources', () => {
     for (const row of rows) {
       expect(row.id).toBeTruthy();
       expect(row.kind).toBeTruthy();
+      expect(row.labels).toBeTruthy();
+      expect(row.annotations).toBeTruthy();
       expect('raw' in row).toBe(false);
     }
   });

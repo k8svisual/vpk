@@ -9,6 +9,7 @@ export interface ResourceRow {
   name: string;
   creationTimestamp?: string;
   labels: Record<string, string>;
+  annotations: Record<string, string>;
   placeholder: boolean;
 }
 
@@ -22,6 +23,7 @@ export function listResources(graph: ResourceGraph): ResourceRow[] {
     name: r.name,
     creationTimestamp: r.creationTimestamp,
     labels: r.labels,
+    annotations: r.annotations,
     placeholder: r.placeholder ?? false,
   }));
 }
