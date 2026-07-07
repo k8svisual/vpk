@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="68.165" height="66.143" viewBox="0 0 18.035 17.5">
+  <!-- Kubernetes-style blue hexagon from prior SVG base -->
+  <path d="M-6.85 4.272a1.12 1.11 0 0 0-.428.109l-5.852 2.796a1.12 1.11 0 0 0-.606.753l-1.444 6.282a1.12 1.11 0 0 0 .152.85 1.12 1.11 0 0 0 .064.089l4.05 5.037a1.12 1.11 0 0 0 .876.417l6.496-.001a1.12 1.11 0 0 0 .875-.417l4.049-5.038a1.12 1.11 0 0 0 .216-.939L.152 7.93a1.12 1.11 0 0 0-.605-.753L-6.307 4.38a1.12 1.11 0 0 0-.542-.109Z" style="fill:#326ce5;fill-opacity:1;stroke:none;stroke-width:0;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" transform="matrix(1.01489 0 0 1.01489 15.91 -3.873)"/>
+  <path d="M-6.852 3.818a1.181 1.172 0 0 0-.452.115l-6.18 2.951a1.181 1.172 0 0 0-.638.795l-1.524 6.63a1.181 1.172 0 0 0 .16.9 1.181 1.172 0 0 0 .067.093l4.276 5.317a1.181 1.172 0 0 0 .924.44h6.858a1.181 1.172 0 0 0 .923-.44L1.837 15.3a1.181 1.172 0 0 0 .228-.99L.54 7.677a1.181 1.172 0 0 0-.64-.795l-6.178-2.95a1.181 1.172 0 0 0-.573-.115Zm.003.455a1.12 1.11 0 0 1 .542.108l5.853 2.795a1.12 1.11 0 0 1 .606.753l1.446 6.281a1.12 1.11 0 0 1-.216.94l-4.05 5.037a1.12 1.11 0 0 1-.875.417l-6.496.001a1.12 1.11 0 0 1-.875-.417l-4.05-5.037a1.12 1.11 0 0 1-.064-.088 1.12 1.11 0 0 1-.152-.851l1.444-6.281a1.12 1.11 0 0 1 .605-.753l5.853-2.797a1.12 1.11 0 0 1 .429-.108z" style="fill:#fff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0" transform="matrix(1.01489 0 0 1.01489 15.91 -3.873)"/>
+
+  <!-- RuntimeClass center icon: smaller than reference, with cubes + gear -->
+  <g id="runtimeclass-symbol" transform="translate(0,-0.20)" fill="#ffffff">
+    <!-- top cube -->
+    <g stroke="#326ce5" stroke-width="0.16" stroke-linejoin="round">
+      <polygon points="9.02,3.75 10.05,4.12 9.02,4.50 7.99,4.12"/>
+      <polygon points="7.99,4.12 9.02,4.50 9.02,5.55 7.99,5.08"/>
+      <polygon points="10.05,4.12 9.02,4.50 9.02,5.55 10.05,5.08"/>
+    </g>
+
+    <!-- left cube -->
+    <g stroke="#326ce5" stroke-width="0.16" stroke-linejoin="round">
+      <polygon points="6.75,6.05 7.78,6.42 6.75,6.80 5.72,6.42"/>
+      <polygon points="5.72,6.42 6.75,6.80 6.75,7.85 5.72,7.38"/>
+      <polygon points="7.78,6.42 6.75,6.80 6.75,7.85 7.78,7.38"/>
+    </g>
+
+    <!-- right cube -->
+    <g stroke="#326ce5" stroke-width="0.16" stroke-linejoin="round">
+      <polygon points="11.29,6.05 12.32,6.42 11.29,6.80 10.26,6.42"/>
+      <polygon points="10.26,6.42 11.29,6.80 11.29,7.85 10.26,7.38"/>
+      <polygon points="12.32,6.42 11.29,6.80 11.29,7.85 12.32,7.38"/>
+    </g>
+
+    <!-- connector lines -->
+    <path d="M9.02 5.58 V6.25 M8.05 6.52 L7.78 6.52 M9.99 6.52 L10.26 6.52" fill="none" stroke="#ffffff" stroke-width="0.32" stroke-linecap="round"/>
+
+    <!-- gear body -->
+    <path d="M9.02 8.15
+      l0.34 0.12 0.22-0.24 0.45 0.22-0.03 0.33 0.28 0.22 0.32-0.08 0.23 0.45-0.24 0.23 0.06 0.36 0.30 0.15-0.10 0.50-0.34 0.03-0.17 0.31 0.13 0.31-0.38 0.34-0.29-0.17-0.34 0.13-0.08 0.33h-0.52l-0.08-0.33-0.34-0.13-0.29 0.17-0.38-0.34 0.13-0.31-0.17-0.31-0.34-0.03-0.10-0.50 0.30-0.15 0.06-0.36-0.24-0.23 0.23-0.45 0.32 0.08 0.28-0.22-0.03-0.33 0.45-0.22 0.22 0.24z"/>
+    <circle cx="9.02" cy="9.88" r="0.88" fill="#326ce5"/>
+    <circle cx="9.02" cy="9.88" r="0.58" fill="#ffffff"/>
+  </g>
+
+  <!-- Normal font, larger text -->
+  <text xml:space="preserve" x="9.018" y="14.40" style="font-style:normal;font-weight:400;font-size:10.58333302px;line-height:6.61458349px;font-family:Sans;letter-spacing:0;word-spacing:0;fill:#fff;fill-opacity:1;stroke:none;stroke-width:.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"><tspan x="9.018" y="14.40" style="font-style:normal;font-variant:normal;font-weight:400;font-stretch:normal;font-size:2.05px;font-family:Arial;-inkscape-font-specification:&quot;Arial, Normal&quot;;text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#fff;fill-opacity:1;stroke-width:.26458332px">runtimeclass</tspan></text>
+</svg>
