@@ -9,16 +9,39 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
  * resource "panes") — nothing in this panel is a disabled placeholder anymore.
  */
 export interface FilterState {
-  showNodes: boolean;
-  showNetwork: boolean;
-  showStorage: boolean;
-  showCsi: boolean;
+  showMasterNodes: boolean;
+  showWorkerNodes: boolean;
+  /** The Node's own local/ephemeral storage cylinder — not part of the PVC/PV chain, so it isn't covered by
+   *  any of the Storage group's toggles below; it's a per-Node concept, gated here instead. */
+  showNodeLocalStorage: boolean;
+  showService: boolean;
+  showEndpoint: boolean;
+  /** Ingress objects specifically (OpenShift Route objects ride along with this one too, as the closest
+   *  existing analog) — Gateway API's HTTPRoute is its own separate toggle below. */
   showIngress: boolean;
+  showGatewayApi: boolean;
+  /** The CSI ring itself (the torus geometry) — CSINode driver dots and CSIDriver dots are now separately
+   *  toggleable below, so this purely controls whether the ring is drawn at all. */
+  showCsi: boolean;
+  /** CSINode driver dots below each Master/Worker Node, and their connecting chain lines down to the ring. */
+  showCsiNodes: boolean;
+  /** CSIDriver dots near the ring, and their connecting lines up from StorageClass/VolumeAttachment — hiding
+   *  this hides those connecting lines too (there's no meaningful "line to a hidden driver"). */
+  showCsiDrivers: boolean;
+  showPvc: boolean;
+  showPv: boolean;
+  showStorageClass: boolean;
+  showVolumeAttachment: boolean;
   podRunning: boolean;
   podWarning: boolean;
   podFailed: boolean;
   podSucceeded: boolean;
   podDaemonSet: boolean;
+  /** When a Pod belonging to a ReplicaSet with >1 replica is selected, ring its sibling Pods in dark grey (the
+   *  same SelectionRing mechanism the actively-selected item uses, just a different color) — cleared the
+   *  instant a different item (or a pod with no siblings) is selected, since it's recomputed from `selected`
+   *  on every render rather than tracked as separate state. */
+  showReplica: boolean;
   /** Empty string = all namespaces. Applied to anything carrying its own `namespace` (Pods + tier items) —
    *  cluster-scoped items (PV, StorageClass, VolumeAttachment, CSIDriver, Nodes) have none, so always pass. */
   namespace: string;
@@ -28,18 +51,26 @@ export interface FilterState {
   annotationFilter: string;
   /** Gates whether selecting an item in the 3D view plays a sound (legacy app's "Play Sound" toggle). */
   playSound: boolean;
-  /** Resource CPU & Memory bars (Scene3D renders these, gated by these 5 toggles). */
+  /** Resource CPU & Memory bars (Scene3D renders these, gated by these 5 toggles) — Node bars live in the
+   *  Nodes group, Pod bars in the Pods group; there's no longer a standalone "Resource CPU & Memory" section. */
   showNodeCpuBar: boolean;
   showNodeMemoryBar: boolean;
   showNodeStorageBar: boolean;
   showPodCpuBar: boolean;
   showPodMemoryBar: boolean;
-  /** Control Plane ring, per-node Kubelet/Kube-Proxy, API Server/Scheduler/Controller Manager/etcd, kubectl,
-   *  and the image-registry stack — one toggle for the whole group, matching the legacy app's single
-   *  "Control Plane" row. */
+  /** The Control Plane ring itself — everything else in the Control Plane group additionally requires this to
+   *  be true, since the ring is what visually anchors all of it. */
   showControlPlane: boolean;
+  /** Per-Node Kubelet + Kube-Proxy pair and their connecting lines up to the ring. */
+  showKubeletKubeProxy: boolean;
+  /** API Server, Scheduler, Controller Manager, etcd — the 4 fixed components, together. */
+  showControlPlaneComponents: boolean;
+  showKubectl: boolean;
+  /** The green image-registry stack. */
+  showImageRegistries: boolean;
   /** One toggle per resource "pane" (PANE_ORDER in @vpk/core's controlPlane.ts) — each shows/hides that
-   *  pane's translucent wall plus its one-sphere-per-Kind spheres. */
+   *  pane's translucent wall plus its one-sphere-per-Kind spheres. Nested under Control Plane's own
+   *  "Resources" subgroup, since these panes render off the same ring. */
   showPlaneWorkload: boolean;
   showPlaneNetworking: boolean;
   showPlaneStorage: boolean;
@@ -53,26 +84,42 @@ export interface FilterState {
 }
 
 export const DEFAULT_FILTERS: FilterState = {
-  showNodes: true,
-  showNetwork: true,
-  showStorage: true,
-  showCsi: true,
+  showMasterNodes: true,
+  showWorkerNodes: true,
+  showNodeLocalStorage: true,
+  showService: true,
+  showEndpoint: true,
   showIngress: true,
+  showGatewayApi: true,
+  showCsi: true,
+  showCsiNodes: true,
+  showCsiDrivers: true,
+  showPvc: true,
+  showPv: true,
+  showStorageClass: true,
+  showVolumeAttachment: true,
   podRunning: true,
   podWarning: true,
   podFailed: true,
   podSucceeded: true,
   podDaemonSet: true,
+  showReplica: true,
   namespace: '',
   labelFilter: '',
   annotationFilter: '',
   playSound: true,
-  showNodeCpuBar: true,
-  showNodeMemoryBar: true,
-  showNodeStorageBar: true,
-  showPodCpuBar: true,
-  showPodMemoryBar: true,
+  // Off by default — only shown once a user turns them on this session (FilterPanel checkbox) or saves that
+  // choice to their personal default config (saveDefaultFilters/loadDefaultFilters, localStorage-backed).
+  showNodeCpuBar: false,
+  showNodeMemoryBar: false,
+  showNodeStorageBar: false,
+  showPodCpuBar: false,
+  showPodMemoryBar: false,
   showControlPlane: true,
+  showKubeletKubeProxy: true,
+  showControlPlaneComponents: true,
+  showKubectl: true,
+  showImageRegistries: true,
   showPlaneWorkload: true,
   showPlaneNetworking: true,
   showPlaneStorage: true,
@@ -119,10 +166,27 @@ export const METRIC_COLORS = {
   podMemory: '#d968a0',
 } as const;
 
-/** Control Plane items (ring, Kubelet/Kube-Proxy, components, kubectl) all share one color. Mirrors
- *  @vpk/core's controlPlane.ts CONTROL_PLANE_COLOR constant — kept as its own client-side copy per this
- *  app's established "server computes geometry, client duplicates small color/label lookups" convention. */
+/** The Control Plane RING's own color — a purely client-side geometry (Scene3D.tsx's ControlPlaneRing has no
+ *  server-sent color of its own). Kubelet/Kube-Proxy/Components/kubectl/Image Registries each have their own
+ *  distinct color below instead (server-assigned, in @vpk/core's controlPlane.ts) — all in the same
+ *  purple/violet family as this one for visual cohesion, but with enough separation to read as distinct items. */
 export const CONTROL_PLANE_COLOR = '#8b7ab8';
+/** Mirrors @vpk/core's controlPlane.ts KUBELET_KUBE_PROXY_COLOR exactly. */
+export const KUBELET_KUBE_PROXY_COLOR = '#6f5aa3';
+/** Mirrors @vpk/core's controlPlane.ts CONTROL_PLANE_COMPONENTS_COLOR exactly. */
+export const CONTROL_PLANE_COMPONENTS_COLOR = '#4e3d75';
+/** Mirrors @vpk/core's controlPlane.ts KUBECTL_COLOR exactly. */
+export const KUBECTL_COLOR = '#b39ddb';
+
+/** Mirrors @vpk/core's controlPlane.ts REGISTRY_COLOR exactly — the image-registry stack's own color, now in
+ *  the same purple/violet family as the rest of the Control Plane group instead of its previous unrelated
+ *  green. */
+const REGISTRY_COLOR = '#7e57a3';
+
+/** The "Show replica" feature's sibling-highlight ring color — dark grey, distinct from SelectionRing's own
+ *  red so a sibling ring never reads as "this is the selected item too." Exported so Scene3D.tsx renders the
+ *  exact same value the swatch below promises. */
+export const REPLICA_RING_COLOR = '#4a4a4a';
 
 /** Mirrors @vpk/core's controlPlane.ts PANE_COLORS/PANE_ORDER exactly — one entry per resource "pane", in
  *  display order. The FilterState key drives visibility; `name` must match the `WheelPlane.name` the server
@@ -164,14 +228,35 @@ interface Row {
 
 // Functional rows use the SAME colors the scene actually renders (nodeRoleColor/podStatusColor/kindColors) so
 // the swatch is never a lie about what toggling it hides — kept vivid (not pastel) to match the legacy
-// filter-panel legend's actual saturation. Disabled rows use vivid placeholders in the same spirit, as a
-// forward-looking palette for when those categories are actually modeled in the 3D scene.
-const TOP_ROWS: Row[] = [
-  { key: 'showNodes', label: 'Nodes (Master, Worker)', swatch: ['#8b2e2e', '#9aa1a8'] },
+// filter-panel legend's actual saturation.
+const NODE_ROWS: Row[] = [
+  { key: 'showMasterNodes', label: 'Master Nodes', swatch: ['#8b2e2e'] },
+  { key: 'showWorkerNodes', label: 'Worker Nodes', swatch: ['#9aa1a8'] },
+];
+// Mirrors @vpk/core's kindColors.ts NODE_LOCAL_STORAGE_COLOR ('#c9c9c9') — the local-storage cylinder and its
+// connecting line's own color.
+const NODE_LOCAL_STORAGE_ROW: Row = { key: 'showNodeLocalStorage', label: 'Node Local Storage', swatch: ['#c9c9c9'] };
+
+// Mirrors @vpk/core's kindColors.ts exactly (Service/Endpoints/Ingress/HTTPRoute) — split out of the old
+// combined "Network"/"Ingress" top-level toggles into one row per Kind.
+const NETWORK_ROWS: Row[] = [
+  { key: 'showService', label: 'Service', swatch: ['#3d6fd6'] },
+  { key: 'showEndpoint', label: 'Endpoint', swatch: ['#4a86e0'] },
+  { key: 'showIngress', label: 'Ingress', swatch: ['#d9c94a'] },
+  { key: 'showGatewayApi', label: 'Gateway API (HTTPRoute)', swatch: ['#d9c94a'] },
+];
+
+// Mirrors @vpk/core's kindColors.ts exactly (PersistentVolumeClaim/PersistentVolume/StorageClass/
+// VolumeAttachment/CSIDriver) — split out of the old combined "Storage" top-level toggle into one row per
+// Kind, plus CSI (previously its own top-level toggle) grouped in alongside them since it's the same topic.
+const STORAGE_ROWS: Row[] = [
   { key: 'showCsi', label: 'CSI (Container Storage Interface)', swatch: ['#e0908c'] },
-  { key: 'showStorage', label: 'Storage (PVC, PV, StorageClass)', swatch: ['#e0a030', '#c98a3a', '#8a5a2b'] },
-  { key: 'showNetwork', label: 'Network (Endpoint, Service)', swatch: ['#4a86e0', '#3d6fd6'] },
-  { key: 'showIngress', label: 'Ingress/IngressControl (Gateway API)', swatch: ['#d9c94a'] },
+  { key: 'showCsiNodes', label: 'CSINodes', swatch: ['#e0908c'] },
+  { key: 'showCsiDrivers', label: 'CSIDrivers', swatch: ['#e0908c'] },
+  { key: 'showPvc', label: 'PersistentVolumeClaim', swatch: ['#f4b942'] },
+  { key: 'showPv', label: 'PersistentVolume', swatch: ['#d9822a'] },
+  { key: 'showStorageClass', label: 'StorageClass', swatch: ['#8a4a12'] },
+  { key: 'showVolumeAttachment', label: 'VolumeAttachment', swatch: ['#4a2a0a'] },
 ];
 
 const POD_ROWS: Row[] = [
@@ -180,16 +265,32 @@ const POD_ROWS: Row[] = [
   { key: 'podFailed', label: 'Failed Pods', swatch: ['#c0392b'] },
   { key: 'podSucceeded', label: 'Successful/Finished Pods', swatch: ['#3a7bd5'] },
   { key: 'podDaemonSet', label: 'DaemonSet Pods', swatch: ['#8c8c8c'] },
+  { key: 'showReplica', label: 'Show replica (ring ReplicaSet siblings on select)', swatch: [REPLICA_RING_COLOR] },
 ];
 
 // One bar per Node/Pod per category (not separate Limit/Requested rows) — Requested falls back to Limit
-// per-container server-side, so this is already "the amount" of CPU/Memory, not two overlapping numbers.
-const METRIC_ROWS: Row[] = [
+// per-container server-side, so this is already "the amount" of CPU/Memory, not two overlapping numbers. Split
+// into Node vs Pod arrays (previously one combined "Resource CPU & Memory" section) so each lives in its own
+// topic group instead of a standalone metrics-only section.
+const NODE_METRIC_ROWS: Row[] = [
   { key: 'showNodeCpuBar', label: 'Node CPU', swatch: [METRIC_COLORS.nodeCpu] },
   { key: 'showNodeMemoryBar', label: 'Node Memory', swatch: [METRIC_COLORS.nodeMemory] },
-  { key: 'showNodeStorageBar', label: 'Node Persistent Storage', swatch: [METRIC_COLORS.nodeStorage] },
+];
+// Rendered last in the Nodes group (after Node Local Storage), not alongside CPU/Memory — see the Nodes
+// CollapsibleSection body below.
+const NODE_STORAGE_CAPACITY_ROW: Row = { key: 'showNodeStorageBar', label: 'Node Storage Capacity', swatch: [METRIC_COLORS.nodeStorage] };
+const POD_METRIC_ROWS: Row[] = [
   { key: 'showPodCpuBar', label: 'Pod CPU', swatch: [METRIC_COLORS.podCpu] },
   { key: 'showPodMemoryBar', label: 'Pod Memory', swatch: [METRIC_COLORS.podMemory] },
+];
+
+// Previously all-or-nothing under the single `showControlPlane` toggle — each of these four now has its own
+// checkbox, still ANDed with `showControlPlane` itself (the ring) at render time in Scene3D.
+const CONTROL_PLANE_SUB_ROWS: Row[] = [
+  { key: 'showKubeletKubeProxy', label: 'Kubelet & Kube-Proxy', swatch: [KUBELET_KUBE_PROXY_COLOR] },
+  { key: 'showControlPlaneComponents', label: 'API Server, Scheduler, Controller Manager, etcd', swatch: [CONTROL_PLANE_COMPONENTS_COLOR] },
+  { key: 'showKubectl', label: 'kubectl', swatch: [KUBECTL_COLOR] },
+  { key: 'showImageRegistries', label: 'Image Registries', swatch: [REGISTRY_COLOR] },
 ];
 
 function Swatch({ colors }: { colors: string[] }) {
@@ -267,7 +368,7 @@ export function FilterPanel({
     setTimeout(() => setJustSaved(false), 1500);
   }
 
-  const controlPlaneRow: Row = { key: 'showControlPlane', label: 'Control Plane (Kubelet, API Server, etcd, ...)', swatch: [CONTROL_PLANE_COLOR] };
+  const controlPlaneRow: Row = { key: 'showControlPlane', label: 'Control Plane (ring)', swatch: [CONTROL_PLANE_COLOR] };
   const paneRows: Row[] = PANES.filter((p) => presentPanes.includes(p.name)).map((p) => ({ key: p.key, label: p.label, swatch: [p.color] }));
 
   return (
@@ -287,27 +388,48 @@ export function FilterPanel({
         </button>
       </div>
 
-      {TOP_ROWS.map((row) => (
-        <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
-      ))}
+      <CollapsibleSection title="Nodes">
+        {NODE_ROWS.map((row) => (
+          <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
+        ))}
+        <FilterRow row={NODE_LOCAL_STORAGE_ROW} filters={filters} onToggle={toggle} />
+        {NODE_METRIC_ROWS.map((row) => (
+          <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
+        ))}
+        <FilterRow row={NODE_STORAGE_CAPACITY_ROW} filters={filters} onToggle={toggle} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Network">
+        {NETWORK_ROWS.map((row) => (
+          <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
+        ))}
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Storage">
+        {STORAGE_ROWS.map((row) => (
+          <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
+        ))}
+      </CollapsibleSection>
 
       <CollapsibleSection title="Pods">
         {POD_ROWS.map((row) => (
           <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
         ))}
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Resource CPU & Memory">
-        {METRIC_ROWS.map((row) => (
+        {POD_METRIC_ROWS.map((row) => (
           <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
         ))}
       </CollapsibleSection>
 
-      <CollapsibleSection title="Control Plane & etcd Planes">
+      <CollapsibleSection title="Control Plane">
         <FilterRow row={controlPlaneRow} filters={filters} onToggle={toggle} />
-        {paneRows.map((row) => (
+        {CONTROL_PLANE_SUB_ROWS.map((row) => (
           <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
         ))}
+        <CollapsibleSection title="Resources">
+          {paneRows.map((row) => (
+            <FilterRow key={row.label} row={row} filters={filters} onToggle={toggle} />
+          ))}
+        </CollapsibleSection>
       </CollapsibleSection>
 
       <CollapsibleSection title="Namespace (default: all-namespace)">

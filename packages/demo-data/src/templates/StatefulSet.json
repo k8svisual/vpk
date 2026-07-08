@@ -1,0 +1,32 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "StatefulSet",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "serviceName": "{{name}}",
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "{{name}}"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "{{name}}"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "app",
+            "image": "{{image}}"
+          }
+        ]
+      }
+    }
+  }
+}

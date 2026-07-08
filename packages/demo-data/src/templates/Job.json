@@ -1,0 +1,21 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "app",
+            "image": "{{image}}"
+          }
+        ],
+        "restartPolicy": "OnFailure"
+      }
+    }
+  }
+}

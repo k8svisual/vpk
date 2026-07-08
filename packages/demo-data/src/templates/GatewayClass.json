@@ -1,0 +1,22 @@
+{
+  "apiVersion": "gateway.networking.k8s.io/v1",
+  "kind": "GatewayClass",
+  "metadata": {
+    "name": "{{name}}"
+  },
+  "spec": {
+    "controllerName": "example.net/gateway-controller"
+  },
+  "status": {
+    "conditions": [
+      {
+        "type": "Accepted",
+        "status": "True",
+        "reason": "Accepted",
+        "message": "Valid GatewayClass",
+        "lastTransitionTime": "2024-01-01T00:00:00Z",
+        "observedGeneration": 1
+      }
+    ]
+  }
+}

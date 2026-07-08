@@ -40,15 +40,18 @@ export function OwnerRefView({
   const [manualNamespace, setManualNamespace] = useState('');
   const [manualResourceId, setManualResourceId] = useState('');
 
+  // Refetches on snapshotKey too — this list is the picker's whole data set, not just its selection, so it
+  // was left showing the PREVIOUS snapshot's resources if this only ran once on mount.
   useEffect(() => {
     if (onReturn) return; // 3D-linked mode never needs the picker's data
+    setOwnedResources([]);
     fetch('/resources')
       .then((r) => r.json() as Promise<{ id: string; kind: string; name: string; namespace?: string; hasOwnerRefs: boolean }[]>)
       .then((rows) =>
         setOwnedResources(rows.filter((r) => r.hasOwnerRefs).map((r) => ({ id: r.id, kind: r.kind, name: r.name, namespace: r.namespace }))),
       )
       .catch(() => setOwnedResources([]));
-  }, []);
+  }, [snapshotKey, onReturn]);
 
   // A different snapshot's resource ids are unrelated to this one's — start the picker over rather than
   // pointing at (or silently 404-ing on) a stale selection.

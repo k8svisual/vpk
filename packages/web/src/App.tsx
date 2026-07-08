@@ -12,6 +12,7 @@ import { RbacView } from './RbacView';
 import { WhoCanView, EMPTY_WHOCAN_QUERY, type WhoCanQueryState } from './WhoCanView';
 import { ContainerImagesView } from './ContainerImagesView';
 import { Scene3D } from './Scene3D';
+import { ErrorBoundary } from './ErrorBoundary';
 import { DefinitionModal, type FocusPath } from './DefinitionModal';
 import { SettingsModal } from './SettingsModal';
 import { StatsModal } from './StatsModal';
@@ -306,6 +307,12 @@ export function App() {
             <select
               value={snaps.current}
               onChange={(e) => void onSelectSnapshot(e.target.value)}
+              // Re-reads the snapshot directory fresh every time this is opened (not just once at mount) —
+              // onMouseDown fires before the browser paints its native option list, onFocus covers opening via
+              // keyboard (Tab then Enter/Space) instead of a mouse click. Both are cheap, idempotent local
+              // reads, so firing from both on the same interaction is harmless.
+              onMouseDown={() => void refreshSnaps()}
+              onFocus={() => void refreshSnaps()}
               className="rounded border px-1 py-0.5"
               style={{ borderColor: 'var(--vpk-field-border)' }}
             >
@@ -371,18 +378,33 @@ export function App() {
 
         <div className="flex flex-1 min-h-0">
           <main className={`flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
-            {/* Scene3D stays mounted (visibility toggle inside) so there's at most one WebGL context ever. */}
-            <Scene3D
-              active={view === 'cluster3d'}
-              onSelect={select3D}
-              selected={selected}
-              onOpenEditor={() => setModalOpen(true)}
-              onViewSchematic={viewSchematicFrom3D}
-              onViewOwnerRef={viewOwnerRefFrom3D}
-              onSearchKind={searchKind}
-              onViewRepository={viewRepositoryFrom3D}
-              snapshotKey={snaps.current}
-            />
+            {/* Scene3D stays mounted (visibility toggle inside) so there's at most one WebGL context ever.
+                Wrapped in an ErrorBoundary since react-three-fiber's Canvas throws when WebGL can't be
+                created (e.g. a sandboxed/headless browser) — without one, that error has no boundary to stop
+                at and unmounts the entire App, blanking every view, not just this one. */}
+            <ErrorBoundary
+              fallback={(error) => (
+                <div
+                  className="flex h-full w-full flex-col items-center justify-center gap-2 p-6 text-center"
+                  style={{ display: view === 'cluster3d' ? 'flex' : 'none' }}
+                >
+                  <span style={{ color: 'var(--vpk-fg)' }}>3D Cluster view couldn't start — your browser or environment doesn't support WebGL.</span>
+                  <span className="text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>{error.message}</span>
+                </div>
+              )}
+            >
+              <Scene3D
+                active={view === 'cluster3d'}
+                onSelect={select3D}
+                selected={selected}
+                onOpenEditor={() => setModalOpen(true)}
+                onViewSchematic={viewSchematicFrom3D}
+                onViewOwnerRef={viewOwnerRefFrom3D}
+                onSearchKind={searchKind}
+                onViewRepository={viewRepositoryFrom3D}
+                snapshotKey={snaps.current}
+              />
+            </ErrorBoundary>
             {view === 'ownerref' && (
               <OwnerRefView
                 focusId={ownerRefFocusId}
@@ -391,26 +413,36 @@ export function App() {
                 snapshotKey={snaps.current}
               />
             )}
+            {/* key={snaps.current} on every view below (except Scene3D, which must stay mounted for its one
+                WebGL context, and OwnerRefView/DemoDataView, which manage snapshot/shared-state transitions
+                themselves) forces a full unmount+remount on snapshot switch. Without it, each view's
+                fetch-on-mount effect has no dependency on which snapshot is loaded, so switching snapshots
+                while that view is already open left it silently showing the PREVIOUS snapshot's data. */}
             {view === 'search' && (
               <SearchView
+                key={snaps.current}
                 onSelect={selectResource}
                 initialKind={searchScope?.kind}
                 onReturn={searchScope ? returnFrom3DSearch : undefined}
               />
             )}
-            {view === 'network' && <NetworkView namespaces={namespaces} onSelect={selectResource} />}
-            {view === 'security' && <SecurityView onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />}
+            {view === 'network' && <NetworkView key={snaps.current} namespaces={namespaces} onSelect={selectResource} />}
+            {view === 'security' && (
+              <SecurityView key={snaps.current} onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />
+            )}
             {view === 'whocan' && (
               <WhoCanView
+                key={snaps.current}
                 query={whoCanQuery}
                 onQueryChange={setWhoCanQuery}
                 onSelect={selectResource}
                 onViewRbac={(s) => viewRbacFromSubject('whocan', s)}
               />
             )}
-            {view === 'storage' && <StorageView onSelect={selectResource} />}
+            {view === 'storage' && <StorageView key={snaps.current} onSelect={selectResource} />}
             {view === 'schematic' && (
               <SchematicView
+                key={snaps.current}
                 podId={schematicPodId}
                 onSelect={selectResource}
                 onViewRbac={viewRbacFromSchematic}
@@ -419,6 +451,7 @@ export function App() {
             )}
             {view === 'rbac' && (
               <RbacView
+                key={snaps.current}
                 initialSaId={rbacSaId ?? undefined}
                 initialSubject={rbacSubject ?? undefined}
                 onSelect={selectResource}
@@ -428,6 +461,7 @@ export function App() {
             )}
             {view === 'images' && (
               <ContainerImagesView
+                key={snaps.current}
                 onSelect={selectResource}
                 initialRegistry={imagesRegistryFilter ?? undefined}
                 onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}

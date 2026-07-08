@@ -1,0 +1,13 @@
+{
+  "apiVersion": "v1",
+  "kind": "ResourceQuota",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "hard": {
+      "pods": "10"
+    }
+  }
+}

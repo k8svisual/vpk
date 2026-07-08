@@ -1,0 +1,26 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "CronJob",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "schedule": "*/5 * * * *",
+    "jobTemplate": {
+      "spec": {
+        "template": {
+          "spec": {
+            "containers": [
+              {
+                "name": "app",
+                "image": "{{image}}"
+              }
+            ],
+            "restartPolicy": "OnFailure"
+          }
+        }
+      }
+    }
+  }
+}

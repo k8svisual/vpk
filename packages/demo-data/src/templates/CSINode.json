@@ -1,0 +1,16 @@
+{
+  "apiVersion": "storage.k8s.io/v1",
+  "kind": "CSINode",
+  "metadata": {
+    "name": "{{name}}"
+  },
+  "spec": {
+    "drivers": [
+      {
+        "name": "demo.csi.example.com",
+        "nodeID": "{{nodeName}}",
+        "topologyKeys": null
+      }
+    ]
+  }
+}

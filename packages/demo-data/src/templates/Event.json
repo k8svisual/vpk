@@ -1,0 +1,16 @@
+{
+  "apiVersion": "v1",
+  "kind": "Event",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "involvedObject": {
+    "kind": "Pod",
+    "name": "{{targetName}}",
+    "namespace": "{{namespace}}"
+  },
+  "reason": "Started",
+  "message": "Demo event",
+  "type": "Normal"
+}

@@ -190,8 +190,14 @@ const KUBECTL_RADIUS_OFFSET = CONTROL_PLANE_RADIUS_OFFSET + 4;
 const RESOURCE_PLANE_RADIUS_OFFSET = 4.5;
 const KUBELET_Y = 1.5;
 const KUBE_PROXY_Y = 0.95;
-const CONTROL_PLANE_COLOR = '#8b7ab8';
-const REGISTRY_COLOR = '#66cc33';
+// One distinct-but-related color per Control Plane sub-group (previously all one shared CONTROL_PLANE_COLOR,
+// which the ring itself — a separate, client-only constant in FilterPanel.tsx/Scene3D.tsx, unchanged — still
+// uses on its own). All four sit in the same purple/violet family as the ring's own color, varying mainly in
+// lightness so each group reads as a distinct item in the Filter panel's swatches without looking unrelated.
+const KUBELET_KUBE_PROXY_COLOR = '#6f5aa3';
+const CONTROL_PLANE_COMPONENTS_COLOR = '#4e3d75';
+const KUBECTL_COLOR = '#b39ddb';
+const REGISTRY_COLOR = '#7e57a3';
 /** Angular width dedicated to the 4 fixed components, centered on "north" (the same -90° start every other
  *  ring in this wheel uses) — everything else (registry stack, resource planes) starts right after it. */
 const COMPONENT_ARC = Math.PI / 6;
@@ -229,7 +235,7 @@ export function projectControlPlane(graph: ResourceGraph, nodes: NodeInput[], ou
     x: n.x,
     y: KUBELET_Y,
     z: n.z,
-    color: CONTROL_PLANE_COLOR,
+    color: KUBELET_KUBE_PROXY_COLOR,
     popupKind: 'kubelet',
     title: 'Kubelet',
     description: 'The primary node agent that runs on every Node, registering it with the API server and managing its Pods.',
@@ -241,7 +247,7 @@ export function projectControlPlane(graph: ResourceGraph, nodes: NodeInput[], ou
     x: n.x,
     y: KUBE_PROXY_Y,
     z: n.z,
-    color: CONTROL_PLANE_COLOR,
+    color: KUBELET_KUBE_PROXY_COLOR,
     popupKind: 'kube-proxy',
     title: 'Kube-Proxy',
     description: 'Maintains network rules on the Node, allowing Services to route traffic to the right Pods.',
@@ -266,7 +272,7 @@ export function projectControlPlane(graph: ResourceGraph, nodes: NodeInput[], ou
       x: componentRadius * Math.cos(angle),
       y: 0,
       z: componentRadius * Math.sin(angle),
-      color: CONTROL_PLANE_COLOR,
+      color: CONTROL_PLANE_COMPONENTS_COLOR,
       popupKind: 'control-plane-component',
       title: def.title,
       description: def.description,
@@ -281,7 +287,7 @@ export function projectControlPlane(graph: ResourceGraph, nodes: NodeInput[], ou
     x: kubectlRadius * Math.cos(apiServerAngle),
     y: 0,
     z: kubectlRadius * Math.sin(apiServerAngle),
-    color: CONTROL_PLANE_COLOR,
+    color: KUBECTL_COLOR,
     popupKind: 'kubectl',
     title: 'kubectl',
     description: 'CLI (Command Line Interface) that communicates with the cluster. Normally installed on a user, developer, or administrator machine.',

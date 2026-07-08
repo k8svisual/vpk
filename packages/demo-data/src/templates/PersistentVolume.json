@@ -1,0 +1,17 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolume",
+  "metadata": {
+    "name": "{{name}}"
+  },
+  "spec": {
+    "accessModes": ["ReadWriteOnce"],
+    "capacity": {
+      "storage": "10Gi"
+    },
+    "storageClassName": "standard"
+  },
+  "status": {
+    "phase": "Bound"
+  }
+}

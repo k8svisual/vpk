@@ -7,6 +7,10 @@ interface Settings {
 export interface CaptureOptions {
   keepSecretData: boolean;
   keepConfigMapData: boolean;
+  /** The kubectl-compatible CLI command to run this capture with (e.g. "oc" for OpenShift, or "kubectl
+   *  --context foo") — space-split into an argv array server-side, same convention as the server's own
+   *  VPK_CLI env var default. Omitted (empty/whitespace-only) falls back to that server default. */
+  cli?: string;
 }
 
 /**
@@ -28,6 +32,7 @@ export function CaptureConfirmModal({
 }) {
   const [redactSecrets, setRedactSecrets] = useState(false);
   const [redactConfigMaps, setRedactConfigMaps] = useState(false);
+  const [cliCommand, setCliCommand] = useState('kubectl');
 
   useEffect(() => {
     if (!open) return;
@@ -36,6 +41,7 @@ export function CaptureConfirmModal({
       .then((s) => setRedactSecrets(s.disablePullingSecrets))
       .catch(() => undefined);
     setRedactConfigMaps(false);
+    setCliCommand('kubectl');
   }, [open]);
 
   if (!open) return null;
@@ -51,11 +57,22 @@ export function CaptureConfirmModal({
           Capture from cluster?
         </h2>
         <p className="mb-4 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
-          Reads the current cluster (using the configured kubectl-compatible CLI) and saves it as a new snapshot.
-          Objects are always captured either way — these only control whether their data payload is kept.
+          Reads the current cluster (using the kubectl-compatible CLI below) and saves it as a new snapshot.
+          Objects are always captured either way — the checkboxes only control whether their data payload is kept.
         </p>
 
         <div className="mb-4 flex flex-col gap-2 text-xs">
+          <label className="flex flex-col gap-0.5">
+            <span style={{ color: 'var(--vpk-fg)' }}>CLI command</span>
+            <input
+              value={cliCommand}
+              onChange={(e) => setCliCommand(e.target.value)}
+              placeholder="kubectl"
+              className="rounded border px-1.5 py-1"
+              style={{ borderColor: 'var(--vpk-border)' }}
+            />
+            <span style={{ color: 'var(--vpk-fg-muted)' }}>e.g. &quot;oc&quot; for OpenShift, or &quot;kubectl --context foo&quot;</span>
+          </label>
           <label className="flex items-start gap-2">
             <input type="checkbox" checked={redactSecrets} onChange={(e) => setRedactSecrets(e.target.checked)} />
             <span style={{ color: 'var(--vpk-fg)' }}>
@@ -81,7 +98,9 @@ export function CaptureConfirmModal({
             Cancel
           </button>
           <button
-            onClick={() => onConfirm({ keepSecretData: !redactSecrets, keepConfigMapData: !redactConfigMaps })}
+            onClick={() =>
+              onConfirm({ keepSecretData: !redactSecrets, keepConfigMapData: !redactConfigMaps, cli: cliCommand.trim() || undefined })
+            }
             className="cursor-pointer rounded border px-2 py-1"
             style={{ borderColor: 'var(--vpk-accent)', color: 'var(--vpk-accent)' }}
           >

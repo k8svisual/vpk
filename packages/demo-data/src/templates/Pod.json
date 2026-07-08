@@ -1,0 +1,20 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "containers": [
+      {
+        "name": "app",
+        "image": "{{image}}"
+      }
+    ],
+    "nodeName": "{{nodeName}}"
+  },
+  "status": {
+    "phase": "{{phase}}"
+  }
+}

@@ -3,8 +3,27 @@ import { Canvas } from '@react-three/fiber';
 import { Line, OrbitControls, Text } from '@react-three/drei';
 import { DoubleSide } from 'three';
 import { PropertiesPanel, localStorageSelectionId } from './PropertiesPanel';
-import { FilterPanel, loadDefaultFilters, METRIC_COLORS, CONTROL_PLANE_COLOR, PANES, type FilterState } from './FilterPanel';
+import {
+  FilterPanel,
+  loadDefaultFilters,
+  METRIC_COLORS,
+  CONTROL_PLANE_COLOR,
+  KUBELET_KUBE_PROXY_COLOR,
+  KUBECTL_COLOR,
+  REPLICA_RING_COLOR,
+  PANES,
+  type FilterState,
+} from './FilterPanel';
 import { NodeFilterPanel, DEFAULT_NODE_FILTERS, nodePassesFilter, type NodeFilterState } from './NodeFilterPanel';
+import { TimelapseControls } from './TimelapseControls';
+import { TimelapseFilterPanel } from './TimelapseFilterPanel';
+import {
+  buildIntervals,
+  visibleIdsAtInterval,
+  changesInInterval,
+  defaultTimelapseCategoryFilters,
+  type TimelapseCategoryFilters,
+} from './timelapse';
 
 interface SceneNode {
   id: string;
@@ -100,6 +119,7 @@ function MetricBar({
   color,
   onSelect,
   id,
+  visible = true,
 }: {
   x: number;
   z: number;
@@ -109,11 +129,13 @@ function MetricBar({
   color: string;
   onSelect: (id: string) => void;
   id: string;
+  visible?: boolean;
 }) {
   if (height <= 0) return null;
   const centerY = baseY + (direction * height) / 2;
   return (
     <mesh
+      visible={visible}
       position={[x, centerY, z]}
       onClick={(e) => {
         e.stopPropagation();
@@ -136,12 +158,13 @@ function metricBarHeight(value: number | undefined, max: number, capHeight: numb
 /** Persistent selection marker: a flat ring lying in the XZ plane (parallel to the wheel/grid plane, same
  *  orientation as the outer node ring) that dissects the selected item at its own height — independent of
  *  whether its definition modal is open, so it stays lit after the modal closes and moves when selection
- *  changes. */
-function SelectionRing({ x, y, z, radius }: { x: number; y: number; z: number; radius: number }) {
+ *  changes. `color` defaults to the usual red (the actively-selected item); the "Show replica" feature reuses
+ *  this exact same component with `REPLICA_RING_COLOR` instead, for its sibling-Pod rings. */
+function SelectionRing({ x, y, z, radius, color = SELECTION_RING_COLOR }: { x: number; y: number; z: number; radius: number; color?: string }) {
   return (
     <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
       <ringGeometry args={[radius * 0.72, radius, 40]} />
-      <meshBasicMaterial color={SELECTION_RING_COLOR} side={DoubleSide} transparent opacity={0.95} depthTest={false} />
+      <meshBasicMaterial color={color} side={DoubleSide} transparent opacity={0.95} depthTest={false} />
     </mesh>
   );
 }
@@ -260,7 +283,10 @@ function FieldScene({
     [nodes, cols],
   );
 
-  if (!filters.showNodes) return null;
+  // Field view still has just one "show nodes at all" concept — Master/Worker only became separately
+  // filterable in the Wheel view's own panel (FilterPanel.tsx), so this treats "either role enabled" as
+  // Field view's equivalent of the old single showNodes toggle.
+  if (!filters.showMasterNodes && !filters.showWorkerNodes) return null;
 
   const selectedIndex = nodes.findIndex((n) => n.id === selected);
   const selectedNode = selectedIndex >= 0 ? nodes[selectedIndex] : undefined;
@@ -284,24 +310,31 @@ function FieldScene({
   );
 }
 
-interface WheelPoint {
+export interface WheelPoint {
   id: string;
   name: string;
   x: number;
   y: number;
   z: number;
   color: string;
+  /** Mirrors @vpk/core's wheel.ts WheelPoint — the timelapse's time axis. Undefined only for local storage
+   *  cylinders (no single backing resource); CSI node driver dots inherit their owning CSINode's timestamp. */
+  creationTimestamp?: string;
+  /** Only set when the backing resource is genuinely mid-termination (real metadata.deletionTimestamp), never
+   *  fabricated — see the matching comment in @vpk/core's wheel.ts. */
+  deletionTimestamp?: string;
 }
-interface WheelNode extends WheelPoint {
+export interface WheelNode extends WheelPoint {
   health: 'ok' | 'warn' | 'error';
   healthColor: string;
   role: 'master' | 'worker';
   podCount: number;
+  renderedPodCount?: number;
   cpuCapacity?: number;
   memCapacityBytes?: number;
   ephemeralStorageCapacityBytes?: number;
 }
-interface WheelPod extends WheelPoint {
+export interface WheelPod extends WheelPoint {
   namespace?: string;
   status: 'running' | 'pending' | 'failed' | 'succeeded' | 'unknown';
   daemonSet: boolean;
@@ -309,8 +342,11 @@ interface WheelPod extends WheelPoint {
   annotations: Record<string, string>;
   cpuRequested?: number;
   memRequestedBytes?: number;
+  /** Owning ReplicaSet's uid, if any — the "Show replica" feature's sibling-grouping key (see wheel.ts's own
+   *  doc comment on this field). */
+  replicaSetId?: string;
 }
-interface WheelTierItem extends WheelPoint {
+export interface WheelTierItem extends WheelPoint {
   kind: string;
   namespace?: string;
   labels: Record<string, string>;
@@ -324,11 +360,11 @@ interface WheelLinkEdge {
   fromId: string;
   toId: string;
 }
-interface WheelCsiNodeDriver extends WheelPoint {
+export interface WheelCsiNodeDriver extends WheelPoint {
   kind: string;
   nodeId: string;
 }
-interface WheelLocalStorage extends WheelPoint {
+export interface WheelLocalStorage extends WheelPoint {
   kind: string;
   nodeId: string;
 }
@@ -361,11 +397,12 @@ interface ControlPlaneScene {
   imageRegistries: WheelInfoItem[];
   planes: WheelPlane[];
 }
-interface ClusterWheel {
+export interface ClusterWheel {
   outerRadius: number;
   csiRingRadius: number;
   nodes: WheelNode[];
   pods: WheelPod[];
+  totalPodCount: number;
   network: { items: WheelTierItem[]; totalCount: number };
   endpoints: { items: WheelTierItem[]; totalCount: number };
   ingress: { items: WheelTierItem[]; totalCount: number };
@@ -425,9 +462,22 @@ function playSelectSound() {
   new Audio(SELECT_SOUND_SRC).play().catch(() => {});
 }
 
-function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id: string) => void }) {
+function Dot({
+  p,
+  size,
+  onSelect,
+  visible = true,
+}: {
+  p: WheelPoint;
+  size: number;
+  onSelect: (id: string) => void;
+  /** Hidden-state toggle for the timelapse's time dimension — stays mounted (no add/remove churn every
+   *  playback tick), just flips Three.js's own `visible` flag, matching every other shape component here. */
+  visible?: boolean;
+}) {
   return (
     <mesh
+      visible={visible}
       position={[p.x, p.y, p.z]}
       onClick={(e) => {
         e.stopPropagation();
@@ -445,9 +495,10 @@ function Dot({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id
 /** Pods render as a hexagonal puck (a 6-sided cylinder — its cross-section is a hexagon by construction,
  *  cylinder's height axis is Y by default so the hex faces lie flat in the wheel's ground plane) rather than
  *  the generic sphere used for tier items, so pods read as a distinct shape at a glance. */
-function PodHex({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: (id: string) => void }) {
+function PodHex({ p, size, onSelect, visible = true }: { p: WheelPoint; size: number; onSelect: (id: string) => void; visible?: boolean }) {
   return (
     <mesh
+      visible={visible}
       position={[p.x, p.y, p.z]}
       onClick={(e) => {
         e.stopPropagation();
@@ -462,9 +513,10 @@ function PodHex({ p, size, onSelect }: { p: WheelPoint; size: number; onSelect: 
 
 /** The storage-family shape (PVC/PV/StorageClass) — a short cylinder, distinct from the pod hex and the
  *  network/endpoints sphere so the three storage tiers still read as one visual family stacked vertically. */
-function StorageCylinder({ p, onSelect }: { p: WheelPoint; onSelect: (id: string) => void }) {
+function StorageCylinder({ p, onSelect, visible = true }: { p: WheelPoint; onSelect: (id: string) => void; visible?: boolean }) {
   return (
     <mesh
+      visible={visible}
       position={[p.x, p.y, p.z]}
       onClick={(e) => {
         e.stopPropagation();
@@ -479,18 +531,36 @@ function StorageCylinder({ p, onSelect }: { p: WheelPoint; onSelect: (id: string
 
 /** A real resource->resource line (e.g. Pod -> the PVC it mounts, or Service -> its Endpoints). Colored to
  *  match the resource kind at the far end. */
-function LinkLine({ a, b, color, opacity = 0.55 }: { a: WheelPoint; b: WheelPoint; color: string; opacity?: number }) {
+function LinkLine({
+  a,
+  b,
+  color,
+  opacity = 0.55,
+  visible = true,
+}: {
+  a: WheelPoint;
+  b: WheelPoint;
+  color: string;
+  opacity?: number;
+  visible?: boolean;
+}) {
   const points: [number, number, number][] = [
     [a.x, a.y, a.z],
     [b.x, b.y, b.z],
   ];
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
+    // `visible` goes on the wrapping <group>, not <line> itself — JSX's `line` intrinsic ambiguously resolves
+    // against React DOM's SVG <line> typing (no such conflict for <group>, which SVG has no equivalent tag
+    // for), and Three.js's renderer already skips an invisible object's children entirely during traversal, so
+    // this achieves the exact same hidden-state toggle without fighting that type conflict.
+    <group visible={visible}>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial color={color} transparent opacity={opacity} />
+      </line>
+    </group>
   );
 }
 
@@ -499,7 +569,7 @@ function LinkLine({ a, b, color, opacity = 0.55 }: { a: WheelPoint; b: WheelPoin
  *  straight line for every other sharing pod would read as "the Service sits between us", which isn't the
  *  relationship being shown. Degenerates to a plain straight-up line for the anchor pod itself, since its x/z
  *  already match the Service's. */
-function ElbowLine({ a, b, color }: { a: WheelPoint; b: WheelPoint; color: string }) {
+function ElbowLine({ a, b, color, visible = true }: { a: WheelPoint; b: WheelPoint; color: string; visible?: boolean }) {
   const midY = a.y + (b.y - a.y) * 0.25;
   const points: [number, number, number][] = [
     [a.x, a.y, a.z],
@@ -507,25 +577,41 @@ function ElbowLine({ a, b, color }: { a: WheelPoint; b: WheelPoint; color: strin
     [b.x, b.y, b.z],
   ];
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={0.55} />
-    </line>
+    // See LinkLine's comment on why `visible` goes on the wrapping <group>, not <line> itself.
+    <group visible={visible}>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial color={color} transparent opacity={0.55} />
+      </line>
+    </group>
   );
 }
 
 /** An arbitrary multi-segment line — used for the CSI node-driver chain and the local-storage right-angle
  *  connector, both of which need more than ElbowLine's fixed 3-point shape. */
-function PolyLine({ points, color, opacity = 0.55 }: { points: [number, number, number][]; color: string; opacity?: number }) {
+function PolyLine({
+  points,
+  color,
+  opacity = 0.55,
+  visible = true,
+}: {
+  points: [number, number, number][];
+  color: string;
+  opacity?: number;
+  visible?: boolean;
+}) {
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
+    // See LinkLine's comment on why `visible` goes on the wrapping <group>, not <line> itself.
+    <group visible={visible}>
+      <line>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[new Float32Array(points.flat()), 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial color={color} transparent opacity={opacity} />
+      </line>
+    </group>
   );
 }
 
@@ -533,9 +619,9 @@ function PolyLine({ points, color, opacity = 0.55 }: { points: [number, number, 
  *  running around the same radius as the nodes but at a lower Y, just below the node boxes' bottom. Purely
  *  structural (no single backing resource): CSINode driver chains drop down to it, and CSIDriver spheres
  *  connect up to it, so it reads as the shared "CSI bus" tying node-side and cluster-side CSI objects together. */
-function CsiRing({ radius, y }: { radius: number; y: number }) {
+function CsiRing({ radius, y, visible = true }: { radius: number; y: number; visible?: boolean }) {
   return (
-    <mesh position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
+    <mesh visible={visible} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
       <torusGeometry args={[radius, 0.08, 8, 64]} />
       <meshBasicMaterial color="#e0908c" transparent opacity={0.85} />
     </mesh>
@@ -545,9 +631,22 @@ function CsiRing({ radius, y }: { radius: number; y: number }) {
 /** The "Control Plane" ring — a full torus (translucent, unlike the CSI ring) circling the whole node ring at
  *  its own Y band, clickable in its own right (matches the legacy app's wall, whose popup just explains "click
  *  each component for details"). */
-function ControlPlaneRing({ radius, y, height, onSelect }: { radius: number; y: number; height: number; onSelect: (id: string) => void }) {
+function ControlPlaneRing({
+  radius,
+  y,
+  height,
+  onSelect,
+  visible = true,
+}: {
+  radius: number;
+  y: number;
+  height: number;
+  onSelect: (id: string) => void;
+  visible?: boolean;
+}) {
   return (
     <mesh
+      visible={visible}
       position={[0, y, 0]}
       rotation={[Math.PI / 2, 0, 0]}
       onClick={(e) => {
@@ -696,11 +795,28 @@ function WheelScene({
   onSelect,
   selected,
   filters,
+  visibleAtTime,
+  timelapseCategoryFilters,
+  controlPlaneRevealed,
 }: {
   wheel: ClusterWheel;
   onSelect: (id: string) => void;
   selected: string | null;
   filters: FilterState;
+  /** Timelapse's own per-item TIME dimension — null means timelapse is off (no restriction, today's default
+   *  "show everything" behavior). Composed via the `visible` prop on each mesh below (hidden-state toggling —
+   *  the item stays mounted in the Three.js scene graph and just flips visible on/off) rather than by
+   *  filtering it out of an array, so nothing mounts/unmounts on every playback tick. */
+  visibleAtTime: Set<string> | null;
+  /** Timelapse's own CATEGORY toggle set — independent state from the main FilterPanel's `filters`, only in
+   *  effect while timelapse is enabled (null otherwise). Unlike `visibleAtTime` this changes rarely (a manual
+   *  checkbox, not a playback tick), so — like `filters` itself — it's applied as ordinary array filtering. */
+  timelapseCategoryFilters: TimelapseCategoryFilters | null;
+  /** Whether the Control Plane (ring + kubelets/kube-proxies/components/kubectl/registries) has been revealed
+   *  yet. None of those items carry an individual creationTimestamp of their own (they're synthetic/derived,
+   *  not real per-instance resources), so "the Control Plane exists" is anchored to the timelapse's own first
+   *  event rather than any one item's timestamp — true whenever timelapse is off. */
+  controlPlaneRevealed: boolean;
 }) {
   const ringPoints: [number, number, number][] = Array.from({ length: 65 }, (_, i) => {
     const a = (2 * Math.PI * i) / 64;
@@ -708,40 +824,85 @@ function WheelScene({
   });
   const csiRingRadius = wheel.csiRingRadius;
 
+  // Timelapse's per-item TIME dimension — applied via the `visible` prop at each render call below, not by
+  // filtering items out of the visible* arrays (see this function's own prop doc comment for why). Takes the
+  // ITEM, not just its id: a point with no creationTimestamp defaults to always visible when checked directly.
+  // Local storage cylinders are the one point that HAS no creationTimestamp, but they deliberately do NOT rely
+  // on that default — their own visibility is instead computed as `atTime(node)` (the owning Node's own
+  // timestamp) at each local-storage render call below, so a cylinder never appears before its Node does.
+  // visibleIdsAtInterval also deliberately never adds untimestamped ids to its Set at all, since local storage
+  // reuses its Node's own id, and treating "no timestamp = always visible" as Set membership would make that
+  // shared id incorrectly force the Node itself to always be visible too (see timelapse.ts's own doc comment
+  // on visibleIdsAtInterval).
+  const atTime = (item: { id: string; creationTimestamp?: string }) =>
+    !visibleAtTime || item.creationTimestamp === undefined || visibleAtTime.has(item.id);
+  // Timelapse's own CATEGORY toggle — like `filters.showX`, but a separate state, only in effect while
+  // timelapse is enabled.
+  const categoryOn = (key: keyof Omit<TimelapseCategoryFilters, 'planes'>) => !timelapseCategoryFilters || timelapseCategoryFilters[key];
+  const paneOn = (name: string) => !timelapseCategoryFilters || (timelapseCategoryFilters.planes[name] ?? false);
+
   // Namespace/label/annotation scope filters are ANDed with the existing category toggles below — an item
-  // must pass both to render.
-  const visiblePods = wheel.pods.filter((p) => podPassesFilter(p, filters) && passesScopeFilters(p, filters));
-  // Endpoints/EndpointSlice ride along with the "Network (Endpoint, Service)" filter row — they're the same
-  // category, just one hop further up the stack. PV/StorageClass ride along with "Storage (PVC, PV,
-  // StorageClass)" the same way, one/two hops further down.
-  const visibleNetwork = filters.showNetwork ? wheel.network.items.filter((i) => passesScopeFilters(i, filters)) : [];
-  const visibleEndpoints = filters.showNetwork ? wheel.endpoints.items.filter((i) => passesScopeFilters(i, filters)) : [];
-  // Ingress/HTTPRoute get their own filter row (not tied to Network) — they're a distinct category in the
-  // legacy filter legend, with their own swatch color, even though they anchor off the same Service position.
-  const visibleIngress = filters.showIngress ? wheel.ingress.items.filter((i) => passesScopeFilters(i, filters)) : [];
-  const visibleStorage = filters.showStorage ? wheel.storage.items.filter((i) => passesScopeFilters(i, filters)) : [];
-  // PV/StorageClass/VolumeAttachment sit two-to-three hops from a Pod (Pod -> PVC -> PV -> SC/VA) — trace that
-  // chain and only show one of these if it's actually reachable from a Pod that's currently visible, not just
-  // its own category+scope filters. This way filtering pods (by status/namespace/label) also declutters
-  // whatever hangs off their PVC, instead of leaving orphaned PV/SC/VA items with no visible pod behind them.
+  // must pass both to render. Deliberately NOT time-filtered here (see `atTime`'s own comment above) — every
+  // item that passes category+scope stays mounted and fades in/out via its own `visible` prop instead.
+  const visiblePods = categoryOn('pods') ? wheel.pods.filter((p) => podPassesFilter(p, filters) && passesScopeFilters(p, filters)) : [];
+  // The server now caps Pods per-node (POD_CAP_PER_NODE in @vpk/core's wheel.ts), same as every other tier —
+  // this is just a defensive backstop in case a future change to that cap (or a very large node count) still
+  // pushes the rendered set high enough to freeze the tab; it should essentially never fire in practice.
+  if (visiblePods.length > 10000) {
+    console.warn(
+      `[Scene3D] rendering ${visiblePods.length} Pods in the wheel despite the server-side per-node cap — this can still freeze the tab.`,
+    );
+  }
+  // Service/Endpoint are now separately filterable (previously one combined "Network" toggle).
+  const visibleNetwork = filters.showService && categoryOn('network') ? wheel.network.items.filter((i) => passesScopeFilters(i, filters)) : [];
+  const visibleEndpoints = filters.showEndpoint && categoryOn('network') ? wheel.endpoints.items.filter((i) => passesScopeFilters(i, filters)) : [];
+  // Ingress and Gateway API (HTTPRoute) share one wheel tier server-side (wheel.ingress) but are separately
+  // filterable client-side, keyed off each item's own `kind` — OpenShift Route objects ride along with Ingress
+  // as the closest existing analog. Both stay in ONE array (they share the same Dot rendering + serviceToIngress
+  // edge list below), just with a per-item toggle check instead of one shared one.
+  const visibleIngress = categoryOn('ingress')
+    ? wheel.ingress.items.filter(
+        (i) => passesScopeFilters(i, filters) && (i.kind === 'HTTPRoute' ? filters.showGatewayApi : filters.showIngress),
+      )
+    : [];
+  // Storage chain: Pod -> PVC -> PV -> StorageClass / VolumeAttachment (CSIDriver hangs off both SC and VA).
+  // Each tier's ELIGIBLE set (scope + reachable-from-a-visible-pod, but NOT gated by its own showX toggle) is
+  // kept separate from its RENDERED set (eligible AND its own toggle) — an edge into a downstream item must be
+  // able to find its position even when the UPSTREAM item's own toggle is off (see the storage edges further
+  // below: hiding PVC must not hide the PVC->PV line as long as PV is still shown).
   const visiblePodIds = new Set(visiblePods.map((p) => p.id));
   const pvcIdsFromVisiblePod = new Set(wheel.podToStorage.filter((e) => visiblePodIds.has(e.podId)).map((e) => e.itemId));
   const pvIdsFromVisiblePod = new Set(wheel.storageToPv.filter((e) => pvcIdsFromVisiblePod.has(e.fromId)).map((e) => e.toId));
   const scIdsFromVisiblePod = new Set(wheel.pvToStorageClass.filter((e) => pvIdsFromVisiblePod.has(e.fromId)).map((e) => e.toId));
   const vaIdsFromVisiblePod = new Set(wheel.pvToVolumeAttachment.filter((e) => pvIdsFromVisiblePod.has(e.fromId)).map((e) => e.toId));
-  const visiblePv = filters.showStorage
+  const pvcEligible = categoryOn('storage') ? wheel.storage.items.filter((i) => passesScopeFilters(i, filters)) : [];
+  const pvEligible = categoryOn('storage')
     ? wheel.persistentVolumes.items.filter((i) => passesScopeFilters(i, filters) && pvIdsFromVisiblePod.has(i.id))
     : [];
-  const visibleStorageClasses = filters.showStorage
+  const scEligible = categoryOn('storage')
     ? wheel.storageClasses.items.filter((i) => passesScopeFilters(i, filters) && scIdsFromVisiblePod.has(i.id))
     : [];
-  const visibleVolumeAttachments = filters.showStorage
+  const vaEligible = categoryOn('storage')
     ? wheel.volumeAttachments.items.filter((i) => passesScopeFilters(i, filters) && vaIdsFromVisiblePod.has(i.id))
     : [];
-  const visibleCsiDrivers = filters.showCsi ? wheel.csiDrivers.items.filter((i) => passesScopeFilters(i, filters)) : [];
-  const visibleCsiNodeDrivers = filters.showCsi ? wheel.csiNodeDrivers : [];
-  const visibleLocalStorage = filters.showStorage ? wheel.localStorage : [];
-  const visibleNodes = filters.showNodes ? wheel.nodes : [];
+  // CSINode driver dots (below Master/Worker Nodes), CSIDriver dots (near the ring), and the ring itself are
+  // now three independently toggleable things (previously all under one `showCsi`) — `showCsi` alone now just
+  // means "draw the ring".
+  const csiEligible = categoryOn('csi') ? wheel.csiDrivers.items.filter((i) => passesScopeFilters(i, filters)) : [];
+  const visibleStorage = filters.showPvc ? pvcEligible : [];
+  const visiblePv = filters.showPv ? pvEligible : [];
+  const visibleStorageClasses = filters.showStorageClass ? scEligible : [];
+  const visibleVolumeAttachments = filters.showVolumeAttachment ? vaEligible : [];
+  const visibleCsiDrivers = filters.showCsiDrivers ? csiEligible : [];
+  const visibleCsiNodeDrivers = filters.showCsiNodes && categoryOn('csi') ? wheel.csiNodeDrivers : [];
+  const visibleLocalStorage = filters.showNodeLocalStorage && categoryOn('localStorage') ? wheel.localStorage : [];
+  // Master/Worker are now separately filterable (previously one combined "Nodes" toggle).
+  const visibleNodes = categoryOn('nodes')
+    ? wheel.nodes.filter((n) => (n.role === 'master' ? filters.showMasterNodes : filters.showWorkerNodes))
+    : [];
+  // The CSI ring/dots only reveal once at least one CSI item's own creation event has actually occurred —
+  // computed from the same category+scope-filtered arrays above, so it stays in sync with whatever's toggled.
+  const csiRevealed = !visibleAtTime || visibleCsiDrivers.some(atTime) || visibleCsiNodeDrivers.some(atTime);
 
   // Resource CPU & Memory bars: each category's max is taken over the currently-VISIBLE set only, so the
   // tallest bar in a group always uses the full up-to-Ingress (or down-to-VolumeAttachment) range regardless
@@ -749,8 +910,9 @@ function WheelScene({
   const nodeCpuMax = Math.max(0, ...visibleNodes.map((n) => n.cpuCapacity ?? 0));
   const nodeMemMax = Math.max(0, ...visibleNodes.map((n) => n.memCapacityBytes ?? 0));
   // Unlike the CPU/Memory bars (attached to the Node box itself, so they disappear along with it), the
-  // storage bar hangs off the local-storage cylinder, which is gated by Storage's own toggle, not Nodes' — so
-  // its scale shouldn't collapse to zero just because Nodes happens to be toggled off.
+  // storage bar hangs off the local-storage cylinder, which has its own independent Master/Worker-agnostic
+  // toggle (showNodeLocalStorage) — so its scale shouldn't collapse to zero just because Master/Worker
+  // visibility happens to be toggled off.
   const nodeStorageMax = Math.max(0, ...wheel.nodes.map((n) => n.ephemeralStorageCapacityBytes ?? 0));
   const podCpuMax = Math.max(0, ...visiblePods.map((p) => p.cpuRequested ?? 0));
   const podMemMax = Math.max(0, ...visiblePods.map((p) => p.memRequestedBytes ?? 0));
@@ -761,13 +923,17 @@ function WheelScene({
     for (const item of visibleNetwork) map.set(item.id, item);
     for (const item of visibleEndpoints) map.set(item.id, item);
     for (const item of visibleIngress) map.set(item.id, item);
-    for (const item of visibleStorage) map.set(item.id, item);
-    for (const item of visiblePv) map.set(item.id, item);
-    for (const item of visibleStorageClasses) map.set(item.id, item);
-    for (const item of visibleVolumeAttachments) map.set(item.id, item);
-    for (const item of visibleCsiDrivers) map.set(item.id, item);
+    // Storage-family items come from their ELIGIBLE sets (scope+reachability), not their toggle-filtered
+    // "visible" sets — see the storage-chain edge rendering below for why: an edge's visibility is driven by
+    // its DOWNSTREAM endpoint's own toggle, so the upstream endpoint must still be findable here even when its
+    // own toggle is off.
+    for (const item of pvcEligible) map.set(item.id, item);
+    for (const item of pvEligible) map.set(item.id, item);
+    for (const item of scEligible) map.set(item.id, item);
+    for (const item of vaEligible) map.set(item.id, item);
+    for (const item of csiEligible) map.set(item.id, item);
     return map;
-  }, [wheel, filters]);
+  }, [wheel, filters, timelapseCategoryFilters]);
 
   const csiChainsByNode = useMemo(() => {
     const byNode = new Map<string, WheelCsiNodeDriver[]>();
@@ -778,13 +944,25 @@ function WheelScene({
     }
     for (const list of byNode.values()) list.sort((a, b) => b.y - a.y); // closest-to-node first
     return byNode;
-  }, [wheel, filters]);
+  }, [wheel, filters, timelapseCategoryFilters]);
 
   // The exact dot last clicked, so the selection ring can land on it specifically — see findWheelSelection's
   // comment on why a plain id lookup can't tell two of the same Node's driver dots apart.
   const [clickedCsiDot, setClickedCsiDot] = useState<WheelCsiNodeDriver | null>(null);
 
   const selection = findWheelSelection(wheel, selected, clickedCsiDot);
+
+  // "Show replica" — ring every OTHER Pod sharing the selected Pod's ReplicaSet (0.17 matches
+  // findWheelSelection's own Pod radius), using the exact same SelectionRing mechanism as the main selection,
+  // just REPLICA_RING_COLOR instead of red. Recomputed fresh from `selected`/`filters.showReplica` on every
+  // render rather than tracked as separate state, so it's automatically cleared the instant a different item
+  // (or a Pod with no ReplicaSet siblings) is selected — nothing to explicitly "turn off". Siblings are drawn
+  // from `visiblePods` (not raw `wheel.pods`), so a sibling currently hidden by another filter never gets a
+  // floating ring with no pod underneath it.
+  const selectedPod = filters.showReplica ? wheel.pods.find((p) => p.id === selected) : undefined;
+  const replicaSiblings = selectedPod?.replicaSetId
+    ? visiblePods.filter((p) => p.replicaSetId === selectedPod.replicaSetId && p.id !== selectedPod.id)
+    : [];
 
   return (
     <>
@@ -794,27 +972,27 @@ function WheelScene({
         </bufferGeometry>
         <lineBasicMaterial color="#da8c84" transparent opacity={0.5} />
       </line>
-      {filters.showNodes &&
-        wheel.nodes.map((n) => {
-          // Rotate the box so one face is perpendicular to the line from the wheel's center to the node — the
-          // radial line hits that face at a true 90 degrees, rather than the box sitting at whatever fixed
-          // world-axis orientation it happened to have.
-          const angle = Math.atan2(n.z, n.x);
-          return (
-            <mesh
-              key={n.id}
-              position={[n.x, 0.3, n.z]}
-              rotation={[0, -angle, 0]}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(n.id);
-              }}
-            >
-              <boxGeometry args={[0.7, 0.6, 0.7]} />
-              <meshBasicMaterial color={n.color} />
-            </mesh>
-          );
-        })}
+      {visibleNodes.map((n) => {
+        // Rotate the box so one face is perpendicular to the line from the wheel's center to the node — the
+        // radial line hits that face at a true 90 degrees, rather than the box sitting at whatever fixed
+        // world-axis orientation it happened to have.
+        const angle = Math.atan2(n.z, n.x);
+        return (
+          <mesh
+            key={n.id}
+            visible={atTime(n)}
+            position={[n.x, 0.3, n.z]}
+            rotation={[0, -angle, 0]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(n.id);
+            }}
+          >
+            <boxGeometry args={[0.7, 0.6, 0.7]} />
+            <meshBasicMaterial color={n.color} />
+          </mesh>
+        );
+      })}
       {visibleNodes.map((n) => {
         // Kubelet/Kube-Proxy sit dead-center on the node's own column (controlPlane.ts gives them no x/z
         // offset at all) — tangentOffset alone only nudges the two bars sideways from that same center, so
@@ -823,6 +1001,7 @@ function WheelScene({
         const edge = nodeOutwardXZ(n);
         const cpu = tangentOffset(edge.x, edge.z, -METRIC_BAR_OFFSET);
         const mem = tangentOffset(edge.x, edge.z, METRIC_BAR_OFFSET);
+        const nodeVisible = atTime(n);
         return (
           <group key={`node-metrics-${n.id}`}>
             {filters.showNodeCpuBar && (
@@ -835,6 +1014,7 @@ function WheelScene({
                 height={metricBarHeight(n.cpuCapacity, nodeCpuMax, INGRESS_Y - NODE_BOX_HEIGHT)}
                 color={METRIC_COLORS.nodeCpu}
                 onSelect={onSelect}
+                visible={nodeVisible}
               />
             )}
             {filters.showNodeMemoryBar && (
@@ -847,17 +1027,19 @@ function WheelScene({
                 height={metricBarHeight(n.memCapacityBytes, nodeMemMax, INGRESS_Y - NODE_BOX_HEIGHT)}
                 color={METRIC_COLORS.nodeMemory}
                 onSelect={onSelect}
+                visible={nodeVisible}
               />
             )}
           </group>
         );
       })}
       {visiblePods.map((p) => (
-        <PodHex key={p.id} p={p} size={0.1} onSelect={onSelect} />
+        <PodHex key={p.id} p={p} size={0.1} onSelect={onSelect} visible={atTime(p)} />
       ))}
       {visiblePods.map((p) => {
         const cpu = tangentOffset(p.x, p.z, -METRIC_BAR_OFFSET);
         const mem = tangentOffset(p.x, p.z, METRIC_BAR_OFFSET);
+        const podVisible = atTime(p);
         return (
           <group key={`pod-metrics-${p.id}`}>
             {filters.showPodCpuBar && (
@@ -870,6 +1052,7 @@ function WheelScene({
                 height={metricBarHeight(p.cpuRequested, podCpuMax, INGRESS_Y)}
                 color={METRIC_COLORS.podCpu}
                 onSelect={onSelect}
+                visible={podVisible}
               />
             )}
             {filters.showPodMemoryBar && (
@@ -882,83 +1065,97 @@ function WheelScene({
                 height={metricBarHeight(p.memRequestedBytes, podMemMax, INGRESS_Y)}
                 color={METRIC_COLORS.podMemory}
                 onSelect={onSelect}
+                visible={podVisible}
               />
             )}
           </group>
         );
       })}
       {visibleNetwork.map((item) => (
-        <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} />
+        <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.podToNetwork.map((e) => {
         const a = byId.get(e.podId);
         const b = byId.get(e.itemId);
-        return a && b ? <ElbowLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? <ElbowLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} visible={atTime(a) && atTime(b)} /> : null;
       })}
       {visibleEndpoints.map((item) => (
-        <Dot key={item.id} p={item} size={0.1} onSelect={onSelect} />
+        <Dot key={item.id} p={item} size={0.1} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.serviceToEndpoints.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
-        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} visible={atTime(a) && atTime(b)} /> : null;
       })}
       {visibleIngress.map((item) => (
-        <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} />
+        <Dot key={item.id} p={item} size={0.12} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.serviceToIngress.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
-        return a && b ? <LinkLine key={`ingress-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? (
+          <LinkLine key={`ingress-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} visible={atTime(a) && atTime(b)} />
+        ) : null;
       })}
       {visibleStorage.map((item) => (
-        <StorageCylinder key={item.id} p={item} onSelect={onSelect} />
+        <StorageCylinder key={item.id} p={item} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.podToStorage.map((e) => {
         const a = byId.get(e.podId);
         const b = byId.get(e.itemId);
-        return a && b ? <LinkLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} /> : null;
+        // Storage-chain edges are gated by their DOWNSTREAM endpoint's own toggle only, not the upstream
+        // one's — hiding a PVC's own checkbox must not hide the line if what it connects TO is still shown
+        // (and vice versa: hiding the downstream end DOES hide the line, even if the upstream end is shown).
+        return a && b ? <LinkLine key={`${e.podId}|${e.itemId}`} a={a} b={b} color={b.color} visible={filters.showPvc && atTime(a) && atTime(b)} /> : null;
       })}
       {visiblePv.map((item) => (
-        <StorageCylinder key={item.id} p={item} onSelect={onSelect} />
+        <StorageCylinder key={item.id} p={item} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.storageToPv.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
-        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} visible={filters.showPv && atTime(a) && atTime(b)} /> : null;
       })}
       {visibleStorageClasses.map((item) => (
-        <StorageCylinder key={item.id} p={item} onSelect={onSelect} />
+        <StorageCylinder key={item.id} p={item} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.pvToStorageClass.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
-        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? (
+          <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} visible={filters.showStorageClass && atTime(a) && atTime(b)} />
+        ) : null;
       })}
       {visibleVolumeAttachments.map((item) => (
-        <StorageCylinder key={item.id} p={item} onSelect={onSelect} />
+        <StorageCylinder key={item.id} p={item} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.pvToVolumeAttachment.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
-        return a && b ? <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} /> : null;
+        return a && b ? (
+          <LinkLine key={`${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} visible={filters.showVolumeAttachment && atTime(a) && atTime(b)} />
+        ) : null;
       })}
-      {filters.showCsi && <CsiRing radius={csiRingRadius} y={CSI_RING_Y} />}
+      {filters.showCsi && categoryOn('csi') && <CsiRing radius={csiRingRadius} y={CSI_RING_Y} visible={csiRevealed} />}
       {visibleCsiDrivers.map((item) => (
-        <Dot key={item.id} p={item} size={0.1} onSelect={onSelect} />
+        <Dot key={item.id} p={item} size={0.1} onSelect={onSelect} visible={atTime(item)} />
       ))}
       {wheel.storageClassToCsiDriver.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
         // Full opacity — the CSI subsystem's own lines shouldn't fade into the generic pod/tier link lines.
-        return a && b ? <LinkLine key={`sc-driver-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} opacity={1} /> : null;
+        return a && b ? (
+          <LinkLine key={`sc-driver-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} opacity={1} visible={filters.showCsiDrivers && atTime(a) && atTime(b)} />
+        ) : null;
       })}
       {wheel.volumeAttachmentToCsiDriver.map((e) => {
         const a = byId.get(e.fromId);
         const b = byId.get(e.toId);
         // Same "own subsystem, full opacity" treatment as storageClassToCsiDriver just above — a
         // VolumeAttachment names its driver directly (spec.attacher), independent of its PV's StorageClass.
-        return a && b ? <LinkLine key={`va-driver-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} opacity={1} /> : null;
+        return a && b ? (
+          <LinkLine key={`va-driver-${e.fromId}|${e.toId}`} a={a} b={b} color={b.color} opacity={1} visible={filters.showCsiDrivers && atTime(a) && atTime(b)} />
+        ) : null;
       })}
       {visibleCsiDrivers.map((item) => {
         // "another connecting line up to the red cylinder [ring] that is outside of the server nodes" — the
@@ -973,7 +1170,7 @@ function WheelScene({
           z: csiRingRadius * Math.sin(angle),
           color: item.color,
         };
-        return <LinkLine key={`driver-ring-${item.id}`} a={item} b={ringAnchor} color={item.color} opacity={1} />;
+        return <LinkLine key={`driver-ring-${item.id}`} a={item} b={ringAnchor} color={item.color} opacity={1} visible={atTime(item)} />;
       })}
       {visibleCsiNodeDrivers.map((d) => (
         <Dot
@@ -984,12 +1181,16 @@ function WheelScene({
             setClickedCsiDot(d);
             onSelect(id);
           }}
+          visible={atTime(d)}
         />
       ))}
       {[...csiChainsByNode.entries()].map(([nodeId, dots]) => {
         const n = wheel.nodes.find((nd) => nd.id === nodeId);
         if (!n || dots.length === 0) return null;
         const color = dots[0]!.color;
+        // Every dot for a node shares its CSINode's own timestamp (see wheel.ts), so any one of them speaks
+        // for the whole chain's visibility.
+        const chainVisible = atTime(dots[0]!);
         const angle = Math.atan2(n.z, n.x);
         // A plain straight vertical drop from the node's own center through every driver dot — all of them
         // sit below the ring's own Y, so this line passes straight through the ring's height on its way down.
@@ -1003,18 +1204,25 @@ function WheelScene({
         ];
         return (
           <group key={`csi-chain-${nodeId}`}>
-            <PolyLine points={chainPoints} color={color} opacity={0.9} />
-            <PolyLine points={ringConnector} color={color} opacity={0.9} />
+            <PolyLine points={chainPoints} color={color} opacity={0.9} visible={chainVisible} />
+            <PolyLine points={ringConnector} color={color} opacity={0.9} visible={chainVisible} />
           </group>
         );
       })}
-      {visibleLocalStorage.map((ls) => (
-        <StorageCylinder
-          key={`local-storage-${ls.nodeId}`}
-          p={ls}
-          onSelect={(id) => onSelect(localStorageSelectionId(id))}
-        />
-      ))}
+      {visibleLocalStorage.map((ls) => {
+        // Local storage carries no creationTimestamp of its own (it's not a distinct k8s object — see
+        // WheelLocalStorage's doc comment) — its visibility rides on its owning NODE's instead, so the
+        // cylinder never appears before the Node itself does.
+        const n = wheel.nodes.find((nd) => nd.id === ls.nodeId);
+        return (
+          <StorageCylinder
+            key={`local-storage-${ls.nodeId}`}
+            p={ls}
+            onSelect={(id) => onSelect(localStorageSelectionId(id))}
+            visible={!!n && atTime(n)}
+          />
+        );
+      })}
       {filters.showNodeStorageBar &&
         visibleLocalStorage.map((ls) => {
           const n = wheel.nodes.find((nd) => nd.id === ls.nodeId);
@@ -1029,6 +1237,7 @@ function WheelScene({
               height={metricBarHeight(n?.ephemeralStorageCapacityBytes, nodeStorageMax, ls.y - VOLUME_ATTACHMENT_Y)}
               color={METRIC_COLORS.nodeStorage}
               onSelect={onSelect}
+              visible={!!n && atTime(n)}
             />
           );
         })}
@@ -1044,16 +1253,24 @@ function WheelScene({
           [anchor.x, ls.y, anchor.z],
           [ls.x, ls.y, ls.z],
         ];
-        return <PolyLine key={`local-storage-line-${ls.nodeId}`} points={points} color="#c9c9c9" />;
+        return <PolyLine key={`local-storage-line-${ls.nodeId}`} points={points} color="#c9c9c9" visible={atTime(n)} />;
       })}
-      {filters.showControlPlane && (
+      {filters.showControlPlane && categoryOn('controlPlane') && (
         <>
-          <ControlPlaneRing radius={wheel.controlPlane.radius} y={wheel.controlPlane.y} height={wheel.controlPlane.height} onSelect={onSelect} />
+          <ControlPlaneRing
+            radius={wheel.controlPlane.radius}
+            y={wheel.controlPlane.y}
+            height={wheel.controlPlane.height}
+            onSelect={onSelect}
+            visible={controlPlaneRevealed}
+          />
+          {/* Previously all-or-nothing under one showControlPlane toggle — each sub-group below now has its
+              own checkbox too (still additionally gated by showControlPlane/controlPlaneRevealed above). */}
           {wheel.controlPlane.kubelets.map((k) => (
-            <Dot key={k.id} p={k} size={0.09} onSelect={onSelect} />
+            <Dot key={k.id} p={k} size={0.09} onSelect={onSelect} visible={controlPlaneRevealed && filters.showKubeletKubeProxy} />
           ))}
           {wheel.controlPlane.kubeProxies.map((k) => (
-            <Dot key={k.id} p={k} size={0.09} onSelect={onSelect} />
+            <Dot key={k.id} p={k} size={0.09} onSelect={onSelect} visible={controlPlaneRevealed && filters.showKubeletKubeProxy} />
           ))}
           {wheel.controlPlane.kubelets.map((k) => {
             const n = wheel.nodes.find((nd) => nd.id === k.nodeId);
@@ -1069,10 +1286,18 @@ function WheelScene({
               [wheel.controlPlane.radius * Math.cos(angle), k.y, wheel.controlPlane.radius * Math.sin(angle)],
               [wheel.controlPlane.radius * Math.cos(angle), ringTopY, wheel.controlPlane.radius * Math.sin(angle)],
             ];
-            return <PolyLine key={`kubelet-link-${k.nodeId}`} points={points} color={CONTROL_PLANE_COLOR} opacity={0.6} />;
+            return (
+              <PolyLine
+                key={`kubelet-link-${k.nodeId}`}
+                points={points}
+                color={KUBELET_KUBE_PROXY_COLOR}
+                opacity={0.6}
+                visible={controlPlaneRevealed && filters.showKubeletKubeProxy}
+              />
+            );
           })}
           {wheel.controlPlane.components.map((c) => (
-            <Dot key={c.id} p={c} size={0.14} onSelect={onSelect} />
+            <Dot key={c.id} p={c} size={0.14} onSelect={onSelect} visible={controlPlaneRevealed && filters.showControlPlaneComponents} />
           ))}
           {wheel.controlPlane.components.map((c) => {
             const angle = Math.atan2(c.z, c.x);
@@ -1084,15 +1309,32 @@ function WheelScene({
               z: wheel.controlPlane.radius * Math.sin(angle),
               color: c.color,
             };
-            return <LinkLine key={`component-ring-${c.id}`} a={ringAnchor} b={c} color={c.color} opacity={0.8} />;
+            return (
+              <LinkLine
+                key={`component-ring-${c.id}`}
+                a={ringAnchor}
+                b={c}
+                color={c.color}
+                opacity={0.8}
+                visible={controlPlaneRevealed && filters.showControlPlaneComponents}
+              />
+            );
           })}
-          <Dot p={wheel.controlPlane.kubectl} size={0.16} onSelect={onSelect} />
+          <Dot p={wheel.controlPlane.kubectl} size={0.16} onSelect={onSelect} visible={controlPlaneRevealed && filters.showKubectl} />
           {(() => {
             const apiServer = wheel.controlPlane.components.find((c) => c.title === 'API Server');
-            return apiServer ? <LinkLine a={apiServer} b={wheel.controlPlane.kubectl} color={CONTROL_PLANE_COLOR} opacity={0.7} /> : null;
+            return apiServer ? (
+              <LinkLine
+                a={apiServer}
+                b={wheel.controlPlane.kubectl}
+                color={KUBECTL_COLOR}
+                opacity={0.7}
+                visible={controlPlaneRevealed && filters.showControlPlaneComponents && filters.showKubectl}
+              />
+            ) : null;
           })()}
           {wheel.controlPlane.imageRegistries.map((r) => (
-            <StorageCylinder key={r.id} p={r} onSelect={onSelect} />
+            <StorageCylinder key={r.id} p={r} onSelect={onSelect} visible={controlPlaneRevealed && filters.showImageRegistries} />
           ))}
           {wheel.controlPlane.imageRegistries.length > 0 &&
             (() => {
@@ -1106,13 +1348,21 @@ function WheelScene({
                 z: wheel.controlPlane.radius * Math.sin(angle),
                 color: top.color,
               };
-              return <LinkLine a={ringAnchor} b={top} color={top.color} opacity={0.7} />;
+              return (
+                <LinkLine
+                  a={ringAnchor}
+                  b={top}
+                  color={top.color}
+                  opacity={0.7}
+                  visible={controlPlaneRevealed && filters.showImageRegistries}
+                />
+              );
             })()}
         </>
       )}
       {PANES.map((p) => {
         const plane = wheel.controlPlane.planes.find((pl) => pl.name === p.name);
-        if (!plane || !filters[p.key]) return null;
+        if (!plane || !filters[p.key] || !paneOn(p.name)) return null;
         return (
           <group key={p.name}>
             <PlaneWall plane={plane} />
@@ -1122,6 +1372,9 @@ function WheelScene({
           </group>
         );
       })}
+      {replicaSiblings.map((p) => (
+        <SelectionRing key={`replica-${p.id}`} x={p.x} y={p.y} z={p.z} radius={0.17} color={REPLICA_RING_COLOR} />
+      ))}
       {selection && <SelectionRing {...selection} />}
     </>
   );
@@ -1139,14 +1392,16 @@ function WheelLegend({ wheel }: { wheel: ClusterWheel | null }) {
     wheel.volumeAttachments,
     wheel.csiDrivers,
   ];
-  const capped = tiers.some((t) => t.items.length < t.totalCount);
+  const podsCapped = wheel.pods.length < wheel.totalPodCount;
+  const capped = podsCapped || tiers.some((t) => t.items.length < t.totalCount);
   if (!capped) return null;
   return (
     <div
       className="absolute bottom-2 left-2 rounded px-2 py-1 text-xs"
       style={{ background: 'var(--vpk-surface)', color: 'var(--vpk-fg-muted)', border: '1px solid var(--vpk-border)' }}
     >
-      showing {wheel.network.items.length}/{wheel.network.totalCount} services · {wheel.endpoints.items.length}/{wheel.endpoints.totalCount} endpoints
+      showing {wheel.pods.length}/{wheel.totalPodCount} pods · {wheel.network.items.length}/{wheel.network.totalCount} services ·{' '}
+      {wheel.endpoints.items.length}/{wheel.endpoints.totalCount} endpoints
       · {wheel.ingress.items.length}/{wheel.ingress.totalCount} ingress · {wheel.storage.items.length}/{wheel.storage.totalCount} storage ·{' '}
       {wheel.persistentVolumes.items.length}/{wheel.persistentVolumes.totalCount} PVs · {wheel.storageClasses.items.length}/
       {wheel.storageClasses.totalCount} storage classes · {wheel.volumeAttachments.items.length}/{wheel.volumeAttachments.totalCount} volume
@@ -1204,15 +1459,42 @@ export function Scene3D({
   // from the scene instead of just bordering them red; "Reset view" flips it back. Reset to false on every
   // snapshot swap so a stale hide from the PREVIOUS snapshot's node set doesn't carry over silently.
   const [nodesHidden, setNodesHidden] = useState(false);
+  // Set by the Field view's "View in Wheel" button to the currently-included (green-border) Node ids — null
+  // means "no restriction", which is what the plain Wheel tab always shows. Cleared (wheel refetched
+  // unfiltered) whenever the user picks the Wheel tab directly rather than through that button.
+  const [wheelNodeIds, setWheelNodeIds] = useState<string[] | null>(null);
+
+  // Timelapse playback state (Wheel view only). `timelapseEnabled`/`playbackSpeed` are user preferences (like
+  // `filters`) and deliberately survive a snapshot switch; `intervalIndex`/`playing`/`changesOpen` are
+  // per-snapshot and reset alongside `wheel` below.
+  const [timelapseEnabled, setTimelapseEnabled] = useState(false);
+  const [intervalIndex, setIntervalIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [changesOpen, setChangesOpen] = useState(false);
+  // Timelapse's own CATEGORY filter (separate state from the main FilterPanel's `filters`) — regenerated
+  // whenever `wheel` itself changes (new snapshot, or a new Node-id restriction), since which categories/planes
+  // are even present depends on the wheel's own contents. null before the first wheel loads.
+  const [timelapseCategoryFilters, setTimelapseCategoryFilters] = useState<TimelapseCategoryFilters | null>(null);
+  const [timelapseFilterOpen, setTimelapseFilterOpen] = useState(false);
 
   // Fetched here (not inside FieldScene) so the NodeFilterPanel — a sibling, not a child, of FieldScene — can
   // also see the full unfiltered Node set: it needs that to compute each field's available values/range and
   // the included/excluded counts, independent of whichever filters are currently applied.
   useEffect(() => {
+    setAllNodes([]); // clear the PREVIOUS snapshot's Nodes immediately rather than leaving them showing until this fetch resolves
+    const start = performance.now();
+    console.log('[Scene3D] fetching /scene/nodes...');
     fetch('/scene/nodes')
       .then((r) => r.json() as Promise<SceneNode[]>)
-      .then(setAllNodes)
-      .catch(() => setAllNodes([]));
+      .then((nodes) => {
+        console.log(`[Scene3D] /scene/nodes returned ${nodes.length} nodes in ${(performance.now() - start).toFixed(0)}ms`);
+        setAllNodes(nodes);
+      })
+      .catch((err) => {
+        console.error('[Scene3D] /scene/nodes failed:', err);
+        setAllNodes([]);
+      });
     setNodesHidden(false);
   }, [snapshotKey]);
 
@@ -1225,6 +1507,14 @@ export function Scene3D({
     onSelect(id);
     setPropsOpen(true);
     if (filters.playSound) playSelectSound();
+  }
+
+  // Timelapse's "Changes" list already names one specific resource per row, so a click jumps straight to its
+  // source editor — unlike a 3D scene click (handleSelect above), there's no ambiguity that needs the small
+  // Properties popup as an intermediate step.
+  function handleChangeSelect(id: string) {
+    onSelect(id);
+    onOpenEditor();
   }
 
   // Distinct namespaces across pods + every tier item, for the filter panel's Namespace select — recomputed
@@ -1252,47 +1542,139 @@ export function Scene3D({
   // listing all 10 regardless of what's really in the cluster.
   const presentPanes = useMemo(() => wheel?.controlPlane.planes.map((p) => p.name) ?? [], [wheel]);
 
+  // Timelapse's discrete intervals — recomputed only when `wheel` itself changes (a new fetch), not on every
+  // playback tick, same memo shape as `namespaces`/`presentPanes` above.
+  const intervals = useMemo(() => (wheel ? buildIntervals(wheel) : []), [wheel]);
+
+  // A fresh `wheel` fetch can produce a shorter/longer interval list than before — keep intervalIndex in
+  // bounds rather than pointing past the end (or, worse, silently rendering nothing).
+  useEffect(() => {
+    if (intervalIndex >= intervals.length) setIntervalIndex(Math.max(0, intervals.length - 1));
+  }, [intervals, intervalIndex]);
+
+  // Autoplay: steps intervalIndex forward on a fixed real-world timer while `playing`, stopping (not looping)
+  // at the end — the wheel finishing fully built and staying that way reads more naturally than jumping back
+  // to empty. Every interval gets the SAME on-screen duration (BASE_STEP_MS / playbackSpeed) regardless of how
+  // far apart its underlying cluster timestamp is from the previous one — a 2-minute gap in creation times
+  // displays for exactly as long as a 2-second gap, since this is "watch the cluster's changes unfold at a
+  // steady pace," not a literal real-time playback of elapsed cluster time. playbackSpeed (the control line's
+  // speed selector) scales this directly: 1x = BASE_STEP_MS per interval, 2x = half that (faster), 0.5x =
+  // double (slower).
+  useEffect(() => {
+    if (!playing || intervals.length === 0) return;
+    if (intervalIndex >= intervals.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    const BASE_STEP_MS = 1000; // 1 second per interval at the default 1x speed
+    const timeout = setTimeout(() => setIntervalIndex((i) => Math.min(i + 1, intervals.length - 1)), BASE_STEP_MS / playbackSpeed);
+    return () => clearTimeout(timeout);
+  }, [playing, playbackSpeed, intervalIndex, intervals.length]);
+
+  // The one derived value that composes timelapse into WheelScene's existing filter chain — null means
+  // timelapse is off (no restriction, today's default behavior). Computed only from `wheel`/`intervals`/the
+  // current index, not from anything render-only, so it's cheap to recompute per step.
+  const visibleAtTime = useMemo(() => {
+    if (!timelapseEnabled || !wheel || intervals.length === 0) return null;
+    const interval = intervals[intervalIndex];
+    if (!interval) return null;
+    return visibleIdsAtInterval(wheel, interval.end);
+  }, [timelapseEnabled, wheel, intervals, intervalIndex]);
+
+  // None of the Control Plane's items (kubelets/kube-proxies/components/kubectl/registries) carry their own
+  // creationTimestamp — they're synthesized per-Node or per-cluster, not individually timestamped resources —
+  // so "the Control Plane exists" is anchored to the timelapse's own first event (intervalIndex > 0, i.e. past
+  // the synthesized "before first event" interval) rather than any one item's timestamp. Always true when
+  // timelapse itself is off.
+  const controlPlaneRevealed = !visibleAtTime || intervalIndex > 0;
+
+  // Timelapse's own CATEGORY filter is wheel-shaped (which categories/planes even exist varies per snapshot),
+  // so it's regenerated to sensible defaults every time a NEW wheel is fetched — same trigger as the Field
+  // view's `nodesHidden` reset, not the `snapshotKey` effect above (a "View in Wheel" Node-id restriction also
+  // produces a new `wheel` without a snapshot change, and should reset this the same way).
+  useEffect(() => {
+    setTimelapseCategoryFilters(wheel ? defaultTimelapseCategoryFilters(wheel) : null);
+  }, [wheel]);
+
+  // Changes list for the CURRENT interval only (previous interval's end -> current interval's end) — the
+  // "Changes" button's popover content.
+  const changes = useMemo(() => {
+    if (!wheel || intervals.length === 0 || intervalIndex === 0) return [];
+    const prev = intervals[intervalIndex - 1];
+    const curr = intervals[intervalIndex];
+    if (!prev || !curr) return [];
+    return changesInInterval(wheel, prev.end, curr.end);
+  }, [wheel, intervals, intervalIndex]);
+
   // Invalidate the cached wheel whenever the snapshot changes, then let the effect below refetch it — Scene3D
   // never unmounts (see FieldScene's fetch comment above for why that matters here specifically). Without
   // this, switching snapshots leaves the wheel showing the PREVIOUS snapshot's resource ids, which then 404
   // when clicked against the new one.
   useEffect(() => {
     setWheel(null);
+    setWheelNodeIds(null);
     setPropsOpen(false);
+    setIntervalIndex(0);
+    setPlaying(false);
+    setChangesOpen(false);
+    // timelapseEnabled/playbackSpeed are NOT reset here — user preferences, same as `filters` — see their own
+    // declaration comment above.
   }, [snapshotKey]);
+
+  // Also invalidate (and let the effect below refetch) whenever the Node-id restriction itself changes — e.g.
+  // the Field view's "View in Wheel" button hands over a fresh set of ids while already in wheel mode.
+  useEffect(() => {
+    setWheel(null);
+  }, [wheelNodeIds]);
 
   useEffect(() => {
     if (mode !== 'wheel' || wheel) return;
-    fetch('/scene/wheel')
+    const start = performance.now();
+    console.log(`[Scene3D] fetching /scene/wheel (nodeIds=${wheelNodeIds?.length ?? 'all'})...`);
+    fetch('/scene/wheel', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ nodeIds: wheelNodeIds }),
+    })
       .then((r) => r.json() as Promise<ClusterWheel>)
-      .then(setWheel)
-      .catch(() => setWheel(null));
-  }, [mode, wheel]);
+      .then((w) => {
+        console.log(`[Scene3D] /scene/wheel returned ${w.pods.length} pods in ${(performance.now() - start).toFixed(0)}ms`);
+        setWheel(w);
+      })
+      .catch((err) => {
+        console.error('[Scene3D] /scene/wheel failed:', err);
+        setWheel(null);
+      });
+  }, [mode, wheel, wheelNodeIds]);
+
+  // WheelScene mounts its whole Pod set (one PodHex + up to two MetricBar meshes each — see the uncapped-Pod
+  // warning inside WheelScene) in a single React commit, which is the actual freeze on a large cluster, not
+  // the fetch above. Setting `wheel` and mounting WheelScene in the same tick would schedule the freeze
+  // before the browser ever gets to paint a "Rendering N pods..." message, so it'd never be seen. A single
+  // rAF can still fire before that paint lands (timing is spec-loose here), so this waits for two — the
+  // standard "definitely painted by now" pattern — before the heavy mount happens on the frame after that.
+  const [wheelReady, setWheelReady] = useState(false);
+  useEffect(() => {
+    if (!wheel) {
+      setWheelReady(false);
+      return;
+    }
+    setWheelReady(false);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setWheelReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [wheel]);
 
   return (
     // Kept mounted (visibility toggle, not conditional render) so there's ever only one WebGL context and
     // switching views doesn't tear down / recreate the canvas (DESIGN.md 3D lifecycle: resident-paused).
     <div className="relative h-full w-full" style={{ display: active ? 'block' : 'none' }}>
       <div className="absolute top-2 left-2 z-10 flex gap-1">
-        {(
-          [
-            ['field', 'Field'],
-            ['wheel', 'Wheel'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setMode(id)}
-            className="rounded border px-2 py-1 text-xs cursor-pointer"
-            style={{
-              borderColor: 'var(--vpk-border)',
-              background: mode === id ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
-              color: mode === id ? '#fff' : 'var(--vpk-fg)',
-            }}
-          >
-            {label}
-          </button>
-        ))}
         <button
           onClick={() => setFilterOpen((v) => !v)}
           className="rounded border px-2 py-1 text-xs cursor-pointer"
@@ -1304,6 +1686,43 @@ export function Scene3D({
         >
           Filter
         </button>
+        {(
+          [
+            ['field', 'Field'],
+            ['wheel', 'Wheel'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => {
+              setMode(id);
+              // Picking the Wheel tab directly always shows the full cluster — only the Field view's
+              // dedicated "View in Wheel" button narrows it to the green-bordered Nodes.
+              if (id === 'wheel') setWheelNodeIds(null);
+            }}
+            className="rounded border px-2 py-1 text-xs cursor-pointer"
+            style={{
+              borderColor: 'var(--vpk-border)',
+              background: mode === id ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
+              color: mode === id ? '#fff' : 'var(--vpk-fg)',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+        {mode === 'wheel' && (
+          <button
+            onClick={() => setTimelapseEnabled((v) => !v)}
+            className="rounded border px-2 py-1 text-xs cursor-pointer"
+            style={{
+              borderColor: 'var(--vpk-border)',
+              background: timelapseEnabled ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
+              color: timelapseEnabled ? '#fff' : 'var(--vpk-fg)',
+            }}
+          >
+            Timelapse
+          </button>
+        )}
       </div>
       {mode === 'field' && (
         <div
@@ -1312,7 +1731,8 @@ export function Scene3D({
         >
           <span>
             <span style={{ color: NODE_INCLUDED_COLOR }}>{nodesHidden ? includedNodeCount : allNodes.length}</span> shown ·{' '}
-            <span style={{ color: NODE_EXCLUDED_COLOR }}>{nodesHidden ? excludedNodeCount : 0}</span> hidden · {allNodes.length} total
+            <span style={{ color: NODE_EXCLUDED_COLOR }}>{nodesHidden ? excludedNodeCount : 0}</span> hidden · {allNodes.length} total ·{' '}
+            <span style={{ color: NODE_INCLUDED_COLOR }}>{includedNodeCount}</span> in Wheel
           </span>
           <button
             onClick={() => setNodesHidden(true)}
@@ -1330,9 +1750,46 @@ export function Scene3D({
           >
             Reset view
           </button>
+          <button
+            onClick={() => {
+              setWheelNodeIds(allNodes.filter((n) => nodePassesFilter(n, nodeFilters)).map((n) => n.id));
+              setMode('wheel');
+            }}
+            disabled={includedNodeCount === 0}
+            className="cursor-pointer rounded border px-1.5 py-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderColor: 'var(--vpk-border)' }}
+            title="Switch to the Wheel view, showing only the Nodes with a green border here"
+          >
+            View in Wheel
+          </button>
         </div>
       )}
       {mode === 'wheel' && <WheelLegend wheel={wheel} />}
+      {mode === 'wheel' && wheel && timelapseEnabled && (
+        <TimelapseControls
+          intervals={intervals}
+          intervalIndex={intervalIndex}
+          onSetIntervalIndex={setIntervalIndex}
+          playing={playing}
+          onTogglePlaying={() => setPlaying((v) => !v)}
+          speed={playbackSpeed}
+          onSetSpeed={setPlaybackSpeed}
+          changes={changes}
+          changesOpen={changesOpen}
+          onToggleChanges={() => setChangesOpen((v) => !v)}
+          onSelectChange={handleChangeSelect}
+          filterOpen={timelapseFilterOpen}
+          onToggleFilter={() => setTimelapseFilterOpen((v) => !v)}
+        />
+      )}
+      {timelapseFilterOpen && mode === 'wheel' && wheel && timelapseCategoryFilters && (
+        <TimelapseFilterPanel
+          wheel={wheel}
+          filters={timelapseCategoryFilters}
+          onChange={setTimelapseCategoryFilters}
+          onClose={() => setTimelapseFilterOpen(false)}
+        />
+      )}
       {filterOpen && mode === 'field' && (
         <NodeFilterPanel filters={nodeFilters} onChange={setNodeFilters} onClose={() => setFilterOpen(false)} nodes={allNodes} />
       )}
@@ -1355,6 +1812,14 @@ export function Scene3D({
         onViewRepository={onViewRepository}
         onClose={() => setPropsOpen(false)}
       />
+      {mode === 'wheel' && wheel && !wheelReady && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center"
+          style={{ background: 'var(--vpk-bg)' }}
+        >
+          <span style={{ color: 'var(--vpk-fg)' }}>Rendering {wheel.pods.length.toLocaleString()} pods…</span>
+        </div>
+      )}
       <Canvas camera={{ position: mode === 'wheel' ? [0, 10, 22] : [4, 4, 8], fov: 50 }} style={{ background: 'var(--vpk-bg)' }}>
         <ambientLight intensity={0.7} />
         <directionalLight position={[5, 8, 5]} intensity={0.6} />
@@ -1367,8 +1832,16 @@ export function Scene3D({
             allNodes={allNodes}
             nodesHidden={nodesHidden}
           />
-        ) : wheel ? (
-          <WheelScene wheel={wheel} onSelect={handleSelect} selected={selected} filters={filters} />
+        ) : wheel && wheelReady ? (
+          <WheelScene
+            wheel={wheel}
+            onSelect={handleSelect}
+            selected={selected}
+            filters={filters}
+            visibleAtTime={visibleAtTime}
+            timelapseCategoryFilters={timelapseEnabled ? timelapseCategoryFilters : null}
+            controlPlaneRevealed={controlPlaneRevealed}
+          />
         ) : null}
         <gridHelper args={[40, 40, '#d9d9d5', '#e8e8e5']} />
         <OrbitControls makeDefault />

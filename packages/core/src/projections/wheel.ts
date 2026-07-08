@@ -22,12 +22,27 @@ export interface WheelPoint {
   y: number;
   z: number;
   color: string;
+  /** ISO 8601, mirrors the backing Resource's own creationTimestamp — the timelapse's time axis. CSI node
+   *  driver dots inherit their owning CSINode's timestamp (several dots share one CSINode, so they share its
+   *  timestamp too). Undefined only for local storage cylinders, which have no single backing resource at
+   *  all — the client-side timelapse instead ties each cylinder's visibility to its own owning Node's
+   *  timestamp (see Scene3D.tsx), so it never appears before the Node itself does. */
+  creationTimestamp?: string;
+  /** Only set when the backing resource's raw k8s object genuinely has metadata.deletionTimestamp — i.e. it's
+   *  actually mid-termination (blocked by a finalizer), never fabricated. Most snapshots will have this unset
+   *  on nearly everything; demo data can opt into synthetic churn instead (see demoTimestamps.ts). */
+  deletionTimestamp?: string;
 }
 export interface WheelNode extends WheelPoint {
   health: NodeHealth;
   healthColor: string;
   role: NodeRole;
+  /** Always the TRUE uncapped count of Pods scheduled on this node — unaffected by POD_CAP_PER_NODE, since
+   *  this is also what the Field view's node summary and NodeFilterPanel read. */
   podCount: number;
+  /** Only set when this node's Pods were actually cut by POD_CAP_PER_NODE (i.e. < podCount) — mirrors
+   *  WheelTier.totalCount's "only report what's cut" convention. */
+  renderedPodCount?: number;
   cpuCapacity?: number;
   memCapacityBytes?: number;
   /** For the Resource CPU & Memory filter's "Node Persistent Storage" bar, which hangs off the Node's
@@ -46,6 +61,11 @@ export interface WheelPod extends WheelPoint {
    *  specifies either, so the client can tell "unspecified" apart from "explicitly zero". */
   cpuRequested?: number;
   memRequestedBytes?: number;
+  /** The `uid` of this Pod's owning ReplicaSet, if any (undefined for DaemonSet/StatefulSet/Job-owned or
+   *  bare Pods) — a plain grouping key for the "Show replica" feature (client-side: pods sharing the same
+   *  value are siblings in the same ReplicaSet), not resolved against the graph, so it works even when the
+   *  ReplicaSet resource itself isn't in this snapshot. */
+  replicaSetId?: string;
 }
 export interface WheelTierItem extends WheelPoint {
   kind: string;
@@ -92,6 +112,9 @@ export interface ClusterWheel {
   csiRingRadius: number;
   nodes: WheelNode[];
   pods: WheelPod[];
+  /** True total across every node, uncapped — sum of each WheelNode's own podCount. Lets the client's
+   *  WheelLegend report "showing X/Y pods" the same way it already does for every other capped tier. */
+  totalPodCount: number;
   network: WheelTier;
   endpoints: WheelTier;
   /** Ingress + HTTPRoute (Gateway API) objects that route external traffic INTO a Service — the mirror image
@@ -123,6 +146,13 @@ const HEALTH_COLOR: Record<NodeHealth, string> = { ok: '#86bc9e', warn: '#e6c878
 /** Render at most this many items per linked tier — even after restricting to actually-referenced resources,
  *  a real cluster can reference hundreds of Services/PVCs. `totalCount` always reports what's cut. */
 const TIER_CAP = 120;
+/** Render at most this many Pods per Node — Pods were previously the one tier rendered fully uncapped (every
+ *  other tier already caps at TIER_CAP), which is what actually froze the tab on a real 30k+-pod snapshot (see
+ *  Scene3D.tsx's WheelScene). Applied per-node (not as one global slice) so ring/wedge geometry, computed from
+ *  the FULL uncapped pod counts via layoutPodRows below, never shifts based on which nodes happen to get
+ *  capped, and every node still gets a representative sample rather than one busy node eating the whole
+ *  budget. `WheelNode.podCount` always reports the true uncapped count regardless of this cap. */
+const POD_CAP_PER_NODE = 60;
 const ROW_STEP = 0.6;
 const INNER_R = 1.4;
 const NODE_MARGIN = 1.3;
@@ -190,6 +220,17 @@ function deconflict(x: number, z: number, placed: { x: number; z: number }[], mi
   return { x, z }; // exhausted a generous search radius — leave as-is rather than loop forever
 }
 
+/** Timestamp pair spread into every wheel point built from a real backing Resource — see WheelPoint's own doc
+ *  comments for what each field means and when it's absent. `raw.metadata` is the only place deletionTimestamp
+ *  lives; it isn't promoted to a typed Resource field elsewhere in @vpk/core, so it's read here directly. */
+function pointTimestamps(r: Resource | undefined): { creationTimestamp?: string; deletionTimestamp?: string } {
+  if (!r) return {};
+  return {
+    creationTimestamp: r.creationTimestamp,
+    deletionTimestamp: (r.raw.metadata as { deletionTimestamp?: string } | undefined)?.deletionTimestamp,
+  };
+}
+
 interface ContainerResourcesRaw {
   requests?: { cpu?: string; memory?: string };
   limits?: { cpu?: string; memory?: string };
@@ -215,6 +256,18 @@ function sumContainerResource(pod: Resource, resourceKey: 'cpu' | 'memory', pars
     }
   }
   return anySpecified ? total : undefined;
+}
+
+interface OwnerRefRaw {
+  kind?: string;
+  uid?: string;
+}
+
+/** The `uid` of a Pod's owning ReplicaSet, if any — mirrors podStatus.ts's `isDaemonSetOwned` shape (a plain
+ *  ownerReferences scan, not a graph lookup) for the "Show replica" feature's sibling-grouping key. */
+function podReplicaSetId(pod: Resource): string | undefined {
+  const owners = pod.raw.metadata?.ownerReferences as OwnerRefRaw[] | undefined;
+  return owners?.find((o) => o.kind === 'ReplicaSet')?.uid;
 }
 
 interface PodRowSlot {
@@ -516,6 +569,7 @@ function csiNodeDriverDots(graph: ResourceGraph, nodes: WheelNode[]): WheelCsiNo
         z: n.z,
         color: colorForKind('CSINode'),
         nodeId: n.id,
+        ...pointTimestamps(csiNode),
       });
     });
   }
@@ -551,9 +605,25 @@ function localStorageDots(nodes: WheelNode[]): WheelLocalStorage[] {
  * generic drop-line to the ring plane. Positions/colors are computed server-side (the "server scene-model
  * contract" decision). DaemonSet pods always occupy the innermost row (closest to the open donut-hole center)
  * regardless of graph order — they're the one pod kind pinned to a fixed radius rather than packed by index.
+ *
+ * `nodeIds`, when given, restricts the ring to just those Node resource ids (e.g. the Field view's "view in
+ * Wheel" button, handing over whichever Nodes currently pass its filter) — everything downstream (pods, the
+ * busiest-node ring sizing, per-node kubelet/kube-proxy tiers) is derived FROM this filtered Node list, so
+ * excluded Nodes' Pods simply never appear rather than needing a second filter pass.
  */
-export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
-  const nodeResources = [...graph.nodes.values()].filter((r) => r.kind === 'Node').sort((a, b) => a.name.localeCompare(b.name));
+export function projectClusterWheel(graph: ResourceGraph, nodeIds?: Set<string>): ClusterWheel {
+  // Role-first, then name: masters sort before workers, alphabetically within each group. Nodes are placed
+  // around the ring strictly in this array's order (see the angle formula in the forEach below), so grouping
+  // masters contiguously here is ALL that's needed for their pod-wedges to adjoin each other in a multi-master
+  // cluster — no separate geometry step. A single-master or all-worker cluster sees no visible change, since
+  // there's nothing to group.
+  const nodeResources = [...graph.nodes.values()]
+    .filter((r) => r.kind === 'Node')
+    .filter((r) => !nodeIds || nodeIds.has(r.id))
+    .sort((a, b) => {
+      const roleDiff = (nodeRole(a) === 'master' ? 0 : 1) - (nodeRole(b) === 'master' ? 0 : 1);
+      return roleDiff !== 0 ? roleDiff : a.name.localeCompare(b.name);
+    });
   const n = Math.max(1, nodeResources.length);
 
   const podsByNode = new Map<string, Resource[]>();
@@ -601,14 +671,22 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
       cpuCapacity: parseCpuQuantity(status?.capacity?.cpu),
       memCapacityBytes: parseQuantity(status?.capacity?.memory),
       ephemeralStorageCapacityBytes: parseQuantity(status?.capacity?.['ephemeral-storage']),
+      ...pointTimestamps(nodeRes),
     });
 
     // DaemonSet pods go first — since row 0 sits at the smallest radius, this always groups them in the
     // innermost ring nearest the donut hole, regardless of what order the graph happened to return pods in.
     const orderedPods = [...nodePods.filter(isDaemonSetOwned), ...nodePods.filter((p) => !isDaemonSetOwned(p))];
+    // Row/slot geometry is computed from the FULL uncapped count — capping only which pods get emitted below
+    // must never shrink/grow the ring itself, or the wheel's radius would depend on which nodes got capped.
     const { slots } = layoutPodRows(orderedPods.length, wedgeAngle);
+    // Only the EMISSION is capped — DaemonSet pods (always first in orderedPods) are never among the ones cut,
+    // and every emitted pod keeps the exact slot position it would have had uncapped (slot index j is a valid
+    // prefix of the full `slots` array). See POD_CAP_PER_NODE's own comment for why this is per-node.
+    const renderedPods = orderedPods.slice(0, POD_CAP_PER_NODE);
+    if (renderedPods.length < orderedPods.length) (nodes[nodes.length - 1] as WheelNode).renderedPodCount = renderedPods.length;
 
-    orderedPods.forEach((pod, j) => {
+    renderedPods.forEach((pod, j) => {
       const { indexInRow, podsInRow, radius } = slots[j] as PodRowSlot;
       const podAngle = angle + (indexInRow - (podsInRow - 1) / 2) * (wedgeAngle / Math.max(podsInRow, 1));
       const wp: WheelPod = {
@@ -622,10 +700,12 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
         color: podStatusColor(pod),
         status: podStatusCategory(pod),
         daemonSet: isDaemonSetOwned(pod),
+        replicaSetId: podReplicaSetId(pod),
         labels: pod.labels,
         annotations: pod.annotations,
         cpuRequested: sumContainerResource(pod, 'cpu', parseCpuQuantity),
         memRequestedBytes: sumContainerResource(pod, 'memory', parseQuantity),
+        ...pointTimestamps(pod),
       };
       pods.push(wp);
       podPosById.set(pod.id, wp);
@@ -668,6 +748,7 @@ export function projectClusterWheel(graph: ResourceGraph): ClusterWheel {
     csiRingRadius,
     nodes,
     pods,
+    totalPodCount: nodes.reduce((sum, nd) => sum + nd.podCount, 0),
     network,
     endpoints,
     ingress,
@@ -734,6 +815,7 @@ function linkedTier(
       y,
       z,
       color: colorForKind(item?.kind ?? ''),
+      ...pointTimestamps(item),
     };
   });
 
@@ -796,6 +878,7 @@ function serviceTier(
       y,
       z,
       color: colorForKind(item?.kind ?? ''),
+      ...pointTimestamps(item),
     };
   });
 
@@ -855,6 +938,7 @@ function serviceChildTier(
       y,
       z,
       color: colorForKind(item?.kind ?? ''),
+      ...pointTimestamps(item),
     });
     for (const serviceId of serviceIds) edges.push({ fromId: serviceId, toId: childId });
   }
@@ -906,6 +990,7 @@ function oneHopTier(
       y,
       z,
       color: colorForKind(item?.kind ?? ''),
+      ...pointTimestamps(item),
     };
   });
 
@@ -966,6 +1051,7 @@ function csiDriverTier(
       y,
       z,
       color: colorForKind(item?.kind ?? ''),
+      ...pointTimestamps(item),
     };
   });
 

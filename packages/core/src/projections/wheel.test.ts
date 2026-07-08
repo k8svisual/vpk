@@ -51,6 +51,22 @@ describe('projectClusterWheel geometry', () => {
     expect(projectClusterWheel(graphBusy).outerRadius).toBeGreaterThan(projectClusterWheel(graphSmall).outerRadius);
   });
 
+  it('restricts the ring to just the given nodeIds, dropping excluded Nodes\' Pods along with them', () => {
+    const graph = buildGraph([node('a'), node('b'), node('c'), pod('p1', 'a'), pod('p2', 'b'), pod('p3', 'c')]);
+    const nodeA = [...graph.nodes.values()].find((r) => r.kind === 'Node' && r.name === 'a');
+    const wheel = projectClusterWheel(graph, new Set([nodeA?.id as string]));
+
+    expect(wheel.nodes).toHaveLength(1);
+    expect(wheel.nodes[0]?.name).toBe('a');
+    expect(wheel.pods).toHaveLength(1);
+    expect(wheel.pods[0]?.name).toBe('p1');
+  });
+
+  it('with no nodeIds given, behaves exactly as before (every Node included)', () => {
+    const graph = buildGraph([node('a'), node('b')]);
+    expect(projectClusterWheel(graph, undefined).nodes).toHaveLength(2);
+  });
+
   it('reports health separately from color now that color encodes node role', () => {
     const graph = buildGraph([node('bad', false)]);
     const wheel = projectClusterWheel(graph);
@@ -75,6 +91,23 @@ describe('projectClusterWheel geometry', () => {
     expect(masterNode.color).not.toBe(workerNode.color);
   });
 
+  it('groups multiple master nodes into adjacent pie-wedges, not interspersed with workers', () => {
+    const masterNode = (name: string): RawObject => ({
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: { uid: `node-${name}`, name, labels: { 'node-role.kubernetes.io/master': '' } },
+      status: { conditions: [{ type: 'Ready', status: 'True' }] },
+    });
+    // Named so a purely-alphabetical sort would interleave them with workers (alpha, beta, delta, gamma).
+    const graph = buildGraph([node('alpha'), masterNode('beta'), node('delta'), masterNode('gamma')]);
+    const wheel = projectClusterWheel(graph);
+    const masterIndices = wheel.nodes.map((n, i) => (n.role === 'master' ? i : -1)).filter((i) => i >= 0);
+    // Both masters land at consecutive indices in the ring array — since nodes are placed strictly in array
+    // order (angle = 2π*i/n), consecutive indices means their pod-wedges are geometrically adjacent.
+    expect(masterIndices).toEqual([0, 1]);
+    expect(wheel.nodes.slice(0, 2).map((n) => n.name).sort()).toEqual(['beta', 'gamma']);
+  });
+
   it('colors a DaemonSet-owned pod grey even though it is Running (not green)', () => {
     const graph = buildGraph([node('a'), pod('regular', 'a'), daemonSetPod('ds', 'a')]);
     const wheel = projectClusterWheel(graph);
@@ -87,6 +120,27 @@ describe('projectClusterWheel geometry', () => {
     const wheel = projectClusterWheel(graph);
     expect(wheel.pods.find((p) => p.name === 'regular')).toMatchObject({ status: 'failed', daemonSet: false });
     expect(wheel.pods.find((p) => p.name === 'ds')).toMatchObject({ status: 'running', daemonSet: true });
+  });
+
+  it("reports a Pod's owning ReplicaSet uid as replicaSetId, for the 'Show replica' sibling grouping", () => {
+    const replicaPod = (name: string): RawObject => ({
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        uid: `pod-${name}`,
+        name,
+        namespace: 'ns',
+        ownerReferences: [{ kind: 'ReplicaSet', name: 'rs-1', uid: 'rs-uid-1' }],
+      },
+      spec: { nodeName: 'a' },
+      status: { phase: 'Running' },
+    });
+    const graph = buildGraph([node('a'), replicaPod('r1'), replicaPod('r2'), pod('bare', 'a'), daemonSetPod('ds', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.pods.find((p) => p.name === 'r1')?.replicaSetId).toBe('rs-uid-1');
+    expect(wheel.pods.find((p) => p.name === 'r2')?.replicaSetId).toBe('rs-uid-1');
+    expect(wheel.pods.find((p) => p.name === 'bare')?.replicaSetId).toBeUndefined();
+    expect(wheel.pods.find((p) => p.name === 'ds')?.replicaSetId).toBeUndefined();
   });
 
   it('always groups DaemonSet pods in the innermost row, even when added after regular pods fill row 0', () => {
@@ -658,7 +712,7 @@ describe('projectClusterWheel pod linkage', () => {
     const csiNode: RawObject = {
       apiVersion: 'storage.k8s.io/v1',
       kind: 'CSINode',
-      metadata: { uid: 'csinode-a', name: 'a' },
+      metadata: { uid: 'csinode-a', name: 'a', creationTimestamp: '2024-03-01T00:00:00Z' },
       spec: {
         drivers: [
           { name: 'driver-one', nodeID: 'a' },
@@ -684,6 +738,9 @@ describe('projectClusterWheel pod linkage', () => {
       expect(d.x).toBeCloseTo(n.x, 5);
       expect(d.z).toBeCloseTo(n.z, 5);
     }
+    // Every dot for a node shares that node's CSINode object, so they all inherit ITS creationTimestamp too
+    // (not the Node's own) — this is what lets the timelapse gate the CSI ring on "first CSI item created".
+    expect(wheel.csiNodeDrivers.every((d) => d.creationTimestamp === '2024-03-01T00:00:00Z')).toBe(true);
   });
 
   it('gives every node a local-storage cylinder, clickable back to the Node itself', () => {
@@ -698,5 +755,86 @@ describe('projectClusterWheel pod linkage', () => {
       // Offset further out than the node it belongs to, not stacked directly on it.
       expect(Math.hypot(ls.x, ls.z)).toBeGreaterThan(Math.hypot(n!.x, n!.z));
     }
+  });
+});
+
+describe('projectClusterWheel timestamps (timelapse)', () => {
+  it('propagates creationTimestamp and metadata.deletionTimestamp onto WheelNode/WheelPod/WheelTierItem', () => {
+    const timedNode: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: { uid: 'node-a', name: 'a', creationTimestamp: '2024-01-01T00:00:00Z' },
+      status: { conditions: [{ type: 'Ready', status: 'True' }] },
+    };
+    const timedPod: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        uid: 'pod-p1',
+        name: 'p1',
+        namespace: 'ns',
+        creationTimestamp: '2024-01-02T00:00:00Z',
+        deletionTimestamp: '2024-02-01T00:00:00Z',
+      },
+      spec: { nodeName: 'a' },
+      status: { phase: 'Running' },
+    };
+    const svc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Service',
+      metadata: { uid: 'svc-1', name: 'web', namespace: 'ns', creationTimestamp: '2024-01-03T00:00:00Z' },
+    };
+    const endpoints: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'eps-1', name: 'web', namespace: 'ns' },
+      subsets: [{ addresses: [{ targetRef: { kind: 'Pod', uid: 'pod-p1' } }] }],
+    };
+    const graph = buildGraph([timedNode, timedPod, svc, endpoints]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.nodes[0]?.creationTimestamp).toBe('2024-01-01T00:00:00Z');
+    expect(wheel.nodes[0]?.deletionTimestamp).toBeUndefined();
+    expect(wheel.pods[0]?.creationTimestamp).toBe('2024-01-02T00:00:00Z');
+    expect(wheel.pods[0]?.deletionTimestamp).toBe('2024-02-01T00:00:00Z');
+    expect(wheel.network.items[0]?.creationTimestamp).toBe('2024-01-03T00:00:00Z');
+  });
+});
+
+describe('projectClusterWheel Pod cap (POD_CAP_PER_NODE)', () => {
+  it('caps rendered Pods per node at 60 while leaving podCount and ring geometry uncapped', () => {
+    const busyPods = Array.from({ length: 200 }, (_, i) => pod(`p${i}`, 'a'));
+    const graphCapped = buildGraph([node('a'), ...busyPods]);
+    const wheelCapped = projectClusterWheel(graphCapped);
+
+    expect(wheelCapped.pods).toHaveLength(60);
+    expect(wheelCapped.nodes[0]?.podCount).toBe(200);
+    expect(wheelCapped.nodes[0]?.renderedPodCount).toBe(60);
+    expect(wheelCapped.totalPodCount).toBe(200);
+
+    // Ring geometry must be identical to a scenario with the same TRUE pod count pre-capped elsewhere, i.e.
+    // capping which pods get emitted must not shrink outerRadius/rows relative to the full uncapped count.
+    const exactly60 = Array.from({ length: 60 }, (_, i) => pod(`q${i}`, 'a'));
+    const graphUncapped = buildGraph([node('a'), ...exactly60]);
+    const wheelUncapped = projectClusterWheel(graphUncapped);
+    expect(wheelCapped.outerRadius).toBeGreaterThan(wheelUncapped.outerRadius);
+  });
+
+  it('always includes every DaemonSet pod among the capped set, never cutting them for regular pods', () => {
+    const regulars = Array.from({ length: 100 }, (_, i) => pod(`r${i}`, 'a'));
+    const daemons = Array.from({ length: 10 }, (_, i) => daemonSetPod(`ds${i}`, 'a'));
+    const graph = buildGraph([node('a'), ...regulars, ...daemons]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.pods).toHaveLength(60);
+    const renderedDaemonCount = wheel.pods.filter((p) => p.daemonSet).length;
+    expect(renderedDaemonCount).toBe(10);
+  });
+
+  it('leaves renderedPodCount unset and totalPodCount equal to pods.length when nothing was cut', () => {
+    const graph = buildGraph([node('a'), pod('p1', 'a'), pod('p2', 'a')]);
+    const wheel = projectClusterWheel(graph);
+    expect(wheel.nodes[0]?.renderedPodCount).toBeUndefined();
+    expect(wheel.totalPodCount).toBe(wheel.pods.length);
   });
 });

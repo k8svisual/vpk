@@ -1,0 +1,20 @@
+{
+  "apiVersion": "v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "clusterIP": "{{clusterIP}}",
+    "selector": {
+      "app": "{{targetName}}"
+    },
+    "ports": [
+      {
+        "port": 80,
+        "targetPort": 8080
+      }
+    ]
+  }
+}

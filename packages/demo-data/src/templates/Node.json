@@ -1,0 +1,54 @@
+{
+  "apiVersion": "v1",
+  "kind": "Node",
+  "metadata": {
+    "name": "{{name}}",
+    "labels": {
+      "kubernetes.io/hostname": "{{name}}",
+      "node-role.kubernetes.io/{{role}}": ""
+    }
+  },
+  "spec": {},
+  "status": {
+    "addresses": [
+      {
+        "address": "{{internalIP}}",
+        "type": "InternalIP"
+      },
+      {
+        "address": "{{name}}",
+        "type": "Hostname"
+      }
+    ],
+    "allocatable": {
+      "cpu": "{{cpuAllocatable}}",
+      "ephemeral-storage": "{{ephemeralStorageAllocatable}}",
+      "memory": "{{memAllocatableKi}}",
+      "pods": "{{podAllocatable}}"
+    },
+    "capacity": {
+      "cpu": "{{cpuCapacity}}",
+      "ephemeral-storage": "{{ephemeralStorageCapacity}}",
+      "memory": "{{memCapacityKi}}",
+      "pods": "{{podCapacity}}"
+    },
+    "conditions": [
+      { "type": "MemoryPressure", "status": "False" },
+      { "type": "DiskPressure", "status": "False" },
+      { "type": "PIDPressure", "status": "False" },
+      { "type": "Ready", "status": "True" }
+    ],
+    "nodeInfo": {
+      "architecture": "amd64",
+      "bootID": "{{bootID}}",
+      "containerRuntimeVersion": "containerd://1.7.0",
+      "kernelVersion": "5.15.0",
+      "kubeProxyVersion": "v1.29.0",
+      "kubeletVersion": "v1.29.0",
+      "machineID": "{{machineID}}",
+      "operatingSystem": "linux",
+      "osImage": "Demo Linux",
+      "systemUUID": "{{systemUUID}}"
+    }
+  }
+}

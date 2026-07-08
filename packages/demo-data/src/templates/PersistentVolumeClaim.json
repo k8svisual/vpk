@@ -1,0 +1,20 @@
+{
+  "apiVersion": "v1",
+  "kind": "PersistentVolumeClaim",
+  "metadata": {
+    "name": "{{name}}",
+    "namespace": "{{namespace}}"
+  },
+  "spec": {
+    "accessModes": ["ReadWriteOnce"],
+    "resources": {
+      "requests": {
+        "storage": "10Gi"
+      }
+    },
+    "storageClassName": "standard"
+  },
+  "status": {
+    "phase": "Bound"
+  }
+}

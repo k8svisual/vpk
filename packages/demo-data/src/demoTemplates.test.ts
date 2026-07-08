@@ -3,10 +3,10 @@ import { DEMO_TEMPLATES } from './demoTemplates';
 
 const TARGET_KINDS = [
   'CSIDriver', 'CSINode', 'ClusterRole', 'ClusterRoleBinding', 'ConfigMap', 'CronJob',
-  'CustomResourceDefinition', 'DaemonSet', 'Deployment', 'Endpoints', 'Event', 'Gateway',
-  'GatewayClass', 'HorizontalPodAutoscaler', 'HTTPRoute', 'Job', 'LimitRange', 'Namespace',
-  'NetworkPolicy', 'Node', 'PersistentVolume', 'PersistentVolumeClaim', 'Pod', 'Project',
-  'ReplicaSet', 'ResourceQuota', 'Role', 'RoleBinding', 'Route', 'Secret', 'Service',
+  'DaemonSet', 'Deployment', 'Endpoints', 'Event', 'Gateway',
+  'GatewayClass', 'HTTPRoute', 'Job', 'LimitRange', 'Namespace',
+  'NetworkPolicy', 'Node', 'PersistentVolume', 'PersistentVolumeClaim', 'Pod',
+  'ReplicaSet', 'ResourceQuota', 'Role', 'RoleBinding', 'Secret', 'Service',
   'ServiceAccount', 'StatefulSet', 'StorageClass', 'VolumeAttachment',
 ];
 
