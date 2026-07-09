@@ -47,7 +47,7 @@ interface DetectContext {
 const RANK = { authoritative: 3, high: 2, medium: 1 } as const;
 type Confidence = keyof typeof RANK;
 
-interface CatalogEntry {
+export interface CatalogEntry {
   id: string;
   name: string;
   /** Authoritative match: the OpenShift Network CR's networkType equals this. */
@@ -86,7 +86,7 @@ function matchEntry(e: CatalogEntry, ctx: DetectContext): Match | undefined {
 // Order matters only as a tie-break when two entries match at equal confidence; put the more specific/common
 // first. Authoritative (Network CR) always wins regardless of position.
 
-const NETWORK_CATALOG: CatalogEntry[] = [
+export const NETWORK_CATALOG: CatalogEntry[] = [
   {
     id: 'ovn-kubernetes',
     name: 'OVN-Kubernetes',
@@ -206,6 +206,64 @@ const NETWORK_CATALOG: CatalogEntry[] = [
   },
 ];
 
+/**
+ * Settings > Network Identification (CNI half): lets the user review the catalog above, fix a false
+ * positive/negative for their own cluster's naming, or add a plugin this build doesn't know about yet —
+ * without needing a code change. Only the DETECTION SIGNALS (DaemonSet names, CRD groups, annotation
+ * prefixes, namespaces) are editable this way; a built-in entry's bespoke `overlay` resolver (the
+ * encapsulation-guessing logic, e.g. Cilium's ConfigMap-driven tunnel-mode check) is never replaced by an
+ * override — a brand-new user-added entry instead gets a no-detail overlay (`{}, no evidence`), which is
+ * honest (no fabricated encapsulation guess) rather than silently wrong. Persisted server-side (POST
+ * /network-catalog) since this only ever runs server-side (inferNetworkPlane feeds server-rendered SVGs) —
+ * unlike vendorIconOverrides.ts, there's no client-side copy to keep in sync.
+ */
+export interface NetworkCatalogOverride {
+  id: string;
+  name?: string;
+  daemonSets?: string[];
+  crdGroups?: string[];
+  annoPrefixes?: string[];
+  namespaces?: string[];
+  disabled?: boolean;
+}
+
+let networkOverrides: NetworkCatalogOverride[] = [];
+let mergedNetworkCache: CatalogEntry[] | null = null;
+
+export function setNetworkCatalogOverrides(next: NetworkCatalogOverride[]): void {
+  networkOverrides = next;
+  mergedNetworkCache = null;
+}
+
+export function getNetworkCatalogOverrides(): NetworkCatalogOverride[] {
+  return networkOverrides;
+}
+
+function mergedNetworkCatalog(): CatalogEntry[] {
+  if (mergedNetworkCache) return mergedNetworkCache;
+  const byId = new Map(NETWORK_CATALOG.map((e) => [e.id, e]));
+  for (const o of networkOverrides) {
+    if (o.disabled) {
+      byId.delete(o.id);
+      continue;
+    }
+    const existing = byId.get(o.id);
+    byId.set(o.id, {
+      id: o.id,
+      name: o.name ?? existing?.name ?? o.id,
+      networkCrType: existing?.networkCrType,
+      daemonSets: o.daemonSets ?? existing?.daemonSets,
+      crdGroups: o.crdGroups ?? existing?.crdGroups,
+      annoPrefixes: o.annoPrefixes ?? existing?.annoPrefixes,
+      namespaces: o.namespaces ?? existing?.namespaces,
+      heuristic: existing?.heuristic,
+      overlay: existing?.overlay ?? (() => ({})),
+    });
+  }
+  mergedNetworkCache = [...byId.values()];
+  return mergedNetworkCache;
+}
+
 /** Data-plane mechanisms per matched CNI when no kube-proxy DaemonSet is present. */
 const DATAPLANE_WITHOUT_KUBEPROXY: Record<string, NetworkInference> = {
   cilium: { value: 'eBPF (Cilium kube-proxy replacement)', evidence: 'cilium present, no kube-proxy DaemonSet' },
@@ -292,7 +350,7 @@ export function inferNetworkPlane(graph: ResourceGraph): NetworkPlane {
 
   // Pick the strongest-confidence catalog match (tie → catalog order).
   let best: { entry: CatalogEntry; match: Match } | undefined;
-  for (const entry of NETWORK_CATALOG) {
+  for (const entry of mergedNetworkCatalog()) {
     const match = matchEntry(entry, ctx);
     if (match && (!best || RANK[match.confidence] > RANK[best.match.confidence])) best = { entry, match };
   }
@@ -377,7 +435,7 @@ export interface NetworkEdge {
  * pod literally running it is proof of injection (and a strong id signal even without the control plane in
  * this snapshot).
  */
-interface MeshEntry {
+export interface MeshEntry {
   id: string;
   name: string;
   crdGroups?: string[];
@@ -387,7 +445,7 @@ interface MeshEntry {
   sidecar?: string;
   namespaces?: string[];
 }
-const MESH_CATALOG: MeshEntry[] = [
+export const MESH_CATALOG: MeshEntry[] = [
   { id: 'istio', name: 'Istio', crdGroups: ['install.istio.io', 'networking.istio.io', 'security.istio.io'], deploys: ['istiod'], daemonSets: ['ztunnel'], sidecar: 'istio-proxy', namespaces: ['istio-system'] },
   // OpenShift Service Mesh IS Istio — identified by its own maistra.io CRD; its pods run the shared
   // `istio-proxy` sidecar, which the plain Istio entry above already attributes (a sidecar alone can't
@@ -399,8 +457,65 @@ const MESH_CATALOG: MeshEntry[] = [
   { id: 'osm', name: 'Open Service Mesh', crdGroups: ['config.openservicemesh.io'], deploys: ['osm-controller'], namespaces: ['osm-system'] },
   { id: 'appmesh', name: 'AWS App Mesh', crdGroups: ['appmesh.k8s.aws'], deploys: ['appmesh-controller'] },
 ];
-/** All known mesh sidecar container names → owning mesh id, for the injection scan. */
-const MESH_SIDECARS = new Map<string, string>(MESH_CATALOG.filter((m) => m.sidecar).map((m) => [m.sidecar!, m.id]));
+
+/**
+ * Settings > Network Identification (service-mesh half) — same override contract as
+ * NetworkCatalogOverride/mergedNetworkCatalog above, but simpler: MeshEntry carries no bespoke resolver
+ * function, so every field (including a brand-new mesh's) is plain, fully user-editable data. See
+ * NetworkCatalogOverride's doc comment for why this is server-persisted rather than localStorage.
+ */
+export interface MeshCatalogOverride {
+  id: string;
+  name?: string;
+  crdGroups?: string[];
+  deploys?: string[];
+  daemonSets?: string[];
+  sidecar?: string;
+  namespaces?: string[];
+  disabled?: boolean;
+}
+
+let meshOverrides: MeshCatalogOverride[] = [];
+let mergedMeshCache: MeshEntry[] | null = null;
+
+export function setMeshCatalogOverrides(next: MeshCatalogOverride[]): void {
+  meshOverrides = next;
+  mergedMeshCache = null;
+}
+
+export function getMeshCatalogOverrides(): MeshCatalogOverride[] {
+  return meshOverrides;
+}
+
+function mergedMeshCatalog(): MeshEntry[] {
+  if (mergedMeshCache) return mergedMeshCache;
+  const byId = new Map(MESH_CATALOG.map((e) => [e.id, e]));
+  for (const o of meshOverrides) {
+    if (o.disabled) {
+      byId.delete(o.id);
+      continue;
+    }
+    const existing = byId.get(o.id);
+    byId.set(o.id, {
+      id: o.id,
+      name: o.name ?? existing?.name ?? o.id,
+      crdGroups: o.crdGroups ?? existing?.crdGroups,
+      deploys: o.deploys ?? existing?.deploys,
+      daemonSets: o.daemonSets ?? existing?.daemonSets,
+      sidecar: o.sidecar ?? existing?.sidecar,
+      namespaces: o.namespaces ?? existing?.namespaces,
+    });
+  }
+  mergedMeshCache = [...byId.values()];
+  return mergedMeshCache;
+}
+
+/** All known mesh sidecar container names → owning mesh id, for the injection scan. Derived fresh each call
+ *  (not cached at module scope like the old static MESH_SIDECARS was) since overrides can add/rename a
+ *  sidecar container at runtime. */
+function meshSidecars(): Map<string, string> {
+  return new Map(mergedMeshCatalog().filter((m) => m.sidecar).map((m) => [m.sidecar!, m.id]));
+}
 
 /** IngressClass.spec.controller → friendly name. Unlisted controllers fall through to the raw string. */
 const INGRESS_CONTROLLERS: Record<string, string> = {
@@ -438,6 +553,7 @@ export function inferNetworkEdge(graph: ResourceGraph): NetworkEdge {
   let gatewayResourceCount = 0;
   let meshSidecarPods = 0;
   const meshSidecarIds = new Set<string>();
+  const meshSidecarMap = meshSidecars();
 
   for (const r of graph.nodes.values()) {
     switch (r.kind) {
@@ -488,7 +604,7 @@ export function inferNetworkEdge(graph: ResourceGraph): NetworkEdge {
         const containers = (r.raw.spec as { containers?: { name?: string }[] } | undefined)?.containers ?? [];
         let injected = false;
         for (const c of containers) {
-          const meshId = c.name ? MESH_SIDECARS.get(c.name) : undefined;
+          const meshId = c.name ? meshSidecarMap.get(c.name) : undefined;
           if (meshId) {
             meshSidecarIds.add(meshId);
             injected = true;
@@ -513,7 +629,7 @@ export function inferNetworkEdge(graph: ResourceGraph): NetworkEdge {
   };
 
   function detectMesh(): NetworkInference {
-    for (const m of MESH_CATALOG) {
+    for (const m of mergedMeshCatalog()) {
       const crd = m.crdGroups?.find((g) => crdGroups.has(g));
       if (crd) return meshResult(m, `${crd} CRDs`);
       const dep = m.deploys?.find((d) => deployNames.has(d));

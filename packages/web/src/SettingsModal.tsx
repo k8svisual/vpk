@@ -6,6 +6,8 @@ import { applyKindColorOverrides, getStoredKindColorOverrides, setStoredKindColo
 import { PANES } from './FilterPanel';
 import { getStoredApiGroupColorOverrides, setStoredApiGroupColorOverrides } from './apiGroupColorOverrides';
 import { STRUCTURAL_COLORS, defaultStructuralColor, getStoredStructuralColorOverrides, setStoredStructuralColorOverrides, type StructuralColorKey } from './structuralColorOverrides';
+import { VendorIconsPanel } from './VendorIconsPanel';
+import { NetworkCatalogPanel } from './NetworkCatalogPanel';
 
 interface Settings {
   snapshotDir: string;
@@ -51,12 +53,14 @@ const STRUCTURAL_LABEL: Record<StructuralColorKey, string> = Object.fromEntries(
   string
 >;
 
-type SettingsTab = 'snapshot' | 'ui' | 'colors';
+type SettingsTab = 'snapshot' | 'ui' | 'colors' | 'icons' | 'network';
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'snapshot', label: 'Snapshot' },
   { key: 'ui', label: 'UI' },
   { key: 'colors', label: 'Colors' },
+  { key: 'icons', label: 'Vendor Icons' },
+  { key: 'network', label: 'Network Identification' },
 ];
 
 /**
@@ -456,6 +460,10 @@ export function SettingsModal({
             </div>
           </>
         )}
+
+        {tab === 'icons' && <VendorIconsPanel />}
+
+        {tab === 'network' && <NetworkCatalogPanel />}
 
         {tab === 'snapshot' &&
           (!settings ? (

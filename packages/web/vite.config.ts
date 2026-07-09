@@ -30,6 +30,7 @@ export default defineConfig({
     proxy: {
       '/ownerref': API,
       '/definition': API,
+      '/explain': API,
       '/health': API,
       '/snapshots': API,
       '/resources': API,
@@ -49,6 +50,8 @@ export default defineConfig({
       '/load': API,
       '/capture': API,
       '/settings': API,
+      '/vendor-icons': API,
+      '/network-catalog': API,
       '/stats': API,
       '/logs': API,
       '/shutdown': API,

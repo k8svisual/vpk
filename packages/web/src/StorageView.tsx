@@ -110,12 +110,21 @@ export function KindIcon({
   size = 14,
   detail,
   bg,
+  iconSrc,
+  apiVersion,
 }: {
   kind: string;
   name?: string;
   size?: number;
   detail?: string;
   bg?: string;
+  /** Overrides the icon image src instead of deriving it from `kind` via iconUrlForKind — e.g. the editor
+   *  header wants the "unknown" fallback (icons/other/unk.svg) rather than the generic K8s-logo fallback
+   *  every other call site gets. */
+  iconSrc?: string;
+  /** The resource's apiVersion — tried as a vendor-icon match (see vendorIcons.ts) when `kind` isn't a
+   *  built-in Kubernetes type. Ignored when `iconSrc` is given. */
+  apiVersion?: string;
 }) {
   const label = name ? `${kind}\n${name}${detail ? ` (${detail})` : ''}` : detail ? `${kind} (${detail})` : kind;
   return (
@@ -132,7 +141,7 @@ export function KindIcon({
           flexShrink: 0,
         }}
       >
-        <img src={iconUrlForKind(kind)} alt={kind} style={{ width: size, height: size }} />
+        <img src={iconSrc ?? iconUrlForKind(kind, apiVersion)} alt={kind} style={{ width: size, height: size }} />
       </span>
     </Tooltip>
   );

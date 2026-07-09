@@ -26,6 +26,7 @@ import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
 import { initialGridEnabled, setStoredGridEnabled } from './gridSetting';
+import { setVendorIconOverrides, type VendorIconOverride } from './vendorIconOverrides';
 
 interface Snapshots {
   dir: string;
@@ -194,6 +195,16 @@ export function App() {
     void refreshSnaps();
     void refreshNamespaces();
   }, [refreshSnaps, refreshNamespaces]);
+
+  // Vendor-icon overrides (Settings > Vendor Icons) live server-side, not localStorage — see
+  // vendorIconOverrides.ts's own doc comment — so every icon lookup on this side needs this fetched once up
+  // front, unlike the CSS-variable color overrides that apply synchronously from localStorage in main.tsx.
+  useEffect(() => {
+    fetch('/vendor-icons')
+      .then((r) => r.json() as Promise<{ overrides: VendorIconOverride[] }>)
+      .then((d) => setVendorIconOverrides(d.overrides))
+      .catch(() => {});
+  }, []);
 
   async function post(path: string, body: unknown) {
     const r = await fetch(path, {

@@ -66,7 +66,12 @@ function NamespaceResourceTable({ rows, onSelect }: { rows: ResourceRow[]; onSel
         header: 'Kind',
         cell: (c) => (
           <span className="flex items-center gap-1.5">
-            <KindIcon kind={c.getValue<string>()} size={13} bg={networkIconBg(c.getValue<string>())} />
+            <KindIcon
+              kind={c.getValue<string>()}
+              size={13}
+              bg={networkIconBg(c.getValue<string>())}
+              apiVersion={c.row.original.apiVersion}
+            />
             <span>{c.getValue<string>()}</span>
           </span>
         ),

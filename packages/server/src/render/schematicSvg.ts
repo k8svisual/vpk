@@ -1,4 +1,4 @@
-import { iconForKind } from '@vpk/core';
+import { iconPathForKind } from '@vpk/core';
 import type { SchematicDto } from '../schematic';
 
 interface Ref {
@@ -30,10 +30,6 @@ const CLUSTER_STEP = 90;
 const CLUSTER_MIN_W = 150;
 const NS_BANNER_FILL = '#b3b0a8';
 const CLUSTER_BANNER_FILL = '#5a5a5a';
-
-/** Served statically by @vpk/web (ported from the legacy app's images/k8/*.svg) — resolves against whatever
- *  origin the browser loaded this inlined SVG from, so no absolute host is needed here. */
-const ICON_BASE = '/icons/k8/';
 
 // var(--vpk-status-*) — this SVG is inlined into the live DOM (see index.css's theming comment), so it
 // re-themes across all 4 themes for free as long as it references the vars instead of a fixed hex.
@@ -164,8 +160,8 @@ export function renderSchematicSvg(s: SchematicDto): string {
       x += OWNER_STEP;
     }
     for (let i = 0; i < s.ownerChain.length; i++) {
-      const owner = s.ownerChain[i] as { id: string; kind: string; name: string; crdLetter?: string };
-      parts.push(kindIcon(owner.id, owner.kind, owner.name, x, iconY));
+      const owner = s.ownerChain[i] as { id: string; kind: string; name: string; crdLetter?: string; apiVersion?: string };
+      parts.push(kindIcon(owner.id, owner.kind, owner.name, x, iconY, owner.apiVersion));
       if (owner.crdLetter) parts.push(letterBadge(owner.crdLetter, x - ICON_R + 2, iconY - ICON_R + 2));
       const nextX = x + OWNER_STEP;
       if (i < s.ownerChain.length - 1) parts.push(dashedEdge(x + ICON_R, iconY, nextX - ICON_R, iconY));
@@ -372,14 +368,14 @@ function categoryBox(kind: keyof typeof CATEGORY_STYLE, title: string, x: number
 /** The real Kubernetes icon image for `kind`, centered at (cx, cy) — matches the reference mockups exactly
  *  (every kind's icon is the same Kubernetes blue; differentiation comes from the category box + label, not
  *  per-kind tinting — that's `colorForKind`'s job elsewhere, e.g. the 3D wheel). */
-function iconImage(kind: string, cx: number, cy: number): string {
-  return `<image href="${ICON_BASE}${iconForKind(kind)}" x="${cx - ICON_R}" y="${cy - ICON_R}" width="${ICON_R * 2}" height="${ICON_R * 2}" />`;
+function iconImage(kind: string, cx: number, cy: number, apiVersion?: string): string {
+  return `<image href="${iconPathForKind(kind, apiVersion)}" x="${cx - ICON_R}" y="${cy - ICON_R}" width="${ICON_R * 2}" height="${ICON_R * 2}" />`;
 }
 
-function kindIcon(id: string, kind: string, name: string, cx: number, cy: number): string {
+function kindIcon(id: string, kind: string, name: string, cx: number, cy: number, apiVersion?: string): string {
   return (
     `<g data-resource-id="${esc(id)}" data-names="${esc(JSON.stringify([name]))}" style="cursor:pointer">` +
-    iconImage(kind, cx, cy) +
+    iconImage(kind, cx, cy, apiVersion) +
     `</g>`
   );
 }

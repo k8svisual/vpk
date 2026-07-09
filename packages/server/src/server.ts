@@ -22,9 +22,21 @@ import {
   projectClusterNodeField,
   projectClusterWheel,
   projectPodsOnNode,
+  VENDOR_ICONS,
+  setVendorIconOverrides,
+  getVendorIconOverrides,
+  NETWORK_CATALOG,
+  MESH_CATALOG,
+  setNetworkCatalogOverrides,
+  getNetworkCatalogOverrides,
+  setMeshCatalogOverrides,
+  getMeshCatalogOverrides,
   type ResourceGraph,
   type OwnerRefFocus,
   type RawObject,
+  type VendorIconOverride,
+  type NetworkCatalogOverride,
+  type MeshCatalogOverride,
 } from '@vpk/core';
 import { DEMO_TEMPLATES, extractPlaceholders, fillTemplate, resolvePattern } from '@vpk/demo-data';
 import {
@@ -53,7 +65,7 @@ import {
   runQuotaLimitBundle,
   runSystemPodsBundle,
 } from './demoData';
-import { loadSnapshotFile } from './snapshotFile';
+import { loadSnapshotFile, loadSnapshotExplains } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
@@ -70,12 +82,21 @@ import { demoSettingsAppPath, demoSettingsSnapshotDirPath, saveDemoSettings, loa
 import { computeStats } from './stats';
 import { listenWithRetry } from './portRetry';
 import { listSnapshotFiles } from './listSnapshotFiles';
+import { loadVendorIconOverrides, saveVendorIconOverrides, saveCustomIcon } from './vendorIconStore';
+import { loadNetworkCatalogOverrides, saveNetworkCatalogOverrides } from './networkCatalogStore';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
 const here = dirname(fileURLToPath(import.meta.url));
 const defaultSnapshot = process.env.VPK_SNAPSHOT ?? join(here, '../test/fixtures/minikube.snapshot.json');
 const cli = (process.env.VPK_CLI ?? 'kubectl').split(' ').filter(Boolean);
 const configPath = process.env.VPK_CONFIG_FILE ?? join(here, '../../../vpkconfig.json');
+const vendorIconsConfigPath = join(dirname(configPath), 'vpk-vendor-icons.json');
+const networkCatalogConfigPath = join(dirname(configPath), 'vpk-network-catalog.json');
+// Custom-uploaded vendor icons live under @vpk/web's own public/icons/ tree (not a server-owned directory) —
+// every other icon (k8/, other/, 3rdparty/) is already served straight out of there by Vite in dev with zero
+// server involvement, so a freshly-written file here is immediately servable at /icons/custom/<name> with no
+// new proxy route or restart needed, same as the rest of the icon set.
+const customIconsDir = join(here, '../../web/public/icons/custom');
 const requestedPort = Number(process.env.PORT ?? 4200);
 // Discovery file for the Vite dev server (which proxies to us but can't know our port ahead of time if the
 // requested one was taken) — written once we've actually bound, read by vite.config.ts at its own startup.
@@ -84,12 +105,19 @@ const MAX_PORT_ATTEMPTS = 20;
 let actualPort = requestedPort;
 
 let settings: Settings = loadSettings(configPath, process.env.VPK_SNAPSHOT_DIR ?? dirname(defaultSnapshot));
+setVendorIconOverrides(loadVendorIconOverrides(vendorIconsConfigPath));
+const persistedNetworkCatalog = loadNetworkCatalogOverrides(networkCatalogConfigPath);
+setNetworkCatalogOverrides(persistedNetworkCatalog.network);
+setMeshCatalogOverrides(persistedNetworkCatalog.mesh);
 
 let graph: ResourceGraph = buildGraph(loadSnapshotFile(defaultSnapshot));
 let currentPath = defaultSnapshot;
+// Almost always {} today — see loadSnapshotExplains's own doc comment on why this is read anyway.
+let explains: Record<string, string> = loadSnapshotExplains(defaultSnapshot);
 
 function setSnapshot(path: string): void {
   graph = buildGraph(loadSnapshotFile(path));
+  explains = loadSnapshotExplains(path);
   currentPath = path;
 }
 function resolve(path: string): string {
@@ -130,6 +158,69 @@ app.post('/settings', async (req, reply) => {
   };
   saveSettings(configPath, settings);
   return settings;
+});
+
+// Settings > Vendor Icons (see @vpk/core's vendorIconOverrides.ts doc comment for why this round-trips
+// through the server instead of living in localStorage like the color-override settings do).
+app.get('/vendor-icons', async () => ({ base: VENDOR_ICONS, overrides: getVendorIconOverrides() }));
+
+app.post('/vendor-icons', async (req, reply) => {
+  const body = req.body;
+  if (!Array.isArray(body)) {
+    reply.code(400);
+    return { error: 'expected an array of overrides' };
+  }
+  const overrides = body as VendorIconOverride[];
+  for (const o of overrides) {
+    if (typeof o.needle !== 'string' || !o.needle) {
+      reply.code(400);
+      return { error: 'every override needs a non-empty "needle"' };
+    }
+  }
+  setVendorIconOverrides(overrides);
+  saveVendorIconOverrides(vendorIconsConfigPath, overrides);
+  return { ok: true, overrides };
+});
+
+app.post('/vendor-icons/upload', async (req, reply) => {
+  const { filename, dataBase64 } = (req.body ?? {}) as { filename?: string; dataBase64?: string };
+  if (!filename || !dataBase64) {
+    reply.code(400);
+    return { error: 'expected { filename, dataBase64 }' };
+  }
+  try {
+    const path = saveCustomIcon(customIconsDir, filename, dataBase64);
+    return { path };
+  } catch (e) {
+    reply.code(400);
+    return { error: String((e as Error).message ?? e) };
+  }
+});
+
+// Settings > Network Identification — the CNI/service-mesh detection catalogs inferNetworkPlane/inferNetworkEdge
+// use (see @vpk/core's networkInference.ts doc comments on NetworkCatalogOverride/MeshCatalogOverride for why
+// only the detection signals, not the bespoke overlay resolvers, are user-editable).
+app.get('/network-catalog', async () => ({
+  network: { base: NETWORK_CATALOG.map(({ overlay: _overlay, ...rest }) => rest), overrides: getNetworkCatalogOverrides() },
+  mesh: { base: MESH_CATALOG, overrides: getMeshCatalogOverrides() },
+}));
+
+app.post('/network-catalog', async (req, reply) => {
+  const body = (req.body ?? {}) as { network?: NetworkCatalogOverride[]; mesh?: MeshCatalogOverride[] };
+  if (!Array.isArray(body.network) || !Array.isArray(body.mesh)) {
+    reply.code(400);
+    return { error: 'expected { network: [...], mesh: [...] }' };
+  }
+  for (const o of [...body.network, ...body.mesh]) {
+    if (typeof o.id !== 'string' || !o.id) {
+      reply.code(400);
+      return { error: 'every override needs a non-empty "id"' };
+    }
+  }
+  setNetworkCatalogOverrides(body.network);
+  setMeshCatalogOverrides(body.mesh);
+  saveNetworkCatalogOverrides(networkCatalogConfigPath, { network: body.network, mesh: body.mesh });
+  return { ok: true, network: body.network, mesh: body.mesh };
 });
 
 app.post('/load', async (req, reply) => {
@@ -825,6 +916,15 @@ app.get('/definition', async (req, reply) => {
     return { error: 'not found' };
   }
   return settings.redactSecrets ? redactSecret(resource.raw) : resource.raw;
+});
+
+/** DefinitionModal's "Explain" button — a `kubectl explain <kind>`-style description of the Kind, IF the
+ *  loaded snapshot's own `explains` map has one (see loadSnapshotExplains's doc comment: capture doesn't
+ *  populate this yet, so `description` is null for effectively every real snapshot today). Distinct from
+ *  "not found" — a missing/never-captured description is a normal, expected response, not an error. */
+app.get('/explain', async (req) => {
+  const { kind } = req.query as { kind?: string };
+  return { kind: kind ?? '', description: (kind && explains[kind]) || null };
 });
 
 app.get('/stats', async () =>

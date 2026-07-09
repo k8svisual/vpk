@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { buildGraph } from '../graph';
-import { inferNetworkPlane, inferNetworkEdge } from './networkInference';
+import { inferNetworkPlane, inferNetworkEdge, setNetworkCatalogOverrides, setMeshCatalogOverrides } from './networkInference';
 import type { RawObject } from '../types';
 
 const ds = (name: string): RawObject => ({ apiVersion: 'apps/v1', kind: 'DaemonSet', metadata: { uid: `ds-${name}`, name, namespace: 'kube-system' } });
@@ -230,5 +230,51 @@ describe('inferNetworkEdge — service mesh', () => {
     const edge = inferNetworkEdge(buildGraph([plainPod]));
     expect(edge.serviceMesh.value).toBeUndefined();
     expect(edge.meshSidecarPods).toBe(0);
+  });
+});
+
+describe('Settings > Network Identification overrides', () => {
+  afterEach(() => {
+    setNetworkCatalogOverrides([]);
+    setMeshCatalogOverrides([]);
+  });
+
+  it('disables a built-in CNI entry entirely', () => {
+    setNetworkCatalogOverrides([{ id: 'cilium', disabled: true }]);
+    const plane = inferNetworkPlane(buildGraph([ds('cilium')]));
+    expect(plane.cni.value).toBeUndefined();
+  });
+
+  it('extends a built-in CNI entry with an extra DaemonSet name, keeping its original overlay resolver', () => {
+    setNetworkCatalogOverrides([{ id: 'cilium', daemonSets: ['cilium-node-variant'] }]);
+    const plane = inferNetworkPlane(buildGraph([ds('cilium-node-variant')]));
+    expect(plane.cni.value).toBe('Cilium');
+    expect(plane.overlay.value).toBe('VXLAN'); // Cilium's real overlay resolver still runs, not a stub
+  });
+
+  it('adds a brand-new CNI by DaemonSet name, with a no-detail (honest, non-fabricated) overlay', () => {
+    setNetworkCatalogOverrides([{ id: 'acme-cni', name: 'Acme CNI', daemonSets: ['acme-node'] }]);
+    const plane = inferNetworkPlane(buildGraph([ds('acme-node')]));
+    expect(plane.cni).toEqual({ value: 'Acme CNI', evidence: 'acme-node DaemonSet' });
+    expect(plane.overlay).toEqual({});
+  });
+
+  it('disables a built-in mesh entry entirely', () => {
+    setMeshCatalogOverrides([{ id: 'linkerd', disabled: true }]);
+    const dep: RawObject = { apiVersion: 'apps/v1', kind: 'Deployment', metadata: { uid: 'd', name: 'linkerd-destination', namespace: 'linkerd' } };
+    expect(inferNetworkEdge(buildGraph([dep])).serviceMesh.value).toBeUndefined();
+  });
+
+  it('adds a brand-new mesh by sidecar container name', () => {
+    setMeshCatalogOverrides([{ id: 'acme-mesh', name: 'Acme Mesh', sidecar: 'acme-proxy' }]);
+    const pod: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'p', name: 'p', namespace: 'default' },
+      spec: { containers: [{ name: 'acme-proxy' }] },
+    };
+    const edge = inferNetworkEdge(buildGraph([pod]));
+    expect(edge.serviceMesh.value).toBe('Acme Mesh');
+    expect(edge.meshSidecarPods).toBe(1);
   });
 });

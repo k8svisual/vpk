@@ -41,6 +41,9 @@ export interface SchematicOwnerLink {
   id: ResourceId;
   kind: string;
   name: string;
+  /** The owner's own apiVersion — lets the icon renderer show a vendor's icon (e.g. Argo, Cilium) for a
+   *  custom-resource owner whose kind isn't a built-in Kubernetes type (see @vpk/core's vendorIcons.ts). */
+  apiVersion?: string;
   /** Set when this owner is a custom-resource instance backed by a real CustomResourceDefinition in the
    *  graph — same letter as the matching entry in PodSchematic.crds, so the view can badge both with a
    *  small black circle+letter to visually link the instance to its type definition (DESIGN §6.9 follow-on,
@@ -267,7 +270,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     seen.add(ownerEdge.from);
     const owner = graph.nodes.get(ownerEdge.from);
     if (!owner) break;
-    ownerChain.unshift({ id: owner.id, kind: owner.kind, name: owner.name });
+    ownerChain.unshift({ id: owner.id, kind: owner.kind, name: owner.name, apiVersion: owner.apiVersion });
     ownerResources.unshift(owner);
     current = owner;
   }

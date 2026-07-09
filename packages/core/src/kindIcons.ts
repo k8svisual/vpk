@@ -5,6 +5,8 @@
  * grouping (color) and the glyph baked into each icon, not from per-kind tinting (that's what `colorForKind`
  * is for, used only where a diagram genuinely needs kind-as-color, e.g. the 3D wheel).
  */
+import { vendorIconFor } from './vendorIconOverrides';
+
 const KIND_ICON: Record<string, string> = {
   Pod: 'pod.svg',
   Node: 'node.svg',
@@ -48,4 +50,14 @@ const FALLBACK_ICON = 'k8.svg';
 
 export function iconForKind(kind: string): string {
   return KIND_ICON[kind] ?? FALLBACK_ICON;
+}
+
+/** Full icon path (unlike `iconForKind`, which returns a bare filename under `/icons/k8/`) for `kind` —
+ *  checks the built-in Kubernetes icon set first, then falls back to a vendor icon matched off
+ *  `apiVersion`'s group (see vendorIcons.ts) for CRDs whose kind isn't a real Kubernetes type, then finally
+ *  the generic `/icons/k8/k8.svg` if neither resolves. */
+export function iconPathForKind(kind: string, apiVersion?: string): string {
+  const builtin = KIND_ICON[kind];
+  if (builtin) return `/icons/k8/${builtin}`;
+  return vendorIconFor(apiVersion) ?? `/icons/k8/${FALLBACK_ICON}`;
 }

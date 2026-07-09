@@ -4,6 +4,8 @@ import { yaml as yamlLang } from '@codemirror/lang-yaml';
 import { vscodeLight, vscodeDark, vscodeLightInit } from '@uiw/codemirror-theme-vscode';
 import { stringify, parseDocument, LineCounter } from 'yaml';
 import type { Theme } from './theme';
+import { KindIcon } from './StorageView';
+import { iconUrlForKindOrUnknown } from './kindIcons';
 
 export type FocusPath = (string | number)[];
 
@@ -90,19 +92,51 @@ export function DefinitionModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [resourceId, onClose]);
 
-  const { title, subtitle, text, focusLine } = useMemo(() => {
-    if (error) return { title: 'Definition', subtitle: '', text: error, focusLine: null };
-    if (!raw) return { title: 'Definition', subtitle: '', text: '', focusLine: null };
-    const obj = raw as { kind?: string; metadata?: { name?: string; namespace?: string } };
+  const { kind, apiVersion, title, subtitle, text, focusLine } = useMemo(() => {
+    if (error) return { kind: undefined, apiVersion: undefined, title: 'Definition', subtitle: '', text: error, focusLine: null };
+    if (!raw) return { kind: undefined, apiVersion: undefined, title: 'Definition', subtitle: '', text: '', focusLine: null };
+    const obj = raw as { kind?: string; apiVersion?: string; metadata?: { name?: string; namespace?: string } };
     const name = obj.metadata?.name ?? resourceId ?? '';
     const yamlText = stringify(raw);
     return {
+      kind: obj.kind,
+      apiVersion: obj.apiVersion,
       title: obj.kind ?? 'Definition',
       subtitle: obj.metadata?.namespace ? `${obj.metadata.namespace} / ${name}` : name,
       text: yamlText,
       focusLine: focusLineFor(yamlText, focusPath),
     };
   }, [raw, error, resourceId, focusPath]);
+
+  // "Explain" popover state — a kubectl-explain-style description of the resource's Kind (see server.ts's
+  // /explain route and loadSnapshotExplains's own doc comment: capture doesn't populate this yet for any real
+  // snapshot, so this almost always resolves to the "not captured" fallback message today; the plumbing is
+  // here so it starts working the moment capture does write explains.json, no UI change needed then).
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainText, setExplainText] = useState<string | null>(null);
+  const [explainLoading, setExplainLoading] = useState(false);
+
+  // A different resource (even a different instance of the SAME kind — no harm re-fetching) shouldn't show
+  // the previous one's stale explanation text under the new title.
+  useEffect(() => {
+    setExplainOpen(false);
+    setExplainText(null);
+  }, [resourceId]);
+
+  function toggleExplain() {
+    if (explainOpen) {
+      setExplainOpen(false);
+      return;
+    }
+    setExplainOpen(true);
+    if (explainText !== null || explainLoading || !kind) return;
+    setExplainLoading(true);
+    fetch(`/explain?kind=${encodeURIComponent(kind)}`)
+      .then((r) => r.json() as Promise<{ kind: string; description: string | null }>)
+      .then((d) => setExplainText(d.description ?? 'No description captured for this resource kind yet.'))
+      .catch(() => setExplainText('Could not load an explanation for this resource kind.'))
+      .finally(() => setExplainLoading(false));
+  }
 
   useEffect(() => {
     if (!view || focusLine == null) return;
@@ -127,25 +161,52 @@ export function DefinitionModal({
           className="flex items-center justify-between gap-3 border-b px-4 py-3"
           style={{ borderColor: 'var(--vpk-border)' }}
         >
-          <div className="min-w-0">
-            <h2 className="truncate font-medium" style={{ color: 'var(--vpk-fg)' }}>
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="truncate text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
-                {subtitle}
-              </p>
-            )}
+          <div className="flex min-w-0 items-center gap-2.5">
+            <KindIcon kind={title} size={20} iconSrc={iconUrlForKindOrUnknown(kind ?? '', apiVersion)} />
+            <div className="min-w-0">
+              <h2 className="truncate font-medium" style={{ color: 'var(--vpk-fg)' }}>
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="truncate text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 rounded px-2 py-1 text-xs cursor-pointer"
-            style={{ border: '1px solid var(--vpk-border)', color: 'var(--vpk-fg)' }}
-          >
-            Close
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={toggleExplain}
+              disabled={!kind}
+              aria-label="Explain"
+              aria-expanded={explainOpen}
+              className="rounded px-2 py-1 text-xs cursor-pointer disabled:cursor-default disabled:opacity-40"
+              style={{
+                border: '1px solid var(--vpk-border)',
+                color: explainOpen ? 'var(--vpk-accent)' : 'var(--vpk-fg)',
+                borderColor: explainOpen ? 'var(--vpk-accent)' : 'var(--vpk-border)',
+              }}
+            >
+              Explain
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded px-2 py-1 text-xs cursor-pointer"
+              style={{ border: '1px solid var(--vpk-border)', color: 'var(--vpk-fg)' }}
+            >
+              Close
+            </button>
+          </div>
         </div>
+        {explainOpen && (
+          <div className="border-b px-4 py-3 text-xs" style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-bg)' }}>
+            <div className="mb-1 font-medium" style={{ color: 'var(--vpk-fg-muted)' }}>
+              {title}
+            </div>
+            <p style={{ color: 'var(--vpk-fg)', whiteSpace: 'pre-wrap' }}>{explainLoading ? 'Loading…' : explainText}</p>
+          </div>
+        )}
         <div className="min-h-0 flex-1 overflow-auto">
           {text ? (
             <CodeMirror

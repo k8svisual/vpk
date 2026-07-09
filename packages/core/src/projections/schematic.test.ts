@@ -81,7 +81,7 @@ describe('projectPodSchematic custom-resource (CRD) linkage', () => {
   it('badges a custom-resource owner with a letter and lists its CustomResourceDefinition in crds', () => {
     const graph = buildGraph([crd, foo, pod]);
     const s = projectPodSchematic(graph, 'pod-2');
-    expect(s?.ownerChain).toEqual([{ id: 'foo-1', kind: 'Foo', name: 'my-foo', crdLetter: 'a' }]);
+    expect(s?.ownerChain).toEqual([{ id: 'foo-1', kind: 'Foo', name: 'my-foo', apiVersion: 'example.com/v1', crdLetter: 'a' }]);
     expect(s?.crds).toEqual([{ letter: 'a', id: 'crd-1', name: 'foos.example.com' }]);
   });
 
@@ -104,7 +104,7 @@ describe('projectPodSchematic custom-resource (CRD) linkage', () => {
     };
     const graph = buildGraph([crd, rs, plainPod]);
     const s = projectPodSchematic(graph, 'pod-3');
-    expect(s?.ownerChain).toEqual([{ id: 'rs-1', kind: 'ReplicaSet', name: 'app-rs' }]);
+    expect(s?.ownerChain).toEqual([{ id: 'rs-1', kind: 'ReplicaSet', name: 'app-rs', apiVersion: 'apps/v1' }]);
     expect(s?.crds).toEqual([]);
   });
 });
