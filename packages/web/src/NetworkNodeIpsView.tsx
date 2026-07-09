@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { KindIcon } from './StorageView';
+import { networkIconBg } from './kindColors';
 
 interface NodePod {
   id: string;
@@ -71,7 +73,10 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                 fontSize: 13,
               }}
             >
-              <strong>{node.name}</strong>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <KindIcon kind="Node" name={node.name} size={16} bg={networkIconBg('Node')} />
+                {node.name}
+              </strong>
               <span style={{ color: '#555' }}>host {node.internalIp ?? '—'}</span>
               <span style={{ color: '#555' }}>podCIDR {node.podCidr ?? '—'}</span>
               <span style={{ color: '#555' }}>{node.pods.length} pods</span>
@@ -93,7 +98,12 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                     {open && (
                       <ul style={{ margin: '2px 0 4px', paddingLeft: 28, color: '#444' }}>
                         {pods.map((pod) => (
-                          <li key={pod.id} style={{ cursor: 'pointer' }} onClick={() => onSelect(pod.id)}>
+                          <li
+                            key={pod.id}
+                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                            onClick={() => onSelect(pod.id)}
+                          >
+                            <KindIcon kind="Pod" name={pod.name} size={13} bg={networkIconBg('Pod')} />
                             {pod.name} <span style={{ color: '#999' }}>({pod.namespace})</span> — {pod.podIp ?? '—'}
                           </li>
                         ))}

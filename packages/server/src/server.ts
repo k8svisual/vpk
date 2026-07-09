@@ -11,6 +11,14 @@ import {
   rbacVocabulary,
   type WhoCanResourceRef,
   projectContainerImages,
+  projectVolumeUsage,
+  projectServiceNetwork,
+  projectNetworkTopology,
+  projectNetworkLayers,
+  inferNetworkPlane,
+  inferNetworkEdge,
+  projectPortUsage,
+  projectEvents,
   projectClusterNodeField,
   projectClusterWheel,
   type ResourceGraph,
@@ -53,6 +61,7 @@ import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 import { getSchematic } from './schematic';
 import { renderSchematicSvg } from './render/schematicSvg';
+import { renderServiceFlowSvg, renderIngressPathSvg, renderServiceNodesSvg, renderTopologySvg } from './render/networkSvg';
 import { redactSecret } from './redact';
 import { loadSettings, saveSettings, type Settings } from './settings';
 import { demoSettingsAppPath, demoSettingsSnapshotDirPath, saveDemoSettings, loadDemoSettings, type DemoDataSettings } from './demoSettings';
@@ -183,9 +192,55 @@ app.get('/network', async (req) => {
 
 app.get('/network/nodes', async () => listNetworkNodes(graph));
 
+// Cluster-wide "ports in use" — flat list; the view aggregates/filters client-side.
+app.get('/network/ports', async () => projectPortUsage(graph));
+
+// Conceptual network layers listing (top-right reference block), enriched with real per-layer counts.
+app.get('/network/layers', async () => projectNetworkLayers(graph));
+
+// Cluster topology (Node CIDR / overlay) diagram, with the inferred network-plane summary header.
+app.get('/network/topology.svg', async (_req, reply) => {
+  reply.header('content-type', 'image/svg+xml');
+  return renderTopologySvg(projectNetworkTopology(graph), inferNetworkPlane(graph));
+});
+
+// The three Service-scoped diagrams, all driven by one Service id: flow (Client→Service→Pods), ingress
+// (north-south entry path), nodes (Service × the Nodes its pods land on).
+app.get('/network/diagram.svg', async (req, reply) => {
+  const q = req.query as { id?: string; type?: string };
+  const view = q.id ? projectServiceNetwork(graph, q.id) : undefined;
+  if (!view) {
+    reply.code(404);
+    return { error: 'not found (not a Service id in this snapshot)' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  if (q.type === 'ingress') return renderIngressPathSvg(view, inferNetworkEdge(graph));
+  if (q.type === 'nodes') return renderServiceNodesSvg(view, inferNetworkPlane(graph));
+  return renderServiceFlowSvg(view);
+});
+
+// The real EndpointSlice objects backing a Service — the Ingress Path diagram fetches this to show a modal
+// when a Service has more than one (Kubernetes splits into multiple past a slice's endpoint cap, or per
+// address family for dual-stack Services).
+app.get('/network/endpointslices', async (req, reply) => {
+  const q = req.query as { id?: string };
+  const view = q.id ? projectServiceNetwork(graph, q.id) : undefined;
+  if (!view) {
+    reply.code(404);
+    return { error: 'not found (not a Service id in this snapshot)' };
+  }
+  return view.endpointSlices;
+});
+
 app.get('/security', async () => projectSecuritySubjects(graph));
 
 app.get('/storage', async () => listStorageGroups(graph));
+
+app.get('/storage-counts', async () => projectVolumeUsage(graph));
+
+// Cluster-wide Events — flat list, newest-first; the view aggregates/filters client-side (same pattern as
+// /network/ports).
+app.get('/events', async () => projectEvents(graph));
 
 app.get('/container-images', async () => projectContainerImages(graph));
 

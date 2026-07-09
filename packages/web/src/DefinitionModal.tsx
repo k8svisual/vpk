@@ -26,28 +26,8 @@ function editorThemeFor(theme: Theme): Extension {
   }
 }
 
-const CONTAINER_IMAGE = ['spec', 'containers', 0, 'image'];
-const TEMPLATE_CONTAINER_IMAGE = ['spec', 'template', 'spec', 'containers', 0, 'image'];
-
-/** Per-kind "the one field you almost always came here to check" — the modal jumps to and selects this path
- *  on open instead of always landing on line 1. Kinds not listed just open at the top. */
-const KIND_FOCUS_PATH: Record<string, FocusPath> = {
-  Pod: CONTAINER_IMAGE,
-  Deployment: TEMPLATE_CONTAINER_IMAGE,
-  StatefulSet: TEMPLATE_CONTAINER_IMAGE,
-  DaemonSet: TEMPLATE_CONTAINER_IMAGE,
-  Job: TEMPLATE_CONTAINER_IMAGE,
-  CronJob: ['spec', 'jobTemplate', 'spec', 'template', 'spec', 'containers', 0, 'image'],
-  ConfigMap: ['data'],
-  Secret: ['data'],
-  Service: ['spec', 'ports'],
-  PersistentVolumeClaim: ['spec', 'resources', 'requests', 'storage'],
-  PersistentVolume: ['spec', 'capacity', 'storage'],
-  Node: ['status', 'capacity'],
-};
-
-/** Line (1-based, matching CodeMirror) of `path` inside `yamlText`, or null if the path doesn't resolve —
- *  e.g. a Pod with no containers, or a kind with no entry in KIND_FOCUS_PATH. */
+/** Line (1-based, matching CodeMirror) of `path` inside `yamlText`, or null if the path doesn't resolve or
+ *  wasn't given — e.g. a Pod with no containers, or no explicit `focusPath` at all. */
 function focusLineFor(yamlText: string, path: FocusPath | undefined): number | null {
   if (!path) return null;
   const lineCounter = new LineCounter();
@@ -61,9 +41,10 @@ function focusLineFor(yamlText: string, path: FocusPath | undefined): number | n
  * Universal drill target (DESIGN §6.3/6.9): clicking any resource icon anywhere in the app opens this. Shows
  * the captured/trimmed raw object (no managedFields) as foldable, syntax-highlighted YAML in a VSCode-like
  * editor. Editable for scratch/copy purposes only — edits are never sent back to the snapshot or the cluster.
- * On open, jumps to and selects the kind's key field (KIND_FOCUS_PATH) rather than always landing at line 1 —
- * or, when the caller already knows exactly which field the user meant (e.g. Schematic's per-container rows
- * or its Conditions area), an explicit `focusPath` overrides that kind-based default.
+ * Opens at line 1 by default, full stop — no kind-based guessing about which field the reader wants. The only
+ * thing that scrolls/selects a different line is the caller passing an explicit `focusPath` for a resource it
+ * already knows the specific field of (Schematic's per-container rows or its Conditions area, Container
+ * Images' searched-image row).
  * Esc / backdrop click closes it.
  */
 export function DefinitionModal({
@@ -119,7 +100,7 @@ export function DefinitionModal({
       title: obj.kind ?? 'Definition',
       subtitle: obj.metadata?.namespace ? `${obj.metadata.namespace} / ${name}` : name,
       text: yamlText,
-      focusLine: focusLineFor(yamlText, focusPath ?? (obj.kind ? KIND_FOCUS_PATH[obj.kind] : undefined)),
+      focusLine: focusLineFor(yamlText, focusPath),
     };
   }, [raw, error, resourceId, focusPath]);
 

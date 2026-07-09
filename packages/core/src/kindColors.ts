@@ -44,6 +44,9 @@ export const KIND_COLOR: Record<string, string> = {
   RoleBinding: '#b4a0e0',
   ClusterRole: '#a997d1',
   ClusterRoleBinding: '#9d90c2',
+  // Muted khaki — Events are ephemeral/informational (a log entry, not a live resource), so deliberately
+  // duller than every "real" kind's color rather than picking a new vivid hue.
+  Event: '#b5a875',
 };
 
 const FALLBACK_PALETTE = ['#a0b2c4', '#bea998', '#98beb2', '#be98a9', '#a9be98', '#98a9be', '#beb298'];
@@ -57,4 +60,36 @@ function hashColor(kind: string): string {
 
 export function colorForKind(kind: string): string {
   return KIND_COLOR[kind] ?? hashColor(kind);
+}
+
+/**
+ * Kinds the 3D cluster wheel actually draws as colored tiers/rings. Icon badges in the Network diagrams and
+ * the Network Layers listing get the wheel's kind color for these; every other kind (Deployment/ReplicaSet/
+ * StatefulSet/DaemonSet/Gateway…) falls back to a neutral light grey so "not in the wheel" reads at a glance.
+ */
+export const WHEEL_KINDS = new Set<string>([
+  'Pod',
+  'Node',
+  'Service',
+  'Endpoints',
+  'EndpointSlice',
+  'Ingress',
+  'HTTPRoute',
+  'Route',
+  'PersistentVolumeClaim',
+  'PersistentVolume',
+  'StorageClass',
+  'VolumeAttachment',
+  'CSIDriver',
+  'CSINode',
+]);
+
+const WORKER_NODE_BG = '#9aa1a8'; // podStatus.ts ROLE_COLOR.worker — the wheel colors nodes by role, not kind
+const NON_WHEEL_BG = '#d9d9d9'; // light grey for kinds the wheel doesn't draw
+
+/** Icon-badge background matching the 3D wheel: the Worker-node color for Node, the wheel's kind color for a
+ *  wheel-drawn kind, else a neutral light grey. Shared by the server SVG renderers and the web views. */
+export function networkIconBg(kind: string): string {
+  if (kind === 'Node') return WORKER_NODE_BG;
+  return WHEEL_KINDS.has(kind) ? colorForKind(kind) : NON_WHEEL_BG;
 }

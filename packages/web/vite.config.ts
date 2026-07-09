@@ -37,6 +37,8 @@ export default defineConfig({
       '/network': API,
       '/security': API,
       '/storage': API,
+      '/storage-counts': API,
+      '/events': API,
       '/schematic': API,
       '/schematic.svg': API,
       '/rbac.svg': API,

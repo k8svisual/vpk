@@ -1,0 +1,18 @@
+{
+  "bundleNamespace": "default",
+  "additionalNamespaceCount": 10,
+  "pvcPercent": 30,
+  "servicePodPercent": 40,
+  "serviceSharedPercent": 35,
+  "podsPerNodePattern": "{50-150,Random}",
+  "failedPodCount": 5,
+  "warningPodCount": 10,
+  "cronJobPercent": 1,
+  "statefulSetPercent": 3,
+  "jobPercent": 1,
+  "includeStandardLaunchEvents": false,
+  "podsPerGateway": 1000,
+  "httpRoutePercent": 50,
+  "networkPolicyPercent": 50,
+  "kindForms": {}
+}

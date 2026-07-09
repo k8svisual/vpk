@@ -87,6 +87,9 @@ export interface PodSchematic {
     limitRanges: SchematicRef[];
     roleBindings: SchematicRef[];
   };
+  /** Event objects (core/v1 Event) whose involvedObject resolves to this Pod — drives the small purple
+   *  "has Events" indicator in the schematic SVG. Snapshot-time-bound like every Event (see events.ts). */
+  events: { total: number; warnings: number };
 }
 
 function stateLabel(state: ContainerStatusRaw['state']): string | undefined {
@@ -292,6 +295,24 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     if (link) link.crdLetter = letter;
   }
 
+  // Events targeting this Pod — matched by involvedObject.uid when present, else by kind/name/namespace (some
+  // real-cluster Events omit uid; see events.ts's own resolution for why this fallback matters). Snapshot-
+  // time-bound, so this is a point-in-time count, not a live tally.
+  let eventsTotal = 0;
+  let eventsWarnings = 0;
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'Event') continue;
+    const involved = r.raw.involvedObject as { kind?: string; name?: string; namespace?: string; uid?: string } | undefined;
+    if (!involved) continue;
+    const matches =
+      involved.uid && pod.uid
+        ? involved.uid === pod.uid
+        : involved.kind === 'Pod' && involved.name === pod.name && (involved.namespace ?? '') === (pod.namespace ?? '');
+    if (!matches) continue;
+    eventsTotal++;
+    if ((r.raw as { type?: string }).type === 'Warning') eventsWarnings++;
+  }
+
   const nodeName = spec?.nodeName;
   const nodeResource = nodeName ? clusterLookup('Node', nodeName) : undefined;
   const node: SchematicRef | undefined = nodeName
@@ -338,5 +359,6 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     node,
     crds,
     policies: { networkPolicies, resourceQuotas, limitRanges, roleBindings },
+    events: { total: eventsTotal, warnings: eventsWarnings },
   };
 }

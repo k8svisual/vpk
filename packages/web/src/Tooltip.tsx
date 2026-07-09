@@ -54,7 +54,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactNod
         <div
           ref={tipRef}
           role="tooltip"
-          className="pointer-events-none fixed z-[200] max-w-[240px] rounded px-2 py-1 text-xs shadow-lg"
+          className="pointer-events-none fixed z-[200] max-w-[240px] whitespace-pre-line rounded px-2 py-1 text-xs shadow-lg"
           style={{
             top: pos?.top ?? -9999,
             left: pos?.left ?? -9999,

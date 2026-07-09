@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X, FlaskConical } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X, FlaskConical, AlertTriangle } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { SearchView } from './SearchView';
@@ -11,6 +11,7 @@ import { OwnerRefView } from './OwnerRefView';
 import { RbacView } from './RbacView';
 import { WhoCanView, EMPTY_WHOCAN_QUERY, type WhoCanQueryState } from './WhoCanView';
 import { ContainerImagesView } from './ContainerImagesView';
+import { EventsView } from './EventsView';
 import { Scene3D } from './Scene3D';
 import { ErrorBoundary } from './ErrorBoundary';
 import { DefinitionModal, type FocusPath } from './DefinitionModal';
@@ -28,7 +29,7 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images' | 'demo';
+type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images' | 'events' | 'demo';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
@@ -52,6 +53,7 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
       { id: 'storage', label: 'Storage', icon: Database },
       { id: 'ownerref', label: 'OwnerRef', icon: Share2 },
       { id: 'images', label: 'Images', icon: Layers },
+      { id: 'events', label: 'Events', icon: AlertTriangle },
     ],
   },
 ];
@@ -123,6 +125,10 @@ export function App() {
   const [rbacSaId, setRbacSaId] = useState<string | null>(null);
   const [rbacSubject, setRbacSubject] = useState<{ kind: string; name: string; namespace?: string } | null>(null);
   const [rbacFrom, setRbacFrom] = useState<'schematic' | 'security' | 'whocan' | null>(null);
+  // Same pattern again, for Events: the Schematic's purple "has Events" corner badge hands over the Pod's
+  // namespace + name + id — the id lets EventsView match this EXACT Pod object (not just any Pod sharing its
+  // name, which the badge's own count doesn't include either — see EventsView's initialPodId doc comment).
+  const [eventsPodFilter, setEventsPodFilter] = useState<{ namespace: string; podName: string; podId: string } | null>(null);
   // Held here (not in WhoCanView) so a query survives the round-trip out to a subject's RBAC diagram and back
   // — WhoCanView unmounts on navigation like every other non-3D view.
   const [whoCanQuery, setWhoCanQuery] = useState<WhoCanQueryState>(EMPTY_WHOCAN_QUERY);
@@ -242,6 +248,16 @@ export function App() {
     setRbacSubject(null);
     setRbacFrom('schematic');
     setView('rbac');
+  }
+
+  function viewEventsFromSchematic(namespace: string, podName: string, podId: string) {
+    setEventsPodFilter({ namespace, podName, podId });
+    setView('events');
+  }
+
+  function returnFromEventsToSchematic() {
+    setEventsPodFilter(null);
+    setView('schematic');
   }
 
   function viewRbacFromSubject(from: 'security' | 'whocan', subject: { kind: string; name: string; namespace?: string }) {
@@ -446,6 +462,7 @@ export function App() {
                 podId={schematicPodId}
                 onSelect={selectResource}
                 onViewRbac={viewRbacFromSchematic}
+                onViewEvents={viewEventsFromSchematic}
                 onReturn={schematicFrom3D ? returnFrom3DSchematic : undefined}
               />
             )}
@@ -465,6 +482,16 @@ export function App() {
                 onSelect={selectResource}
                 initialRegistry={imagesRegistryFilter ?? undefined}
                 onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}
+              />
+            )}
+            {view === 'events' && (
+              <EventsView
+                key={snaps.current}
+                onSelect={selectResource}
+                initialNamespace={eventsPodFilter?.namespace}
+                initialPodName={eventsPodFilter?.podName}
+                initialPodId={eventsPodFilter?.podId}
+                onReturn={eventsPodFilter ? returnFromEventsToSchematic : undefined}
               />
             )}
             {view === 'demo' && <DemoDataView />}

@@ -21,6 +21,7 @@ const base: SchematicDto = {
   node: { id: 'node-1', name: 'minikube' },
   crds: [],
   policies: { networkPolicies: [], resourceQuotas: [], limitRanges: [], roleBindings: [] },
+  events: { total: 0, warnings: 0 },
 };
 
 describe('renderSchematicSvg', () => {
@@ -278,6 +279,7 @@ describe('renderSchematicSvg', () => {
       security: {},
       crds: [],
       policies: { networkPolicies: [], resourceQuotas: [], limitRanges: [], roleBindings: [] },
+      events: { total: 0, warnings: 0 },
     };
     const svg = renderSchematicSvg(bare);
     expect(svg).toMatch(/^<svg/);
@@ -370,5 +372,31 @@ describe('renderSchematicSvg', () => {
     const svgWithout = renderSchematicSvg(withoutPolicies);
     const heightOf = (svg: string) => Number(/height="(\d+(?:\.\d+)?)"/.exec(svg)![1]);
     expect(heightOf(svgWith)).toBeGreaterThan(heightOf(svgWithout));
+  });
+});
+
+describe('renderSchematicSvg events badge', () => {
+  it('omits the purple "has Events" badge when the Pod has none', () => {
+    const svg = renderSchematicSvg(base);
+    expect(svg).not.toContain('data-pod-events');
+  });
+
+  it('draws a data-pod-events badge carrying the Pod id/namespace/name when it has Events', () => {
+    const withEvents: SchematicDto = { ...base, events: { total: 5, warnings: 2 } };
+    const svg = renderSchematicSvg(withEvents);
+    expect(svg).toContain('data-pod-events=');
+    const match = /data-pod-events="([^"]+)"/.exec(svg);
+    expect(match).not.toBeNull();
+    const payload = JSON.parse(match![1]!.replace(/&quot;/g, '"')) as { id: string; namespace: string; podName: string };
+    expect(payload).toEqual({ id: 'pod-1', namespace: 'kube-system', podName: 'coredns-abc' });
+    expect(svg).toContain('#8e44ad');
+  });
+
+  it('includes the warning count in the tooltip only when there are Warnings', () => {
+    const noWarnings: SchematicDto = { ...base, events: { total: 3, warnings: 0 } };
+    const withWarnings: SchematicDto = { ...base, events: { total: 3, warnings: 1 } };
+    expect(renderSchematicSvg(noWarnings)).toContain('3 Events');
+    expect(renderSchematicSvg(noWarnings)).not.toContain('Warning');
+    expect(renderSchematicSvg(withWarnings)).toContain('1 Warning');
   });
 });

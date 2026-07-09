@@ -527,23 +527,6 @@ function volumeAttachmentToCsiDriverId(graph: ResourceGraph): Map<ResourceId, Re
   return result;
 }
 
-/** Edges from a VolumeAttachment to the CSIDriver its own resolver names — reuses whichever CSIDriver items
- *  the tier already resolved from StorageClass.provisioner (the same driver, in the overwhelming common case
- *  where a PV's VolumeAttachment shares its StorageClass's provisioner); a VolumeAttachment naming a driver
- *  that never made it into the tier (capped out, or referenced by no StorageClass) simply produces no edge,
- *  the same silent-drop behavior every other one-hop lookup here already has. */
-function volumeAttachmentToCsiDriverEdges(
-  volumeAttachmentToDriverId: Map<ResourceId, ResourceId>,
-  volumeAttachmentIds: Set<ResourceId>,
-  csiDriverIds: Set<ResourceId>,
-): WheelLinkEdge[] {
-  const edges: WheelLinkEdge[] = [];
-  for (const [vaId, driverId] of volumeAttachmentToDriverId) {
-    if (volumeAttachmentIds.has(vaId) && csiDriverIds.has(driverId)) edges.push({ fromId: vaId, toId: driverId });
-  }
-  return edges;
-}
-
 /** One dot per driver entry in each Node's CSINode object (cluster-scoped, matched by name === node name),
  *  chained straight down from the node's own center — a plain vertical drop, not routed out to touch the CSI
  *  ring (the ring is a separate, unconnected structural reference in this part of the scene). Each dot steps
@@ -727,17 +710,18 @@ export function projectClusterWheel(graph: ResourceGraph, nodeIds?: Set<string>)
     persistentVolumes.items,
     VOLUME_ATTACHMENT_Y,
   );
-  const { tier: csiDrivers, edges: storageClassToCsiDriver } = csiDriverTier(
+  const {
+    tier: csiDrivers,
+    storageClassEdges: storageClassToCsiDriver,
+    volumeAttachmentEdges: volumeAttachmentToCsiDriver,
+  } = csiDriverTier(
     graph,
     storageClassToCsiDriverId(graph),
     storageClasses.items,
+    volumeAttachmentToCsiDriverId(graph),
+    volumeAttachments.items,
     CSI_DRIVER_Y, // placed below VolumeAttachment's own plane, not StorageClass's — see CSI_DRIVER_Y's own comment
     csiRingRadius,
-  );
-  const volumeAttachmentToCsiDriver = volumeAttachmentToCsiDriverEdges(
-    volumeAttachmentToCsiDriverId(graph),
-    new Set(volumeAttachments.items.map((i) => i.id)),
-    new Set(csiDrivers.items.map((i) => i.id)),
   );
   const csiNodeDrivers = csiNodeDriverDots(graph, nodes);
   const localStorage = localStorageDots(nodes);
@@ -1004,40 +988,70 @@ function oneHopTier(
 }
 
 /**
- * The CSIDriver tier: unlike every other one-hop tier, a CSIDriver is NOT anchored near its parent
- * StorageClass's own position — a CSIDriver is a cluster-wide object, not owned by any one StorageClass, so it
- * sits out at the CSI ring's own radius instead. Its ANGLE still comes from its StorageClass (the first
- * referencing one, same tie-break as every other tier here), so it lands directly under the ring point closest
- * to that StorageClass; its Y is passed in as `y` (CSI_DRIVER_Y, placed 15% further from the ring than
- * VolumeAttachment's own plane, below it rather than above — see CSI_DRIVER_Y's own comment for why — so its
- * link to VolumeAttachment reads as a visibly angled connector) while the hop up to the ring stays a plain
- * vertical one (x,z match the ring point exactly).
+ * The CSIDriver tier: unlike every other one-hop tier, a CSIDriver is NOT anchored near its parent's own
+ * position — a CSIDriver is a cluster-wide object, not owned by any one StorageClass or VolumeAttachment, so
+ * it sits out at the CSI ring's own radius instead.
+ *
+ * A driver can be named by EITHER a StorageClass (provisioner) or a VolumeAttachment (attacher) — real PVs
+ * commonly have only the latter (dynamically CSI-attached, no storageClassName at all; confirmed against real
+ * snapshot data — several real captures are 100% this shape). Both sources are unioned here rather than
+ * resolving only through StorageClass, so a VA-only PV's driver still gets a dot and the
+ * Pod->PVC->PV->VolumeAttachment->CSIDriver chain never silently dead-ends at VolumeAttachment for lack of a
+ * StorageClass to hang the driver from.
+ *
+ * Its ANGLE is evenly spaced around the ring (equal degrees between each driver — see the angleStep comment
+ * below), NOT anchored to any one referencing StorageClass/VolumeAttachment's own angle, so drivers stay
+ * legible instead of piling up wherever their parents happen to cluster. Its Y is passed in as `y`
+ * (CSI_DRIVER_Y, placed 15% further from the ring than VolumeAttachment's own plane, below it rather than
+ * above — see CSI_DRIVER_Y's own comment for why) while the hop up to the ring stays a plain vertical one (x,z
+ * match the ring point exactly).
  */
 function csiDriverTier(
   graph: ResourceGraph,
   storageClassToDriverId: Map<ResourceId, ResourceId>,
   storageClassItems: WheelTierItem[],
+  volumeAttachmentToDriverId: Map<ResourceId, ResourceId>,
+  volumeAttachmentItems: WheelTierItem[],
   y: number,
   ringRadius: number,
-): { tier: WheelTier; edges: WheelLinkEdge[] } {
+): { tier: WheelTier; storageClassEdges: WheelLinkEdge[]; volumeAttachmentEdges: WheelLinkEdge[] } {
   const scById = new Map(storageClassItems.map((s) => [s.id, s]));
-  const referencingScs = new Map<ResourceId, ResourceId[]>();
+  const vaById = new Map(volumeAttachmentItems.map((v) => [v.id, v]));
+
+  const scRefs = new Map<ResourceId, ResourceId[]>();
   for (const [scId, driverId] of storageClassToDriverId) {
     if (!scById.has(scId)) continue;
-    const list = referencingScs.get(driverId) ?? [];
+    const list = scRefs.get(driverId) ?? [];
     list.push(scId);
-    referencingScs.set(driverId, list);
+    scRefs.set(driverId, list);
+  }
+  const vaRefs = new Map<ResourceId, ResourceId[]>();
+  for (const [vaId, driverId] of volumeAttachmentToDriverId) {
+    if (!vaById.has(vaId)) continue;
+    const list = vaRefs.get(driverId) ?? [];
+    list.push(vaId);
+    vaRefs.set(driverId, list);
   }
 
-  const ranked = [...referencingScs.entries()].sort((a, b) => b[1].length - a[1].length);
+  const driverIds = new Set([...scRefs.keys(), ...vaRefs.keys()]);
+  const ranked = [...driverIds].sort((a, b) => {
+    const countOf = (id: ResourceId) => (scRefs.get(id)?.length ?? 0) + (vaRefs.get(id)?.length ?? 0);
+    return countOf(b) - countOf(a);
+  });
   const shown = ranked.slice(0, TIER_CAP);
-  const shownIds = new Set(shown.map(([id]) => id));
+  const shownIds = new Set(shown);
 
+  // Evenly spaced around the CSI ring (equal degrees apart) rather than anchored to a referencing
+  // StorageClass/VolumeAttachment's own angle — with dozens of drivers all inheriting angles from wherever
+  // their first referencing parent happened to land, drivers piled up unevenly (dense near busy parts of the
+  // ring, sparse elsewhere); a fixed angular step spreads them out for legibility regardless of how their
+  // parents happen to be distributed. `shown`'s order (by reference count, tie-broken by driverId's stable
+  // position in `driverIds`) is deterministic, so a given snapshot always renders the same layout.
+  const angleStep = shown.length > 0 ? (2 * Math.PI) / shown.length : 0;
   const placed: { x: number; z: number }[] = [];
-  const items: WheelTierItem[] = shown.map(([driverId, scIds]) => {
+  const items: WheelTierItem[] = shown.map((driverId, i) => {
     const item = graph.nodes.get(driverId);
-    const anchorSc = scById.get(scIds[0] as ResourceId);
-    const angle = Math.atan2(anchorSc?.z ?? 0, anchorSc?.x ?? ringRadius);
+    const angle = i * angleStep;
     const { x, z } = deconflict(ringRadius * Math.cos(angle), ringRadius * Math.sin(angle), placed, MIN_ITEM_DIST);
     placed.push({ x, z });
     return {
@@ -1055,11 +1069,16 @@ function csiDriverTier(
     };
   });
 
-  const edges: WheelLinkEdge[] = [];
+  const storageClassEdges: WheelLinkEdge[] = [];
   for (const [scId, driverId] of storageClassToDriverId) {
     if (!scById.has(scId)) continue;
-    if (shownIds.has(driverId)) edges.push({ fromId: scId, toId: driverId });
+    if (shownIds.has(driverId)) storageClassEdges.push({ fromId: scId, toId: driverId });
+  }
+  const volumeAttachmentEdges: WheelLinkEdge[] = [];
+  for (const [vaId, driverId] of volumeAttachmentToDriverId) {
+    if (!vaById.has(vaId)) continue;
+    if (shownIds.has(driverId)) volumeAttachmentEdges.push({ fromId: vaId, toId: driverId });
   }
 
-  return { tier: { items, totalCount: referencingScs.size }, edges };
+  return { tier: { items, totalCount: driverIds.size }, storageClassEdges, volumeAttachmentEdges };
 }

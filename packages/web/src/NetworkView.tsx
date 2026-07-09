@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { iconUrlForKind } from './kindIcons';
 import { NetworkNodeIpsView } from './NetworkNodeIpsView';
+import { NetworkDiagramsView } from './NetworkDiagramsView';
+import { PortsView } from './PortsView';
+import { KindIcon } from './StorageView';
 
 interface NetworkPod {
   id: string;
@@ -32,7 +34,7 @@ const POD_ICON_COL = POD_ICON_INDENT + POD_ICON_SIZE + 6;
 const POD_NAME_COL = 340;
 const POD_IP_COL = 150;
 
-type Mode = 'services' | 'nodes';
+type Mode = 'services' | 'nodes' | 'diagrams' | 'ports';
 
 export function NetworkView({
   namespaces,
@@ -66,6 +68,8 @@ export function NetworkView({
           [
             ['services', 'Services-To-Pods'],
             ['nodes', 'Node & Pod IPs'],
+            ['diagrams', 'Diagrams'],
+            ['ports', 'Ports'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -103,8 +107,12 @@ export function NetworkView({
       </div>
       {mode === 'services' ? (
         <ServicesToPodsMode namespace={ns} onSelect={onSelect} />
-      ) : (
+      ) : mode === 'nodes' ? (
         <NetworkNodeIpsView onSelect={onSelect} />
+      ) : mode === 'diagrams' ? (
+        <NetworkDiagramsView namespaces={namespaces} onSelect={onSelect} />
+      ) : (
+        <PortsView onSelect={onSelect} />
       )}
     </div>
   );
@@ -112,6 +120,7 @@ export function NetworkView({
 
 function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSelect: (id: string) => void }) {
   const [cards, setCards] = useState<NetworkService[]>([]);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const q = namespace ? `?ns=${encodeURIComponent(namespace)}` : '';
@@ -121,30 +130,46 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
       .catch(() => setCards([]));
   }, [namespace]);
 
+  const toggle = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {cards.length === 0 && <p style={{ color: '#888', fontSize: 13 }}>No services in this namespace.</p>}
-      {cards.map((svc) => (
+      {cards.map((svc) => {
+        const isCollapsed = collapsed.has(svc.id);
+        return (
         <div key={svc.id} style={{ border: '1px solid #d0d0d0', borderRadius: 4, overflow: 'hidden' }}>
           <div
             onClick={() => onSelect(svc.id)}
             style={{
               display: 'grid',
               gridTemplateColumns: `${SVC_NAME_COL} ${SVC_NS_COL} ${SVC_IP_COL} 1fr`,
-              alignItems: 'baseline',
+              alignItems: 'center',
               padding: '6px 10px',
               background: '#eef2f6',
               cursor: 'pointer',
               fontSize: 13,
             }}
           >
-            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <img
-                src={iconUrlForKind('Service')}
-                alt=""
-                style={{ display: 'inline', width: 17, height: 17, marginRight: 5, verticalAlign: 'text-bottom' }}
-              />
-              {svc.name}
+            <strong style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+              {/* Collapse toggle — stops propagation so it doesn't also fire the header's select-resource click. */}
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggle(svc.id);
+                }}
+                style={{ cursor: 'pointer', width: 12, flexShrink: 0, fontSize: 10, color: '#888' }}
+              >
+                {isCollapsed ? '▸' : '▾'}
+              </span>
+              <KindIcon kind="Service" name={svc.name} size={16} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{svc.name}</span>
             </strong>
             <span style={{ color: '#555' }}>{svc.namespace}</span>
             <span style={{ color: '#555' }}>ClusterIP {svc.clusterIp ?? '—'}</span>
@@ -152,6 +177,7 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
               {svc.ports.map((p) => `${p.port}${p.protocol && p.protocol !== 'TCP' ? `/${p.protocol}` : ''}`).join(', ')}
             </span>
           </div>
+          {!isCollapsed && (
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%', fontSize: 12 }}>
             <colgroup>
               <col style={{ width: POD_ICON_COL }} />
@@ -199,18 +225,9 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
                           borderTop: '1px solid #c8c8c8',
                         }}
                       />
-                      <img
-                        src={iconUrlForKind('Pod')}
-                        alt=""
-                        title={pod.phase ?? (pod.ready ? 'Ready' : 'NotReady')}
-                        style={{
-                          position: 'relative',
-                          display: 'inline-block',
-                          width: POD_ICON_SIZE,
-                          height: POD_ICON_SIZE,
-                          marginLeft: POD_ICON_INDENT,
-                        }}
-                      />
+                      <span style={{ position: 'relative', display: 'inline-flex', marginLeft: POD_ICON_INDENT }}>
+                        <KindIcon kind="Pod" name={pod.name} size={16} detail={pod.phase ?? (pod.ready ? 'Ready' : 'NotReady')} />
+                      </span>
                     </td>
                     <td style={{ padding: '4px 10px', verticalAlign: 'middle' }}>{pod.name}</td>
                     <td style={{ padding: '4px 10px', color: '#555', verticalAlign: 'middle' }}>
@@ -224,8 +241,10 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
               })}
             </tbody>
           </table>
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

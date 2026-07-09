@@ -32,6 +32,7 @@ export interface SchematicDto {
     limitRanges: { id: string; name: string }[];
     roleBindings: { id: string; name: string }[];
   };
+  events: { total: number; warnings: number };
 }
 
 export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto | undefined {
@@ -69,5 +70,6 @@ export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto 
       limitRanges: s.policies.limitRanges.map((r) => ({ id: r.id, name: r.name })),
       roleBindings: s.policies.roleBindings.map((r) => ({ id: r.id, name: r.name })),
     },
+    events: s.events,
   };
 }

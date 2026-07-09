@@ -39,6 +39,10 @@ const STATUS_OK = '#2e8b57';
 const STATUS_WARN = '#d4a017';
 const STATUS_ERROR = '#c0392b';
 const STATUS_NEUTRAL = '#9a9a9a';
+/** "Has Events" indicator fill — deliberately not in CATEGORY_STYLE/STATUS_* (Events aren't a functional
+ *  group like Config/Network, and Warning-vs-Normal is a per-event distinction the badge doesn't make; it
+ *  only signals "this Pod has Event history at all"). Matches the legacy app's small purple corner rectangle. */
+const EVENTS_BADGE_FILL = '#8e44ad';
 
 const CATEGORY_STYLE: Record<string, { fill: string; stroke: string }> = {
   config: { fill: '#fdf6d3', stroke: '#c9b258' },
@@ -67,6 +71,7 @@ export function renderSchematicSvg(s: SchematicDto): string {
   const hasNetwork = s.network.services.length > 0;
   const hasSecurity = !!s.security.serviceAccount;
   const hasStorage = s.storage.pvcs.length > 0;
+  const hasEvents = s.events.total > 0;
 
   // Namespace-wide governance resources that apply to this Pod — a single adaptive row at the very bottom
   // of the namespace box (below everything else), same aggregate-icon-per-kind pattern as every other group.
@@ -82,7 +87,10 @@ export function renderSchematicSvg(s: SchematicDto): string {
   const policiesH = hasPolicies ? GROUP_H : 0;
 
   const ownerW = hasOwner ? Math.max(GROUP_W, OWNER_STEP * (s.ownerChain.length + (s.generatorLabel ? 1 : 0)) + 40) : 0;
-  const leftColW = Math.max(hasOwner ? ownerW : 0, hasNetwork ? GROUP_W : 0);
+  // hasEvents reserves the same GROUP_W footprint as Owner/Network — the purple badge (drawn at MARGIN,MARGIN,
+  // same corner) needs podX pushed right even when neither Owner nor Network is present, or it would sit
+  // directly under the Pod card.
+  const leftColW = Math.max(hasOwner ? ownerW : 0, hasNetwork ? GROUP_W : 0, hasEvents ? GROUP_W : 0);
   // Storage's own box now holds only the PVC icon — PV/StorageClass are cluster-scoped and render in the
   // Cluster box instead (see below), so this column no longer needs the wider 3-icon-chain width.
   const rightColW = Math.max(hasSecurity ? GROUP_W : 0, hasStorage ? GROUP_W : 0);
@@ -91,7 +99,9 @@ export function renderSchematicSvg(s: SchematicDto): string {
   const configH = hasConfig ? GROUP_H : 0;
 
   const podX = MARGIN + (leftColW > 0 ? leftColW + COL_GAP : 0);
-  const podY = MARGIN + (hasConfig ? configH + ROW_GAP : 0);
+  // The events badge is the same GROUP_H-tall "top row" as Configuration (both start at y=MARGIN) — Owner/
+  // Network (leftY, below) need to start below whichever of the two is present, same as Config alone used to.
+  const podY = MARGIN + (hasConfig || hasEvents ? GROUP_H + ROW_GAP : 0);
 
   // Network's (and Storage's) own bottom edge, podY-relative — the Pod box is stretched to reach at least
   // this far down so their connector arrows land ON the box's edge, not pointing at empty space below it.
@@ -114,6 +124,7 @@ export function renderSchematicSvg(s: SchematicDto): string {
   const canvasH = (hasPolicies ? policiesY + policiesH : podY + contentH) + MARGIN;
 
   const parts: string[] = [];
+  parts.push(eventsBadge(s));
 
   // ---- Configuration (above Pod) ----
   // Every group-to-Pod connector below is kept strictly horizontal or vertical (never diagonal) by sharing
@@ -391,6 +402,31 @@ function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number): stri
     `<g data-resource-list="${esc(listPayload)}" data-kind="${esc(kind)}" data-names="${namesAttr}" style="cursor:pointer">` +
     iconImage(kind, cx, cy) +
     `<text class="sch-count" x="${cx + ICON_R + 4}" y="${cy + 4}">(${items.length})</text>` +
+    `</g>`
+  );
+}
+
+/** Purple "has Events" card in the namespace box's top-left corner — same footprint and top edge (y=MARGIN)
+ *  as the Configuration box, sitting in the same top row, above the Generator OwnerRefs box (leftY starts
+ *  below this row — see podY above) — shown only when this Pod has associated Event objects. Clicking it (via
+ *  data-pod-events, SchematicView's own delegation) jumps to the Events view pre-filtered to this Pod, same
+ *  pattern as the Security box's "RBAC ▸" pill (data-rbac-sa). */
+function eventsBadge(s: SchematicDto): string {
+  if (s.events.total === 0) return '';
+  const x = MARGIN;
+  const y = MARGIN;
+  const w = GROUP_W;
+  const h = GROUP_H;
+  const payload = esc(JSON.stringify({ id: s.podId, namespace: s.namespace ?? '', podName: s.podName }));
+  const warningNote = s.events.warnings > 0 ? ` (${s.events.warnings} Warning)` : '';
+  const tooltip = esc(JSON.stringify([`${s.events.total} Event${s.events.total === 1 ? '' : 's'}${warningNote}`]));
+  const warningLabel = s.events.warnings > 0 ? `<text x="${x + w / 2}" y="${y + h - 14}" text-anchor="middle" font-size="11" fill="#f3d9fa">${s.events.warnings} Warning</text>` : '';
+  return (
+    `<g data-pod-events="${payload}" data-names="${tooltip}" style="cursor:pointer">` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${EVENTS_BADGE_FILL}" />` +
+    `<text x="${x + 10}" y="${y + 16}" font-size="11" font-weight="600" fill="#fff">Events</text>` +
+    `<text x="${x + w / 2}" y="${y + h / 2 + 10}" text-anchor="middle" font-size="28" font-weight="700" fill="#fff">${s.events.total}</text>` +
+    warningLabel +
     `</g>`
   );
 }

@@ -256,3 +256,64 @@ describe('projectPodSchematic namespace policies (NetworkPolicy/ResourceQuota/Li
     expect(s?.policies).toEqual({ networkPolicies: [], resourceQuotas: [], limitRanges: [], roleBindings: [] });
   });
 });
+
+describe('projectPodSchematic events summary', () => {
+  const pod: RawObject = {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' },
+    spec: { containers: [] },
+  };
+  const otherPod: RawObject = {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: { uid: 'pod-2', name: 'other', namespace: 'ns1' },
+    spec: { containers: [] },
+  };
+
+  it('counts Events resolved by involvedObject.uid, separating Warning from the total', () => {
+    const normalEvt: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Event',
+      metadata: { uid: 'evt-1', name: 'app.a', namespace: 'ns1' },
+      type: 'Normal',
+      involvedObject: { kind: 'Pod', name: 'app', namespace: 'ns1', uid: 'pod-1' },
+    };
+    const warnEvt: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Event',
+      metadata: { uid: 'evt-2', name: 'app.b', namespace: 'ns1' },
+      type: 'Warning',
+      involvedObject: { kind: 'Pod', name: 'app', namespace: 'ns1', uid: 'pod-1' },
+    };
+    const otherPodEvt: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Event',
+      metadata: { uid: 'evt-3', name: 'other.a', namespace: 'ns1' },
+      type: 'Warning',
+      involvedObject: { kind: 'Pod', name: 'other', namespace: 'ns1', uid: 'pod-2' },
+    };
+    const graph = buildGraph([pod, otherPod, normalEvt, warnEvt, otherPodEvt]);
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.events).toEqual({ total: 2, warnings: 1 });
+  });
+
+  it('falls back to kind/name/namespace when involvedObject has no uid', () => {
+    const noUidEvt: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Event',
+      metadata: { uid: 'evt-4', name: 'app.c', namespace: 'ns1' },
+      type: 'Normal',
+      involvedObject: { kind: 'Pod', name: 'app', namespace: 'ns1' },
+    };
+    const graph = buildGraph([pod, noUidEvt]);
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.events).toEqual({ total: 1, warnings: 0 });
+  });
+
+  it('reports zero when the Pod has no associated Events', () => {
+    const graph = buildGraph([pod]);
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.events).toEqual({ total: 0, warnings: 0 });
+  });
+});

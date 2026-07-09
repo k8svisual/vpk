@@ -628,9 +628,64 @@ describe('projectClusterWheel pod linkage', () => {
     // ...but positioned out at the CSI ring's own radius (NOT anchored near the StorageClass's own, much
     // smaller, radius) — a CSIDriver is cluster-wide, not owned by any one StorageClass's position.
     expect(Math.hypot(driverItem.x, driverItem.z)).toBeCloseTo(wheel.csiRingRadius, 5);
-    // Its angle around the wheel still comes from the StorageClass, so it sits directly under the ring point
-    // closest to it, not at an arbitrary angle.
-    expect(Math.atan2(driverItem.z, driverItem.x)).toBeCloseTo(Math.atan2(scItem.z, scItem.x), 5);
+    // Evenly spaced around the ring rather than anchored to the StorageClass's own angle — with only one
+    // driver shown, "evenly spaced" places it at angle 0 (the first slot of a 1-slot ring).
+    expect(Math.atan2(driverItem.z, driverItem.x)).toBeCloseTo(0, 5);
+  });
+
+  it('spreads multiple CSIDrivers evenly around the ring by equal angular steps, not clustered by anchor', () => {
+    const drivers: RawObject[] = ['driver-a.example.com', 'driver-b.example.com', 'driver-c.example.com'].map((name, i) => ({
+      apiVersion: 'storage.k8s.io/v1beta1',
+      kind: 'CSIDriver',
+      metadata: { uid: `driver-${i}`, name },
+    }));
+    // All 3 StorageClasses anchor to the SAME PV/pod (same tiny angle slice of the ring) — if drivers still
+    // inherited their anchor's angle, all 3 would land on top of each other; even spacing must still spread
+    // them a full step apart regardless.
+    const scs: RawObject[] = ['driver-a.example.com', 'driver-b.example.com', 'driver-c.example.com'].map((prov, i) => ({
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { uid: `sc-${i}`, name: `sc-${i}` },
+      provisioner: prov,
+    }));
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-multi', name: 'pv-multi' },
+      spec: { storageClassName: 'sc-0' },
+    };
+    const pvc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-multi', name: 'claim-multi', namespace: 'ns' },
+      spec: { volumeName: 'pv-multi' },
+    };
+    const p: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-multi', name: 'multi', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-multi' } }] },
+    };
+    // Each SC only actually resolves a driver of the SAME index via provisioner name (sc-0 -> driver-a via
+    // pv-multi's storageClassName), so wire the other two drivers in via their own PV/SC pairs too, each
+    // sharing pv-multi's namespace/pod so all 3 drivers make it into the tier.
+    const pv2: RawObject = { apiVersion: 'v1', kind: 'PersistentVolume', metadata: { uid: 'pv-multi-2', name: 'pv-multi-2' }, spec: { storageClassName: 'sc-1' } };
+    const pvc2: RawObject = { apiVersion: 'v1', kind: 'PersistentVolumeClaim', metadata: { uid: 'pvc-multi-2', name: 'claim-multi-2', namespace: 'ns' }, spec: { volumeName: 'pv-multi-2' } };
+    const p2: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-multi-2', name: 'multi-2', namespace: 'ns' }, spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-multi-2' } }] } };
+    const pv3: RawObject = { apiVersion: 'v1', kind: 'PersistentVolume', metadata: { uid: 'pv-multi-3', name: 'pv-multi-3' }, spec: { storageClassName: 'sc-2' } };
+    const pvc3: RawObject = { apiVersion: 'v1', kind: 'PersistentVolumeClaim', metadata: { uid: 'pvc-multi-3', name: 'claim-multi-3', namespace: 'ns' }, spec: { volumeName: 'pv-multi-3' } };
+    const p3: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-multi-3', name: 'multi-3', namespace: 'ns' }, spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-multi-3' } }] } };
+
+    const graph = buildGraph([node('a'), ...drivers, ...scs, pv, pvc, p, pv2, pvc2, p2, pv3, pvc3, p3]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.csiDrivers.items).toHaveLength(3);
+    const angles = wheel.csiDrivers.items.map((i) => Math.atan2(i.z, i.x)).sort((a, b) => a - b);
+    const step = (2 * Math.PI) / 3;
+    // Every pairwise angular gap around the ring is the same fixed step, not clustered near their shared
+    // anchor — this holds regardless of the ring's absolute rotation, unlike comparing to a fixed angle.
+    const gaps = [angles[1]! - angles[0]!, angles[2]! - angles[1]!, angles[0]! + 2 * Math.PI - angles[2]!];
+    for (const gap of gaps) expect(gap).toBeCloseTo(step, 5);
   });
 
   it('links a VolumeAttachment to its CSIDriver by attacher name, independent of its StorageClass', () => {
@@ -679,6 +734,45 @@ describe('projectClusterWheel pod linkage', () => {
     const driverItem = wheel.csiDrivers.items[0]!;
     const vaItem = wheel.volumeAttachments.items[0]!;
     expect(driverItem.y).toBeLessThan(vaItem.y);
+  });
+
+  it('still renders a VolumeAttachment->CSIDriver dot+edge when the PV has NO StorageClass at all (a dynamically CSI-attached volume — the common real-world shape when a PV is provisioned outside a StorageClass)', () => {
+    const driver: RawObject = {
+      apiVersion: 'storage.k8s.io/v1beta1',
+      kind: 'CSIDriver',
+      metadata: { uid: 'driver-2', name: 'openshift-storage.rbd.csi.ceph.com' },
+    };
+    const pv: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-nosc', name: 'pv-nosc' },
+      // Deliberately no spec.storageClassName — nothing for csiDriverTier to resolve a driver through via
+      // StorageClass, so the only path to a driver dot is the VolumeAttachment's own attacher.
+    };
+    const pvc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-nosc', name: 'claim-nosc', namespace: 'ns' },
+      spec: { volumeName: 'pv-nosc' },
+    };
+    const p: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-nosc', name: 'nosc', namespace: 'ns' },
+      spec: { nodeName: 'a', volumes: [{ name: 'v', persistentVolumeClaim: { claimName: 'claim-nosc' } }] },
+    };
+    const va: RawObject = {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'VolumeAttachment',
+      metadata: { uid: 'va-nosc', name: 'csi-va-nosc' },
+      spec: { attacher: 'openshift-storage.rbd.csi.ceph.com', nodeName: 'a', source: { persistentVolumeName: 'pv-nosc' } },
+    };
+    const graph = buildGraph([node('a'), driver, pv, pvc, p, va]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.csiDrivers.items.map((i) => i.name)).toEqual(['openshift-storage.rbd.csi.ceph.com']);
+    expect(wheel.volumeAttachmentToCsiDriver).toEqual([{ fromId: 'va-nosc', toId: 'driver-2' }]);
+    expect(wheel.storageClassToCsiDriver).toEqual([]);
   });
 
   it('drops a VolumeAttachment->CSIDriver edge silently when the attacher names no known CSIDriver', () => {

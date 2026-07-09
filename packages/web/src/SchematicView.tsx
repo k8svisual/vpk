@@ -30,6 +30,7 @@ export function SchematicView({
   podId,
   onSelect,
   onViewRbac,
+  onViewEvents,
   onReturn,
 }: {
   podId: string | null;
@@ -41,6 +42,10 @@ export function SchematicView({
   /** The Security box's "RBAC ▸" pill (schematicSvg's data-rbac-sa) routes here with the Pod's
    *  ServiceAccount id — opens the RBAC view scoped to that subject instead of an editor. */
   onViewRbac?: (saId: string) => void;
+  /** The small purple "has Events" corner badge (schematicSvg's data-pod-events) routes here — opens the
+   *  Events view pre-filtered to this exact Pod (by id, not just namespace/name — see EventsView's
+   *  initialPodId doc comment for why the id matters) instead of an editor. */
+  onViewEvents?: (namespace: string, podName: string, podId: string) => void;
   /** Shown as a "Return" pill when set — present only when Schematic was entered via the 3D view's "View
    *  Schematic" button, matching SearchView's onReturn (see App.tsx's searchScope/schematicFrom3D). */
   onReturn?: () => void;
@@ -159,6 +164,15 @@ export function SchematicView({
     if (rbacNode) {
       const saId = rbacNode.getAttribute('data-rbac-sa');
       if (saId && onViewRbac) onViewRbac(saId);
+      return;
+    }
+    const eventsNode = (e.target as Element).closest('[data-pod-events]');
+    if (eventsNode) {
+      const payloadAttr = eventsNode.getAttribute('data-pod-events');
+      if (payloadAttr && onViewEvents) {
+        const payload = JSON.parse(payloadAttr) as { id: string; namespace: string; podName: string };
+        onViewEvents(payload.namespace, payload.podName, payload.id);
+      }
       return;
     }
     const listNode = (e.target as Element).closest('[data-resource-list]');
