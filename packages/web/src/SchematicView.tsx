@@ -32,6 +32,10 @@ export function SchematicView({
   onViewRbac,
   onViewEvents,
   onReturn,
+  manualNamespace,
+  onManualNamespaceChange,
+  manualPodId,
+  onManualPodIdChange,
 }: {
   podId: string | null;
   /** The optional second argument is a YAML path (e.g. ['spec', 'containers', 2] or ['status', 'conditions'])
@@ -49,6 +53,15 @@ export function SchematicView({
   /** Shown as a "Return" pill when set — present only when Schematic was entered via the 3D view's "View
    *  Schematic" button, matching SearchView's onReturn (see App.tsx's searchScope/schematicFrom3D). */
   onReturn?: () => void;
+  /** The manual Namespace→Pod picker's own selection (see the picker's doc comment) — owned by App.tsx, not
+   *  local state here, so it SURVIVES this component unmounting when the user navigates away (e.g. via the
+   *  RBAC "▸" pill or the Events badge) and remounting on Return. Local state here was lost on every such
+   *  round-trip, leaving the picker blank and the schematic gone even though the user never asked to change
+   *  Pods — this is the fix for that. */
+  manualNamespace: string;
+  onManualNamespaceChange: (namespace: string) => void;
+  manualPodId: string;
+  onManualPodIdChange: (podId: string) => void;
 }) {
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
@@ -62,9 +75,8 @@ export function SchematicView({
   // Manual Namespace → Pod picker, for the "arrived directly at this page" case (no onReturn — see onReturn's
   // own doc comment). Not used at all when entered from the 3D view: there, `podId` already names the exact
   // Pod that flow means to show, and the picker would just be a redundant, confusing second way to change it.
+  // The selection itself (manualNamespace/manualPodId) is a controlled prop now — see its own doc comment.
   const [pods, setPods] = useState<PodOption[]>([]);
-  const [manualNamespace, setManualNamespace] = useState('');
-  const [manualPodId, setManualPodId] = useState('');
 
   // Depends on nothing but mount: whether `onReturn` is set at all is fixed for this component's whole
   // lifetime (App.tsx remounts SchematicView on every view change, so it never flips mid-mount).
@@ -213,8 +225,8 @@ export function SchematicView({
         <select
           value={manualNamespace}
           onChange={(e) => {
-            setManualNamespace(e.target.value);
-            setManualPodId(''); // the previously picked Pod almost certainly isn't in the new namespace
+            onManualNamespaceChange(e.target.value);
+            onManualPodIdChange(''); // the previously picked Pod almost certainly isn't in the new namespace
           }}
           style={{ padding: '4px 8px' }}
         >
@@ -230,7 +242,7 @@ export function SchematicView({
         pod
         <select
           value={manualPodId}
-          onChange={(e) => setManualPodId(e.target.value)}
+          onChange={(e) => onManualPodIdChange(e.target.value)}
           disabled={!manualNamespace}
           style={{ padding: '4px 8px', minWidth: 220 }}
         >

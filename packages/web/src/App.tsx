@@ -82,6 +82,12 @@ export function App() {
   // re-trigger SchematicView's fetch for a non-Pod id, 404, and leave a stale "not found" error visible
   // underneath as soon as the editor closes.
   const [schematicPodId, setSchematicPodId] = useState<string | null>(null);
+  // Schematic's manual Namespace→Pod picker selection (used when Schematic is entered directly, not via 3D)
+  // — owned here, not as SchematicView's own local state, so a round-trip through RBAC (the "▸" pill) or
+  // Events (the purple badge) and back doesn't wipe the picker and leave the schematic blank. See
+  // SchematicView's manualNamespace/manualPodId prop doc comments for the full story.
+  const [schematicManualNamespace, setSchematicManualNamespace] = useState('');
+  const [schematicManualPodId, setSchematicManualPodId] = useState('');
   // Set only by Schematic's per-container rows and its Phase/Conditions area — an explicit path DefinitionModal
   // jumps straight to instead of the Pod's generic default field. Reset to undefined on every OTHER selection
   // path (selectResource's default param, and explicitly in select3D) so it can never leak onto an unrelated
@@ -172,6 +178,11 @@ export function App() {
     setOwnerRefFocusId(null); // a resource id focused before this snapshot swap is almost certainly stale now
     setSelected(null);
     setModalOpen(false);
+    // Schematic's manual picker state is lifted up (see schematicManualNamespace's own comment) specifically
+    // so it survives an RBAC/Events round-trip — but that means it no longer auto-clears on unmount either, so
+    // a snapshot swap has to reset it explicitly or a Pod id from the OLD snapshot would linger in the picker.
+    setSchematicManualNamespace('');
+    setSchematicManualPodId('');
     setBusy('');
   }
 
@@ -181,6 +192,8 @@ export function App() {
     const res = (await post('/capture', opts)) as { snapshot?: string; error?: string };
     await Promise.all([refreshSnaps(), refreshNamespaces()]);
     setOwnerRefFocusId(null);
+    setSchematicManualNamespace('');
+    setSchematicManualPodId('');
     setBusy(res.error ? `error: ${res.error}` : '');
   }
 
@@ -464,6 +477,10 @@ export function App() {
                 onViewRbac={viewRbacFromSchematic}
                 onViewEvents={viewEventsFromSchematic}
                 onReturn={schematicFrom3D ? returnFrom3DSchematic : undefined}
+                manualNamespace={schematicManualNamespace}
+                onManualNamespaceChange={setSchematicManualNamespace}
+                manualPodId={schematicManualPodId}
+                onManualPodIdChange={setSchematicManualPodId}
               />
             )}
             {view === 'rbac' && (
