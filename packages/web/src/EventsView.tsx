@@ -71,7 +71,7 @@ function InvolvedObjectCell({ e, onSelect }: { e: EventRecord; onSelect: (id: st
         style={{ cursor: 'pointer' }}
       >
         <KindIcon kind={e.involvedObjectKind} name={e.involvedObjectName ?? ''} size={13} bg={networkIconBg(e.involvedObjectKind)} />
-        <span style={{ color: '#2a5db0' }}>{e.involvedObjectName}</span>
+        <span style={{ color: 'var(--vpk-accent)' }}>{e.involvedObjectName}</span>
       </span>
     );
   }
@@ -152,7 +152,7 @@ function AggregateMode({ events, onOpenObject }: { events: EventRecord[]; onOpen
             <span className="flex items-center gap-1.5 truncate" style={{ opacity: g.resolvedId ? 1 : 0.7 }}>
               <KindIcon kind={g.kind} name={g.name} size={13} bg={networkIconBg(g.kind)} />
               {g.namespace && <span style={{ color: 'var(--vpk-fg-muted)' }}>{g.namespace} /</span>}
-              <span style={{ color: g.resolvedId ? '#2a5db0' : 'var(--vpk-fg-muted)' }}>{g.name}</span>
+              <span style={{ color: g.resolvedId ? 'var(--vpk-accent)' : 'var(--vpk-fg-muted)' }}>{g.name}</span>
             </span>
           );
         },
@@ -231,7 +231,7 @@ function ObjectEventsModal({ group, events, onSelect, onClose }: { group: Object
       { accessorKey: 'count', header: 'Count' },
       { accessorKey: 'lastSeen', header: 'Last seen', cell: (c) => c.getValue<string>() ?? '—' },
       { accessorKey: 'reportingComponent', header: 'Component', cell: (c) => c.getValue<string>() ?? '—' },
-      { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: '#555' }}>{c.getValue<string>() ?? ''}</span> },
+      { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: 'var(--vpk-fg-muted)' }}>{c.getValue<string>() ?? ''}</span> },
     ],
     [],
   );
@@ -274,7 +274,7 @@ function ObjectEventsModal({ group, events, onSelect, onClose }: { group: Object
                   onClose();
                 }}
                 className="cursor-pointer rounded border px-2 py-1 text-xs"
-                style={{ borderColor: 'var(--vpk-border)', color: '#2a5db0' }}
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-accent)' }}
               >
                 Open definition
               </button>
@@ -337,7 +337,7 @@ function flatColumns(onSelect: (id: string) => void): ColumnDef<EventRecord>[] {
     { accessorKey: 'count', header: 'Count' },
     { accessorKey: 'lastSeen', header: 'Last seen', cell: (c) => c.getValue<string>() ?? '—' },
     { accessorKey: 'reportingComponent', header: 'Component', cell: (c) => c.getValue<string>() ?? '—' },
-    { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: '#555' }}>{c.getValue<string>() ?? ''}</span> },
+    { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: 'var(--vpk-fg-muted)' }}>{c.getValue<string>() ?? ''}</span> },
   ];
 }
 
@@ -553,7 +553,7 @@ export function EventsView({
   const returnPill = onReturn && (
     <button
       onClick={onReturn}
-      style={{ marginBottom: 10, padding: '4px 10px', borderRadius: 999, border: '1px solid #999', cursor: 'pointer', background: '#fff', fontSize: 13 }}
+      style={{ marginBottom: 10, padding: '4px 10px', borderRadius: 999, border: '1px solid var(--vpk-border)', cursor: 'pointer', background: 'var(--vpk-surface)', fontSize: 13 }}
     >
       ← Return to Schematic
     </button>
@@ -580,8 +580,8 @@ export function EventsView({
               fontSize: 13,
               border: 'none',
               borderLeft: i > 0 ? '1px solid var(--vpk-border, #c9c9c9)' : 'none',
-              background: mainTab === id ? '#2a5db0' : 'var(--vpk-surface, #fff)',
-              color: mainTab === id ? '#fff' : 'var(--vpk-fg, #333)',
+              background: mainTab === id ? 'var(--vpk-accent)' : 'var(--vpk-surface, #fff)',
+              color: mainTab === id ? 'var(--vpk-accent-fg)' : 'var(--vpk-fg, #333)',
               cursor: 'pointer',
               fontWeight: mainTab === id ? 600 : 400,
             }}
@@ -609,7 +609,7 @@ export function EventsView({
             syncedTime={topMessageTime}
           />
         ) : (
-          <p style={{ color: '#888', fontSize: 13 }}>No Events in this snapshot.</p>
+          <p style={{ color: 'var(--vpk-fg-muted)', fontSize: 13 }}>No Events in this snapshot.</p>
         ))}
 
       {mainTab === 'messages' && (
@@ -631,8 +631,8 @@ export function EventsView({
                     fontSize: 12,
                     border: 'none',
                     borderLeft: i > 0 ? '1px solid var(--vpk-border, #c9c9c9)' : 'none',
-                    background: view === id ? '#2a5db0' : 'var(--vpk-surface, #fff)',
-                    color: view === id ? '#fff' : 'var(--vpk-fg, #333)',
+                    background: view === id ? 'var(--vpk-accent)' : 'var(--vpk-surface, #fff)',
+                    color: view === id ? 'var(--vpk-accent-fg)' : 'var(--vpk-fg, #333)',
                     cursor: 'pointer',
                     fontWeight: view === id ? 600 : 400,
                   }}
@@ -707,9 +707,9 @@ export function EventsView({
             )}
           </div>
           {events.length === 0 ? (
-            <p style={{ color: '#888', fontSize: 13 }}>No Events in this snapshot.</p>
+            <p style={{ color: 'var(--vpk-fg-muted)', fontSize: 13 }}>No Events in this snapshot.</p>
           ) : visible.length === 0 ? (
-            <p style={{ color: '#888', fontSize: 13 }}>No Events match the current filters.</p>
+            <p style={{ color: 'var(--vpk-fg-muted)', fontSize: 13 }}>No Events match the current filters.</p>
           ) : (
             <div ref={messagesScrollRef} onScroll={handleMessagesScroll} style={{ maxHeight: 560, overflow: 'auto', border: '1px solid var(--vpk-border)', borderRadius: 6 }}>
               {view === 'aggregate' ? <AggregateMode events={visible} onOpenObject={setModalGroup} /> : <TableMode rows={visible} onSelect={onSelect} />}

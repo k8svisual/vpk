@@ -253,7 +253,7 @@ describe('renderSchematicSvg', () => {
     // extend well past where a content-sized Pod box would end.
     const thin: SchematicDto = { ...base, containers: [], conditions: [] };
     const svg = renderSchematicSvg(thin);
-    const podRect = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" fill="#f2f2f0"/.exec(svg);
+    const podRect = /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" fill="var\(--vpk-surface, #f2f2f0\)"/.exec(svg);
     expect(podRect).not.toBeNull();
     const [, , podYStr, , podHStr] = podRect!;
     const podY = Number(podYStr);

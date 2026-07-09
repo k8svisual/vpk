@@ -31,7 +31,7 @@ function ruleSummary(r: Rule): string {
   return `${verbs} ${groups}/${resources}`;
 }
 
-const link: React.CSSProperties = { color: '#2a5db0', cursor: 'pointer', textDecoration: 'none' };
+const link: React.CSSProperties = { color: 'var(--vpk-accent)', cursor: 'pointer', textDecoration: 'none' };
 
 export function SecurityView({
   onSelect,
@@ -60,11 +60,11 @@ export function SecurityView({
 
   return (
     <div style={{ fontSize: 13 }}>
-      {subjects.length === 0 && <p style={{ color: '#888' }}>No RBAC bindings found.</p>}
+      {subjects.length === 0 && <p style={{ color: 'var(--vpk-fg-muted)' }}>No RBAC bindings found.</p>}
       {[...byKind.entries()].map(([kind, list]) => (
         <details key={kind} open style={{ marginBottom: 8 }}>
           <summary style={{ cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}>
-            {kind} <span style={{ fontWeight: 400, color: '#777' }}>({list.length})</span>
+            {kind} <span style={{ fontWeight: 400, color: 'var(--vpk-fg-muted)' }}>({list.length})</span>
           </summary>
           <div style={{ paddingLeft: 16 }}>
             {list.map((s) => (
@@ -83,9 +83,9 @@ export function SecurityView({
                         fontSize: 11,
                         padding: '1px 8px',
                         borderRadius: 999,
-                        border: '1px solid #5fb37e',
-                        background: '#fff',
-                        color: '#2e7d4f',
+                        border: '1px solid var(--vpk-status-ok)',
+                        background: 'var(--vpk-surface)',
+                        color: 'var(--vpk-status-ok)',
                         cursor: 'pointer',
                       }}
                     >
@@ -93,30 +93,30 @@ export function SecurityView({
                     </button>
                   )}
                   {s.name}
-                  {s.namespace && <span style={{ color: '#777' }}> ({s.namespace})</span>}
-                  <span style={{ color: '#777' }}> — {s.bindings.length} binding{s.bindings.length === 1 ? '' : 's'}</span>
+                  {s.namespace && <span style={{ color: 'var(--vpk-fg-muted)' }}> ({s.namespace})</span>}
+                  <span style={{ color: 'var(--vpk-fg-muted)' }}> — {s.bindings.length} binding{s.bindings.length === 1 ? '' : 's'}</span>
                 </summary>
                 <div style={{ paddingLeft: 16 }}>
                   {s.bindings.map((b) => (
-                    <div key={b.bindingId} style={{ margin: '6px 0', borderLeft: '2px solid #eee', paddingLeft: 8 }}>
+                    <div key={b.bindingId} style={{ margin: '6px 0', borderLeft: '2px solid var(--vpk-border)', paddingLeft: 8 }}>
                       <div>
                         <span style={link} onClick={() => onSelect(b.bindingId)}>
                           {b.bindingKind}/{b.bindingName}
                         </span>
-                        {b.namespace && <span style={{ color: '#777' }}> ({b.namespace})</span>}
+                        {b.namespace && <span style={{ color: 'var(--vpk-fg-muted)' }}> ({b.namespace})</span>}
                         {' → '}
                         {b.roleId ? (
                           <span style={link} onClick={() => onSelect(b.roleId as string)}>
                             {b.roleKind}/{b.roleName}
                           </span>
                         ) : (
-                          <span style={{ color: '#c0392b' }}>
+                          <span style={{ color: 'var(--vpk-status-error)' }}>
                             {b.roleKind}/{b.roleName} (not in snapshot)
                           </span>
                         )}
                       </div>
                       {b.rules.length > 0 && (
-                        <ul style={{ margin: '2px 0', paddingLeft: 18, color: '#444' }}>
+                        <ul style={{ margin: '2px 0', paddingLeft: 18, color: 'var(--vpk-fg-muted)' }}>
                           {b.rules.map((r, i) => (
                             <li key={i}>{ruleSummary(r)}</li>
                           ))}

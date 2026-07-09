@@ -4,7 +4,7 @@
  * client-side rather than imported — @vpk/web never depends on @vpk/core (thin-client architecture), same as
  * `kindIcons.ts`.
  */
-const KIND_COLOR: Record<string, string> = {
+export const KIND_COLOR: Record<string, string> = {
   Pod: '#78c9d6',
   Node: '#b59090',
   Namespace: '#aab2bb',
@@ -20,6 +20,8 @@ const KIND_COLOR: Record<string, string> = {
   Ingress: '#d9c94a',
   HTTPRoute: '#d9c94a',
   Route: '#d9c94a',
+  Gateway: '#d9c94a',
+  GatewayClass: '#d9c94a',
   Secret: '#a0c3b0',
   ServiceAccount: '#8dceb3',
   PersistentVolumeClaim: '#f4b942',
@@ -50,6 +52,18 @@ export function colorForKind(kind: string): string {
   return KIND_COLOR[kind] ?? hashColor(kind);
 }
 
+/** A kind name turned into a valid CSS custom-property suffix — mirrors @vpk/core's own cssKind. */
+export function cssKind(kind: string): string {
+  return kind.toLowerCase().replace(/[^a-z0-9]/g, '-');
+}
+
+/** A kind's color as a CSS custom-property reference, falling back to colorForKind's own value — see
+ *  @vpk/core's cssKindVar for the full rationale (identical logic, duplicated per the thin-client
+ *  convention). Settings' per-kind color picker sets these properties on <html> (applyKindColorOverrides). */
+export function cssKindVar(kind: string): string {
+  return `var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})`;
+}
+
 /**
  * Kinds the 3D cluster wheel actually draws — icon badges get the wheel's kind color for these, and a neutral
  * light grey for everything else. Mirrors `@vpk/core`'s `kindColors.ts` (thin-client duplication).
@@ -78,5 +92,5 @@ const NON_WHEEL_BG = '#d9d9d9'; // light grey for kinds the wheel doesn't draw
  *  wheel-drawn kind, else a neutral light grey. */
 export function networkIconBg(kind: string): string {
   if (kind === 'Node') return WORKER_NODE_BG;
-  return WHEEL_KINDS.has(kind) ? colorForKind(kind) : NON_WHEEL_BG;
+  return WHEEL_KINDS.has(kind) ? cssKindVar(kind) : NON_WHEEL_BG;
 }

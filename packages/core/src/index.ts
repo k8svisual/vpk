@@ -22,3 +22,4 @@ export * from './projections/schematic';
 export * from './projections/containerImages';
 export * from './projections/scene';
 export * from './projections/wheel';
+export * from './projections/podsOnNode';

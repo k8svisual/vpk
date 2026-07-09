@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Line, OrbitControls, Text } from '@react-three/drei';
-import { DoubleSide } from 'three';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, extend, useFrame, type MaterialNode } from '@react-three/fiber';
+import { Line, OrbitControls, Text, Sky, Stars, shaderMaterial } from '@react-three/drei';
+import { Color, DoubleSide, type ShaderMaterial } from 'three';
+import { SKY_CONFIG, FOG_COLOR } from './skyConfig';
+import type { Theme } from './theme';
 import { PropertiesPanel, localStorageSelectionId } from './PropertiesPanel';
-import {
-  FilterPanel,
-  loadDefaultFilters,
-  METRIC_COLORS,
-  CONTROL_PLANE_COLOR,
-  KUBELET_KUBE_PROXY_COLOR,
-  KUBECTL_COLOR,
-  REPLICA_RING_COLOR,
-  PANES,
-  type FilterState,
-} from './FilterPanel';
+import { FilterPanel, loadDefaultFilters, METRIC_COLORS, REPLICA_RING_COLOR, PANES, type FilterState } from './FilterPanel';
+import { resolveStructuralColor, defaultStructuralColor, type StructuralColorKey } from './structuralColorOverrides';
 import { NodeFilterPanel, DEFAULT_NODE_FILTERS, nodePassesFilter, type NodeFilterState } from './NodeFilterPanel';
 import { TimelapseControls } from './TimelapseControls';
 import { TimelapseFilterPanel } from './TimelapseFilterPanel';
@@ -24,6 +17,8 @@ import {
   defaultTimelapseCategoryFilters,
   type TimelapseCategoryFilters,
 } from './timelapse';
+import { resolveKindColor } from './kindColorOverrides';
+import { resolveApiGroupColor } from './apiGroupColorOverrides';
 
 interface SceneNode {
   id: string;
@@ -70,6 +65,30 @@ const NODE_EXCLUDED_COLOR = '#c0392b';
 // triple the previous 3.5 spacing (itself already enough to clear the widest-node worst case with a visible
 // gap) — a deliberately roomy grid, not just "not touching."
 const GRID_GAP = 10.5;
+// Extra room past the outermost node/item before the ground grid's own edge — without this, an item sitting
+// exactly at the computed extent would have its far edge flush with (or just past) the last grid line, not
+// visibly "inside" it.
+const GRID_MARGIN = 6;
+
+/** Half-width/depth FieldScene's own node layout actually needs, mirroring its `cols`/`positions` math exactly
+ *  (same GRID_GAP, same cols-from-sqrt formula) — used by Scene3D's outer ground grid so it's sized from the
+ *  SAME formula FieldScene lays nodes out with, not a second, driftable copy of it. Nodes are laid out with X
+ *  centered on 0 but Z only ever growing positive (`row * GRID_GAP`, no centering offset), so this returns the
+ *  larger of the two half-extents — good enough for a square/round grid to always cover both axes. */
+function fieldGridExtent(nodeCount: number): number {
+  if (nodeCount === 0) return 20;
+  const cols = Math.max(1, Math.ceil(Math.sqrt(nodeCount)));
+  const rows = Math.ceil(nodeCount / cols);
+  const halfWidth = ((cols - 1) * GRID_GAP) / 2;
+  const depth = (rows - 1) * GRID_GAP;
+  return Math.max(halfWidth, depth) + GRID_MARGIN;
+}
+
+// The Wheel's furthest-out items (kubectl / image-registry stack) sit at outerRadius + up to ~7.5 (see
+// @vpk/core's controlPlane.ts CONTROL_PLANE_RADIUS_OFFSET+KUBECTL_RADIUS_OFFSET) — this buffer covers that
+// without duplicating those exact constants here (which would silently drift if core's ever retuned).
+const WHEEL_GRID_RADIUS_BUFFER = 12;
+
 const SELECTION_RING_COLOR = '#e63946';
 // Mirrors the same-named constant in @vpk/core's wheel.ts — purely for the CSI ring's own geometry (its Y
 // isn't a resource position sent over the wire, unlike everything else in the wheel). The ring's RADIUS, by
@@ -155,16 +174,103 @@ function metricBarHeight(value: number | undefined, max: number, capHeight: numb
   return Math.min(1, value / max) * capHeight;
 }
 
+/** Custom shader (this file's one hand-written GLSL material, see the "shaders" exploration in chat) driving
+ *  the selection ring's pulse — a sine wave on `uTime` (advanced every frame via useFrame below) modulates
+ *  both alpha and a slight radial glow so the ring visibly "breathes" instead of sitting at one flat opacity
+ *  like the plain meshBasicMaterial it replaces. `radialFade` uses the ring geometry's own UV.y (0 at the
+ *  inner edge, 1 at the outer edge for THREE's RingGeometry) to brighten the outer edge slightly, giving the
+ *  ring a touch of depth rather than a uniformly flat band of color. */
+const PulseRingMaterial = shaderMaterial(
+  { uTime: 0, uColor: new Color(SELECTION_RING_COLOR) },
+  `varying vec2 vUv;
+   void main() {
+     vUv = uv;
+     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+   }`,
+  `uniform float uTime;
+   uniform vec3 uColor;
+   varying vec2 vUv;
+   void main() {
+     float pulse = 0.5 + 0.5 * sin(uTime * 3.0);
+     float radialFade = 0.7 + 0.3 * vUv.y;
+     float alpha = mix(0.35, 1.0, pulse) * radialFade;
+     gl_FragColor = vec4(uColor, alpha);
+   }`,
+);
+extend({ PulseRingMaterial });
+
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    pulseRingMaterial: MaterialNode<ShaderMaterial & { uTime: number; uColor: Color }, [{ uColor?: Color }]>;
+  }
+}
+
+/** meshStandardMaterial alone (tried previously — see the removed "Unlit" comment this replaces) washes a
+ *  shape's shaded side to near-grey, because its diffuse term is entirely light-dependent: turn away from the
+ *  directional light and the color just isn't there anymore. Setting `emissive` to the SAME color at a modest
+ *  intensity gives every shape a light-INDEPENDENT color floor (its own hue always shows, lit or not), while
+ *  the standard diffuse+specular terms still layer real shading and highlights on top — enough to read as a
+ *  solid volume instead of a flat color disc, without the legend-destroying washout. Used for every small
+ *  discrete resource shape (tier spheres, pod pucks, storage cylinders, node boxes) that used to be
+ *  meshBasicMaterial. */
+function ColoredMaterial({ color }: { color: string }) {
+  return <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.45} roughness={0.55} metalness={0.05} />;
+}
+
+/** Fresnel/rim-lit demo material (see the "shaders" exploration in chat, item 2) — NOT used elsewhere yet,
+ *  applied here only to Field's NodeBox as a live, screenshottable trial. Half-lambert diffuse (`base`, floored
+ *  at 0.5 so the shaded side dims rather than blacks out) gives real volume; the `fresnel` term brightens edges
+ *  facing away from the camera (classic rim-light look — the viewer sees more "graze" at silhouette edges than
+ *  face-on), which is what actually reads as "roundness" on a box or sphere alike. `uHighlight` swaps in for
+ *  NodeBox's old opacity-based hover feedback (opacity/alpha blending doesn't mix cleanly with a fully custom
+ *  fragment shader) — hovering brightens the diffuse floor and intensifies the rim instead of fading the shape. */
+const RimLitMaterial = shaderMaterial(
+  { uColor: new Color('#888888'), uHighlight: 0 },
+  `varying vec3 vWorldNormal;
+   varying vec3 vWorldPosition;
+   void main() {
+     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+     vWorldPosition = worldPosition.xyz;
+     vWorldNormal = normalize(mat3(modelMatrix) * normal);
+     gl_Position = projectionMatrix * viewMatrix * worldPosition;
+   }`,
+  `uniform vec3 uColor;
+   uniform float uHighlight;
+   varying vec3 vWorldNormal;
+   varying vec3 vWorldPosition;
+   void main() {
+     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+     vec3 lightDir = normalize(vec3(5.0, 8.0, 5.0));
+     float diffuse = max(dot(vWorldNormal, lightDir), 0.0);
+     float base = 0.5 + 0.5 * diffuse;
+     float fresnel = pow(1.0 - max(dot(vWorldNormal, viewDir), 0.0), 2.5);
+     vec3 finalColor = uColor * base * (1.0 + uHighlight * 0.35) + vec3(1.0) * fresnel * (0.6 + uHighlight * 0.4);
+     gl_FragColor = vec4(finalColor, 1.0);
+   }`,
+);
+extend({ RimLitMaterial });
+
+declare module '@react-three/fiber' {
+  interface ThreeElements {
+    rimLitMaterial: MaterialNode<ShaderMaterial & { uColor: Color; uHighlight: number }, [{ uColor?: Color; uHighlight?: number }]>;
+  }
+}
+
 /** Persistent selection marker: a flat ring lying in the XZ plane (parallel to the wheel/grid plane, same
  *  orientation as the outer node ring) that dissects the selected item at its own height — independent of
  *  whether its definition modal is open, so it stays lit after the modal closes and moves when selection
  *  changes. `color` defaults to the usual red (the actively-selected item); the "Show replica" feature reuses
- *  this exact same component with `REPLICA_RING_COLOR` instead, for its sibling-Pod rings. */
+ *  this exact same component with `REPLICA_RING_COLOR` instead, for its sibling-Pod rings — every selection
+ *  marker pulses now, not just the primary one, so a static ring next to a pulsing one never looks broken. */
 function SelectionRing({ x, y, z, radius, color = SELECTION_RING_COLOR }: { x: number; y: number; z: number; radius: number; color?: string }) {
+  const material = useRef<ShaderMaterial & { uTime: number; uColor: Color }>(null);
+  useFrame(({ clock }) => {
+    if (material.current) material.current.uTime = clock.elapsedTime;
+  });
   return (
     <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
       <ringGeometry args={[radius * 0.72, radius, 40]} />
-      <meshBasicMaterial color={color} side={DoubleSide} transparent opacity={0.95} depthTest={false} />
+      <pulseRingMaterial ref={material} uColor={new Color(color)} transparent side={DoubleSide} depthTest={false} />
     </mesh>
   );
 }
@@ -235,7 +341,7 @@ function NodeBox({
         onPointerOut={() => setHovered(false)}
       >
         <boxGeometry args={[width, height, width]} />
-        <meshStandardMaterial color={ROLE_COLOR[node.role]} opacity={hovered ? 1 : 0.85} transparent />
+        <rimLitMaterial uColor={new Color(ROLE_COLOR[node.role])} uHighlight={hovered ? 1 : 0} />
         <Line segments points={edgePoints} color={included ? NODE_INCLUDED_COLOR : NODE_EXCLUDED_COLOR} lineWidth={3} />
       </mesh>
       <Text position={[0, height + 0.05, 0]} fontSize={0.15} color="#6b6b66" anchorX="center" anchorY="bottom">
@@ -425,6 +531,70 @@ export interface ClusterWheel {
   controlPlane: ControlPlaneScene;
 }
 
+/** Applies Settings' per-kind color overrides to every kind-colored item in a freshly-fetched wheel — the ONE
+ *  place that needs it, since everything downstream (WheelScene etc.) just trusts each item's own `.color`.
+ *  Only items carrying a `kind` field are kind-colored (WheelNode/WheelPod are role/status-colored instead,
+ *  deliberately untouched here). Three.js material colors are plain JS values, not CSS — unlike every other
+ *  kind-colored surface in the app (server SVGs, icon badges), which re-color live via a `--vpk-kind-<kind>`
+ *  CSS custom property and need no equivalent of this function at all. */
+function remapWheelKindColors(w: ClusterWheel): ClusterWheel {
+  const items = (arr: WheelTierItem[]) => arr.map((it) => ({ ...it, color: resolveKindColor(it.kind, it.color) }));
+  return {
+    ...w,
+    network: { ...w.network, items: items(w.network.items) },
+    endpoints: { ...w.endpoints, items: items(w.endpoints.items) },
+    ingress: { ...w.ingress, items: items(w.ingress.items) },
+    storage: { ...w.storage, items: items(w.storage.items) },
+    persistentVolumes: { ...w.persistentVolumes, items: items(w.persistentVolumes.items) },
+    storageClasses: { ...w.storageClasses, items: items(w.storageClasses.items) },
+    volumeAttachments: { ...w.volumeAttachments, items: items(w.volumeAttachments.items) },
+    csiDrivers: { ...w.csiDrivers, items: items(w.csiDrivers.items) },
+    csiNodeDrivers: w.csiNodeDrivers.map((d) => ({ ...d, color: resolveKindColor(d.kind, d.color) })),
+    localStorage: w.localStorage.map((d) => ({ ...d, color: resolveKindColor(d.kind, d.color) })),
+    controlPlane: remapStructuralColors({ ...w.controlPlane, planes: remapPlaneColors(w.controlPlane.planes) }),
+  };
+}
+
+/** Maps a Control Plane component's own id (`control-plane-component:api-server`, `:scheduler`, ...) to its
+ *  Settings override key — each of the 4 gets an independent color even though the server currently assigns
+ *  them all the same default (CONTROL_PLANE_COMPONENTS_COLOR), since the id already distinguishes them. */
+const COMPONENT_OVERRIDE_KEY: Record<string, StructuralColorKey> = {
+  'api-server': 'apiServer',
+  scheduler: 'scheduler',
+  'controller-manager': 'controllerManager',
+  etcd: 'etcd',
+};
+
+/** Applies Settings' "Control Plane" color overrides to a freshly-fetched wheel's synthetic (non-Kind-backed)
+ *  Control Plane items — same remap-after-fetch approach as remapWheelKindColors/remapPlaneColors, and for the
+ *  same reason (Three.js material colors aren't CSS, so this can't just be a CSS var like the server-SVG
+ *  views). Ring color isn't handled here — it has no server-sent color of its own at all (see ControlPlaneRing/
+ *  CsiRing's own render sites, which resolve it directly). */
+function remapStructuralColors(cp: ControlPlaneScene): ControlPlaneScene {
+  return {
+    ...cp,
+    kubelets: cp.kubelets.map((k) => ({ ...k, color: resolveStructuralColor('kubeletKubeProxy', k.color) })),
+    kubeProxies: cp.kubeProxies.map((k) => ({ ...k, color: resolveStructuralColor('kubeletKubeProxy', k.color) })),
+    components: cp.components.map((c) => {
+      const key = COMPONENT_OVERRIDE_KEY[c.id.replace('control-plane-component:', '')];
+      return key ? { ...c, color: resolveStructuralColor(key, c.color) } : c;
+    }),
+    kubectl: { ...cp.kubectl, color: resolveStructuralColor('kubectl', cp.kubectl.color) },
+    imageRegistries: cp.imageRegistries.map((r) => ({ ...r, color: resolveStructuralColor('imageRegistries', r.color) })),
+  };
+}
+
+/** Applies Settings' per-API-group (per-pane) color overrides to a freshly-fetched wheel's resource planes —
+ *  the sphere per Kind and the plane's own wall (PlaneWall, rendered at opacity 0.3) both read a plane's
+ *  `color`/each item's `color`, which the server always sends at PANE_COLORS' default — same remap-after-fetch
+ *  approach as remapWheelKindColors, and for the same reason (Three.js material colors aren't CSS). */
+function remapPlaneColors(planes: WheelPlane[]): WheelPlane[] {
+  return planes.map((plane) => {
+    const color = resolveApiGroupColor(plane.name, plane.color);
+    return { ...plane, color, items: plane.items.map((item) => ({ ...item, color })) };
+  });
+}
+
 /** Whether a pod passes the Pods section of the filter panel — DaemonSet-ness takes priority over phase,
  *  mirroring the color rule (a DaemonSet pod is always grey regardless of phase). */
 function podPassesFilter(p: WheelPod, filters: FilterState): boolean {
@@ -485,9 +655,7 @@ function Dot({
       }}
     >
       <sphereGeometry args={[size, 10, 10]} />
-      {/* Unlit: these dots are a color-coded status legend, not lit geometry — meshStandardMaterial let the
-          scene's directional light wash the (already-lightened) palette out to near-grey on the shaded side. */}
-      <meshBasicMaterial color={p.color} />
+      <ColoredMaterial color={p.color} />
     </mesh>
   );
 }
@@ -506,7 +674,7 @@ function PodHex({ p, size, onSelect, visible = true }: { p: WheelPoint; size: nu
       }}
     >
       <cylinderGeometry args={[size, size, size * 0.7, 6]} />
-      <meshBasicMaterial color={p.color} />
+      <ColoredMaterial color={p.color} />
     </mesh>
   );
 }
@@ -524,7 +692,7 @@ function StorageCylinder({ p, onSelect, visible = true }: { p: WheelPoint; onSel
       }}
     >
       <cylinderGeometry args={[0.12, 0.12, 0.22, 8]} />
-      <meshBasicMaterial color={p.color} />
+      <ColoredMaterial color={p.color} />
     </mesh>
   );
 }
@@ -623,7 +791,7 @@ function CsiRing({ radius, y, visible = true }: { radius: number; y: number; vis
   return (
     <mesh visible={visible} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
       <torusGeometry args={[radius, 0.08, 8, 64]} />
-      <meshBasicMaterial color="#e0908c" transparent opacity={0.85} />
+      <meshBasicMaterial color={resolveStructuralColor('csiRing', defaultStructuralColor('csiRing'))} transparent opacity={0.85} />
     </mesh>
   );
 }
@@ -655,7 +823,7 @@ function ControlPlaneRing({
       }}
     >
       <torusGeometry args={[radius, height / 2, 8, 64]} />
-      <meshBasicMaterial color={CONTROL_PLANE_COLOR} transparent opacity={0.3} />
+      <meshBasicMaterial color={resolveStructuralColor('controlPlaneRing', defaultStructuralColor('controlPlaneRing'))} transparent opacity={0.3} />
     </mesh>
   );
 }
@@ -772,7 +940,7 @@ function findWheelInfoItem(wheel: ClusterWheel | null, selected: string | null):
       x: 0,
       y: 0,
       z: 0,
-      color: CONTROL_PLANE_COLOR,
+      color: resolveStructuralColor('controlPlaneRing', defaultStructuralColor('controlPlaneRing')),
       popupKind: 'control-plane-ring',
       title: 'Control Plane',
       description: 'Multiple components comprise the Control Plane. Click on each component to view additional information.',
@@ -989,7 +1157,7 @@ function WheelScene({
             }}
           >
             <boxGeometry args={[0.7, 0.6, 0.7]} />
-            <meshBasicMaterial color={n.color} />
+            <ColoredMaterial color={n.color} />
           </mesh>
         );
       })}
@@ -1290,7 +1458,7 @@ function WheelScene({
               <PolyLine
                 key={`kubelet-link-${k.nodeId}`}
                 points={points}
-                color={KUBELET_KUBE_PROXY_COLOR}
+                color={k.color}
                 opacity={0.6}
                 visible={controlPlaneRevealed && filters.showKubeletKubeProxy}
               />
@@ -1327,7 +1495,7 @@ function WheelScene({
               <LinkLine
                 a={apiServer}
                 b={wheel.controlPlane.kubectl}
-                color={KUBECTL_COLOR}
+                color={wheel.controlPlane.kubectl.color}
                 opacity={0.7}
                 visible={controlPlaneRevealed && filters.showControlPlaneComponents && filters.showKubectl}
               />
@@ -1410,6 +1578,30 @@ function WheelLegend({ wheel }: { wheel: ClusterWheel | null }) {
   );
 }
 
+/** One background per theme (see skyConfig.ts) — drei's `<Sky>`/`<Stars>` are both already procedural/shader-
+ *  driven, so this is "free" per the shader exploration, no custom GLSL needed here. Shared by both Field and
+ *  Wheel (they're the same <Canvas>), so the backdrop is consistent no matter which mode is active. */
+function ThemeBackdrop({ theme }: { theme: Theme }) {
+  const cfg = SKY_CONFIG[theme];
+  if (cfg.kind === 'stars') {
+    return (
+      <>
+        <color attach="background" args={[cfg.background]} />
+        <Stars radius={cfg.radius} depth={cfg.depth} count={cfg.count} factor={cfg.factor} fade={cfg.fade} speed={cfg.speed} />
+      </>
+    );
+  }
+  return (
+    <Sky
+      sunPosition={cfg.sunPosition}
+      turbidity={cfg.turbidity}
+      rayleigh={cfg.rayleigh}
+      mieCoefficient={cfg.mieCoefficient}
+      mieDirectionalG={cfg.mieDirectionalG}
+    />
+  );
+}
+
 type Mode = 'field' | 'wheel';
 
 /**
@@ -1426,6 +1618,9 @@ export function Scene3D({
   onSearchKind,
   onViewRepository,
   snapshotKey,
+  theme,
+  fogEnabled,
+  gridEnabled,
 }: {
   onSelect: (id: string) => void;
   active: boolean;
@@ -1441,6 +1636,14 @@ export function Scene3D({
    *  scoped to this registry hostname. */
   onViewRepository: (registry: string) => void;
   snapshotKey: string;
+  /** Drives the Canvas's sky/starfield backdrop (see skyConfig.ts) — one look per theme, same as everything
+   *  else var(--vpk-*)-driven, just resolved in JS since Three.js materials aren't CSS. */
+  theme: Theme;
+  /** Settings' "Depth fog" toggle (see fogSetting.ts) — off by default, since fog also fades out distant
+   *  objects, which could hide real data on a wide Field grid. */
+  fogEnabled: boolean;
+  /** Settings' "Grid floor" toggle (see gridSetting.ts) — on by default. */
+  gridEnabled: boolean;
 }) {
   const [mode, setMode] = useState<Mode>('field');
   const [wheel, setWheel] = useState<ClusterWheel | null>(null);
@@ -1502,6 +1705,17 @@ export function Scene3D({
   // the CURRENT nodeFilters, not whatever was true the moment the button was last clicked.
   const includedNodeCount = useMemo(() => allNodes.filter((n) => nodePassesFilter(n, nodeFilters)).length, [allNodes, nodeFilters]);
   const excludedNodeCount = allNodes.length - includedNodeCount;
+
+  // Ground grid sized to the CURRENT mode's actual content — a fixed size (the old behavior) fell short of the
+  // outermost node/item on anything bigger than a handful of nodes, leaving nodes visibly floating past the
+  // grid's own edge. Field's extent comes from the same layout formula FieldScene itself lays nodes out with
+  // (fieldGridExtent); Wheel's from the server-computed outerRadius plus a buffer for the control-plane/
+  // kubectl/registry items sitting further out still. One division per ~2 units keeps line density reasonable
+  // even at a large extent (capped so a huge cluster doesn't emit thousands of grid lines).
+  const gridExtent =
+    mode === 'field' ? fieldGridExtent(nodesHidden ? includedNodeCount : allNodes.length) : (wheel?.outerRadius ?? 8) + WHEEL_GRID_RADIUS_BUFFER;
+  const gridSize = Math.max(40, Math.ceil(gridExtent) * 2);
+  const gridDivisions = Math.min(100, Math.round(gridSize / 2));
 
   function handleSelect(id: string) {
     onSelect(id);
@@ -1639,7 +1853,7 @@ export function Scene3D({
       .then((r) => r.json() as Promise<ClusterWheel>)
       .then((w) => {
         console.log(`[Scene3D] /scene/wheel returned ${w.pods.length} pods in ${(performance.now() - start).toFixed(0)}ms`);
-        setWheel(w);
+        setWheel(remapWheelKindColors(w));
       })
       .catch((err) => {
         console.error('[Scene3D] /scene/wheel failed:', err);
@@ -1821,6 +2035,8 @@ export function Scene3D({
         </div>
       )}
       <Canvas camera={{ position: mode === 'wheel' ? [0, 10, 22] : [4, 4, 8], fov: 50 }} style={{ background: 'var(--vpk-bg)' }}>
+        <ThemeBackdrop theme={theme} />
+        {fogEnabled && <fog attach="fog" args={[FOG_COLOR[theme], 25, 110]} />}
         <ambientLight intensity={0.7} />
         <directionalLight position={[5, 8, 5]} intensity={0.6} />
         {mode === 'field' ? (
@@ -1843,7 +2059,7 @@ export function Scene3D({
             controlPlaneRevealed={controlPlaneRevealed}
           />
         ) : null}
-        <gridHelper args={[40, 40, '#d9d9d5', '#e8e8e5']} />
+        {gridEnabled && <gridHelper args={[gridSize, gridDivisions, '#d9d9d5', '#e8e8e5']} />}
         <OrbitControls makeDefault />
       </Canvas>
     </div>

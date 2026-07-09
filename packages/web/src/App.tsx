@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, X, FlaskConical, AlertTriangle } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2 } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { SearchView } from './SearchView';
@@ -8,6 +8,7 @@ import { SecurityView } from './SecurityView';
 import { StorageView } from './StorageView';
 import { SchematicView } from './SchematicView';
 import { OwnerRefView } from './OwnerRefView';
+import { ResourcesView } from './ResourcesView';
 import { RbacView } from './RbacView';
 import { WhoCanView, EMPTY_WHOCAN_QUERY, type WhoCanQueryState } from './WhoCanView';
 import { ContainerImagesView } from './ContainerImagesView';
@@ -17,11 +18,14 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { DefinitionModal, type FocusPath } from './DefinitionModal';
 import { SettingsModal } from './SettingsModal';
 import { StatsModal } from './StatsModal';
+import { LogsModal } from './LogsModal';
 import { StopConfirmModal } from './StopConfirmModal';
 import { AboutModal } from './AboutModal';
-import { CaptureConfirmModal, type CaptureOptions } from './CaptureConfirmModal';
+import { CaptureConfirmModal } from './CaptureConfirmModal';
 import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
+import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
+import { initialGridEnabled, setStoredGridEnabled } from './gridSetting';
 
 interface Snapshots {
   dir: string;
@@ -29,7 +33,20 @@ interface Snapshots {
   files: string[];
 }
 
-type ViewId = 'cluster3d' | 'ownerref' | 'search' | 'network' | 'security' | 'rbac' | 'whocan' | 'storage' | 'schematic' | 'images' | 'events' | 'demo';
+type ViewId =
+  | 'cluster3d'
+  | 'ownerref'
+  | 'search'
+  | 'network'
+  | 'security'
+  | 'rbac'
+  | 'whocan'
+  | 'storage'
+  | 'schematic'
+  | 'images'
+  | 'events'
+  | 'resources'
+  | 'demo';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
@@ -54,6 +71,7 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
       { id: 'ownerref', label: 'OwnerRef', icon: Share2 },
       { id: 'images', label: 'Images', icon: Layers },
       { id: 'events', label: 'Events', icon: AlertTriangle },
+      { id: 'resources', label: 'Resources', icon: Table2 },
     ],
   },
 ];
@@ -106,7 +124,22 @@ export function App() {
     applyTheme(next);
     setStoredTheme(next);
   }
+  // Same reasoning as theme — Scene3D needs it directly (Three.js fog isn't CSS), so it's tracked here rather
+  // than owned inside SettingsModal.
+  const [fogEnabled, setFogEnabled] = useState<boolean>(initialFogEnabled);
+
+  function changeFogEnabled(next: boolean) {
+    setFogEnabled(next);
+    setStoredFogEnabled(next);
+  }
+  const [gridEnabled, setGridEnabled] = useState<boolean>(initialGridEnabled);
+
+  function changeGridEnabled(next: boolean) {
+    setGridEnabled(next);
+    setStoredGridEnabled(next);
+  }
   const [statsOpen, setStatsOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [captureConfirmOpen, setCaptureConfirmOpen] = useState(false);
@@ -186,15 +219,14 @@ export function App() {
     setBusy('');
   }
 
-  async function onCapture(opts: CaptureOptions) {
-    setCaptureConfirmOpen(false);
-    setBusy('capturing from cluster…');
-    const res = (await post('/capture', opts)) as { snapshot?: string; error?: string };
+  // The capture itself (including its live progress stream) is owned by CaptureConfirmModal now — it stays
+  // open showing a summary + Close button once done (per the explicit ask), rather than closing immediately
+  // the way the old fire-and-forget /capture POST did. This just refreshes app state once that succeeds.
+  async function onCaptured() {
     await Promise.all([refreshSnaps(), refreshNamespaces()]);
     setOwnerRefFocusId(null);
     setSchematicManualNamespace('');
     setSchematicManualPodId('');
-    setBusy(res.error ? `error: ${res.error}` : '');
   }
 
   function selectResource(id: string, path?: FocusPath) {
@@ -384,6 +416,16 @@ export function App() {
                 <BarChart3 size={15} />
               </button>
             </Tooltip>
+            <Tooltip label="Logs">
+              <button
+                onClick={() => setLogsOpen(true)}
+                aria-label="Logs"
+                className="flex cursor-pointer items-center rounded border p-1.5"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+              >
+                <ScrollText size={15} />
+              </button>
+            </Tooltip>
             <Tooltip label="Stop the VpK server">
               <button
                 onClick={() => setConfirmStopOpen(true)}
@@ -432,6 +474,9 @@ export function App() {
                 onSearchKind={searchKind}
                 onViewRepository={viewRepositoryFrom3D}
                 snapshotKey={snaps.current}
+                theme={theme}
+                fogEnabled={fogEnabled}
+                gridEnabled={gridEnabled}
               />
             </ErrorBoundary>
             {view === 'ownerref' && (
@@ -511,6 +556,7 @@ export function App() {
                 onReturn={eventsPodFilter ? returnFromEventsToSchematic : undefined}
               />
             )}
+            {view === 'resources' && <ResourcesView key={snaps.current} onSelect={selectResource} />}
             {view === 'demo' && <DemoDataView />}
           </main>
         </div>
@@ -528,14 +574,19 @@ export function App() {
         onSaved={() => void refreshSnaps()}
         theme={theme}
         onThemeChange={changeTheme}
+        fogEnabled={fogEnabled}
+        onFogEnabledChange={changeFogEnabled}
+        gridEnabled={gridEnabled}
+        onGridEnabledChange={changeGridEnabled}
       />
       <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
+      <LogsModal open={logsOpen} onClose={() => setLogsOpen(false)} />
       <StopConfirmModal open={confirmStopOpen} onCancel={() => setConfirmStopOpen(false)} onConfirm={onConfirmStop} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <CaptureConfirmModal
         open={captureConfirmOpen}
-        onCancel={() => setCaptureConfirmOpen(false)}
-        onConfirm={(opts) => void onCapture(opts)}
+        onClose={() => setCaptureConfirmOpen(false)}
+        onCaptured={() => void onCaptured()}
       />
     </div>
   );

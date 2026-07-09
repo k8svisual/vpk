@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronsLeft, ChevronsRight, type LucideIcon } from 'lucide-react';
 import { Tooltip } from './Tooltip';
+import { VpkIcon } from './VpkIcon';
 
 export interface RailItem<T extends string> {
   id: T;
@@ -47,7 +48,7 @@ export function NavRail<T extends string>({
           className="flex w-full items-center gap-2 px-2.5 py-2.5 cursor-pointer border-b"
           style={{ borderColor: 'rgba(255,255,255,0.08)' }}
         >
-          <img src="/vpk.png" alt="" width={22} height={22} className="rounded shrink-0" />
+          <VpkIcon size={22} className="rounded shrink-0" />
           {!collapsed && (
             <span className="text-xs font-semibold tracking-tight" style={{ color: 'var(--vpk-rail-fg-active)' }}>
               VpK

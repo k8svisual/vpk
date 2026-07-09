@@ -1,4 +1,4 @@
-import { colorForKind, type OwnerRefView } from '@vpk/core';
+import { cssKindVar, type OwnerRefView } from '@vpk/core';
 
 /** Bright, high-contrast color for the focus-node halo — deliberately NOT a color any `colorForKind` fill
  *  uses (those are all pastel/muted), so it reads clearly as "this is the one you clicked" regardless of
@@ -73,7 +73,7 @@ export function renderOwnerRefSvg(view: OwnerRefView, focusId?: string): string 
       return (
         `<g class="orf-node" data-resource-id="${esc(n.id)}" data-kind="${esc(kind)}" transform="translate(${p.x},${p.y})">` +
         halo +
-        `<rect width="${W}" height="${H}" rx="6" style="fill:var(--vpk-kind-${cssKind(kind)}, ${fill(kind)})" ${stroke}${dash} />` +
+        `<rect width="${W}" height="${H}" rx="6" style="fill:${cssKindVar(kind)}" ${stroke}${dash} />` +
         `<text class="orf-name" x="10" y="20">${esc(clip(name, 26))}</text>` +
         `<text class="orf-kind" x="10" y="37">(${esc(kind)})</text>` +
         `</g>`
@@ -109,12 +109,6 @@ function computeLevels(ids: readonly string[], incoming: Map<string, string[]>):
   return level;
 }
 
-function fill(kind: string): string {
-  return colorForKind(kind);
-}
-function cssKind(kind: string): string {
-  return kind.toLowerCase().replace(/[^a-z0-9]/g, '-');
-}
 function push<T>(map: Map<T, string[]>, key: T, value: string): void {
   const arr = map.get(key);
   if (arr) arr.push(value);

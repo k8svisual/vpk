@@ -50,6 +50,7 @@ export default defineConfig({
       '/capture': API,
       '/settings': API,
       '/stats': API,
+      '/logs': API,
       '/shutdown': API,
     },
   },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { iconUrlForKind } from './kindIcons';
-import { colorForKind } from './kindColors';
+import { cssKindVar } from './kindColors';
 import { Tooltip } from './Tooltip';
 import { StorageCountsView, type CountsDimension } from './StorageCountsView';
 
@@ -128,7 +128,7 @@ export function KindIcon({
           width: size + 7,
           height: size + 7,
           borderRadius: '50%',
-          background: bg ?? colorForKind(kind),
+          background: bg ?? cssKindVar(kind),
           flexShrink: 0,
         }}
       >

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="65.26" height="63.622" viewBox="-0.6 -0.6 18.467 18.033">
+
+  <!-- white border/backing shape -->
+  <path d="M1.09 11.755 2.8 4.263 9.723.93l6.924 3.334 1.71 7.492-4.792 6.007H5.881Z"
+        style="fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none"
+        transform="translate(-1.09 -.929) scale(1.06) translate(-0.48 -0.43)"/>
+
+  <!-- blue base -->
+  <path d="M1.09 11.755 2.8 4.263 9.723.93l6.924 3.334 1.71 7.492-4.792 6.007H5.881Z"
+        style="fill:#326ce5;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:.26458332;stroke-linecap:square;stroke-miterlimit:10"
+        transform="translate(-1.09 -.929)"/>
+
+  <text xml:space="preserve"
+        x="11.35" y="10.95"
+        style="font-style:normal;font-weight:700;font-size:6.8px;line-height:1;font-family:Arial;letter-spacing:-0.15px;word-spacing:0;fill:#ffffff;fill-opacity:1;stroke:none;text-anchor:middle">
+    <tspan x="11.35" y="10.95"
+           style="font-style:normal;font-variant:normal;font-weight:700;font-stretch:normal;font-size:6.8px;font-family:Arial;-inkscape-font-specification:&quot;Arial Bold&quot;;text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#ffffff;fill-opacity:1">VpK</tspan>
+  </text>
+</svg>

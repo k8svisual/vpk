@@ -35,10 +35,12 @@ const CLUSTER_BANNER_FILL = '#5a5a5a';
  *  origin the browser loaded this inlined SVG from, so no absolute host is needed here. */
 const ICON_BASE = '/icons/k8/';
 
-const STATUS_OK = '#2e8b57';
-const STATUS_WARN = '#d4a017';
-const STATUS_ERROR = '#c0392b';
-const STATUS_NEUTRAL = '#9a9a9a';
+// var(--vpk-status-*) — this SVG is inlined into the live DOM (see index.css's theming comment), so it
+// re-themes across all 4 themes for free as long as it references the vars instead of a fixed hex.
+const STATUS_OK = 'var(--vpk-status-ok, #2e8b57)';
+const STATUS_WARN = 'var(--vpk-status-warn, #d4a017)';
+const STATUS_ERROR = 'var(--vpk-status-error, #c0392b)';
+const STATUS_NEUTRAL = 'var(--vpk-status-unknown, #9a9a9a)';
 /** "Has Events" indicator fill — deliberately not in CATEGORY_STYLE/STATUS_* (Events aren't a functional
  *  group like Config/Network, and Warning-vs-Normal is a per-event distinction the badge doesn't make; it
  *  only signals "this Pod has Event history at all"). Matches the legacy app's small purple corner rectangle. */
@@ -310,9 +312,9 @@ export function renderSchematicSvg(s: SchematicDto): string {
     `<style>` +
     `.sch-title{font-size:11px;font-weight:600;fill:#444}` +
     `.sch-count{font-size:10px;fill:#333;font-weight:600}` +
-    `.sch-pod-name{font-size:13px;font-weight:600;fill:#222;text-anchor:middle}` +
-    `.sch-pod-label{font-size:10.5px;fill:#555}` +
-    `.sch-pod-row{font-size:10.5px;fill:#333}` +
+    `.sch-pod-name{font-size:13px;font-weight:600;fill:var(--vpk-fg, #222);text-anchor:middle}` +
+    `.sch-pod-label{font-size:10.5px;fill:var(--vpk-fg-muted, #555)}` +
+    `.sch-pod-row{font-size:10.5px;fill:var(--vpk-fg, #333)}` +
     `.sch-banner-title{font-size:14px;font-weight:700;fill:#fff}` +
     `</style>` +
     outerBox(nsBoxX, nsBoxY, nsBoxW, nsBoxH, NS_BANNER_FILL, 'Namespace Level', 'start', s.podName) +
@@ -339,7 +341,7 @@ function outerBox(x: number, y: number, w: number, h: number, bannerFill: string
     `<rect x="${x}" y="${bannerY}" width="${w}" height="${BANNER_H}" fill="${bannerFill}" />` +
     `<text class="sch-banner-title" x="${textX}" y="${textY}" text-anchor="${anchor}">${esc(title)}</text>` +
     rightText +
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#333" stroke-width="1.2" stroke-dasharray="3 3" />`
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="var(--vpk-fg, #333)" stroke-width="1.2" stroke-dasharray="3 3" />`
   );
 }
 
@@ -353,7 +355,7 @@ function letterBadge(letter: string, cx: number, cy: number): string {
 function defs(): string {
   return (
     `<defs>` +
-    `<marker id="sch-arrow-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333" /></marker>` +
+    `<marker id="sch-arrow-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--vpk-fg, #333)" /></marker>` +
     `<marker id="sch-arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${STATUS_ERROR}" /></marker>` +
     `</defs>`
   );
@@ -467,9 +469,9 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
 
   return (
     `<g data-resource-id="${esc(s.podId)}" data-names="${esc(JSON.stringify([s.podName]))}" style="cursor:pointer">` +
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f2f2f0" stroke="#666" stroke-width="1.4" />` +
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--vpk-surface, #f2f2f0)" stroke="var(--vpk-border, #666)" stroke-width="1.4" />` +
     iconImage('Pod', x + w / 2, iconY) +
-    `<line x1="${x}" y1="${y + 40 + 8}" x2="${x + w}" y2="${y + 40 + 8}" stroke="#ccc" />` +
+    `<line x1="${x}" y1="${y + 40 + 8}" x2="${x + w}" y2="${y + 40 + 8}" stroke="var(--vpk-border, #ccc)" />` +
     `<g data-resource-id="${esc(s.podId)}" data-focus-path="${statusFocusPath}" style="cursor:pointer">` +
     `<text class="sch-pod-label" x="${x + 12}" y="${y + 40 + 22}">Phase</text>` +
     `<rect x="${x + 60}" y="${y + 40 + 12}" width="70" height="16" rx="3" fill="${phaseColor}" />` +
@@ -477,7 +479,7 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
     `<text class="sch-pod-label" x="${x + 12}" y="${y + 40 + 44}">Conditions</text>` +
     dots +
     `</g>` +
-    `<line x1="${x}" y1="${y + 40 + 54 + 6}" x2="${x + w}" y2="${y + 40 + 54 + 6}" stroke="#ccc" />` +
+    `<line x1="${x}" y1="${y + 40 + 54 + 6}" x2="${x + w}" y2="${y + 40 + 54 + 6}" stroke="var(--vpk-border, #ccc)" />` +
     rows.join('') +
     `</g>`
   );
@@ -520,7 +522,7 @@ function dashedEdge(x1: number, y1: number, x2: number, y2: number): string {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${STATUS_ERROR}" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#sch-arrow-dashed)" />`;
 }
 function solidEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1.3" marker-end="url(#sch-arrow-solid)" />`;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" marker-end="url(#sch-arrow-solid)" />`;
 }
 
 function clip(str: string, max: number): string {

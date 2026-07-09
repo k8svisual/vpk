@@ -10,9 +10,11 @@ import type { ServiceNetworkView, NetworkTopology, NetworkPlane, NetworkEdge, Di
 
 const ICON_R = 18;
 const ICON_BASE = '/icons/k8/';
-const EDGE = '#4a4a4a';
-const MUTED = '#8a8a86';
-const BOX_STROKE = '#333';
+// var(--vpk-*) — this SVG is inlined into the live DOM (see index.css's theming comment), so it re-themes
+// across all 4 themes for free as long as it references the vars instead of a fixed hex.
+const EDGE = 'var(--vpk-fg, #4a4a4a)';
+const MUTED = 'var(--vpk-fg-muted, #8a8a86)';
+const BOX_STROKE = 'var(--vpk-fg, #333)';
 const PODS_PER_ROW = 5;
 
 // ---- shared helpers -------------------------------------------------------------------------------------
@@ -44,7 +46,7 @@ function iconNode(kind: string, id: string | undefined, name: string, cx: number
 }
 function box(x: number, y: number, w: number, h: number, opts: { fill?: string; dashed?: boolean; stroke?: string } = {}): string {
   const dash = opts.dashed ? ' stroke-dasharray="4 3"' : '';
-  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${opts.fill ?? '#fff'}" stroke="${opts.stroke ?? BOX_STROKE}" stroke-width="1.2"${dash} />`;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${opts.fill ?? 'var(--vpk-surface, #fff)'}" stroke="${opts.stroke ?? BOX_STROKE}" stroke-width="1.2"${dash} />`;
 }
 function vArrow(x: number, y1: number, y2: number): string {
   return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${EDGE}" stroke-width="1.4" marker-end="url(#net-arrow)" />`;
@@ -60,12 +62,12 @@ function frame(w: number, h: number, body: string): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" font-family="system-ui, sans-serif">` +
     `<defs><marker id="net-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${EDGE}" /></marker></defs>` +
     `<style>` +
-    `.n-title{font-size:13px;font-weight:700;fill:#1f1f1d}` +
-    `.n-lbl{font-size:10.5px;fill:#333}` +
-    `.n-sub{font-size:10.5px;fill:#555}` +
+    `.n-title{font-size:13px;font-weight:700;fill:var(--vpk-fg, #1f1f1d)}` +
+    `.n-lbl{font-size:10.5px;fill:var(--vpk-fg, #333)}` +
+    `.n-sub{font-size:10.5px;fill:var(--vpk-fg-muted, #555)}` +
     `.n-muted{font-size:10.5px;fill:${MUTED};font-style:italic}` +
-    `.n-cap{font-size:11px;font-weight:600;fill:#444}` +
-    `.n-ip{font-size:10px;fill:#2a5db0;font-family:ui-monospace,monospace}` +
+    `.n-cap{font-size:11px;font-weight:600;fill:var(--vpk-fg-muted, #444)}` +
+    `.n-ip{font-size:10px;fill:var(--vpk-accent, #2a5db0);font-family:ui-monospace,monospace}` +
     `</style>` +
     body +
     `</svg>`
@@ -115,7 +117,7 @@ export function renderServiceFlowSvg(v: ServiceNetworkView): string {
   const parts: string[] = [];
 
   // Client
-  parts.push(box(cx - 60, 16, 120, 30, { fill: '#f2f2f0' }));
+  parts.push(box(cx - 60, 16, 120, 30, { fill: 'var(--vpk-surface, #f2f2f0)' }));
   parts.push(text('n-title', cx, 36, 'Client', 'middle'));
   parts.push(vArrow(cx, 46, 70));
 
@@ -125,7 +127,7 @@ export function renderServiceFlowSvg(v: ServiceNetworkView): string {
   const svcH = 96;
   parts.push(
     `<g data-resource-id="${esc(v.service.id)}" data-names="${tip('Service', v.service.name)}" style="cursor:pointer">` +
-      box(cx - svcW / 2, svcY, svcW, svcH, { fill: '#eef3fb' }) +
+      box(cx - svcW / 2, svcY, svcW, svcH, { fill: 'var(--vpk-surface, #eef3fb)' }) +
       icon('Service', cx - svcW / 2 + 28, svcY + svcH / 2, 20) +
       text('n-title', cx - svcW / 2 + 56, svcY + 26, `Service: ${clip(v.service.name, 30)}`) +
       text('n-sub', cx - svcW / 2 + 56, svcY + 44, `ClusterIP: ${v.service.clusterIp ?? '—'}   ·   ${v.service.type}`) +
@@ -154,7 +156,7 @@ export function renderIngressPathSvg(v: ServiceNetworkView, edge?: NetworkEdge):
   let y = 16;
 
   // External user
-  parts.push(box(cx - 70, y, 140, 30, { fill: '#f2f2f0' }));
+  parts.push(box(cx - 70, y, 140, 30, { fill: 'var(--vpk-surface, #f2f2f0)' }));
   parts.push(text('n-title', cx, y + 20, 'External User', 'middle'));
   y += 30;
   // Inferred edge context on the External-User → LB hop: which LoadBalancer implementation fronts the cluster.
@@ -171,7 +173,7 @@ export function renderIngressPathSvg(v: ServiceNetworkView, edge?: NetworkEdge):
   if (ing) {
     parts.push(
       `<g data-resource-id="${esc(ing.id)}" data-names="${tip(ing.kind, ing.name)}" style="cursor:pointer">` +
-        box(cx - boxW / 2, y, boxW, 52, { fill: '#fff' }) +
+        box(cx - boxW / 2, y, boxW, 52, { fill: 'var(--vpk-surface, #fff)' }) +
         icon(ing.kind, cx - boxW / 2 + 26, y + 26, 16) +
         text('n-lbl', cx - boxW / 2 + 48, y + 22, `${ing.kind}: ${clip(ing.name, 26)}`) +
         text('n-sub', cx - boxW / 2 + 48, y + 40, ing.host ? clip(ing.host, 36) : 'LoadBalancer / Ingress') +
@@ -197,7 +199,7 @@ export function renderIngressPathSvg(v: ServiceNetworkView, edge?: NetworkEdge):
   const svcW = 320;
   parts.push(
     `<g data-resource-id="${esc(v.service.id)}" data-names="${tip('Service', v.service.name)}" style="cursor:pointer">` +
-      box(cx - svcW / 2, y, svcW, 46, { fill: '#eef3fb' }) +
+      box(cx - svcW / 2, y, svcW, 46, { fill: 'var(--vpk-surface, #eef3fb)' }) +
       icon('Service', cx - svcW / 2 + 26, y + 23, 16) +
       text('n-lbl', cx - svcW / 2 + 48, y + 19, `Service: ${clip(v.service.name, 26)}`) +
       text('n-sub', cx - svcW / 2 + 48, y + 37, `ClusterIP: ${v.service.clusterIp ?? '—'}`) +
@@ -229,7 +231,7 @@ export function renderIngressPathSvg(v: ServiceNetworkView, edge?: NetworkEdge):
       : '';
   parts.push(
     `<g data-names="${esc(JSON.stringify(['EndpointSlice']))}"${epsAttrs}>` +
-      box(cx - 130, y, 260, epsBoxH, { fill: '#fff' }) +
+      box(cx - 130, y, 260, epsBoxH, { fill: 'var(--vpk-surface, #fff)' }) +
       icon('EndpointSlice', cx - 108, y + epsBoxH / 2, 14) +
       text('n-lbl', cx - 88, y + epsBoxH / 2 + 4, epsLabel) +
       `</g>`,
@@ -247,11 +249,11 @@ export function renderIngressPathSvg(v: ServiceNetworkView, edge?: NetworkEdge):
   const bodyH = 8 + shown.length * rowH + (overflow > 0 ? 20 : 0) + 6;
   parts.push(line(cx, y, cx, y + 12));
   y += 12;
-  if (shown.length > 0) parts.push(box(listX0, y, listW, bodyH, { fill: '#fff' }));
+  if (shown.length > 0) parts.push(box(listX0, y, listW, bodyH, { fill: 'var(--vpk-surface, #fff)' }));
   const rowsTop = y + 8;
   shown.forEach((p, i) => {
     const ry = rowsTop + i * rowH;
-    if (i > 0) parts.push(`<line x1="${listX0 + 10}" y1="${ry}" x2="${listX0 + listW - 10}" y2="${ry}" stroke="#e4e4e0" stroke-width="1" />`);
+    if (i > 0) parts.push(`<line x1="${listX0 + 10}" y1="${ry}" x2="${listX0 + listW - 10}" y2="${ry}" stroke="var(--vpk-border, #e4e4e0)" stroke-width="1" />`);
     const rcy = ry + rowH / 2;
     parts.push(
       `<g data-resource-id="${esc(p.id)}" data-names="${tip('Pod', p.name)}" style="cursor:pointer">` +
@@ -285,7 +287,7 @@ export function renderServiceNodesSvg(v: ServiceNetworkView, plane?: NetworkPlan
   const svcW = 360;
   parts.push(
     `<g data-resource-id="${esc(v.service.id)}" data-names="${tip('Service', v.service.name)}" style="cursor:pointer">` +
-      box(cx - svcW / 2, 16, svcW, 46, { fill: '#eef3fb' }) +
+      box(cx - svcW / 2, 16, svcW, 46, { fill: 'var(--vpk-surface, #eef3fb)' }) +
       icon('Service', cx - svcW / 2 + 26, 39, 16) +
       text('n-lbl', cx - svcW / 2 + 48, 35, `Service: ${clip(v.service.name, 28)}`) +
       text('n-sub', cx - svcW / 2 + 48, 53, `ClusterIP: ${v.service.clusterIp ?? '—'}   ·   Selector: ${clip(Object.entries(v.selector).map(([k, x]) => `${k}=${x}`).join(',') || '(none)', 24)}`) +
@@ -335,11 +337,11 @@ export function renderServiceNodesSvg(v: ServiceNetworkView, plane?: NetworkPlan
     if (shown.length > 0) {
       const podsTop = nodeTop + headerH + cardGap;
       parts.push(vArrow(ncx, nodeTop + headerH, podsTop));
-      parts.push(box(x, podsTop, nodeW, podsBodyH, { fill: '#fff' }));
+      parts.push(box(x, podsTop, nodeW, podsBodyH, { fill: 'var(--vpk-surface, #fff)' }));
       const rowsTop = podsTop + 8;
       shown.forEach((p, j) => {
         const ry = rowsTop + j * rowH;
-        if (j > 0) parts.push(`<line x1="${x + 10}" y1="${ry}" x2="${x + nodeW - 10}" y2="${ry}" stroke="#e4e4e0" stroke-width="1" />`);
+        if (j > 0) parts.push(`<line x1="${x + 10}" y1="${ry}" x2="${x + nodeW - 10}" y2="${ry}" stroke="var(--vpk-border, #e4e4e0)" stroke-width="1" />`);
         const rcy = ry + rowH / 2;
         parts.push(
           `<g data-resource-id="${esc(p.id)}" data-names="${tip('Pod', p.name)}" style="cursor:pointer">` +
@@ -408,7 +410,7 @@ export function renderTopologySvg(t: NetworkTopology, plane?: NetworkPlane): str
   const headerH = summary.length ? 8 + summary.length * 16 + 8 : 0;
   const gridTop = 16 + headerH + (headerH ? 14 : 0);
   if (summary.length) {
-    parts.push(box(16, 16, W - 32, headerH, { fill: '#f7f7f5' }));
+    parts.push(box(16, 16, W - 32, headerH, { fill: 'var(--vpk-surface, #f7f7f5)' }));
     summary.forEach((r, i) => {
       const yy = 16 + 20 + i * 16;
       const gAttr = r.evidence ? ` data-names="${esc(JSON.stringify(['inferred from: ' + r.evidence]))}" style="cursor:help"` : '';
@@ -456,7 +458,7 @@ export function renderTopologySvg(t: NetworkTopology, plane?: NetworkPlane): str
       // nested inside still take priority on their own rows since `closest()` finds the nearer ancestor.
       parts.push(
         `<g data-resource-id="${esc(node.id)}" data-node-pods="1" data-node-name="${esc(node.name)}" data-names="${tip('Node', node.name)}" style="cursor:pointer">` +
-          box(x, y, nodeW, bodyH, { fill: '#fafafa' }) +
+          box(x, y, nodeW, bodyH, { fill: 'var(--vpk-surface, #fafafa)' }) +
           icon('Node', x + 24, y + 24, 15) +
           text('n-lbl', x + 44, y + 20, clip(node.name, 22)) +
           text('n-ip', x + 44, y + 36, `Node IP: ${node.ip ?? '—'}`),
@@ -482,7 +484,7 @@ export function renderTopologySvg(t: NetworkTopology, plane?: NetworkPlane): str
     const barY = y + rowMaxH + arrowGap;
     barYs.push(barY);
     const rowRight = nodeStartX + rowNodes.length * nodeW + (rowNodes.length - 1) * colGap;
-    parts.push(box(spineX, barY, rowRight - spineX, barH, { dashed: true, fill: '#f4f0ea' }));
+    parts.push(box(spineX, barY, rowRight - spineX, barH, { dashed: true, fill: 'var(--vpk-surface, #f4f0ea)' }));
     parts.push(text('n-muted', (spineX + rowRight) / 2, barY + 15, clip(overlayLabel, 70), 'middle'));
     rowNodes.forEach((_, col) => {
       const cx = nodeStartX + col * (nodeW + colGap) + nodeW / 2;

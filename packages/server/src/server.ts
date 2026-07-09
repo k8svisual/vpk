@@ -1,7 +1,7 @@
 import Fastify from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative } from 'node:path';
-import { writeFileSync, existsSync } from 'node:fs';
+import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import {
   buildGraph,
   projectOwnerRef,
@@ -21,6 +21,7 @@ import {
   projectEvents,
   projectClusterNodeField,
   projectClusterWheel,
+  projectPodsOnNode,
   type ResourceGraph,
   type OwnerRefFocus,
   type RawObject,
@@ -55,7 +56,8 @@ import {
 import { loadSnapshotFile } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
-import { captureCore } from './capture/cliSource';
+import { captureCore, validateCli } from './capture/cliSource';
+import { pushLog, getLogs, clearLogs } from './logBuffer';
 import { listResources } from './resources';
 import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
@@ -138,42 +140,133 @@ app.post('/load', async (req, reply) => {
   }
   try {
     setSnapshot(resolve(path));
+    pushLog('info', `Loaded snapshot ${basename(currentPath)} (${graph.nodes.size} resources)`);
     return { ok: true, snapshot: basename(currentPath), nodes: graph.nodes.size };
   } catch (e: unknown) {
+    pushLog('error', `Failed to load snapshot ${path}: ${String(e)}`);
     reply.code(400);
     return { error: String(e) };
   }
 });
 
+// Streams newline-delimited JSON progress events (one per resource kind fetched, plus a couple of coarse
+// phase notices) while the capture runs, ending with a final {type:'done',...}/{type:'error',...} line — the
+// "Capture from cluster" modal reads this incrementally to show live per-kind status instead of one opaque
+// spinner. reply.hijack() hands the raw Node response to us so Fastify never tries to also send its own
+// (single, complete) response on top of what we've already streamed.
 app.post('/capture', async (req, reply) => {
   // keepSecretData/keepConfigMapData are per-capture choices from the "Capture from cluster" confirm modal's
   // checkboxes — they default to the persisted Settings toggle (Secrets only; there's no equivalent persisted
   // setting for ConfigMaps) rather than requiring the client to always send them explicitly. `cli`, if given,
   // is a per-capture override of the kubectl-compatible command (e.g. "oc" for OpenShift, or "kubectl
   // --context foo") — split into an argv array the same way the server's own VPK_CLI env var is, falling back
-  // to that default (the module-level `cli` array below) when omitted or blank.
-  const { name, keepSecretData, keepConfigMapData, cli: cliOverride } = (req.body ?? {}) as {
-    name?: string;
+  // to that default (the module-level `cli` array below) when omitted or blank. `baseName`/`description` drive
+  // the new capture directory (see formatCaptureTimestamp below) and its desc.json.
+  const { baseName, description, keepSecretData, keepConfigMapData, cli: cliOverride, scope } = (req.body ?? {}) as {
+    baseName?: string;
+    description?: string;
     keepSecretData?: boolean;
     keepConfigMapData?: boolean;
     cli?: string;
+    scope?: 'core' | 'all';
   };
+
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+
+  reply.hijack();
+  reply.raw.writeHead(200, { 'content-type': 'application/x-ndjson', 'cache-control': 'no-cache' });
+  // Guards every write/end below — once the client's given up (Cancel, or just closing the tab), the socket
+  // is already gone; writing to it again throws, and it's not an error worth surfacing, just a no-op.
+  let ended = false;
+  const send = (evt: unknown) => {
+    if (!ended) reply.raw.write(JSON.stringify(evt) + '\n');
+  };
+
+  // The Cancel button hits POST /capture/cancel, which aborts THIS controller (tracked in the module-level
+  // `activeCaptureController` below) — lets captureCore actually kill the in-flight kubectl/CLI subprocess
+  // (see CaptureOptions.signal). Deliberately NOT wired to the request socket's own 'close' event: that fires
+  // as soon as the request BODY finishes being read, not when the client actually disconnects, so it was
+  // cancelling every capture immediately on start — an explicit cancel endpoint sidesteps that ambiguity.
+  const controller = new AbortController();
+  activeCaptureController = controller;
+
+  pushLog('info', `Capture started — cli="${cliArgv.join(' ')}" scope=${scope ?? 'core'}`);
   try {
     const { items, manifest } = await captureCore({
-      cli: cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli,
+      cli: cliArgv,
       keepSecretData: keepSecretData ?? !settings.disablePullingSecrets,
       keepConfigMapData: keepConfigMapData ?? true,
+      scope: scope ?? 'core',
+      signal: controller.signal,
+      onProgress: (evt) => {
+        send(evt);
+        if (evt.type === 'warning') pushLog('warn', `Capture: ${evt.kind} — ${evt.error}`);
+      },
     });
-    const safe = (name || `capture-${manifest.captured}`).replace(/[^a-z0-9_.-]/gi, '_');
-    const file = join(settings.snapshotDir, `${safe}.json`);
-    writeFileSync(file, JSON.stringify({ ...manifest, items }));
-    setSnapshot(file);
-    return { ok: true, snapshot: basename(file), nodes: graph.nodes.size, items: items.length };
+    // Directory-based, matching real capture tooling's own layout (<name>-YYYY-MM-DD-HHh-MMm-SSs/
+    // vpk.snapshot.json — see listSnapshotFiles.ts's doc comment) rather than the old flat <name>.json file —
+    // desc.json lives alongside it so the description travels with the snapshot on disk, not just in VpK.
+    const safeBase = (baseName ?? '').trim().replace(/[^a-zA-Z0-9_.-]/g, '_') || 'capture';
+    const dirName = `${safeBase}-${formatCaptureTimestamp(new Date())}`;
+    const dirPath = join(settings.snapshotDir, dirName);
+    mkdirSync(dirPath, { recursive: true });
+    const snapshotPath = join(dirPath, 'vpk.snapshot.json');
+    writeFileSync(snapshotPath, JSON.stringify({ ...manifest, items }));
+    writeFileSync(join(dirPath, 'desc.json'), JSON.stringify({ description: description ?? '' }, null, 2));
+    setSnapshot(snapshotPath);
+    pushLog('info', `Capture complete — ${items.length} objects → ${dirName}`);
+    send({ type: 'done', ok: true, snapshot: relative(settings.snapshotDir, snapshotPath), nodes: graph.nodes.size, items: items.length });
   } catch (e: unknown) {
-    reply.code(500);
-    return { error: String(e) };
+    if (controller.signal.aborted) {
+      pushLog('warn', 'Capture cancelled by user');
+      send({ type: 'cancelled' });
+    } else {
+      pushLog('error', `Capture failed: ${String(e)}`);
+      send({ type: 'error', error: String(e) });
+    }
+  } finally {
+    ended = true;
+    if (activeCaptureController === controller) activeCaptureController = null;
+    reply.raw.end();
   }
 });
+
+/** The one capture that can be running at a time (VpK never runs two concurrently) — set for the duration of
+ *  the /capture route above, cleared in its `finally`. /capture/cancel aborts whichever one is currently set. */
+let activeCaptureController: AbortController | null = null;
+
+app.post('/capture/cancel', async () => {
+  if (activeCaptureController) {
+    activeCaptureController.abort();
+    return { ok: true, cancelled: true };
+  }
+  return { ok: true, cancelled: false };
+});
+
+/** "Validate" button on the Capture modal's form — checks the configured CLI can actually be located and run
+ *  (see validateCli's own doc comment) WITHOUT doing a real capture, so a typo'd/missing command is caught
+ *  before the user waits through a whole capture attempt just to find out. */
+app.post('/capture/validate', async (req) => {
+  const { cli: cliOverride } = (req.body ?? {}) as { cli?: string };
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+  const result = await validateCli(cliArgv);
+  pushLog(result.ok ? 'info' : 'warn', `Validate "${cliArgv.join(' ')}": ${result.message}`);
+  return result;
+});
+
+app.get('/logs', async () => ({ logs: getLogs() }));
+
+app.delete('/logs', async () => {
+  clearLogs();
+  return { ok: true };
+});
+
+/** `[base]-YYYY-MM-DD-HHh-MMm-SSs`, local wall-clock time — matches the naming convention real capture
+ *  tooling already uses for its own timestamped directories (see listSnapshotFiles.ts's doc comment). */
+function formatCaptureTimestamp(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}h-${pad(d.getMinutes())}m-${pad(d.getSeconds())}s`;
+}
 
 app.get('/resources', async () => listResources(graph));
 
@@ -183,6 +276,15 @@ app.get('/namespaces', async () => {
   const namespaces = new Set<string>();
   for (const r of graph.nodes.values()) if (r.namespace) namespaces.add(r.namespace);
   return [...namespaces].sort();
+});
+
+/** Every pod currently scheduled on `?node=<name>` (DaemonSet pods included) — the "Resources" nav view's Node
+ *  mode. `node` is the Kubernetes Node's own `.metadata.name`, not our internal resource id (same value
+ *  `/network/nodes` already lists each node under). */
+app.get('/resources/pods-on-node', async (req) => {
+  const { node } = req.query as { node?: string };
+  if (!node) return [];
+  return projectPodsOnNode(graph, node);
 });
 
 app.get('/network', async (req) => {
@@ -750,17 +852,17 @@ app.post('/shutdown', async () => {
 listenWithRetry(
   requestedPort,
   (p) => app.listen({ port: p, host: '127.0.0.1' }).then(() => undefined),
-  { maxAttempts: MAX_PORT_ATTEMPTS, onRetry: (busy, next) => console.log(`vpk server: port ${busy} is already in use, trying ${next}...`) },
+  { maxAttempts: MAX_PORT_ATTEMPTS, onRetry: (busy, next) => pushLog('warn', `Port ${busy} is already in use, trying ${next}...`) },
 )
   .then((boundPort) => {
     actualPort = boundPort;
     writeFileSync(portFilePath, String(actualPort));
-    console.log(`vpk server → http://127.0.0.1:${actualPort}  (${graph.nodes.size} nodes, snapshots in ${settings.snapshotDir})`);
+    pushLog('info', `vpk server → http://127.0.0.1:${actualPort}  (${graph.nodes.size} nodes, snapshots in ${settings.snapshotDir})`);
     if (actualPort !== requestedPort) {
-      console.log(`vpk server: requested port ${requestedPort} was busy — the web dev server will find me at ${actualPort} automatically`);
+      pushLog('warn', `Requested port ${requestedPort} was busy — the web dev server will find me at ${actualPort} automatically`);
     }
   })
   .catch((err: unknown) => {
-    console.error(err);
+    pushLog('error', String(err));
     process.exit(1);
   });

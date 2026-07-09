@@ -49,7 +49,7 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {nodes.length === 0 && <p style={{ color: '#888', fontSize: 13 }}>No nodes in this snapshot.</p>}
+      {nodes.length === 0 && <p style={{ color: 'var(--vpk-fg-muted)', fontSize: 13 }}>No nodes in this snapshot.</p>}
       {nodes.map((node) => {
         const ranges = new Map<string, NodePod[]>();
         for (const pod of node.pods) {
@@ -60,7 +60,7 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
         }
 
         return (
-          <div key={node.id} style={{ border: '1px solid #d0d0d0', borderRadius: 4, overflow: 'hidden' }}>
+          <div key={node.id} style={{ border: '1px solid var(--vpk-border)', borderRadius: 4, overflow: 'hidden' }}>
             <div
               onClick={() => onSelect(node.id)}
               style={{
@@ -68,7 +68,7 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                 gap: 12,
                 alignItems: 'baseline',
                 padding: '6px 10px',
-                background: '#eef2f6',
+                background: 'rgba(128,128,128,0.08)',
                 cursor: 'pointer',
                 fontSize: 13,
               }}
@@ -77,9 +77,9 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                 <KindIcon kind="Node" name={node.name} size={16} bg={networkIconBg('Node')} />
                 {node.name}
               </strong>
-              <span style={{ color: '#555' }}>host {node.internalIp ?? '—'}</span>
-              <span style={{ color: '#555' }}>podCIDR {node.podCidr ?? '—'}</span>
-              <span style={{ color: '#555' }}>{node.pods.length} pods</span>
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>host {node.internalIp ?? '—'}</span>
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>podCIDR {node.podCidr ?? '—'}</span>
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>{node.pods.length} pods</span>
             </div>
             <div style={{ padding: '4px 10px', fontSize: 12 }}>
               {[...ranges.entries()].map(([range, pods]) => {
@@ -89,14 +89,14 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                   <div key={range} style={{ margin: '4px 0' }}>
                     <div
                       onClick={() => toggle(key)}
-                      style={{ cursor: 'pointer', color: '#2a5db0', display: 'flex', gap: 6, alignItems: 'center' }}
+                      style={{ cursor: 'pointer', color: 'var(--vpk-accent)', display: 'flex', gap: 6, alignItems: 'center' }}
                     >
                       <span>{open ? '▾' : '▸'}</span>
                       <span>{range}</span>
-                      <span style={{ color: '#777' }}>({pods.length})</span>
+                      <span style={{ color: 'var(--vpk-fg-muted)' }}>({pods.length})</span>
                     </div>
                     {open && (
-                      <ul style={{ margin: '2px 0 4px', paddingLeft: 28, color: '#444' }}>
+                      <ul style={{ margin: '2px 0 4px', paddingLeft: 28, color: 'var(--vpk-fg-muted)' }}>
                         {pods.map((pod) => (
                           <li
                             key={pod.id}
@@ -104,7 +104,7 @@ export function NetworkNodeIpsView({ onSelect }: { onSelect: (id: string) => voi
                             onClick={() => onSelect(pod.id)}
                           >
                             <KindIcon kind="Pod" name={pod.name} size={13} bg={networkIconBg('Pod')} />
-                            {pod.name} <span style={{ color: '#999' }}>({pod.namespace})</span> — {pod.podIp ?? '—'}
+                            {pod.name} <span style={{ color: 'var(--vpk-fg-muted)' }}>({pod.namespace})</span> — {pod.podIp ?? '—'}
                           </li>
                         ))}
                       </ul>

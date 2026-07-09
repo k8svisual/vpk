@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { resolveApiGroupColor } from './apiGroupColorOverrides';
 
 /**
  * 3D filter panel, ported from the legacy app's left-side "Filter" slide-in (DESIGN §6.8's locked "filters =
@@ -181,7 +182,7 @@ export const KUBECTL_COLOR = '#b39ddb';
 /** Mirrors @vpk/core's controlPlane.ts REGISTRY_COLOR exactly — the image-registry stack's own color, now in
  *  the same purple/violet family as the rest of the Control Plane group instead of its previous unrelated
  *  green. */
-const REGISTRY_COLOR = '#7e57a3';
+export const REGISTRY_COLOR = '#7e57a3';
 
 /** The "Show replica" feature's sibling-highlight ring color — dark grey, distinct from SelectionRing's own
  *  red so a sibling ring never reads as "this is the selected item too." Exported so Scene3D.tsx renders the
@@ -369,7 +370,11 @@ export function FilterPanel({
   }
 
   const controlPlaneRow: Row = { key: 'showControlPlane', label: 'Control Plane (ring)', swatch: [CONTROL_PLANE_COLOR] };
-  const paneRows: Row[] = PANES.filter((p) => presentPanes.includes(p.name)).map((p) => ({ key: p.key, label: p.label, swatch: [p.color] }));
+  const paneRows: Row[] = PANES.filter((p) => presentPanes.includes(p.name)).map((p) => ({
+    key: p.key,
+    label: p.label,
+    swatch: [resolveApiGroupColor(p.name, p.color)],
+  }));
 
   return (
     <div

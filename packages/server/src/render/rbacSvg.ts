@@ -82,7 +82,7 @@ export function renderRbacSvg(v: RbacSubjectView): string {
   const cardCenterY = CARD_Y + CARD_H / 2;
   ns.push(
     `<g${v.subject.id ? ` data-resource-id="${esc(v.subject.id)}"` : ''} data-names="${esc(JSON.stringify([v.subject.name]))}" style="cursor:${v.subject.id ? 'pointer' : 'default'}">` +
-      `<rect x="${CARD_X}" y="${CARD_Y}" width="${CARD_W}" height="${CARD_H}" fill="#f2f2f0" stroke="#666" stroke-width="1.4" />` +
+      `<rect x="${CARD_X}" y="${CARD_Y}" width="${CARD_W}" height="${CARD_H}" fill="var(--vpk-surface, #f2f2f0)" stroke="var(--vpk-border, #666)" stroke-width="1.4" />` +
       iconImage(v.subject.kind, CARD_X + 32, cardCenterY) +
       `<text class="rbac-card-kind" x="${CARD_X + 62}" y="${cardCenterY - 6}">${esc(v.subject.kind)}</text>` +
       `<text class="rbac-card-name" x="${CARD_X + 62}" y="${cardCenterY + 12}">${esc(clip(v.subject.name, 26))}</text>` +
@@ -97,7 +97,7 @@ export function renderRbacSvg(v: RbacSubjectView): string {
     ns.push(spine(SPINE_X, CARD_Y + CARD_H, lastY));
     rbShown.forEach((b, i) => {
       const y = ROWS_Y + i * ROW_STEP;
-      ns.push(`<line x1="${SPINE_X}" y1="${y}" x2="${BINDING_COL - ICON_R}" y2="${y}" stroke="#333" stroke-width="1.3" />`);
+      ns.push(`<line x1="${SPINE_X}" y1="${y}" x2="${BINDING_COL - ICON_R}" y2="${y}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" />`);
       ns.push(bindingIcon(b, 'RoleBinding', BINDING_COL, y));
       const role = roleByKey.get(b.roleKey);
       if (!role) return;
@@ -129,11 +129,11 @@ export function renderRbacSvg(v: RbacSubjectView): string {
       const trunkY = boxY + cardCenterY;
       const spineAbsX = clusterBoxX + SPINE_X;
       const lastY = boxY + ROWS_Y + (crbShown.length - 1) * ROW_STEP;
-      cluster.push(`<line x1="${nsBoxX + CARD_X + CARD_W}" y1="${trunkY}" x2="${spineAbsX}" y2="${trunkY}" stroke="#333" stroke-width="1.3" />`);
-      cluster.push(`<line x1="${spineAbsX}" y1="${trunkY}" x2="${spineAbsX}" y2="${lastY}" stroke="#333" stroke-width="1.3" />`);
+      cluster.push(`<line x1="${nsBoxX + CARD_X + CARD_W}" y1="${trunkY}" x2="${spineAbsX}" y2="${trunkY}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" />`);
+      cluster.push(`<line x1="${spineAbsX}" y1="${trunkY}" x2="${spineAbsX}" y2="${lastY}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" />`);
       crbShown.forEach((b, i) => {
         const y = boxY + ROWS_Y + i * ROW_STEP;
-        cluster.push(`<line x1="${spineAbsX}" y1="${y}" x2="${clusterBoxX + BINDING_COL - ICON_R}" y2="${y}" stroke="#333" stroke-width="1.3" />`);
+        cluster.push(`<line x1="${spineAbsX}" y1="${y}" x2="${clusterBoxX + BINDING_COL - ICON_R}" y2="${y}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" />`);
         cluster.push(bindingIcon(b, 'ClusterRoleBinding', clusterBoxX + BINDING_COL, y));
         const role = roleByKey.get(b.roleKey);
         if (role && crRow.get(b.roleKey) === i) {
@@ -153,7 +153,7 @@ export function renderRbacSvg(v: RbacSubjectView): string {
   // ---- Effective permissions table (full width, below both boxes) ----
   const rules: string[] = [];
   const tableW = totalW - 2 * OUTER_PAD;
-  rules.push(`<rect x="${OUTER_PAD}" y="${rulesY}" width="${tableW}" height="${rulesH}" fill="none" stroke="#333" stroke-width="1.2" stroke-dasharray="3 3" />`);
+  rules.push(`<rect x="${OUTER_PAD}" y="${rulesY}" width="${tableW}" height="${rulesH}" fill="none" stroke="var(--vpk-fg, #333)" stroke-width="1.2" stroke-dasharray="3 3" />`);
   rules.push(`<text class="rbac-rules-title" x="${OUTER_PAD + 12}" y="${rulesY + 20}">Effective permissions (${v.rules.length} rule${v.rules.length === 1 ? '' : 's'})</text>`);
   rulesShown.forEach((r, i) => {
     rules.push(ruleRow(r, OUTER_PAD + 12, rulesY + RULES_TITLE_H + i * RULE_ROW_H, tableW - 24));
@@ -164,16 +164,16 @@ export function renderRbacSvg(v: RbacSubjectView): string {
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" font-family="system-ui, sans-serif">` +
-    `<defs><marker id="rbac-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333" /></marker></defs>` +
+    `<defs><marker id="rbac-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--vpk-fg, #333)" /></marker></defs>` +
     `<style>` +
     `.rbac-banner-title{font-size:14px;font-weight:700;fill:#fff}` +
-    `.rbac-card-kind{font-size:10.5px;fill:#555}` +
-    `.rbac-card-name{font-size:12px;font-weight:600;fill:#222}` +
-    `.rbac-col{font-size:11px;font-weight:600;fill:#444}` +
-    `.rbac-name{font-size:9.5px;fill:#333}` +
-    `.rbac-more{font-size:10.5px;fill:#777;font-style:italic}` +
-    `.rbac-rules-title{font-size:12px;font-weight:600;fill:#444}` +
-    `.rbac-rule{font-size:10.5px;fill:#333}` +
+    `.rbac-card-kind{font-size:10.5px;fill:var(--vpk-fg-muted, #555)}` +
+    `.rbac-card-name{font-size:12px;font-weight:600;fill:var(--vpk-fg, #222)}` +
+    `.rbac-col{font-size:11px;font-weight:600;fill:var(--vpk-fg-muted, #444)}` +
+    `.rbac-name{font-size:9.5px;fill:var(--vpk-fg, #333)}` +
+    `.rbac-more{font-size:10.5px;fill:var(--vpk-fg-muted, #777);font-style:italic}` +
+    `.rbac-rules-title{font-size:12px;font-weight:600;fill:var(--vpk-fg-muted, #444)}` +
+    `.rbac-rule{font-size:10.5px;fill:var(--vpk-fg, #333)}` +
     `.rbac-pill{font-size:9px;font-weight:700}` +
     `</style>` +
     outerBox(nsBoxX, boxY, BOX_W, boxH, NS_BANNER_FILL, 'Namespace Level', v.subject.namespace) +
@@ -196,7 +196,7 @@ function outerBox(x: number, y: number, w: number, h: number, bannerFill: string
     `<rect x="${x}" y="${bannerY}" width="${w}" height="${BANNER_H}" fill="${bannerFill}" />` +
     `<text class="rbac-banner-title" x="${x + 14}" y="${textY}">${esc(title)}</text>` +
     rightText +
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#333" stroke-width="1.2" stroke-dasharray="3 3" />`
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="var(--vpk-fg, #333)" stroke-width="1.2" stroke-dasharray="3 3" />`
   );
 }
 
@@ -206,7 +206,7 @@ function colHeader(label: string, total: number, cx: number, y: number): string 
 }
 
 function spine(x: number, fromY: number, toY: number): string {
-  return `<line x1="${x}" y1="${fromY}" x2="${x}" y2="${toY}" stroke="#333" stroke-width="1.3" />`;
+  return `<line x1="${x}" y1="${fromY}" x2="${x}" y2="${toY}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" />`;
 }
 
 function iconImage(kind: string, cx: number, cy: number): string {
@@ -259,7 +259,7 @@ function ruleRow(r: RbacRule, x: number, y: number, w: number): string {
 }
 
 function solidEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1.3" marker-end="url(#rbac-arrow)" />`;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--vpk-fg, #333)" stroke-width="1.3" marker-end="url(#rbac-arrow)" />`;
 }
 
 function clip(str: string, max: number): string {

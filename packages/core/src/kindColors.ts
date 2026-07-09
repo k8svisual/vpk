@@ -27,6 +27,10 @@ export const KIND_COLOR: Record<string, string> = {
   Ingress: '#d9c94a',
   HTTPRoute: '#d9c94a',
   Route: '#d9c94a',
+  // Gateway API's own two config kinds (the Gateway HTTPRoute attaches to, and the class it's provisioned
+  // from) — same Ingress-family color, same reasoning: one traffic-routing category, one color.
+  Gateway: '#d9c94a',
+  GatewayClass: '#d9c94a',
   Secret: '#a0c3b0',
   ServiceAccount: '#8dceb3',
   // Storage-family kinds, vivid per the legacy filter-panel legend's Storage swatch. Same amber-brown hue as
@@ -62,6 +66,20 @@ export function colorForKind(kind: string): string {
   return KIND_COLOR[kind] ?? hashColor(kind);
 }
 
+/** A kind name turned into a valid CSS custom-property suffix (`PersistentVolumeClaim` -> `persistentvolumeclaim`). */
+export function cssKind(kind: string): string {
+  return kind.toLowerCase().replace(/[^a-z0-9]/g, '-');
+}
+
+/** A kind's color as a CSS custom-property reference, falling back to colorForKind's own value — used
+ *  everywhere a kind fill gets embedded into server-rendered SVG markup (that markup is inlined into the live
+ *  DOM, so a `--vpk-kind-<kind>` property set client-side re-colors it instantly, no re-fetch). Settings' own
+ *  per-kind color picker is what sets these properties (see web's applyKindColorOverrides) — this function
+ *  itself has no knowledge of overrides, it just emits the right var() reference. */
+export function cssKindVar(kind: string): string {
+  return `var(--vpk-kind-${cssKind(kind)}, ${colorForKind(kind)})`;
+}
+
 /**
  * Kinds the 3D cluster wheel actually draws as colored tiers/rings. Icon badges in the Network diagrams and
  * the Network Layers listing get the wheel's kind color for these; every other kind (Deployment/ReplicaSet/
@@ -91,5 +109,5 @@ const NON_WHEEL_BG = '#d9d9d9'; // light grey for kinds the wheel doesn't draw
  *  wheel-drawn kind, else a neutral light grey. Shared by the server SVG renderers and the web views. */
 export function networkIconBg(kind: string): string {
   if (kind === 'Node') return WORKER_NODE_BG;
-  return WHEEL_KINDS.has(kind) ? colorForKind(kind) : NON_WHEEL_BG;
+  return WHEEL_KINDS.has(kind) ? cssKindVar(kind) : NON_WHEEL_BG;
 }
