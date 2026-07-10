@@ -40,6 +40,12 @@ const base: SchematicDto = {
 };
 
 describe('renderSchematicSvg', () => {
+  it('draws a data-show-containers pill on the Pod card (the entry point to the Container schematic)', () => {
+    const svg = renderSchematicSvg(base);
+    expect(svg).toContain('data-show-containers="1"');
+    expect(svg).toContain('View Container Schematic ▸');
+  });
+
   it('renders valid SVG with data-resource-id on the pod, owner chain, and every single-item group icon', () => {
     const svg = renderSchematicSvg(base);
     expect(svg).toMatch(/^<svg/);

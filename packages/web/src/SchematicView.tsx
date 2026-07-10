@@ -205,6 +205,13 @@ export function SchematicView({
   }
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
+    // "View Container Schematic ▸" pill on the Pod card — switches this view to the container diagram (checked
+    // before data-resource-id since the pill lives inside the Pod card's clickable group).
+    const showContainers = (e.target as Element).closest('[data-show-containers]');
+    if (showContainers) {
+      setDiagram('containers');
+      return;
+    }
     // Container schematic selection — checked before data-resource-id (the radio/volume live inside cards that
     // also carry it) so a select never also opens the editor. Clicking the same one again toggles it off.
     const selContainer = (e.target as Element).closest('[data-select-container]');

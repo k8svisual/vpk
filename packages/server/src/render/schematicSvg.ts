@@ -62,7 +62,9 @@ export function renderSchematicSvg(s: SchematicDto): string {
   const infoH = 54; // Phase + Conditions
   const containerRows = s.initContainers.length + s.containers.length;
   const containerSectionH = containerRows > 0 ? 22 + containerRows * CONTAINER_ROW_H : 0;
-  const contentBasedPodH = podHeaderH + infoH + containerSectionH + 16;
+  // Reserve a row at the bottom of the Pod card for the "View Containers ▸" pill (the discoverable entry point
+  // to the Container schematic — see podCard).
+  const contentBasedPodH = podHeaderH + infoH + containerSectionH + 16 + 30;
 
   const hasConfig = s.config.configMaps.length > 0 || s.config.secrets.length > 0;
   const hasOwner = s.ownerChain.length > 0;
@@ -477,6 +479,22 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
     `</g>` +
     `<line x1="${x}" y1="${y + 40 + 54 + 6}" x2="${x + w}" y2="${y + 40 + 54 + 6}" stroke="var(--vpk-border, #ccc)" />` +
     rows.join('') +
+    containersPill(x + w / 2, y + h - 16) +
+    `</g>`
+  );
+}
+
+/** The discoverable entry point to the Container schematic: a filled pill at the bottom of the Pod card. Its
+ *  data-show-containers is handled by SchematicView (which flips the Pod/Containers toggle to "containers")
+ *  before the surrounding card's data-resource-id, so clicking it opens the container view instead of the
+ *  editor. Mirrors the "RBAC ▸" pill's data-attribute delegation pattern. */
+function containersPill(cx: number, cy: number): string {
+  const w = 168;
+  const h = 20;
+  return (
+    `<g data-show-containers="1" style="cursor:pointer">` +
+    `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="10" fill="#2f6df6" />` +
+    `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">View Container Schematic ▸</text>` +
     `</g>`
   );
 }
