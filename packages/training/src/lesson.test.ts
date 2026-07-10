@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { buildGraph } from '@vpk/core';
+import type { RawObject } from '@vpk/core';
 import { evaluateCheck } from './evaluate';
 import { blocksOfKind, parseLesson } from './lesson';
 import type { ClusterFacts, PureCheck } from './types';
@@ -177,5 +179,173 @@ describe('the real Lesson Zero file (courses/getting-started/00-get-a-cluster-ru
       const result = evaluateCheck(check, { graph: { nodes: new Map(), edges: [], byUid: new Map(), deduped: 0 }, cluster: reachable, answerKey: () => [] });
       expect(result.functional).toBe('working');
     }
+  });
+});
+
+// Round-trip against the real, ported "Using oc" course (courses/course02/00-using-oc.md) — same discipline
+// as Lesson Zero: parse the actual file and run its checks through the REAL evaluator, not just assert the
+// YAML happens to look right.
+describe('the real "Using oc" course (courses/course02/00-using-oc.md)', () => {
+  const source = readFileSync(new URL('../../../courses/course02/00-using-oc.md', import.meta.url), 'utf8');
+  const lesson = parseLesson(source);
+  const reachable: ClusterFacts = { contextReachable: true, nodes: { total: 1, ready: 1 }, capabilities: { multiNode: true } };
+
+  it('parses with the expected frontmatter, including the oc CLI target', () => {
+    expect(lesson.frontmatter).toMatchObject({ id: 'openshift-02-using-oc', title: 'Using the oc CLI', cli: ['oc'] });
+  });
+
+  it('has exactly 4 check blocks, no setup/teardown/quiz', () => {
+    expect(blocksOfKind(lesson, 'check')).toHaveLength(4);
+    expect(blocksOfKind(lesson, 'setup')).toHaveLength(0);
+    expect(blocksOfKind(lesson, 'teardown')).toHaveLength(0);
+    expect(blocksOfKind(lesson, 'quiz')).toHaveLength(0);
+  });
+
+  it('the ClusterCheck evaluates against a reachable cluster', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 'oc-context-reachable')?.data as PureCheck;
+    const result = evaluateCheck(check, { graph: buildGraph([]), cluster: reachable, answerKey: () => [] });
+    expect(result.functional).toBe('working');
+  });
+
+  it('the deployment-created InventoryCheck matches once the Deployment exists and is Ready', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 'oc-deployment-created')?.data as PureCheck;
+    const deployment: RawObject = {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: { uid: 'd1', name: 'oc-course-web', namespace: 'default', labels: { app: 'oc-course' } },
+      spec: { replicas: 1 },
+      status: { readyReplicas: 1 },
+    };
+    const result = evaluateCheck(check, { graph: buildGraph([deployment]), cluster: reachable, answerKey: () => [] });
+    expect(result.conformance).toBe('matched');
+    expect(result.functional).toBe('working');
+  });
+
+  it('the labeled/annotated FieldsCheck matches once the pod has both, and diverges when either is missing', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 'oc-pod-labeled-annotated')?.data as PureCheck;
+    const labeledPod: RawObject = {
+      kind: 'Pod',
+      metadata: { uid: 'p1', name: 'oc-course-web-abc', namespace: 'default', labels: { app: 'oc-course', work: 'training' }, annotations: { play: 'gaming' } },
+      status: { phase: 'Running' },
+    };
+    const unlabeledPod: RawObject = {
+      kind: 'Pod',
+      metadata: { uid: 'p1', name: 'oc-course-web-abc', namespace: 'default', labels: { app: 'oc-course' } },
+      status: { phase: 'Running' },
+    };
+    expect(evaluateCheck(check, { graph: buildGraph([labeledPod]), cluster: reachable, answerKey: () => [] }).conformance).toBe('matched');
+    expect(evaluateCheck(check, { graph: buildGraph([unlabeledPod]), cluster: reachable, answerKey: () => [] }).conformance).toBe('divergent');
+  });
+
+  it('the cleanup InventoryCheck matches an empty namespace and diverges when the Deployment lingers', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 'oc-cleanup-complete')?.data as PureCheck;
+    const leftover: RawObject = { kind: 'Deployment', metadata: { uid: 'd1', name: 'oc-course-web', namespace: 'default' } };
+    expect(evaluateCheck(check, { graph: buildGraph([]), cluster: reachable, answerKey: () => [] }).conformance).toBe('matched');
+    expect(evaluateCheck(check, { graph: buildGraph([leftover]), cluster: reachable, answerKey: () => [] }).conformance).toBe('divergent');
+  });
+});
+
+// Round-trip against the real "Using Docker" course (courses/course03/00-using-docker.md) — deliberately
+// informational-only (no vpk-check blocks): docker isn't a supported command-runner target (see command.ts's
+// checkCommandPolicy, which requires the command to start with the configured kubectl-compatible cli), so
+// this course has nothing to grade, only content to work through.
+describe('the real "Using Docker" course (courses/course03/00-using-docker.md)', () => {
+  const source = readFileSync(new URL('../../../courses/course03/00-using-docker.md', import.meta.url), 'utf8');
+  const lesson = parseLesson(source);
+
+  it('parses with the expected frontmatter and no cli override (docker is not kubectl-compatible)', () => {
+    expect(lesson.frontmatter).toMatchObject({ id: 'docker-03-using-docker', title: 'Using Docker' });
+    expect(lesson.frontmatter.cli).toBeUndefined();
+  });
+
+  it('has no check/setup/teardown/quiz/detect blocks — purely informational content', () => {
+    for (const kind of ['check', 'setup', 'teardown', 'quiz', 'detect'] as const) {
+      expect(blocksOfKind(lesson, kind)).toHaveLength(0);
+    }
+  });
+
+  it('has a single prose segment (no vpk-* fences) covering all 9 original tasks', () => {
+    expect(lesson.segments).toHaveLength(1);
+    expect(lesson.segments[0]?.type).toBe('prose');
+    for (const heading of ['Info', 'Pull', 'Dockerfile', 'Build', 'Run', 'History', 'Stats', 'Inspect', 'Events']) {
+      expect((lesson.segments[0] as { type: 'prose'; markdown: string }).markdown).toContain(`## ${heading}`);
+    }
+  });
+});
+
+// Round-trip against the real "Troubleshooting" course (courses/course04/00-troubleshooting.md) — 17 labs
+// ported from the original's diagnose-and-fix format. Most labs get a real InventoryCheck/FieldsCheck/
+// ValueCheck; Routes (OpenShift-only) and Forward (streaming port-forward) are reference-only with no check.
+describe('the real "Troubleshooting" course (courses/course04/00-troubleshooting.md)', () => {
+  const source = readFileSync(new URL('../../../courses/course04/00-troubleshooting.md', import.meta.url), 'utf8');
+  const lesson = parseLesson(source);
+  const reachable: ClusterFacts = { contextReachable: true, nodes: { total: 1, ready: 1 }, capabilities: { multiNode: true } };
+
+  it('parses with the expected frontmatter, including the oc CLI target', () => {
+    expect(lesson.frontmatter).toMatchObject({ id: 'troubleshooting-04-diagnose-and-fix', title: 'Troubleshooting Kubernetes', cli: ['oc'] });
+  });
+
+  it('has exactly 15 check blocks (context-reachable + one per fully-portable lab)', () => {
+    expect(blocksOfKind(lesson, 'check')).toHaveLength(15);
+  });
+
+  it('the ClusterCheck evaluates against a reachable cluster', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 't-context-reachable')?.data as PureCheck;
+    const result = evaluateCheck(check, { graph: buildGraph([]), cluster: reachable, answerKey: () => [] });
+    expect(result.functional).toBe('working');
+  });
+
+  it('t-create InventoryCheck matches once the Deployment exists and is Ready', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 't-create-deployed')?.data as PureCheck;
+    const deployment: RawObject = {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: { uid: 'd1', name: 't-create', namespace: 'default', labels: { app: 't-create' } },
+      spec: { replicas: 1 },
+      status: { readyReplicas: 1 },
+    };
+    const result = evaluateCheck(check, { graph: buildGraph([deployment]), cluster: reachable, answerKey: () => [] });
+    expect(result.conformance).toBe('matched');
+    expect(result.functional).toBe('working');
+  });
+
+  it('t-networking ValueCheck matches when targetPort equals 80, diverges when it does not', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 't-networking-port-correct')?.data as PureCheck;
+    const fixedSvc: RawObject = {
+      kind: 'Service',
+      metadata: { uid: 's1', name: 't-networking', namespace: 'default' },
+      spec: { ports: [{ port: 80, targetPort: 80 }] },
+    };
+    const brokenSvc: RawObject = {
+      kind: 'Service',
+      metadata: { uid: 's1', name: 't-networking', namespace: 'default' },
+      spec: { ports: [{ port: 80, targetPort: 8080 }] },
+    };
+    expect(evaluateCheck(check, { graph: buildGraph([fixedSvc]), cluster: reachable, answerKey: () => [] }).conformance).toBe('matched');
+    expect(evaluateCheck(check, { graph: buildGraph([brokenSvc]), cluster: reachable, answerKey: () => [] }).conformance).toBe('divergent');
+  });
+
+  it('t-downward ValueCheck matches once request equals limit, diverges when they differ', () => {
+    const check = blocksOfKind(lesson, 'check').find((b) => (b.data as PureCheck).id === 't-downward-healthy')?.data as PureCheck;
+    const fixedDeploy: RawObject = {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: { uid: 'd1', name: 't-downward', namespace: 'default' },
+      spec: { template: { spec: { containers: [{ name: 'web', resources: { requests: { memory: '64Mi' }, limits: { memory: '64Mi' } } }] } } },
+    };
+    const brokenDeploy: RawObject = {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: { uid: 'd1', name: 't-downward', namespace: 'default' },
+      spec: { template: { spec: { containers: [{ name: 'web', resources: { requests: { memory: '32Mi' }, limits: { memory: '64Mi' } } }] } } },
+    };
+    expect(evaluateCheck(check, { graph: buildGraph([fixedDeploy]), cluster: reachable, answerKey: () => [] }).conformance).toBe('matched');
+    expect(evaluateCheck(check, { graph: buildGraph([brokenDeploy]), cluster: reachable, answerKey: () => [] }).conformance).toBe('divergent');
+  });
+
+  it('Routes and Forward labs have no check blocks (OpenShift-only / streaming command)', () => {
+    const checkIds = blocksOfKind(lesson, 'check').map((b) => (b.data as PureCheck).id);
+    expect(checkIds).not.toContain('t-routes-healthy');
+    expect(checkIds).not.toContain('t-forward-healthy');
   });
 });
