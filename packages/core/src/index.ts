@@ -26,3 +26,7 @@ export * from './projections/containerImages';
 export * from './projections/scene';
 export * from './projections/wheel';
 export * from './projections/podsOnNode';
+export * from './course/types';
+export * from './course/paths';
+export * from './course/selectors';
+export * from './course/evaluate';
