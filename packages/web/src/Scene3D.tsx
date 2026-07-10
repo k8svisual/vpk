@@ -5,7 +5,7 @@ import { Color, DoubleSide, type ShaderMaterial } from 'three';
 import { SKY_CONFIG, FOG_COLOR } from './skyConfig';
 import type { Theme } from './theme';
 import { PropertiesPanel, localStorageSelectionId } from './PropertiesPanel';
-import { FilterPanel, loadDefaultFilters, METRIC_COLORS, REPLICA_RING_COLOR, PANES, type FilterState } from './FilterPanel';
+import { FilterPanel, loadDefaultFilters, METRIC_COLORS, PANES, type FilterState } from './FilterPanel';
 import { resolveStructuralColor, defaultStructuralColor, type StructuralColorKey } from './structuralColorOverrides';
 import { NodeFilterPanel, DEFAULT_NODE_FILTERS, nodePassesFilter, type NodeFilterState } from './NodeFilterPanel';
 import { TimelapseControls } from './TimelapseControls';
@@ -89,7 +89,26 @@ function fieldGridExtent(nodeCount: number): number {
 // without duplicating those exact constants here (which would silently drift if core's ever retuned).
 const WHEEL_GRID_RADIUS_BUFFER = 12;
 
+// Fallback used only as PulseRingMaterial's module-level default uColor (immediately overridden by the
+// `color` prop at every actual SelectionRing call site below) — real ring colors are per-theme, see RING_COLORS.
 const SELECTION_RING_COLOR = '#e63946';
+
+/** Per-theme ring palette (selection = primary red ring, replica = "Show replica" siblings, associated = a
+ *  selected Pod's connected Node/Services/storage lineage) — same "resolved in JS since Three.js materials
+ *  aren't CSS" reasoning as SKY_CONFIG/FOG_COLOR in skyConfig.ts. A flat color that reads well against Light's
+ *  pale sky can vanish or clash against Dark's near-black backdrop or Forest/Ocean's green/blue-heavy scenes,
+ *  so each theme gets its own tuned set instead of one fixed hex reused everywhere:
+ *  - dark: selection brightened (plain crimson dims into near-black '#05070c'); replica lightened for the
+ *    same reason (dark grey is nearly invisible against a near-black background).
+ *  - forest/ocean: associated switches from cyan to magenta — cyan sits too close in hue to forest's green
+ *    backdrop and ocean's blue-heavy horizon to read as a distinct highlight there.
+ */
+const RING_COLORS: Record<Theme, { selection: string; replica: string; associated: string }> = {
+  light: { selection: '#e63946', replica: '#4a4a4a', associated: '#00f5d4' },
+  dark: { selection: '#ff4d5e', replica: '#b0b0b0', associated: '#00f5d4' },
+  forest: { selection: '#e63946', replica: '#4a4a4a', associated: '#ff2fd4' },
+  ocean: { selection: '#e63946', replica: '#4a4a4a', associated: '#ff2fd4' },
+};
 // Mirrors the same-named constant in @vpk/core's wheel.ts — purely for the CSI ring's own geometry (its Y
 // isn't a resource position sent over the wire, unlike everything else in the wheel). The ring's RADIUS, by
 // contrast, comes from `wheel.csiRingRadius` — CSIDriver items are positioned at that exact radius server-side,
@@ -175,26 +194,30 @@ function metricBarHeight(value: number | undefined, max: number, capHeight: numb
 }
 
 /** Custom shader (this file's one hand-written GLSL material, see the "shaders" exploration in chat) driving
- *  the selection ring's pulse — a sine wave on `uTime` (advanced every frame via useFrame below) modulates
- *  both alpha and a slight radial glow so the ring visibly "breathes" instead of sitting at one flat opacity
- *  like the plain meshBasicMaterial it replaces. `radialFade` uses the ring geometry's own UV.y (0 at the
- *  inner edge, 1 at the outer edge for THREE's RingGeometry) to brighten the outer edge slightly, giving the
- *  ring a touch of depth rather than a uniformly flat band of color. */
+ *  every pulsing selection marker (primary selection, "Show replica" siblings, a selected Pod's associated
+ *  components) — a sine wave on `uTime` (advanced every frame via useFrame below) modulates alpha AND the
+ *  color's own brightness (not just alpha — a flat-opacity pulse read as too subtle per direct feedback), so
+ *  the marker visibly glows/breathes rather than sitting at one flat brightness. Normal-based (not UV-based,
+ *  unlike an earlier version of this shader written for the old flat RingGeometry): a rim term brightens
+ *  whichever part of the surface faces most away from the camera, which works correctly on ANY geometry this
+ *  gets applied to — specifically the torus SelectionRing now uses instead of a flat ring, for real 3D
+ *  volume ("donut", not a flat disc) per the same feedback. */
 const PulseRingMaterial = shaderMaterial(
   { uTime: 0, uColor: new Color(SELECTION_RING_COLOR) },
-  `varying vec2 vUv;
+  `varying vec3 vNormal;
    void main() {
-     vUv = uv;
+     vNormal = normalize(normalMatrix * normal);
      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
    }`,
   `uniform float uTime;
    uniform vec3 uColor;
-   varying vec2 vUv;
+   varying vec3 vNormal;
    void main() {
      float pulse = 0.5 + 0.5 * sin(uTime * 3.0);
-     float radialFade = 0.7 + 0.3 * vUv.y;
-     float alpha = mix(0.35, 1.0, pulse) * radialFade;
-     gl_FragColor = vec4(uColor, alpha);
+     float rim = 0.6 + 0.4 * pow(1.0 - abs(vNormal.z), 1.5);
+     float alpha = mix(0.5, 1.0, pulse) * rim;
+     vec3 glow = uColor * mix(1.0, 1.8, pulse);
+     gl_FragColor = vec4(glow, alpha);
    }`,
 );
 extend({ PulseRingMaterial });
@@ -256,12 +279,13 @@ declare module '@react-three/fiber' {
   }
 }
 
-/** Persistent selection marker: a flat ring lying in the XZ plane (parallel to the wheel/grid plane, same
- *  orientation as the outer node ring) that dissects the selected item at its own height — independent of
- *  whether its definition modal is open, so it stays lit after the modal closes and moves when selection
- *  changes. `color` defaults to the usual red (the actively-selected item); the "Show replica" feature reuses
- *  this exact same component with `REPLICA_RING_COLOR` instead, for its sibling-Pod rings — every selection
- *  marker pulses now, not just the primary one, so a static ring next to a pulsing one never looks broken. */
+/** Persistent selection marker: a torus (real 3D "donut" volume, not a flat disc — per direct feedback that
+ *  the previous flat RingGeometry version read as too flat) lying in the XZ plane (parallel to the wheel/grid
+ *  plane, same orientation as the outer node ring) that dissects the selected item at its own height —
+ *  independent of whether its definition modal is open, so it stays lit after the modal closes and moves when
+ *  selection changes. `color` defaults to the usual red, but every call site passes an explicit per-theme
+ *  color from RING_COLORS instead (selection/replica/associated) — every selection marker pulses, so a
+ *  static one next to a pulsing one never looks broken. */
 function SelectionRing({ x, y, z, radius, color = SELECTION_RING_COLOR }: { x: number; y: number; z: number; radius: number; color?: string }) {
   const material = useRef<ShaderMaterial & { uTime: number; uColor: Color }>(null);
   useFrame(({ clock }) => {
@@ -269,7 +293,7 @@ function SelectionRing({ x, y, z, radius, color = SELECTION_RING_COLOR }: { x: n
   });
   return (
     <mesh position={[x, y, z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={1}>
-      <ringGeometry args={[radius * 0.72, radius, 40]} />
+      <torusGeometry args={[radius * 0.86, radius * 0.14, 12, 40]} />
       <pulseRingMaterial ref={material} uColor={new Color(color)} transparent side={DoubleSide} depthTest={false} />
     </mesh>
   );
@@ -359,6 +383,7 @@ function FieldScene({
   nodeFilters,
   allNodes,
   nodesHidden,
+  theme,
 }: {
   onSelect: (id: string) => void;
   selected: string | null;
@@ -368,6 +393,7 @@ function FieldScene({
   /** Once the "Hide excluded" button is clicked, nodes failing nodeFilters stop rendering entirely instead of
    *  just showing a red border — toggled back by "Reset view" (see the button row in Scene3D). */
   nodesHidden: boolean;
+  theme: Theme;
 }) {
   // The Field view's own Node-field filter (role/health/hardware/OS/taints/labels) — separate from the Wheel
   // view's FilterState, since the whole point here is narrowing the Node set down BEFORE switching to Wheel.
@@ -410,7 +436,13 @@ function FieldScene({
         />
       ))}
       {selectedNode && selectedPos && (
-        <SelectionRing x={selectedPos[0]} y={0.05} z={selectedPos[2]} radius={nodeBoxWidth(selectedNode) * 0.75} />
+        <SelectionRing
+          x={selectedPos[0]}
+          y={0.05}
+          z={selectedPos[2]}
+          radius={nodeBoxWidth(selectedNode) * 0.75}
+          color={RING_COLORS[theme].selection}
+        />
       )}
     </>
   );
@@ -451,6 +483,9 @@ export interface WheelPod extends WheelPoint {
   /** Owning ReplicaSet's uid, if any — the "Show replica" feature's sibling-grouping key (see wheel.ts's own
    *  doc comment on this field). */
   replicaSetId?: string;
+  /** The Node this Pod is scheduled on — already sent over the wire (core's WheelPod has always carried it),
+   *  just not previously typed on this side since nothing client-side needed it before associatedWheelIds. */
+  nodeId?: string;
 }
 export interface WheelTierItem extends WheelPoint {
   kind: string;
@@ -925,6 +960,60 @@ function findWheelSelection(
   return null;
 }
 
+/** Every wheel item connected to `podId` by an edge the wheel ALREADY draws a connecting line for — its Node,
+ *  the Service(s) it's a member of, and its full storage lineage (PVC -> PV -> StorageClass/VolumeAttachment
+ *  -> CSIDriver). Deliberately built from the wheel's own edge lists rather than a fresh `/schematic` fetch:
+ *  it's then guaranteed every id returned actually has a wheel position to ring (a ConfigMap/Secret/
+ *  ServiceAccount/ReplicaSet is "associated" in the schematic sense too, but isn't drawn as its own point
+ *  here, so highlighting it would have nowhere to put a ring), and it's a pure client-side graph walk with
+ *  no network round-trip needed for something that should feel instant on click. */
+function associatedWheelIds(wheel: ClusterWheel, podId: string): string[] {
+  const pod = wheel.pods.find((p) => p.id === podId);
+  const result = new Set<string>();
+  if (pod?.nodeId) result.add(pod.nodeId);
+
+  const frontier = new Set<string>([podId]);
+  for (const e of wheel.podToNetwork) {
+    if (e.podId === podId) {
+      result.add(e.itemId);
+      frontier.add(e.itemId);
+    }
+  }
+  for (const e of wheel.podToStorage) {
+    if (e.podId === podId) {
+      result.add(e.itemId);
+      frontier.add(e.itemId);
+    }
+  }
+
+  // Chase the rest of the storage/network lineage transitively (PVC -> PV -> StorageClass/VolumeAttachment ->
+  // CSIDriver, Service -> Endpoints/Ingress) until a full pass adds nothing new.
+  const linkLists: WheelLinkEdge[][] = [
+    wheel.storageToPv,
+    wheel.pvToStorageClass,
+    wheel.pvToVolumeAttachment,
+    wheel.storageClassToCsiDriver,
+    wheel.volumeAttachmentToCsiDriver,
+    wheel.serviceToEndpoints,
+    wheel.serviceToIngress,
+  ];
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const list of linkLists) {
+      for (const e of list) {
+        if (frontier.has(e.fromId) && !result.has(e.toId)) {
+          result.add(e.toId);
+          frontier.add(e.toId);
+          grew = true;
+        }
+      }
+    }
+  }
+  result.delete(podId);
+  return [...result];
+}
+
 const CONTROL_PLANE_RING_ID = 'control-plane-ring';
 
 /** Everything this file's new Control Plane / resource-pane layer can select is either a real WheelInfoItem
@@ -966,11 +1055,13 @@ function WheelScene({
   visibleAtTime,
   timelapseCategoryFilters,
   controlPlaneRevealed,
+  theme,
 }: {
   wheel: ClusterWheel;
   onSelect: (id: string) => void;
   selected: string | null;
   filters: FilterState;
+  theme: Theme;
   /** Timelapse's own per-item TIME dimension — null means timelapse is off (no restriction, today's default
    *  "show everything" behavior). Composed via the `visible` prop on each mesh below (hidden-state toggling —
    *  the item stays mounted in the Three.js scene graph and just flips visible on/off) rather than by
@@ -1130,6 +1221,17 @@ function WheelScene({
   const selectedPod = filters.showReplica ? wheel.pods.find((p) => p.id === selected) : undefined;
   const replicaSiblings = selectedPod?.replicaSetId
     ? visiblePods.filter((p) => p.replicaSetId === selectedPod.replicaSetId && p.id !== selectedPod.id)
+    : [];
+
+  // Selecting a Pod pulses every wheel item connected to it (Node, Services, storage lineage) — always on,
+  // no filter checkbox needed the way "Show replica" has one, since it's just following the connecting lines
+  // the wheel already draws rather than adding a whole new relationship to the scene. See associatedWheelIds's
+  // own doc comment for exactly what "associated" means here.
+  const selectedPodForAssociations = wheel.pods.find((p) => p.id === selected);
+  const associatedPositions = selectedPodForAssociations
+    ? associatedWheelIds(wheel, selectedPodForAssociations.id)
+        .map((id) => ({ id, pos: findWheelSelection(wheel, id, null) }))
+        .filter((r): r is { id: string; pos: NonNullable<ReturnType<typeof findWheelSelection>> } => r.pos !== null)
     : [];
 
   return (
@@ -1541,9 +1643,12 @@ function WheelScene({
         );
       })}
       {replicaSiblings.map((p) => (
-        <SelectionRing key={`replica-${p.id}`} x={p.x} y={p.y} z={p.z} radius={0.17} color={REPLICA_RING_COLOR} />
+        <SelectionRing key={`replica-${p.id}`} x={p.x} y={p.y} z={p.z} radius={0.17} color={RING_COLORS[theme].replica} />
       ))}
-      {selection && <SelectionRing {...selection} />}
+      {associatedPositions.map(({ id, pos }) => (
+        <SelectionRing key={`assoc-${id}`} {...pos} color={RING_COLORS[theme].associated} />
+      ))}
+      {selection && <SelectionRing {...selection} color={RING_COLORS[theme].selection} />}
     </>
   );
 }
@@ -1610,6 +1715,7 @@ type Mode = 'field' | 'wheel';
  */
 export function Scene3D({
   onSelect,
+  onDeselect,
   active,
   selected,
   onOpenEditor,
@@ -1623,6 +1729,11 @@ export function Scene3D({
   gridEnabled,
 }: {
   onSelect: (id: string) => void;
+  /** "Clear" button — unselects whatever's currently selected (and, with it, every derived highlight: the
+   *  selection ring, "Show replica" siblings, and a Pod's associated-component rings, all of which are
+   *  computed fresh from `selected` rather than tracked as their own state — see associatedWheelIds/
+   *  replicaSiblings's own doc comments). */
+  onDeselect: () => void;
   active: boolean;
   selected: string | null;
   onOpenEditor: () => void;
@@ -1937,6 +2048,18 @@ export function Scene3D({
             Timelapse
           </button>
         )}
+        <button
+          onClick={() => {
+            setPropsOpen(false);
+            onDeselect();
+          }}
+          disabled={!selected}
+          className="rounded border px-2 py-1 text-xs cursor-pointer disabled:cursor-default disabled:opacity-40"
+          style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+          title="Unselect and turn off every selection ring/highlight"
+        >
+          Clear
+        </button>
       </div>
       {mode === 'field' && (
         <div
@@ -2047,6 +2170,7 @@ export function Scene3D({
             nodeFilters={nodeFilters}
             allNodes={allNodes}
             nodesHidden={nodesHidden}
+            theme={theme}
           />
         ) : wheel && wheelReady ? (
           <WheelScene
@@ -2057,6 +2181,7 @@ export function Scene3D({
             visibleAtTime={visibleAtTime}
             timelapseCategoryFilters={timelapseEnabled ? timelapseCategoryFilters : null}
             controlPlaneRevealed={controlPlaneRevealed}
+            theme={theme}
           />
         ) : null}
         {gridEnabled && <gridHelper args={[gridSize, gridDivisions, '#d9d9d5', '#e8e8e5']} />}

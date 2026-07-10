@@ -494,6 +494,7 @@ export function App() {
               <Scene3D
                 active={view === 'cluster3d'}
                 onSelect={select3D}
+                onDeselect={() => setSelected(null)}
                 selected={selected}
                 onOpenEditor={() => setModalOpen(true)}
                 onViewSchematic={viewSchematicFrom3D}
