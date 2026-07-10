@@ -86,6 +86,12 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   for (const sec of sections) for (const c of sec.items) for (const m of c.mounts) mountCount.set(m.volumeName, (mountCount.get(m.volumeName) ?? 0) + 1);
   const volByName = new Map(s.volumes.map((v) => [v.name, v]));
 
+  // With a container selected, everything that isn't wired to it is muted (greyed + non-interactive): the OTHER
+  // container cards, and every volume the selected container doesn't mount. Focuses the view on the one
+  // container; a second click on its radio clears the selection and re-enables everything.
+  const selectedC = selectedContainer ? sections.flatMap((sec) => sec.items).find((c) => c.name === selectedContainer) : undefined;
+  const selectedMounts: Set<string> | null = selectedC ? new Set(selectedC.mounts.map((m) => m.volumeName)) : null;
+
   const body: string[] = [];
   const cardByName = new Map<string, Rect>();
   const cards: { c: Container; rect: Rect }[] = [];
@@ -98,7 +104,8 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       const c = sec.items[i]!;
       const h = cardHeight(c);
       const rect: Rect = { x: podInnerX, y: cursorY, w: CARD_W, h };
-      body.push(containerCard(s.podId, c, i, rect, c.name === selectedContainer));
+      const muted = selectedContainer !== null && c.name !== selectedContainer;
+      body.push(containerCard(s.podId, c, i, rect, c.name === selectedContainer, muted));
       cardByName.set(c.name, rect);
       cards.push({ c, rect });
       cursorY += h + CARD_GAP;
@@ -122,7 +129,8 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       const vx = volBox!.x + 12 + col * (vw + 6);
       const vy = volBox!.y + 26 + row * 52;
       const vr: Rect = { x: vx, y: vy, w: vw, h: 42 };
-      body.push(volumeChip(v, vr, v.name === selectedVolume?.name));
+      const muted = selectedMounts !== null && !selectedMounts.has(v.name);
+      body.push(volumeChip(v, vr, v.name === selectedVolume?.name, muted));
       volRectByName.set(v.name, vr);
     });
     cursorY += volBoxH;
@@ -266,16 +274,16 @@ function statusPill(c: Container, x: number, y: number): string {
 /** The per-container select control — a radio dot (filled when this container is the current selection). Its own
  *  data-select-container is checked before the card's data-resource-id in the client handler, so clicking the
  *  dot selects (reveals edges) while clicking the card body still opens the editor. */
-function radio(name: string, selected: boolean, cx: number, cy: number): string {
-  return (
-    `<g data-select-container="${esc(name)}" style="cursor:pointer">` +
-    `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#fff" stroke="${selected ? SELECT : '#999'}" stroke-width="${selected ? 2 : 1.3}" />` +
-    (selected ? `<circle cx="${cx}" cy="${cy}" r="3" fill="${SELECT}" />` : '') +
-    `</g>`
-  );
+function radio(name: string, selected: boolean, cx: number, cy: number, interactive: boolean): string {
+  const dot =
+    `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#fff" stroke="${selected ? SELECT : interactive ? '#999' : '#ccc'}" stroke-width="${selected ? 2 : 1.3}" />` +
+    (selected ? `<circle cx="${cx}" cy="${cy}" r="3" fill="${SELECT}" />` : '');
+  // A muted (non-selected while another is selected) container's radio carries no data-select-container, so it
+  // can't be picked until the current selection is cleared.
+  return interactive ? `<g data-select-container="${esc(name)}" style="cursor:pointer">${dot}</g>` : `<g>${dot}</g>`;
 }
 
-function containerCard(podId: string, c: Container, index: number, r: Rect, selected: boolean): string {
+function containerCard(podId: string, c: Container, index: number, r: Rect, selected: boolean, muted: boolean): string {
   const arrayKey = c.kind === 'init' ? 'initContainers' : c.kind === 'ephemeral' ? 'ephemeralContainers' : 'containers';
   const focusPath = esc(JSON.stringify(['spec', arrayKey, index]));
   const ephemeral = c.kind === 'ephemeral';
@@ -287,7 +295,7 @@ function containerCard(podId: string, c: Container, index: number, r: Rect, sele
     `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="${ephemeral ? '#faf4fd' : '#fff'}" stroke="${stroke}" stroke-width="${strokeW}"${ephemeral && !selected ? ' stroke-dasharray="4 3"' : ''} />`,
   );
   parts.push(`<rect x="${r.x}" y="${r.y}" width="6" height="${r.h}" fill="${barColor(c)}" />`);
-  parts.push(radio(c.name, selected, r.x + RADIO_CX_OFF, r.y + 16));
+  parts.push(radio(c.name, selected, r.x + RADIO_CX_OFF, r.y + 16, !muted));
   parts.push(`<text class="cs-name" x="${nameX}" y="${r.y + 20}">${esc(clip(c.name, 30))}</text>`);
   parts.push(statusPill(c, r.x + r.w - 114, r.y + 20));
 
@@ -332,26 +340,28 @@ function containerCard(podId: string, c: Container, index: number, r: Rect, sele
     ry += ROW_H;
   }
 
-  // Card body opens the editor at this container's YAML (data-focus-path); the radio's data-select-container is
-  // handled first by the client so the dot selects instead.
+  // A muted card (another container is selected) is greyed and fully inert — no editor drill, no radio — until
+  // the selection is cleared. Otherwise the card body opens the editor at this container's YAML (data-focus-path);
+  // the radio's data-select-container is handled first by the client so the dot selects instead.
+  if (muted) return `<g opacity="0.4">${parts.join('')}</g>`;
   return `<g data-resource-id="${esc(podId)}" data-focus-path="${focusPath}" data-names="${esc(JSON.stringify([c.name]))}" style="cursor:pointer">${parts.join('')}</g>`;
 }
 
 /** A volume tile — carries data-select-volume (clicking it renders its storage-implementation sub-diagram, and
- *  toggles it off on a second click). Every tile has the same border (orange, 1px); only the currently-selected
- *  tile is highlighted (accent, 2px) — which volumes the selected container mounts is shown by the edges, not
- *  by varying tile borders. */
-function volumeChip(v: Volume, r: Rect, selected: boolean): string {
+ *  toggles it off on a second click). Only the currently-selected tile is highlighted (accent, 2px). When a
+ *  container is selected, a volume it does NOT mount is `muted` — greyed and non-selectable (no
+ *  data-select-volume), so only the volumes actually wired to that container can be opened. */
+function volumeChip(v: Volume, r: Rect, selected: boolean, muted: boolean): string {
   const caption = v.backingRef?.kind === 'PersistentVolumeClaim' ? 'PVC' : v.type;
   const stroke = selected ? SELECT : '#c9974f';
   const strokeW = selected ? 2 : 1;
-  return (
-    `<g data-select-volume="${esc(v.name)}" data-names="${esc(JSON.stringify([v.name]))}" style="cursor:pointer">` +
+  const inner =
     `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="#fff" stroke="${stroke}" stroke-width="${strokeW}" />` +
     `<text x="${r.x + r.w / 2}" y="${r.y + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="#333">${esc(clip(v.name, Math.floor(r.w / 7)))}</text>` +
-    `<text x="${r.x + r.w / 2}" y="${r.y + 32}" text-anchor="middle" font-size="8.5" fill="#666">${esc(clip(caption, Math.floor(r.w / 6)))}</text>` +
-    `</g>`
-  );
+    `<text x="${r.x + r.w / 2}" y="${r.y + 32}" text-anchor="middle" font-size="8.5" fill="#666">${esc(clip(caption, Math.floor(r.w / 6)))}</text>`;
+  return muted
+    ? `<g opacity="0.35">${inner}</g>`
+    : `<g data-select-volume="${esc(v.name)}" data-names="${esc(JSON.stringify([v.name]))}" style="cursor:pointer">${inner}</g>`;
 }
 
 /** The clicked volume's storage-implementation chain, drawn top-to-bottom in the right column. `local` volumes

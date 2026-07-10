@@ -121,6 +121,31 @@ describe('renderContainerSchematicSvg', () => {
     expect(svg).toContain('#2f6df6'); // SELECT accent used on the selected card/radio
   });
 
+  it('mutes the OTHER containers (greyed + non-selectable) when one is selected', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    expect(svg).toContain('data-select-container="app"'); // the selected one stays clickable (to clear)
+    expect(svg).not.toContain('data-select-container="sidecar"'); // others become non-selectable
+    expect(svg).not.toContain('data-select-container="migrate"');
+    expect(svg).toContain('<g opacity="0.4">'); // muted cards are greyed
+  });
+
+  it('mutes volumes the selected container does NOT mount (greyed + non-selectable)', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' }); // app mounts only `data`
+    expect(svg).toContain('data-select-volume="data"'); // mounted -> still selectable
+    expect(svg).not.toContain('data-select-volume="cfg"'); // not mounted -> non-selectable
+    expect(svg).not.toContain('data-select-volume="scratch"');
+    expect(svg).toContain('<g opacity="0.35">'); // muted volume tiles are greyed
+  });
+
+  it('leaves every container and volume selectable when nothing is selected', () => {
+    const svg = renderContainerSchematicSvg(base);
+    expect(svg).toContain('data-select-container="app"');
+    expect(svg).toContain('data-select-container="sidecar"');
+    expect(svg).toContain('data-select-volume="cfg"');
+    expect(svg).not.toContain('<g opacity="0.4">'); // nothing muted
+    expect(svg).not.toContain('<g opacity="0.35">');
+  });
+
   it('draws the selected container\'s edges AFTER the cards so mount lines render on top', () => {
     const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
     // The edge <path>s must come after the last container card <g> in document order (painted on top).
