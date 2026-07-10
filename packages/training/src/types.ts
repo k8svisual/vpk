@@ -1,5 +1,4 @@
-import type { ResourceGraph } from '../graph';
-import type { RawObject } from '../types';
+import type { RawObject, ResourceGraph } from '@vpk/core';
 
 /**
  * Check-engine types (redesign/training-course.md §7). A "check" verifies one fact about a lesson step —

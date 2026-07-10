@@ -37,10 +37,9 @@ import {
   type VendorIconOverride,
   type NetworkCatalogOverride,
   type MeshCatalogOverride,
-  type PureCheck,
-  type StepPolicy,
 } from '@vpk/core';
 import { DEMO_TEMPLATES, extractPlaceholders, fillTemplate, resolvePattern } from '@vpk/demo-data';
+import type { PureCheck, StepPolicy } from '@vpk/training';
 import {
   appendGenerated,
   clearWorkingSet,

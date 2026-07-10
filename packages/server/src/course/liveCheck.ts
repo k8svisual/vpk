@@ -1,11 +1,12 @@
-import { buildGraph, evaluateStep, type CheckContext, type PureCheck, type RawObject, type StepPolicy, type StepResult } from '@vpk/core';
+import { buildGraph, type RawObject } from '@vpk/core';
+import { evaluateStep, type CheckContext, type PureCheck, type StepPolicy, type StepResult } from '@vpk/training';
 import { captureCore } from '../capture/cliSource';
 import { probeClusterFacts } from './env';
 
 /**
  * The impure, server-side half of the check engine (redesign/training-course.md §7's "thin live wrapper").
  * Everything that actually DECIDES a result — the fingerprint comparison, the two-axis synthesis — lives in
- * @vpk/core/course as pure, unit-tested functions; this module's only job is to gather a fresh CheckContext
+ * @vpk/training as pure, unit-tested functions; this module's only job is to gather a fresh CheckContext
  * (capture + cluster-facts probe) and, for checks with a time-dependent outcome (a Deployment still rolling
  * out, `minikube start` still bringing nodes up), poll until it passes or a deadline elapses.
  */

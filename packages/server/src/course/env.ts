@@ -1,9 +1,10 @@
-import type { ClusterFacts, RawObject } from '@vpk/core';
+import type { RawObject } from '@vpk/core';
+import type { ClusterFacts } from '@vpk/training';
 import { currentContext, getOneKind, runCli } from '../capture/cliSource';
 
 /**
  * Environment/cluster-facts probe (redesign/training-course.md §7.1's ClusterFacts, §9's Lesson-Zero
- * `vpk-detect`) — the live-I/O counterpart to @vpk/core/course's pure evaluators. Extends the existing
+ * `vpk-detect`) — the live-I/O counterpart to @vpk/training's pure evaluators. Extends the existing
  * `/capture/validate` "can this CLI even run" check into the fuller read a ClusterCheck and the Lesson-Zero
  * recommender both need: is a context actually reachable, how many nodes are Ready, what provisioner is this,
  * can it do multiple nodes at all.

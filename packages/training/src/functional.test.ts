@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGraph } from '../graph';
-import type { RawObject } from '../types';
+import { buildGraph, type RawObject } from '@vpk/core';
 import { aggregateFunctional, resourceFunctional } from './functional';
 
 function graphOf(objects: RawObject[]) {

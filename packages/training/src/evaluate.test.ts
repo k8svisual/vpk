@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGraph } from '../graph';
-import type { RawObject } from '../types';
+import { buildGraph, type RawObject } from '@vpk/core';
 import { clampToFloor, evaluateCheck, evaluateStep } from './evaluate';
 import type { CheckContext, ClusterFacts, PureCheck } from './types';
 

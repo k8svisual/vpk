@@ -1,5 +1,4 @@
-import type { ResourceGraph } from '../graph';
-import type { RawObject, Resource } from '../types';
+import type { RawObject, Resource, ResourceGraph } from '@vpk/core';
 import type { ResourceSelector } from './types';
 
 function matchesLabels(actual: Record<string, string>, want: Record<string, string>): boolean {

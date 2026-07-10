@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "workspaces": ["packages/*"],
   "scripts": {
-    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/demo-data/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/web/tsconfig.json",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/demo-data/tsconfig.json && tsc --noEmit -p packages/training/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/web/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:server": "bun packages/server/src/server.ts",

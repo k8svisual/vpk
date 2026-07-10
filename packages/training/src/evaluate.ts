@@ -1,4 +1,4 @@
-import type { Resource } from '../types';
+import type { Resource } from '@vpk/core';
 import { aggregateFunctional, resourceFunctional } from './functional';
 import { deriveRequiredPaths, pathExists, pathValues } from './paths';
 import { inventoryOf, inventoryOfObjects, resourcesInNamespace, selectResources } from './selectors';

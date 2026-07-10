@@ -31,7 +31,15 @@
       "dependencies": {
         "@vpk/core": "workspace:*",
         "@vpk/demo-data": "workspace:*",
+        "@vpk/training": "workspace:*",
         "fastify": "^5.1.0",
+      },
+    },
+    "packages/training": {
+      "name": "@vpk/training",
+      "version": "0.0.0",
+      "dependencies": {
+        "@vpk/core": "workspace:*",
       },
     },
     "packages/web": {
@@ -424,6 +432,8 @@
     "@vpk/demo-data": ["@vpk/demo-data@workspace:packages/demo-data"],
 
     "@vpk/server": ["@vpk/server@workspace:packages/server"],
+
+    "@vpk/training": ["@vpk/training@workspace:packages/training"],
 
     "@vpk/web": ["@vpk/web@workspace:packages/web"],
 

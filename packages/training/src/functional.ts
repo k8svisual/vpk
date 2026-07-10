@@ -1,7 +1,4 @@
-import type { ResourceGraph } from '../graph';
-import { podStatusCategory } from '../podStatus';
-import { allServiceBackingPods } from '../projections/serviceBackends';
-import type { Resource } from '../types';
+import { allServiceBackingPods, podStatusCategory, type Resource, type ResourceGraph } from '@vpk/core';
 
 /**
  * Per-resource "does it actually run" read (redesign/training-course.md §7.5's functional axis, status

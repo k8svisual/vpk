@@ -4,7 +4,7 @@
  * meaningful value) — never value equality, per the design's "compare = structural fingerprint, not a deep
  * spec diff" decision (redesign/training-course.md §"compare" clarification).
  */
-import type { RawObject } from '../types';
+import type { RawObject } from '@vpk/core';
 
 type PathSegment = { key: string } | { wildcard: true };
 
