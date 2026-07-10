@@ -149,3 +149,63 @@
 [data-theme='ocean'] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%234d6b76' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }
+
+/* Rendered lesson prose (LessonRunnerView) — plain CSS, not Tailwind's @tailwindcss/typography plugin (not
+ * installed, and this app has exactly one prose-rendering surface so far, not a general need). Every color
+ * rides a --vpk-* var so it re-themes automatically with everything else; no hardcoded hex. */
+.lesson-prose h1,
+.lesson-prose h2,
+.lesson-prose h3 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  color: var(--vpk-fg);
+}
+.lesson-prose h1 {
+  font-size: 1.1rem;
+}
+.lesson-prose h2 {
+  font-size: 1rem;
+}
+.lesson-prose h3 {
+  font-size: 0.9rem;
+}
+.lesson-prose p {
+  margin: 0.6em 0;
+  line-height: 1.5;
+}
+.lesson-prose ul,
+.lesson-prose ol {
+  margin: 0.6em 0;
+  padding-left: 1.4em;
+}
+.lesson-prose li {
+  margin: 0.2em 0;
+}
+.lesson-prose a {
+  color: var(--vpk-accent);
+  text-decoration: underline;
+}
+.lesson-prose strong {
+  font-weight: 600;
+}
+.lesson-prose code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.85em;
+  background: var(--vpk-bg);
+  border: 1px solid var(--vpk-border);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+}
+.lesson-prose pre {
+  background: var(--vpk-bg);
+  border: 1px solid var(--vpk-border);
+  border-radius: 4px;
+  padding: 0.6em 0.8em;
+  overflow-x: auto;
+  margin: 0.6em 0;
+}
+.lesson-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}

@@ -71,6 +71,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
+import { findLessonById, listLessons } from './course/content';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
@@ -423,6 +424,25 @@ app.post('/course/env', async (req) => {
   const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
   return probeClusterFacts(cliArgv);
 });
+
+// Serves one authored lesson's parsed content (courses/**/*.md) to the browser — the web client is a thin
+// client that never parses markdown/YAML itself (same "server does the parsing, browser gets JSON" split as
+// everything else this app renders).
+app.get('/course/lesson', async (req, reply) => {
+  const { id } = (req.query ?? {}) as { id?: string };
+  if (!id) {
+    reply.code(400);
+    return { error: 'expected ?id=<lesson-id>' };
+  }
+  const lesson = findLessonById(id);
+  if (!lesson) {
+    reply.code(404);
+    return { error: `No lesson with id "${id}".` };
+  }
+  return lesson;
+});
+
+app.get('/course/lessons', async () => ({ lessons: listLessons().map((l) => l.frontmatter) }));
 
 // The student's terminal — a STRUCTURED runner, never a shell/PTY (§5): tokenizes the typed line, checks it
 // against the current lesson step's verb allowlist, and runs it as exactly the configured kubectl-compatible

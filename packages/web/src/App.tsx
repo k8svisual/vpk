@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
-import { CourseSmokeView } from './CourseSmokeView';
+import { LessonRunnerView } from './LessonRunnerView';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -78,11 +78,11 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
       { id: 'resources', label: 'Resources', icon: Table2 },
     ],
   },
-  // Wiring-only smoke test (redesign/training-course.md) — not the real terminal/lesson experience, just
-  // proof /course/env, /course/command, /course/check work end-to-end before any UI design work on those.
+  // Training Course mode (redesign/training-course.md) — the opt-in mutating exception to VpK's read-only
+  // stance (see DESIGN.md §1's signed-off exception). Only one lesson exists so far; no catalog/picker yet.
   {
     title: 'Training',
-    items: [{ id: 'course', label: 'Course (smoke test)', icon: Terminal }],
+    items: [{ id: 'course', label: 'Course', icon: Terminal }],
   },
 ];
 
@@ -612,7 +612,7 @@ export function App() {
               </>
             )}
             {view === 'demo' && <DemoDataView />}
-            {view === 'course' && <CourseSmokeView />}
+            {view === 'course' && <LessonRunnerView />}
           </main>
         </div>
       </div>
