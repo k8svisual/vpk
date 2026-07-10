@@ -379,9 +379,9 @@ interface HistoryEntry {
 
 type TerminalTheme = 'dark' | 'light';
 
-const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string }> = {
-  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545' },
-  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2' },
+const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string }> = {
+  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e' },
+  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2', buttonBg: '#e2e2e2' },
 };
 
 const CLEAR_COMMANDS = new Set(['clear', 'cls']);
@@ -464,7 +464,7 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
           onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
           title={theme === 'dark' ? 'Switch to light terminal' : 'Switch to dark terminal'}
           className="flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer"
-          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
+          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
         >
           {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
           {theme === 'dark' ? 'Light' : 'Dark'}
@@ -490,7 +490,7 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
           onClick={() => void run()}
           disabled={running}
           className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed"
-          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
+          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
         >
           {running ? '…' : 'Run'}
         </button>
