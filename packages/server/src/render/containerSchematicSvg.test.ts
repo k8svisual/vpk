@@ -50,7 +50,7 @@ const base: SchematicDto = {
   ],
   ownerChain: [],
   config: { configMaps: [{ id: 'cm-1', name: 'app-config' }], secrets: [] },
-  network: { services: [{ id: 'svc-1', name: 'web-api' }] },
+  network: { services: [{ id: 'svc-1', name: 'web-api' }], endpoints: [], endpointKind: 'Endpoints' },
   storage: { pvcs: [], pvs: [], storageClasses: [], volumeAttachments: [] },
   security: {},
   node: { id: 'node-1', name: 'minikube' },

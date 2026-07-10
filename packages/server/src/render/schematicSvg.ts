@@ -175,8 +175,19 @@ export function renderSchematicSvg(s: SchematicDto): string {
   if (hasNetwork) {
     parts.push(categoryBox('network', 'Network', MARGIN, leftY, GROUP_W, GROUP_H));
     const iconY = leftY + 56;
-    parts.push(aggregateIcon(s.network.services, 'Service', MARGIN + 30, iconY));
-    parts.push(solidEdge(MARGIN + 30 + ICON_R, iconY, podX, iconY));
+    const svcX = MARGIN + 30;
+    parts.push(aggregateIcon(s.network.services, 'Service', svcX, iconY, true));
+    if (s.network.endpoints.length > 0) {
+      // Service --creates--> Endpoints/EndpointSlice (dashed, as the Service controller auto-creates them),
+      // then Endpoints --references--> Pod (solid) — the Endpoints/slice thus connects to both, and its own
+      // "(N)"/list opens the merged Endpoints+EndpointSlice set (endpointKind picks the icon).
+      const epX = svcX + OWNER_STEP;
+      parts.push(dashedEdge(svcX + ICON_R, iconY, epX - ICON_R, iconY));
+      parts.push(aggregateIcon(s.network.endpoints, s.network.endpointKind, epX, iconY, true));
+      parts.push(solidEdge(epX + ICON_R, iconY, podX, iconY));
+    } else {
+      parts.push(solidEdge(svcX + ICON_R, iconY, podX, iconY));
+    }
   }
 
   // ---- Security + Storage (right column) ----
@@ -388,7 +399,7 @@ function kindIcon(id: string, kind: string, name: string, cx: number, cy: number
  *  `data-kind` payload (the client opens a "Resources" list modal from it). Every icon (single or multi)
  *  carries `data-names` — the client's own hover tooltip (SchematicView) reads it to show the real item
  *  name(s), since the small always-visible name label under each icon has been dropped. */
-function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number): string {
+function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number, countBelow = false): string {
   const namesAttr = esc(JSON.stringify(items.map((i) => i.name)));
   if (items.length === 1) {
     return (
@@ -398,10 +409,15 @@ function aggregateIcon(items: Ref[], kind: string, cx: number, cy: number): stri
     );
   }
   const listPayload = JSON.stringify(items.map((i) => ({ id: i.id, name: i.name })));
+  // `countBelow` centres the "(N)" under the icon (Network's Service/Endpoints icons) rather than to its right —
+  // the two Network icons sit close together, so a right-side count would collide with the neighbouring icon.
+  const count = countBelow
+    ? `<text class="sch-count" x="${cx}" y="${cy + ICON_R + 12}" text-anchor="middle">(${items.length})</text>`
+    : `<text class="sch-count" x="${cx + ICON_R + 4}" y="${cy + 4}">(${items.length})</text>`;
   return (
     `<g data-resource-list="${esc(listPayload)}" data-kind="${esc(kind)}" data-names="${namesAttr}" style="cursor:pointer">` +
     iconImage(kind, cx, cy) +
-    `<text class="sch-count" x="${cx + ICON_R + 4}" y="${cy + 4}">(${items.length})</text>` +
+    count +
     `</g>`
   );
 }

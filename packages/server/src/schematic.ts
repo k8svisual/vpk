@@ -17,7 +17,11 @@ export interface SchematicDto {
   ownerChain: { id: string; kind: string; name: string; crdLetter?: string }[];
   generatorLabel?: string;
   config: { configMaps: { id: string; name: string }[]; secrets: { id: string; name: string }[] };
-  network: { services: { id: string; name: string }[] };
+  network: {
+    services: { id: string; name: string }[];
+    endpoints: { id: string; name: string }[];
+    endpointKind: 'Endpoints' | 'EndpointSlice';
+  };
   storage: {
     pvcs: { id: string; name: string }[];
     pvs: { id: string; name: string }[];
@@ -60,7 +64,11 @@ export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto 
       configMaps: s.config.configMaps.map((c) => ({ id: c.id, name: c.name })),
       secrets: s.config.secrets.map((c) => ({ id: c.id, name: c.name })),
     },
-    network: { services: s.network.services.map((sv) => ({ id: sv.id, name: sv.name })) },
+    network: {
+      services: s.network.services.map((sv) => ({ id: sv.id, name: sv.name })),
+      endpoints: s.network.endpoints.map((e) => ({ id: e.id, name: e.name })),
+      endpointKind: s.network.endpointKind,
+    },
     storage: {
       pvcs: s.storage.pvcs.map((p) => ({ id: p.id, name: p.name })),
       pvs: s.storage.pvs.map((p) => ({ id: p.id, name: p.name })),

@@ -487,3 +487,37 @@ describe('projectPodSchematic volume storage-implementation chain', () => {
     expect(v?.pv).toBeUndefined();
   });
 });
+
+describe('projectPodSchematic network endpoints/endpointSlices', () => {
+  const mk = (slices: RawObject[], ep?: RawObject) => {
+    const pod: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' }, spec: { containers: [] } };
+    const svc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-1', name: 'web', namespace: 'ns1' } };
+    const endpoints: RawObject = ep ?? {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'ep-1', name: 'web', namespace: 'ns1' },
+      subsets: [{ addresses: [{ targetRef: { uid: 'pod-1' } }] }],
+    };
+    return buildGraph([pod, svc, endpoints, ...slices]);
+  };
+  const slice = (uid: string, name: string): RawObject => ({
+    apiVersion: 'discovery.k8s.io/v1',
+    kind: 'EndpointSlice',
+    metadata: { uid, name, namespace: 'ns1', labels: { 'kubernetes.io/service-name': 'web' } },
+  });
+
+  it('includes the Service and its Endpoints object, kind=Endpoints when no slices exist', () => {
+    const n = projectPodSchematic(mk([]), 'pod-1')?.network;
+    expect(n?.services.map((s) => s.name)).toEqual(['web']);
+    expect(n?.endpoints.map((e) => ({ name: e.name, kind: e.kind }))).toEqual([{ name: 'web', kind: 'Endpoints' }]);
+    expect(n?.endpointKind).toBe('Endpoints');
+  });
+
+  it('merges Endpoints + EndpointSlices into one list and shows the EndpointSlice icon when both exist', () => {
+    const n = projectPodSchematic(mk([slice('es-1', 'web-abc'), slice('es-2', 'web-def')]), 'pod-1')?.network;
+    expect(n?.endpoints.map((e) => e.kind).sort()).toEqual(['EndpointSlice', 'EndpointSlice', 'Endpoints']);
+    expect(n?.endpoints.map((e) => e.name)).toContain('web-abc');
+    expect(n?.endpoints.map((e) => e.name)).toContain('web-def');
+    expect(n?.endpointKind).toBe('EndpointSlice');
+  });
+})

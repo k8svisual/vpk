@@ -151,7 +151,9 @@ export interface PodSchematic {
   ownerChain: SchematicOwnerLink[];
   generatorLabel?: string;
   config: { configMaps: SchematicRef[]; secrets: SchematicRef[] };
-  network: { services: SchematicRef[] };
+  /** The Service(s) that target this Pod, plus the Endpoints/EndpointSlices backing them (merged into one list).
+   *  `endpointKind` is the icon/kind to show for that merged list — EndpointSlice when any slice is present. */
+  network: { services: SchematicRef[]; endpoints: SchematicRef[]; endpointKind: 'Endpoints' | 'EndpointSlice' };
   /** pvcs -> their bound pvs -> those pvs' storage classes (DESIGN §6.9 pvc<-pv<-sc chain). volumeAttachments
    *  is a sibling branch off the same pvs, not chained through storageClasses — mirrors the 3D wheel's
    *  pvToVolumeAttachment (see wheel.ts), which deliberately keeps VolumeAttachment and StorageClass as
@@ -448,14 +450,38 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     return { name: v.name ?? '', type, backingRef, implementation: 'local' as const };
   });
 
+  // EndpointSlices name their Service via the standard `kubernetes.io/service-name` label (a Service can have
+  // several slices) — precomputed once here so the per-service loop below stays O(services), not O(services×N).
+  const slicesByService = new Map<string, Resource[]>();
+  for (const r of graph.nodes.values()) {
+    if (r.kind !== 'EndpointSlice' || r.namespace !== pod.namespace) continue;
+    const svcName = r.labels['kubernetes.io/service-name'];
+    if (!svcName) continue;
+    const list = slicesByService.get(svcName);
+    if (list) list.push(r);
+    else slicesByService.set(svcName, [r]);
+  }
+
   const services: SchematicRef[] = [];
+  // Endpoints + EndpointSlices backing the Service(s) that target this Pod, merged into one list. Both kinds can
+  // coexist (a cluster may still publish the legacy Endpoints object alongside EndpointSlices); when they do the
+  // renderer shows the EndpointSlice icon over the combined list (see network.endpointKind).
+  const endpoints: SchematicRef[] = [];
+  let hasSlice = false;
   for (const svc of graph.nodes.values()) {
     if (svc.kind !== 'Service' || svc.namespace !== pod.namespace) continue;
-    const endpoints = lookup('Endpoints', svc.name);
-    const subsets = (endpoints?.raw.subsets as { addresses?: { targetRef?: { uid?: string } }[] }[] | undefined) ?? [];
+    const endpointsObj = lookup('Endpoints', svc.name);
+    const subsets = (endpointsObj?.raw.subsets as { addresses?: { targetRef?: { uid?: string } }[] }[] | undefined) ?? [];
     const targets = subsets.flatMap((s) => s.addresses ?? []).map((a) => a.targetRef?.uid);
-    if (targets.includes(pod.uid ?? pod.id)) services.push({ id: svc.id, name: svc.name, kind: 'Service' });
+    if (!targets.includes(pod.uid ?? pod.id)) continue;
+    services.push({ id: svc.id, name: svc.name, kind: 'Service' });
+    if (endpointsObj) endpoints.push({ id: endpointsObj.id, name: endpointsObj.name, kind: 'Endpoints' });
+    for (const es of slicesByService.get(svc.name) ?? []) {
+      endpoints.push({ id: es.id, name: es.name, kind: 'EndpointSlice' });
+      hasSlice = true;
+    }
   }
+  const endpointKind: 'Endpoints' | 'EndpointSlice' = hasSlice ? 'EndpointSlice' : 'Endpoints';
 
   const saName = spec?.serviceAccountName;
   const sa = saName ? lookup('ServiceAccount', saName) : undefined;
@@ -553,7 +579,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     ownerChain,
     generatorLabel,
     config: { configMaps: [...configMaps.values()], secrets: [...secrets.values()] },
-    network: { services },
+    network: { services, endpoints, endpointKind },
     storage: {
       pvcs: [...pvcs.values()],
       pvs: [...pvs.values()],

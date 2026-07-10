@@ -30,7 +30,7 @@ const base: SchematicDto = {
     { id: 'rs-1', kind: 'ReplicaSet', name: 'coredns-abc123' },
   ],
   config: { configMaps: [{ id: 'cm-1', name: 'coredns' }], secrets: [] },
-  network: { services: [{ id: 'svc-1', name: 'kube-dns' }] },
+  network: { services: [{ id: 'svc-1', name: 'kube-dns' }], endpoints: [], endpointKind: 'Endpoints' },
   storage: { pvcs: [], pvs: [], storageClasses: [], volumeAttachments: [] },
   security: { serviceAccount: { id: 'sa-1', name: 'coredns' } },
   node: { id: 'node-1', name: 'minikube' },
@@ -66,6 +66,52 @@ describe('renderSchematicSvg', () => {
     const svg = renderSchematicSvg(base);
     expect(svg).toContain('url(#sch-arrow-dashed)');
     expect(svg).toContain('url(#sch-arrow-solid)');
+  });
+
+  it('draws the Endpoints icon between Service and Pod (Service --creates--> Endpoints --references--> Pod)', () => {
+    const withEp: SchematicDto = {
+      ...base,
+      network: { services: [{ id: 'svc-1', name: 'kube-dns' }], endpoints: [{ id: 'ep-1', name: 'kube-dns' }], endpointKind: 'Endpoints' },
+    };
+    const svg = renderSchematicSvg(withEp);
+    expect(svg).toContain('icons/k8/ep.svg'); // the Endpoints icon is drawn
+    expect(svg).toContain('data-resource-id="ep-1"'); // single endpoint is directly clickable
+  });
+
+  it('uses the EndpointSlice icon and a "(N)" list when more than one endpoint/slice backs the service', () => {
+    const withSlices: SchematicDto = {
+      ...base,
+      network: {
+        services: [{ id: 'svc-1', name: 'kube-dns' }],
+        endpoints: [
+          { id: 'ep-1', name: 'kube-dns' },
+          { id: 'es-1', name: 'kube-dns-abc' },
+        ],
+        endpointKind: 'EndpointSlice',
+      },
+    };
+    const svg = renderSchematicSvg(withSlices);
+    expect(svg).toContain('icons/k8/eps.svg'); // EndpointSlice icon when a slice is present
+    expect(svg).toContain('(2)'); // count for the merged list
+    expect(svg).toContain('data-resource-list='); // clickable list box, not a single drill
+    expect(svg).toContain('data-kind="EndpointSlice"');
+  });
+
+  it('places the Service "(N)" count below the icon, not to its right', () => {
+    const twoSvc: SchematicDto = {
+      ...base,
+      network: {
+        services: [
+          { id: 'svc-1', name: 'a' },
+          { id: 'svc-2', name: 'b' },
+        ],
+        endpoints: [],
+        endpointKind: 'Endpoints',
+      },
+    };
+    const svg = renderSchematicSvg(twoSvc);
+    // count-below uses text-anchor="middle" centred on the icon's own X; the right-side variant does not.
+    expect(svg).toMatch(/<text class="sch-count"[^>]*text-anchor="middle">\(2\)<\/text>/);
   });
 
   it('collapses a group with more than one item to a single aggregate icon + count, not one node per item', () => {
@@ -294,7 +340,7 @@ describe('renderSchematicSvg', () => {
       volumes: [],
       ownerChain: [],
       config: { configMaps: [], secrets: [] },
-      network: { services: [] },
+      network: { services: [], endpoints: [], endpointKind: 'Endpoints' },
       storage: { pvcs: [], pvs: [], storageClasses: [], volumeAttachments: [] },
       security: {},
       crds: [],
