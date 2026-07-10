@@ -71,6 +71,7 @@ import { loadSnapshotFile, loadSnapshotExplains } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
+import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
@@ -422,6 +423,42 @@ app.post('/course/env', async (req) => {
   const { cli: cliOverride } = (req.body ?? {}) as { cli?: string };
   const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
   return probeClusterFacts(cliArgv);
+});
+
+// The student's terminal — a STRUCTURED runner, never a shell/PTY (§5): tokenizes the typed line, checks it
+// against the current lesson step's verb allowlist, and runs it as exactly the configured kubectl-compatible
+// CLI. `allow` is required in the body — there is no server-side default policy, since "what's safe to run"
+// is a per-lesson-step decision the content itself must make.
+app.post('/course/command', async (req, reply) => {
+  const { line, cli: cliOverride, allow } = (req.body ?? {}) as { line?: string; cli?: string; allow?: string[] };
+  if (typeof line !== 'string' || !line.trim()) {
+    reply.code(400);
+    return { error: 'expected { line: string, allow: string[] }' };
+  }
+  if (!Array.isArray(allow)) {
+    reply.code(400);
+    return { error: 'expected { line: string, allow: string[] }' };
+  }
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+
+  let argv: string[];
+  try {
+    argv = tokenizeCommand(line);
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  const decision = checkCommandPolicy(argv, cliArgv, { allow });
+  if (!decision.allowed) {
+    pushLog('warn', `Course command blocked: "${line}" — ${decision.reason}`);
+    reply.code(403);
+    return { error: decision.reason };
+  }
+
+  const result = await runCourseCommand(argv);
+  pushLog('info', `Course command: "${line}" -> exit ${result.exitCode}`);
+  return result;
 });
 
 /** The one course check that can be running at a time (same "just one at a time" simplicity as capture,
