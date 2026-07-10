@@ -142,19 +142,29 @@ export function SchematicView({
     } else {
       url = `/schematic.svg?id=${encodeURIComponent(effectivePodId)}`;
     }
+    // Guards against a slower response for a PREVIOUS Pod/container/volume selection landing after a newer
+    // one has already started — SVG render time varies with Pod size, so a fast click to a different Pod (or
+    // a different container radio) while an earlier request is still in flight can otherwise overwrite the
+    // current selection's diagram with the wrong one's.
+    let cancelled = false;
     fetch(url)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found (not a Pod id in this snapshot)');
         return r.text();
       })
       .then((text) => {
+        if (cancelled) return;
         setSvg(text);
         setError('');
       })
       .catch((e: unknown) => {
+        if (cancelled) return;
         setSvg('');
         setError(String(e));
       });
+    return () => {
+      cancelled = true;
+    };
   }, [effectivePodId, diagram, selectedContainer, selectedVolume]);
 
   // Same placement algorithm as Tooltip.tsx: prefer below-and-centered on the anchor, flip above if that

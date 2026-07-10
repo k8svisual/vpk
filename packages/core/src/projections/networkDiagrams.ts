@@ -1,4 +1,5 @@
 import { inferNetworkPlane, inferNetworkEdge } from './networkInference';
+import { allServiceBackingPods } from './serviceBackends';
 import type { ResourceGraph } from '../graph';
 import type { ResourceId } from '../identity';
 import type { Resource } from '../types';
@@ -21,16 +22,6 @@ interface ServicePort {
   protocol?: string;
   targetPort?: number | string;
 }
-interface EndpointAddress {
-  ip?: string;
-  nodeName?: string;
-  targetRef?: { kind?: string; uid?: string };
-}
-interface EndpointSubset {
-  addresses?: EndpointAddress[];
-  notReadyAddresses?: EndpointAddress[];
-}
-
 export interface DiagramPod {
   id: ResourceId;
   name: string;
@@ -152,30 +143,24 @@ function endpointSlicesForService(graph: ResourceGraph, serviceName: string, nam
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** Backing pods for `service`, from BOTH the legacy Endpoints object and any EndpointSlice objects (see
+ *  serviceBackends.ts's own doc comment for why both sources matter — an EndpointSlice-only snapshot must
+ *  still resolve this the same way an Endpoints-only one does). */
 function podsForService(graph: ResourceGraph, service: Resource, nodeIps: Map<string, string>): DiagramPod[] {
-  const endpoints = [...graph.nodes.values()].find(
-    (r) => r.kind === 'Endpoints' && r.namespace === service.namespace && r.name === service.name,
-  );
-  if (!endpoints) return [];
-  const subsets = (endpoints.raw.subsets as EndpointSubset[] | undefined) ?? [];
+  const backing = allServiceBackingPods(graph).get(service.id) ?? [];
   const pods: DiagramPod[] = [];
-  const push = (addr: EndpointAddress, ready: boolean) => {
-    const uid = addr.targetRef?.kind === 'Pod' ? addr.targetRef.uid : undefined;
-    const pod = uid ? graph.nodes.get(uid) : undefined;
-    if (!pod) return;
+  for (const b of backing) {
+    const pod = graph.nodes.get(b.uid);
+    if (!pod) continue;
     pods.push({
       id: pod.id,
       name: pod.name,
       namespace: pod.namespace,
-      podIp: addr.ip,
-      ready,
-      nodeName: addr.nodeName,
-      nodeIp: addr.nodeName ? nodeIps.get(addr.nodeName) : undefined,
+      podIp: b.ip,
+      ready: b.ready,
+      nodeName: b.nodeName,
+      nodeIp: b.nodeName ? nodeIps.get(b.nodeName) : undefined,
     });
-  };
-  for (const s of subsets) {
-    for (const a of s.addresses ?? []) push(a, true);
-    for (const a of s.notReadyAddresses ?? []) push(a, false);
   }
   return pods;
 }

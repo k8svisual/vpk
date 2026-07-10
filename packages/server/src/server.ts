@@ -591,9 +591,39 @@ interface GenerateBody {
   masterCount?: number;
 }
 
-/** Shared by /demo/generate and /demo/validate — resolves every placeholder for `count` items using that
- *  item's GLOBAL index (continuing from `alreadyStaged`), applying the Node masterCount split when given.
- *  Throws (caller catches) on a malformed pattern or an out-of-range masterCount. */
+/** Validates masterCount (if given) against `count` — shared by both buildGeneratedItems and buildSampleItems
+ *  so the same "out of range" error fires regardless of which one a caller uses. Throws (caller catches). */
+function validateMasterCount(kind: string, count: number, masterCount: number | undefined): void {
+  if (kind === 'Node' && masterCount !== undefined && (masterCount < 0 || masterCount > count)) {
+    throw new Error(`masterCount must be between 0 and count (${count})`);
+  }
+}
+
+/** Fills `template` for item `i` (1-based, within this call's `count`) at its GLOBAL index (continuing from
+ *  `alreadyStaged`), applying the Node masterCount split when given. Throws (caller catches) on a malformed
+ *  pattern — same underlying `resolvePattern`/`fillTemplate` calls buildGeneratedItems and buildSampleItems
+ *  both drive, just at whichever index each of them needs. */
+function buildOneItem(
+  template: RawObject,
+  kind: string,
+  i: number,
+  values: Record<string, string> | undefined,
+  masterCount: number | undefined,
+  alreadyStaged: number,
+  namespaces: string[],
+): RawObject {
+  const globalIndex = alreadyStaged + i;
+  const filled: Record<string, string> = {};
+  for (const [key, pattern] of Object.entries(values ?? {})) {
+    if (kind === 'Node' && key === 'role' && masterCount !== undefined) continue; // set explicitly below
+    filled[key] = resolvePattern(pattern, globalIndex, namespaces);
+  }
+  if (kind === 'Node' && masterCount !== undefined) filled.role = i <= masterCount ? 'master' : 'worker';
+  return fillTemplate(template, filled);
+}
+
+/** Used by /demo/generate — resolves every placeholder for all `count` items, 1..count. Throws (caller
+ *  catches) on a malformed pattern or an out-of-range masterCount. */
 function buildGeneratedItems(
   template: RawObject,
   kind: string,
@@ -603,21 +633,31 @@ function buildGeneratedItems(
   alreadyStaged: number,
   namespaces: string[],
 ): RawObject[] {
-  if (kind === 'Node' && masterCount !== undefined && (masterCount < 0 || masterCount > count)) {
-    throw new Error(`masterCount must be between 0 and count (${count})`);
-  }
+  validateMasterCount(kind, count, masterCount);
   const items: RawObject[] = [];
-  for (let i = 1; i <= count; i++) {
-    const globalIndex = alreadyStaged + i;
-    const filled: Record<string, string> = {};
-    for (const [key, pattern] of Object.entries(values ?? {})) {
-      if (kind === 'Node' && key === 'role' && masterCount !== undefined) continue; // set explicitly below
-      filled[key] = resolvePattern(pattern, globalIndex, namespaces);
-    }
-    if (kind === 'Node' && masterCount !== undefined) filled.role = i <= masterCount ? 'master' : 'worker';
-    items.push(fillTemplate(template, filled));
-  }
+  for (let i = 1; i <= count; i++) items.push(buildOneItem(template, kind, i, values, masterCount, alreadyStaged, namespaces));
   return items;
+}
+
+/** Used by /demo/validate — a dry-run preview fired on every keystroke of the live pattern fields, so building
+ *  every one of `count` items (as buildGeneratedItems does for the real /demo/generate) would mean e.g. typing
+ *  a pattern for "add 5,000 Nodes" re-resolves 5,000 patterns per keystroke just to show 2 of them. A malformed
+ *  pattern or an out-of-range masterCount throws the same way regardless of which index it's caught at, so
+ *  only the first and last item (the ones actually shown) are built. */
+function buildSampleItems(
+  template: RawObject,
+  kind: string,
+  count: number,
+  values: Record<string, string> | undefined,
+  masterCount: number | undefined,
+  alreadyStaged: number,
+  namespaces: string[],
+): RawObject[] {
+  validateMasterCount(kind, count, masterCount);
+  const first = buildOneItem(template, kind, 1, values, masterCount, alreadyStaged, namespaces);
+  if (count === 1) return [first];
+  const last = buildOneItem(template, kind, count, values, masterCount, alreadyStaged, namespaces);
+  return [first, last];
 }
 
 // Fills a Kind's template `count` times — each placeholder's pattern (from `values`) is resolved per item via
@@ -672,8 +712,7 @@ app.post('/demo/validate', async (req, reply) => {
   try {
     const alreadyStaged = getStagedCount(settings.snapshotDir, kind);
     const namespaces = getStagedNames(settings.snapshotDir, 'Namespace');
-    const items = buildGeneratedItems(template, kind, count, values, masterCount, alreadyStaged, namespaces);
-    const sample = items.length > 1 ? [items[0], items[items.length - 1]] : items;
+    const sample = buildSampleItems(template, kind, count, values, masterCount, alreadyStaged, namespaces);
     return { ok: true, count, sample };
   } catch (e: unknown) {
     reply.code(400);

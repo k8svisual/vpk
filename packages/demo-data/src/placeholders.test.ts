@@ -70,6 +70,39 @@ describe('fillTemplate', () => {
   it('throws instead of silently shipping a leftover {{placeholder}} when a value is missing', () => {
     expect(() => fillTemplate({ metadata: { name: '{{name}}' } }, {})).toThrow(/name/);
   });
+
+  it('escapes a value containing a double quote instead of breaking the surrounding JSON', () => {
+    const filled = fillTemplate({ metadata: { name: '{{name}}' } }, { name: 'demo"node' }) as {
+      metadata: { name: string };
+    };
+    expect(filled.metadata.name).toBe('demo"node');
+  });
+
+  it('escapes a value containing a backslash instead of breaking the surrounding JSON', () => {
+    const filled = fillTemplate({ metadata: { name: '{{name}}' } }, { name: 'demo\\node' }) as {
+      metadata: { name: string };
+    };
+    expect(filled.metadata.name).toBe('demo\\node');
+  });
+
+  it('escapes a value that looks like it could inject a sibling JSON field', () => {
+    // Before escaping, this value's raw text would have closed the string and opened a new key/value pair —
+    // JSON.stringify's escaping neutralizes it into a single, harmless string value instead.
+    const malicious = 'x","injected":"yes';
+    const filled = fillTemplate({ metadata: { name: '{{name}}' } }, { name: malicious }) as {
+      metadata: Record<string, unknown>;
+    };
+    expect(filled.metadata.name).toBe(malicious);
+    expect(filled.metadata.injected).toBeUndefined();
+    expect(Object.keys(filled.metadata)).toEqual(['name']);
+  });
+
+  it('escapes a value substituted into an object KEY position too', () => {
+    const filled = fillTemplate({ labels: { 'node-role.kubernetes.io/{{role}}': '' } }, { role: 'weird"role' }) as {
+      labels: Record<string, string>;
+    };
+    expect(filled.labels['node-role.kubernetes.io/weird"role']).toBe('');
+  });
 });
 
 describe('resolvePattern', () => {

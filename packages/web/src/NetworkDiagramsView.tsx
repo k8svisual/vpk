@@ -61,32 +61,57 @@ export function NetworkDiagramsView({ namespaces, onSelect }: { namespaces: stri
   useEffect(() => {
     if (!scoped) return;
     const q = ns ? `?ns=${encodeURIComponent(ns)}` : '';
+    // Guards against a slower response for a PREVIOUS namespace selection landing after a newer one has
+    // already started — without this a fast namespace switch can leave the picker showing the wrong list.
+    let cancelled = false;
     fetch(`/network${q}`)
       .then((r) => r.json() as Promise<ServiceOption[]>)
       .then((list) => {
+        if (cancelled) return;
         setServices(list);
         setSvcId((cur) => (list.some((s) => s.id === cur) ? cur : (list[0]?.id ?? '')));
       })
-      .catch(() => setServices([]));
+      .catch(() => {
+        if (!cancelled) setServices([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [ns, scoped]);
 
   // Fetch the diagram SVG (or the layers JSON) for the current selection.
   useEffect(() => {
     setError('');
+    // Guards against a slower response for a PREVIOUS diagram type/Service selection landing after a newer
+    // one has already started — without this a fast click through diagram types or Services can leave the
+    // view showing the wrong diagram (or the wrong Service's diagram) once the stale response finally lands.
+    let cancelled = false;
     if (type === 'layers') {
       fetch('/network/layers')
         .then((r) => r.json() as Promise<Layer[]>)
-        .then(setLayers)
-        .catch(() => setLayers([]));
+        .then((l) => {
+          if (!cancelled) setLayers(l);
+        })
+        .catch(() => {
+          if (!cancelled) setLayers([]);
+        });
       setSvg('');
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
     if (type === 'topology') {
       fetch('/network/topology.svg')
         .then((r) => r.text())
-        .then(setSvg)
-        .catch(() => setSvg(''));
-      return;
+        .then((t) => {
+          if (!cancelled) setSvg(t);
+        })
+        .catch(() => {
+          if (!cancelled) setSvg('');
+        });
+      return () => {
+        cancelled = true;
+      };
     }
     if (!svcId) {
       setSvg('');
@@ -97,11 +122,17 @@ export function NetworkDiagramsView({ namespaces, onSelect }: { namespaces: stri
         if (!r.ok) throw new Error('diagram unavailable for this selection');
         return r.text();
       })
-      .then((text) => setSvg(text))
+      .then((text) => {
+        if (!cancelled) setSvg(text);
+      })
       .catch((e: unknown) => {
+        if (cancelled) return;
         setSvg('');
         setError(String(e));
       });
+    return () => {
+      cancelled = true;
+    };
   }, [type, svcId]);
 
   return (

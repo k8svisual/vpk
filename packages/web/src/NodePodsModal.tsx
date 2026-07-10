@@ -60,11 +60,24 @@ export function NodePodsModal({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'namespace', desc: false }]);
 
   useEffect(() => {
+    setLoading(true);
+    // Guards against a slower response for a PREVIOUS nodeId landing after a newer one has already started
+    // (the modal has no `key={nodeId}` at its call site, so it can stay mounted across a nodeId change).
+    let cancelled = false;
     fetch('/network/nodes')
       .then((r) => r.json() as Promise<NodeDto[]>)
-      .then((nodes) => setNode(nodes.find((n) => n.id === nodeId)))
-      .catch(() => setNode(undefined))
-      .finally(() => setLoading(false));
+      .then((nodes) => {
+        if (!cancelled) setNode(nodes.find((n) => n.id === nodeId));
+      })
+      .catch(() => {
+        if (!cancelled) setNode(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [nodeId]);
 
   const pods = node?.pods ?? [];

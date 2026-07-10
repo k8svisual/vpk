@@ -100,9 +100,11 @@ export interface SchematicVolume {
   /** How the volume is realized — drives the storage-implementation sub-diagram the Container schematic draws
    *  when a volume is clicked. `local` covers configMap/secret/emptyDir/hostPath/projected/downwardAPI (data
    *  lives on the Node the Pod runs on, no PV involved). The three `pvc-*` variants are the persistent chain,
-   *  distinguished by how far it resolves: a PVC bound to a PV that has a VolumeAttachment (CSI dynamic
-   *  attach) is `pvc-pv-va-csi`; one with only a StorageClass is `pvc-pv-sc`; one that resolves to neither is
-   *  `pvc-pv`. */
+   *  distinguished by how far it resolves: a PVC bound to a PV whose CSI driver is resolvable — either via a
+   *  VolumeAttachment's spec.attacher, or (when no VolumeAttachment was captured) the PV's own spec.csi.driver
+   *  — is `pvc-pv-va-csi` (the VolumeAttachment itself may or may not be present; `volumeAttachment` below is
+   *  set only when one was); one with only a StorageClass and no resolvable driver is `pvc-pv-sc`; one that
+   *  resolves to neither is `pvc-pv`. */
   implementation: 'local' | 'pvc-pv' | 'pvc-pv-sc' | 'pvc-pv-va-csi';
   /** The persistent chain (set only for `pvc-*` implementations), each resolved to a clickable id where the
    *  resource exists in the snapshot. `backingRef` is the PVC itself for these. */
@@ -289,6 +291,10 @@ function matchesSelector(labels: Record<string, string>, selector: LabelSelector
       case 'DoesNotExist':
         if (has) return false;
         break;
+      default:
+        // An operator outside the 4 the K8s API defines — never expected in practice, but fail CLOSED (this
+        // expression doesn't match) rather than silently treating an unrecognized constraint as satisfied.
+        return false;
     }
   }
   return true;
@@ -407,7 +413,10 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   // Resolves one PVC-backed volume's full persistent chain (PVC -> PV -> {StorageClass | VolumeAttachment ->
   // CSIDriver}) for the Container schematic's per-volume storage-implementation sub-diagram. The CSIDriver is
   // named either by the PV's own spec.csi.driver or the VolumeAttachment's spec.attacher (same driver, two
-  // places it can appear) — resolved to a real CSIDriver resource where one was captured.
+  // places it can appear) — resolved to a real CSIDriver resource where one was captured. Resolved from the
+  // PV's own spec.csi.driver REGARDLESS of whether a VolumeAttachment exists in this snapshot — a snapshot
+  // without VolumeAttachments captured (e.g. a namespace-scoped capture, which can't see the cluster-scoped
+  // VolumeAttachment kind at all) previously showed no driver whatsoever for a PV that plainly declares one.
   const resolvePvChain = (claimName: string): Pick<SchematicVolume, 'implementation' | 'pv' | 'storageClass' | 'volumeAttachment' | 'csiDriver'> => {
     const pvcResource = lookup('PersistentVolumeClaim', claimName);
     const volumeName = (pvcResource?.raw.spec as { volumeName?: string } | undefined)?.volumeName;
@@ -424,19 +433,18 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
 
     const vaResource = vaByPvName.get(volumeName);
     let volumeAttachment: SchematicRef | undefined;
+    if (vaResource) volumeAttachment = { id: vaResource.id, name: vaResource.name, kind: 'VolumeAttachment' };
+
+    const driverName =
+      (vaResource?.raw.spec as { attacher?: string } | undefined)?.attacher ??
+      (pvResource?.raw.spec as { csi?: { driver?: string } } | undefined)?.csi?.driver;
     let csiDriver: SchematicRef | undefined;
-    if (vaResource) {
-      volumeAttachment = { id: vaResource.id, name: vaResource.name, kind: 'VolumeAttachment' };
-      const driverName =
-        (vaResource.raw.spec as { attacher?: string } | undefined)?.attacher ??
-        (pvResource?.raw.spec as { csi?: { driver?: string } } | undefined)?.csi?.driver;
-      if (driverName) {
-        const d = clusterLookup('CSIDriver', driverName);
-        csiDriver = { id: d?.id ?? `CSIDriver/${driverName}`, name: driverName, kind: 'CSIDriver' };
-      }
+    if (driverName) {
+      const d = clusterLookup('CSIDriver', driverName);
+      csiDriver = { id: d?.id ?? `CSIDriver/${driverName}`, name: driverName, kind: 'CSIDriver' };
     }
 
-    const implementation: SchematicVolume['implementation'] = volumeAttachment ? 'pvc-pv-va-csi' : storageClass ? 'pvc-pv-sc' : 'pvc-pv';
+    const implementation: SchematicVolume['implementation'] = csiDriver ? 'pvc-pv-va-csi' : storageClass ? 'pvc-pv-sc' : 'pvc-pv';
     return { implementation, pv, storageClass, volumeAttachment, csiDriver };
   };
 
@@ -478,15 +486,27 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     if (svc.kind !== 'Service' || svc.namespace !== pod.namespace) continue;
     const endpointsObj = lookup('Endpoints', svc.name);
     const subsets = (endpointsObj?.raw.subsets as { addresses?: { targetRef?: { uid?: string } }[] }[] | undefined) ?? [];
-    const targets = subsets.flatMap((s) => s.addresses ?? []).map((a) => a.targetRef?.uid);
-    if (!targets.includes(pod.uid ?? pod.id)) continue;
+    const targets = new Set(subsets.flatMap((s) => s.addresses ?? []).map((a) => a.targetRef?.uid));
+    // A Service can be backed ONLY by EndpointSlices (the Endpoints API is deprecated as of Kubernetes
+    // 1.33) — matching solely against the legacy Endpoints object above would silently show no Network box
+    // at all for such a Pod, even though slicesByService already has the slice(s) indexed for display below.
+    // Only READY slice endpoints count, mirroring the Endpoints-side check above (which only reads `addresses`,
+    // never `notReadyAddresses`).
+    const slices = slicesByService.get(svc.name) ?? [];
+    for (const es of slices) {
+      const epEndpoints = (es.raw.endpoints as { targetRef?: { uid?: string }; conditions?: { ready?: boolean } }[] | undefined) ?? [];
+      for (const ep of epEndpoints) {
+        if ((ep.conditions?.ready ?? true) && ep.targetRef?.uid) targets.add(ep.targetRef.uid);
+      }
+    }
+    if (!targets.has(pod.uid ?? pod.id)) continue;
     // targetPort defaults to `port` when omitted (standard Service semantics) — this is the container-side port
     // the Service routes to, matched against each container's declared ports by number or name in the renderer.
     const svcPorts = (svc.raw.spec as { ports?: { port?: number; targetPort?: number | string }[] } | undefined)?.ports ?? [];
     const targetPorts = svcPorts.map((p) => p.targetPort ?? p.port).filter((v): v is number | string => v !== undefined);
     services.push({ id: svc.id, name: svc.name, kind: 'Service', targetPorts });
     if (endpointsObj) endpoints.push({ id: endpointsObj.id, name: endpointsObj.name, kind: 'Endpoints' });
-    for (const es of slicesByService.get(svc.name) ?? []) {
+    for (const es of slices) {
       endpoints.push({ id: es.id, name: es.name, kind: 'EndpointSlice' });
       hasSlice = true;
     }

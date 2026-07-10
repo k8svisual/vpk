@@ -318,6 +318,43 @@ describe('bundle orchestration', () => {
     expect(runDaemonSetBundle(tempDir())).toEqual({});
   });
 
+  it('runDaemonSetBundle does not duplicate DaemonSets for a Node re-run against an unchanged Node set', () => {
+    const dir = tempDir();
+    appendGenerated(dir, 'Node', 'v1', [
+      { kind: 'Node', metadata: { name: 'node-a' } },
+      { kind: 'Node', metadata: { name: 'node-b' } },
+    ]);
+    appendGenerated(dir, 'Namespace', 'v1', [{ kind: 'Namespace', metadata: { name: 'kube-system' } }]);
+
+    const first = runDaemonSetBundle(dir);
+    const second = runDaemonSetBundle(dir);
+    // Re-running with the same Node set already covered should add nothing further.
+    expect(second).toEqual({});
+    expect(second.DaemonSet ?? 0).toBe(0);
+    expect(first.DaemonSet).toBeGreaterThan(0);
+  });
+
+  it('runDaemonSetBundle only generates DaemonSets for a newly-added Node, leaving the covered ones untouched', () => {
+    const dir = tempDir();
+    appendGenerated(dir, 'Node', 'v1', [{ kind: 'Node', metadata: { name: 'node-a' } }]);
+    appendGenerated(dir, 'Namespace', 'v1', [{ kind: 'Namespace', metadata: { name: 'kube-system' } }]);
+
+    const first = runDaemonSetBundle(dir);
+    appendGenerated(dir, 'Node', 'v1', [{ kind: 'Node', metadata: { name: 'node-b' } }]);
+    const second = runDaemonSetBundle(dir);
+
+    // `second.DaemonSet` is already the running TOTAL after the second run (see appendBundle) — it should only
+    // have grown by node-b's own 8-13 batch, never a re-generated node-a batch stacked on top of the first.
+    expect(second.DaemonSet).toBe(getStagedCount(dir, 'DaemonSet'));
+    expect(second.DaemonSet as number).toBeGreaterThan(first.DaemonSet as number);
+    expect((second.DaemonSet as number) - (first.DaemonSet as number)).toBeGreaterThanOrEqual(8);
+    expect((second.DaemonSet as number) - (first.DaemonSet as number)).toBeLessThanOrEqual(13);
+
+    const pods = JSON.parse(readFileSync(join(dir, 'demo-wip', 'Pod.json'), 'utf8')) as { items: { spec: { nodeName: string } }[] };
+    const nodeACount = pods.items.filter((p) => p.spec.nodeName === 'node-a').length;
+    expect(nodeACount).toBe(first.Pod); // node-a's Pod count is unchanged by the second run
+  });
+
   it('runDeploymentBundle wires up un-owned Pods into Deployment -> ReplicaSet -> Pod chains', () => {
     const dir = tempDir();
     const pods = Array.from({ length: 20 }, (_, i) => ({ kind: 'Pod', metadata: { name: `pod-${i + 1}`, namespace: 'default' } }));

@@ -430,7 +430,14 @@ function storageDetail(s: SchematicDto, v: Volume, x: number, y: number): { svg:
       const bg = it.kind in KIND_COLOR ? `<circle cx="${cx}" cy="${iy - 2}" r="21" fill="${cssKindVar(it.kind)}" />` : '';
       const icon = bg + `<image href="${iconPathForKind(it.kind)}" x="${cx - 17}" y="${iy - 19}" width="34" height="34" />`;
       const names = esc(JSON.stringify([`${it.kind} · ${it.label}`]));
-      const clickable = it.ref && !it.ref.id.includes('/');
+      // A placeholder id (the referenced resource wasn't found in the snapshot — see schematic.ts's own
+      // `?? \`${kind}/${name}\`` fallbacks) is always exactly `Kind/name`, no pipes. A REAL resource id is
+      // either a bare uid (no separators at all) or @vpk/core's composed `apiVersion|kind|namespace|name`
+      // form — which, for a resource with no metadata.uid, commonly contains its OWN slash from the
+      // apiVersion segment (e.g. `storage.k8s.io/v1|StorageClass|~cluster|fast-ssd`). Checking for "no slash
+      // at all" therefore misfired on exactly those real ids; checking for a pipe (present only in the real
+      // composed form) is what actually distinguishes a placeholder from a real id.
+      const clickable = !!it.ref && (it.ref.id.includes('|') || !it.ref.id.includes('/'));
       parts.push(
         clickable
           ? `<g data-resource-id="${esc(it.ref!.id)}" data-names="${names}" style="cursor:pointer">${icon}</g>`

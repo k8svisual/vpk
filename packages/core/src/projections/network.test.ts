@@ -38,6 +38,26 @@ describe('projectNetworkServicesToPods', () => {
   });
 });
 
+describe('projectNetworkServicesToPods with EndpointSlice-only backing', () => {
+  it('joins a Service to its pods via EndpointSlice targetRef when no legacy Endpoints object exists', () => {
+    const svc = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-1', name: 'web', namespace: 'ns' }, spec: { clusterIP: '10.0.0.1' } };
+    const podA = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-a', name: 'a', namespace: 'ns' }, spec: { nodeName: 'node-a' } };
+    const slice = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'eps-1', name: 'web-abcde', namespace: 'ns', labels: { 'kubernetes.io/service-name': 'web' } },
+      endpoints: [{ addresses: ['10.244.0.5'], targetRef: { kind: 'Pod', uid: 'pod-a' }, conditions: { ready: true }, nodeName: 'node-a' }],
+    };
+    const graph = buildGraph([svc, podA, slice] as never);
+    const cards = projectNetworkServicesToPods(graph);
+    const web = cards.find((c) => c.service.name === 'web');
+    expect(web?.pods).toHaveLength(1);
+    expect(web?.pods[0]?.pod.name).toBe('a');
+    expect(web?.pods[0]?.podIp).toBe('10.244.0.5');
+    expect(web?.pods[0]?.ready).toBe(true);
+  });
+});
+
 describe('projectNetworkNodeIps', () => {
   const graph = buildGraph(fixture.items as never);
 

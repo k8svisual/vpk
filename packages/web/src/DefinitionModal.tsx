@@ -74,13 +74,24 @@ export function DefinitionModal({
     if (!resourceId) return;
     setRaw(null);
     setError(null);
+    // Guards against a slower response for a PREVIOUS resourceId landing after a newer request has already
+    // started (e.g. clicking a second icon before the first one's editor finished loading) — without this, the
+    // stale response can overwrite the current id's data with the wrong resource's YAML.
+    let cancelled = false;
     // no-store: whether Secret data comes back redacted depends on the live "Redact Secrets" setting, which
     // can be toggled between two views of the SAME id — a normally-cached GET would keep showing whichever
     // state was current the first time this id was ever fetched.
     fetch(`/definition?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
       .then((r) => r.json())
-      .then((data: unknown) => setRaw(data))
-      .catch((e: unknown) => setError(String(e)));
+      .then((data: unknown) => {
+        if (!cancelled) setRaw(data);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [resourceId]);
 
   useEffect(() => {

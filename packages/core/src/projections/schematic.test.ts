@@ -210,6 +210,48 @@ describe('projectPodSchematic namespace policies (NetworkPolicy/ResourceQuota/Li
     expect(s?.policies.networkPolicies.map((r) => r.name)).toEqual(['default-deny']);
   });
 
+  it('matches matchExpressions operators (In/NotIn/Exists/DoesNotExist) correctly', () => {
+    const inMatch: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: { uid: 'np-in', name: 'np-in', namespace: 'ns1' },
+      spec: { podSelector: { matchExpressions: [{ key: 'app', operator: 'In', values: ['demo', 'other'] }] } },
+    };
+    const notInNoMatch: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: { uid: 'np-notin', name: 'np-notin', namespace: 'ns1' },
+      spec: { podSelector: { matchExpressions: [{ key: 'app', operator: 'NotIn', values: ['demo'] }] } },
+    };
+    const existsMatch: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: { uid: 'np-exists', name: 'np-exists', namespace: 'ns1' },
+      spec: { podSelector: { matchExpressions: [{ key: 'app', operator: 'Exists' }] } },
+    };
+    const doesNotExistNoMatch: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: { uid: 'np-dne', name: 'np-dne', namespace: 'ns1' },
+      spec: { podSelector: { matchExpressions: [{ key: 'app', operator: 'DoesNotExist' }] } },
+    };
+    const graph = buildGraph([pod, inMatch, notInNoMatch, existsMatch, doesNotExistNoMatch]);
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.policies.networkPolicies.map((r) => r.name).sort()).toEqual(['np-exists', 'np-in']);
+  });
+
+  it('treats an unrecognized matchExpressions operator as non-matching (fail closed, not fail open)', () => {
+    const unknownOperator: RawObject = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'NetworkPolicy',
+      metadata: { uid: 'np-unknown', name: 'np-unknown', namespace: 'ns1' },
+      spec: { podSelector: { matchExpressions: [{ key: 'app', operator: 'GreaterThan', values: ['0'] }] } },
+    };
+    const graph = buildGraph([pod, unknownOperator]);
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.policies.networkPolicies).toEqual([]);
+  });
+
   it('lists every ResourceQuota and LimitRange in the Pod namespace (namespace-wide, no per-Pod selector)', () => {
     const rq: RawObject = {
       apiVersion: 'v1',
@@ -486,6 +528,34 @@ describe('projectPodSchematic volume storage-implementation chain', () => {
     expect(v?.backingRef).toEqual({ id: 'cm-1', name: 'app-config', kind: 'ConfigMap' });
     expect(v?.pv).toBeUndefined();
   });
+
+  it('still resolves the CSIDriver from the PV\'s own spec.csi.driver when no VolumeAttachment was captured', () => {
+    const pvCsiNoVa: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: { uid: 'pv-csi-no-va', name: 'pv-csi-no-va' },
+      spec: { csi: { driver: 'ebs.csi.aws.com' } },
+    };
+    const pvcCsiNoVa: RawObject = {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: { uid: 'pvc-csi-no-va', name: 'claim-csi-no-va', namespace: 'ns1' },
+      spec: { volumeName: 'pv-csi-no-va' },
+    };
+    const podNoVa: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { uid: 'pod-2', name: 'app2', namespace: 'ns1' },
+      spec: { containers: [{ name: 'app' }], volumes: [{ name: 'csi-vol', persistentVolumeClaim: { claimName: 'claim-csi-no-va' } }] },
+    };
+    // Deliberately no VolumeAttachment object in this graph — e.g. a namespace-scoped capture, which can't
+    // see the cluster-scoped VolumeAttachment kind at all.
+    const noVaGraph = buildGraph([csiDriver, pvCsiNoVa, pvcCsiNoVa, podNoVa]);
+    const v = projectPodSchematic(noVaGraph, 'pod-2')?.volumes.find((x) => x.name === 'csi-vol');
+    expect(v?.implementation).toBe('pvc-pv-va-csi');
+    expect(v?.volumeAttachment).toBeUndefined();
+    expect(v?.csiDriver).toEqual({ id: 'csid-1', name: 'ebs.csi.aws.com', kind: 'CSIDriver' });
+  });
 });
 
 describe('projectPodSchematic network endpoints/endpointSlices', () => {
@@ -519,6 +589,36 @@ describe('projectPodSchematic network endpoints/endpointSlices', () => {
     expect(n?.endpoints.map((e) => e.name)).toContain('web-abc');
     expect(n?.endpoints.map((e) => e.name)).toContain('web-def');
     expect(n?.endpointKind).toBe('EndpointSlice');
+  });
+
+  it('still finds the Service when only an EndpointSlice backs it (no legacy Endpoints object at all)', () => {
+    const pod: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' }, spec: { containers: [] } };
+    const svc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-1', name: 'web', namespace: 'ns1' } };
+    const sliceOnly: RawObject = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'es-1', name: 'web-abc', namespace: 'ns1', labels: { 'kubernetes.io/service-name': 'web' } },
+      endpoints: [{ targetRef: { uid: 'pod-1' }, conditions: { ready: true } }],
+    };
+    const graph = buildGraph([pod, svc, sliceOnly]);
+    const n = projectPodSchematic(graph, 'pod-1')?.network;
+    expect(n?.services.map((s) => s.name)).toEqual(['web']);
+    expect(n?.endpoints.map((e) => ({ name: e.name, kind: e.kind }))).toEqual([{ name: 'web-abc', kind: 'EndpointSlice' }]);
+    expect(n?.endpointKind).toBe('EndpointSlice');
+  });
+
+  it('does not match a Service via an EndpointSlice entry marked not-ready', () => {
+    const pod: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' }, spec: { containers: [] } };
+    const svc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-1', name: 'web', namespace: 'ns1' } };
+    const sliceOnly: RawObject = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'es-1', name: 'web-abc', namespace: 'ns1', labels: { 'kubernetes.io/service-name': 'web' } },
+      endpoints: [{ targetRef: { uid: 'pod-1' }, conditions: { ready: false } }],
+    };
+    const graph = buildGraph([pod, svc, sliceOnly]);
+    const n = projectPodSchematic(graph, 'pod-1')?.network;
+    expect(n?.services).toEqual([]);
   });
 })
 

@@ -124,10 +124,20 @@ function ServicesToPodsMode({ namespace, onSelect }: { namespace: string; onSele
 
   useEffect(() => {
     const q = namespace ? `?ns=${encodeURIComponent(namespace)}` : '';
+    // Guards against a slower response for a PREVIOUS namespace filter landing after a newer one has already
+    // started — without this a fast namespace switch can leave the view showing the wrong namespace's cards.
+    let cancelled = false;
     fetch(`/network${q}`)
       .then((r) => r.json() as Promise<NetworkService[]>)
-      .then(setCards)
-      .catch(() => setCards([]));
+      .then((c) => {
+        if (!cancelled) setCards(c);
+      })
+      .catch(() => {
+        if (!cancelled) setCards([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [namespace]);
 
   const toggle = (id: string) =>

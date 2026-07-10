@@ -87,13 +87,22 @@ function ControlPlaneComponentPopup({
   useEffect(() => {
     setName(null);
     if (!info.resourceId) return;
+    // Guards against a slower response for a PREVIOUS resourceId (e.g. clicking a different Control Plane
+    // component before this one's name finished loading) landing after a newer request has already started.
+    let cancelled = false;
     fetch(`/definition?id=${encodeURIComponent(info.resourceId)}`)
       .then((r) => r.json())
       .then((raw: unknown) => {
+        if (cancelled) return;
         const obj = raw as { metadata?: { name?: string } };
         setName(obj.metadata?.name ?? info.resourceId ?? null);
       })
-      .catch(() => setName(null));
+      .catch(() => {
+        if (!cancelled) setName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [info.resourceId]);
 
   return (
@@ -248,9 +257,14 @@ export function PropertiesPanel({
     setGenericInfo(null);
     setNodeName(null);
     const lookupId = localStorageNodeId ?? resourceId;
+    // Guards against a slower response for a PREVIOUSLY-clicked resource landing after a newer 3D click has
+    // already started a fresh fetch — rapid clicking through the scene is the whole point of this popup, so
+    // without this a stale response can overwrite the current selection's info with the wrong resource's.
+    let cancelled = false;
     fetch(`/definition?id=${encodeURIComponent(lookupId)}`)
       .then((r) => r.json())
       .then((raw: unknown) => {
+        if (cancelled) return;
         const obj = raw as { kind?: string; metadata?: { name?: string; namespace?: string; ownerReferences?: unknown[] } };
         if (localStorageNodeId) {
           setNodeName(obj.metadata?.name ?? localStorageNodeId);
@@ -264,9 +278,13 @@ export function PropertiesPanel({
         }
       })
       .catch(() => {
+        if (cancelled) return;
         setGenericInfo(null);
         setNodeName(null);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [resourceId, info, localStorageNodeId]);
 
   if (!resourceId) return null;

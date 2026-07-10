@@ -155,7 +155,7 @@ function trim(obj: RawObject, keepSecretData: boolean, keepConfigMapData: boolea
   return out;
 }
 
-interface ApiResource {
+export interface ApiResource {
   name: string;
   namespaced: boolean;
 }
@@ -179,8 +179,13 @@ async function discoverResources(cli: string[], signal?: AbortSignal): Promise<A
 
 /** Parses `kubectl api-resources -o wide`'s column-aligned text table. Columns are located by their header
  *  label's character offset (VERBS/CATEGORIES are comma-joined with no internal spaces, but SHORTNAMES is
- *  frequently blank, so naive whitespace-splitting misaligns columns — slicing by header offset doesn't). */
-function parseApiResourcesWide(output: string): ApiResource[] {
+ *  frequently blank, so naive whitespace-splitting misaligns columns — slicing by header offset doesn't).
+ *  The VERBS cell's own format varies by CLI vintage: modern kubectl prints a bare comma-joined list
+ *  (`get,list,watch`), but older kubectl-compatible clients (confirmed against a real `oc` v4.1.0, ~2019 —
+ *  still in active use against clusters that predate a kubectl upgrade) print a bracketed, space-separated
+ *  list instead (`[get list watch]`) — stripping brackets and splitting on either comma or whitespace handles
+ *  both without needing to special-case by CLI. */
+export function parseApiResourcesWide(output: string): ApiResource[] {
   const lines = output.split('\n').filter((l) => l.trim().length > 0);
   if (lines.length < 2) return [];
   const header = lines[0] as string;
@@ -201,7 +206,12 @@ function parseApiResourcesWide(output: string): ApiResource[] {
     if (!name || seen.has(name)) continue;
     seen.add(name);
     const verbsEnd = categoriesStart > verbsStart ? categoriesStart : line.length;
-    const verbs = line.slice(verbsStart, verbsEnd).trim().split(',');
+    const verbs = line
+      .slice(verbsStart, verbsEnd)
+      .trim()
+      .replace(/[[\]]/g, '')
+      .split(/[,\s]+/)
+      .filter(Boolean);
     if (!verbs.includes('get')) continue;
     const namespaced = line.slice(namespacedStart, kindStart).trim() === 'true';
     resources.push({ name, namespaced });

@@ -22,6 +22,19 @@ describe('parseQuantity', () => {
     expect(parseQuantity('')).toBeUndefined();
     expect(parseQuantity('not-a-quantity')).toBeUndefined();
   });
+
+  it('parses the DecimalExponent form (no unit suffix, scientific notation)', () => {
+    expect(parseQuantity('1e3')).toBe(1000);
+    expect(parseQuantity('128974848e3')).toBe(128974848e3);
+    expect(parseQuantity('1.5E-2')).toBeCloseTo(0.015);
+    expect(parseQuantity('-2e2')).toBe(-200);
+  });
+
+  it('parses the generic "m" (milli) decimal suffix — not just for CPU', () => {
+    // A real value the K8s API can emit for memory after canonicalizing arithmetic.
+    expect(parseQuantity('128974848000m')).toBeCloseTo(128974848);
+    expect(parseQuantity('500m')).toBeCloseTo(0.5);
+  });
 });
 
 describe('parseCpuQuantity', () => {

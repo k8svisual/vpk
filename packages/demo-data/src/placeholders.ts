@@ -16,11 +16,19 @@ export function extractPlaceholders(template: RawObject): string[] {
  *  object KEY (Node's `"node-role.kubernetes.io/{{role}}": ""` label relies on exactly this). `values` must
  *  cover every name `extractPlaceholders` finds; anything left over after substitution means a value was
  *  missing and is surfaced as a thrown error rather than silently shipping a literal `{{foo}}` into a
- *  "generated" resource. */
+ *  "generated" resource.
+ *
+ *  Every `{{placeholder}}` occurrence sits inside a JSON string in the template (either a value's own quotes,
+ *  or — for the object-key case above — the key's quotes), so each value is run through
+ *  `JSON.stringify(value).slice(1, -1)` before splicing it in: this escapes `"`, `\`, and control characters
+ *  the same way JSON.stringify would if the value had been assigned normally, so a value containing a quote
+ *  or backslash (e.g. a user-typed Node name pattern) can't break the surrounding JSON structure or splice in
+ *  an unintended extra field. */
 export function fillTemplate(template: RawObject, values: Record<string, string>): RawObject {
   let text = JSON.stringify(template);
   for (const [key, value] of Object.entries(values)) {
-    text = text.split(`{{${key}}}`).join(value);
+    const escaped = JSON.stringify(value).slice(1, -1);
+    text = text.split(`{{${key}}}`).join(escaped);
   }
   const leftover = [...text.matchAll(PLACEHOLDER_RE)].map((m) => m[1] as string);
   if (leftover.length > 0) {

@@ -65,9 +65,12 @@ export function projectPortUsage(graph: ResourceGraph): PortUsage[] {
         usages.push({
           port: p.port,
           protocol: p.protocol ?? 'TCP',
-          // A LoadBalancer/NodePort entry that actually allocated a nodePort is the host-level fact worth
-          // surfacing; a bare LoadBalancer with no nodePort stays typed as LoadBalancer.
-          source: p.nodePort && source === 'ClusterIP' ? 'NodePort' : source,
+          // A LoadBalancer entry that actually allocated a nodePort (the common case — a cloud LB Service
+          // implicitly gets one too) is the host-level fact worth surfacing; a bare LoadBalancer with no
+          // nodePort stays typed as LoadBalancer. `source === 'ClusterIP'` was checked here previously, but a
+          // ClusterIP Service can never have ports[].nodePort set at all (the API rejects that combination),
+          // so that check was unreachable dead code and this comment's actual intent never fired.
+          source: p.nodePort && source === 'LoadBalancer' ? 'NodePort' : source,
           name: p.name,
           targetPort: p.targetPort,
           nodePort: p.nodePort,

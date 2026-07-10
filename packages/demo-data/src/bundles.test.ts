@@ -326,6 +326,50 @@ describe('buildServicesForPods', () => {
       }
     }
   });
+
+  it('gives every Endpoints address a synthetic podIP, unique across the whole call (Network cards need one to show)', () => {
+    const { endpoints } = buildServicesForPods(pods(50), 40, 20);
+    const allIps: string[] = [];
+    for (const ep of endpoints) {
+      const addresses = (ep.subsets as { addresses: { ip?: string }[] }[])[0]?.addresses ?? [];
+      for (const addr of addresses) {
+        expect(addr.ip).toMatch(/^10\.244\.\d+\.\d+$/);
+        allIps.push(addr.ip as string);
+      }
+    }
+    expect(new Set(allIps).size).toBe(allIps.length); // no duplicate IPs across the whole call
+  });
+
+  it('never groups Pods from different namespaces behind the same Service (a Service is namespace-scoped)', () => {
+    // Pods alternate namespace so any namespace-blind merge would immediately mix them into one group.
+    const namespaces = ['ns-a', 'ns-b', 'ns-c'];
+    const mixedPods: RawObject[] = Array.from({ length: 300 }, (_, i) => ({
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { name: `pod-${i + 1}`, namespace: namespaces[i % namespaces.length] },
+    }));
+    const { services, endpoints } = buildServicesForPods(mixedPods, 80, 30);
+    expect(services.length).toBeGreaterThan(0);
+
+    const podNamespaceByResourceId = new Map(
+      mixedPods.map((p) => {
+        const metadata = p.metadata as { name: string; namespace: string };
+        return [`v1|Pod|${metadata.namespace}|${metadata.name}`, metadata.namespace];
+      }),
+    );
+
+    for (const svc of services) {
+      const svcNamespace = (svc.metadata as { namespace: string }).namespace;
+      const ep = endpoints.find(
+        (e) => (e.metadata as { name: string }).name === (svc.metadata as { name: string }).name,
+      );
+      expect((ep?.metadata as { namespace: string }).namespace).toBe(svcNamespace);
+      const addresses = (ep?.subsets as { addresses: { targetRef: { uid: string } }[] }[] | undefined)?.[0]?.addresses ?? [];
+      for (const addr of addresses) {
+        expect(podNamespaceByResourceId.get(addr.targetRef.uid)).toBe(svcNamespace);
+      }
+    }
+  });
 });
 
 describe('buildNamespaceBundle', () => {
@@ -396,6 +440,20 @@ describe('buildDaemonSetsForNodes', () => {
   it('returns nothing for an empty node list', () => {
     expect(buildDaemonSetsForNodes([], ['kube-system'])).toEqual({ daemonSets: [], pods: [] });
   });
+
+  it('skips Nodes already in existingNodeNamesWithDaemonSets — top up, not duplicate', () => {
+    const { daemonSets, pods } = buildDaemonSetsForNodes(['node-a', 'node-b', 'node-c'], ['kube-system'], new Set(['node-a', 'node-b']));
+    const nodeNamesCovered = new Set(pods.map((p) => (p.spec as { nodeName: string }).nodeName));
+    expect(nodeNamesCovered).toEqual(new Set(['node-c']));
+    expect(daemonSets.length).toBeGreaterThanOrEqual(8);
+    expect(daemonSets.length).toBeLessThanOrEqual(13);
+  });
+
+  it('defaults to generating for every given Node when existingNodeNamesWithDaemonSets is omitted', () => {
+    const { pods } = buildDaemonSetsForNodes(['node-a', 'node-b'], ['kube-system']);
+    const nodeNamesCovered = new Set(pods.map((p) => (p.spec as { nodeName: string }).nodeName));
+    expect(nodeNamesCovered).toEqual(new Set(['node-a', 'node-b']));
+  });
 });
 
 describe('buildDeploymentsForPods', () => {
@@ -456,6 +514,34 @@ describe('buildDeploymentsForPods', () => {
 
   it('handles an empty Pod list without throwing', () => {
     expect(buildDeploymentsForPods([])).toEqual({ deployments: [], replicaSets: [], updatedPods: [] });
+  });
+
+  it('never owns Pods from different namespaces with the same Deployment/ReplicaSet (both are namespace-scoped)', () => {
+    // Pods alternate namespace so any namespace-blind chunking would immediately mix them into one chunk.
+    const namespaces = ['ns-a', 'ns-b', 'ns-c'];
+    const mixedPods: RawObject[] = Array.from({ length: 90 }, (_, i) => ({
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: { name: `pod-${i + 1}`, namespace: namespaces[i % namespaces.length] },
+    }));
+    const { deployments, replicaSets, updatedPods } = buildDeploymentsForPods(mixedPods);
+
+    const podNamespaceByName = new Map(
+      mixedPods.map((p) => [(p.metadata as { name: string }).name, (p.metadata as { namespace: string }).namespace]),
+    );
+    const rsNamespaceByUid = new Map(replicaSets.map((rs) => [(rs.metadata as { uid: string }).uid, (rs.metadata as { namespace: string }).namespace]));
+    const deployNamespaceByUid = new Map(deployments.map((d) => [(d.metadata as { uid: string }).uid, (d.metadata as { namespace: string }).namespace]));
+
+    for (const pod of updatedPods) {
+      const metadata = pod.metadata as { name: string; ownerReferences: { uid: string }[] };
+      const rsUid = metadata.ownerReferences[0]?.uid as string;
+      expect(rsNamespaceByUid.get(rsUid)).toBe(podNamespaceByName.get(metadata.name));
+    }
+    for (const rs of replicaSets) {
+      const metadata = rs.metadata as { namespace: string; ownerReferences: { uid: string }[] };
+      const deployUid = metadata.ownerReferences[0]?.uid as string;
+      expect(deployNamespaceByUid.get(deployUid)).toBe(metadata.namespace);
+    }
   });
 });
 

@@ -272,6 +272,48 @@ describe('renderContainerSchematicSvg', () => {
     expect(svg).toContain('data-resource-id="csid-1"');
   });
 
+  it('is clickable for a real composed resource id even when that id itself contains a slash (from its apiVersion segment)', () => {
+    // A real @vpk/core composed id for an uid-less resource — CSIDriver/StorageClass/VolumeAttachment all live
+    // in the storage.k8s.io/v1 group, whose "/" lands inside the id's apiVersion segment. This is NOT a
+    // schematic.ts placeholder id (those are always exactly `Kind/name`, no pipes).
+    const withComposedIds: SchematicDto = {
+      ...base,
+      volumes: [
+        {
+          name: 'data',
+          type: 'persistentVolumeClaim',
+          backingRef: { id: 'pvc-1', name: 'data-claim', kind: 'PersistentVolumeClaim' },
+          implementation: 'pvc-pv-va-csi',
+          pv: { id: 'pv-1', name: 'pv-001', kind: 'PersistentVolume' },
+          volumeAttachment: { id: 'storage.k8s.io/v1|VolumeAttachment|~cluster|csi-abc', name: 'csi-abc', kind: 'VolumeAttachment' },
+          csiDriver: { id: 'storage.k8s.io/v1|CSIDriver|~cluster|ebs.csi.aws.com', name: 'ebs.csi.aws.com', kind: 'CSIDriver' },
+        },
+      ],
+    };
+    const svg = renderContainerSchematicSvg(withComposedIds, { selectedVolume: 'data' });
+    expect(svg).toContain('data-resource-id="storage.k8s.io/v1|VolumeAttachment|~cluster|csi-abc"');
+    expect(svg).toContain('data-resource-id="storage.k8s.io/v1|CSIDriver|~cluster|ebs.csi.aws.com"');
+  });
+
+  it('is NOT clickable for a genuine placeholder id (Kind/name, the referenced resource is missing from the snapshot)', () => {
+    const withPlaceholder: SchematicDto = {
+      ...base,
+      volumes: [
+        {
+          name: 'data',
+          type: 'persistentVolumeClaim',
+          backingRef: { id: 'pvc-1', name: 'data-claim', kind: 'PersistentVolumeClaim' },
+          implementation: 'pvc-pv-va-csi',
+          pv: { id: 'pv-1', name: 'pv-001', kind: 'PersistentVolume' },
+          csiDriver: { id: 'CSIDriver/ebs.csi.aws.com', name: 'ebs.csi.aws.com', kind: 'CSIDriver' },
+        },
+      ],
+    };
+    const svg = renderContainerSchematicSvg(withPlaceholder, { selectedVolume: 'data' });
+    expect(svg).not.toContain('data-resource-id="CSIDriver/ebs.csi.aws.com"');
+    expect(svg).toContain('CSIDriver · ebs.csi.aws.com'); // still shown, just not clickable (data-names only)
+  });
+
   it('renders a Node + local storage chain when a configMap volume is selected', () => {
     const svg = renderContainerSchematicSvg(base, { selectedVolume: 'cfg' });
     expect(svg).toContain('Storage · cfg');

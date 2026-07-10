@@ -292,9 +292,9 @@ export function buildPvcPvForPods(pods: RawObject[], percent: number, storageCla
 // ---------------------------------------------------------------------------------------------------------
 
 export interface ServiceResult {
-  /** The same Pods passed in, with a `demo.vpk/service` label added to the ones a Service now selects —
-   *  the caller (demoData.ts) is expected to write these back over the originally staged Pods so the
-   *  Service's selector actually matches something. */
+  /** ONLY the subset of the input Pods that got attached to a Service (not the full input array), each with a
+   *  `demo.vpk/service` label added — the caller (demoData.ts) merges these back into the full staged Pod set
+   *  by name, leaving every other Pod untouched, so the Service's selector actually matches something. */
   updatedPods: RawObject[];
   services: RawObject[];
   /** One per Service, same name+namespace — VpK's Network view joins Services to Pods via this object's
@@ -309,6 +309,15 @@ export interface ServiceResult {
 function podResourceId(pod: RawObject): string {
   const metadata = pod.metadata as { name: string; namespace: string };
   return `${pod.apiVersion as string}|Pod|${metadata.namespace}|${metadata.name}`;
+}
+
+/** A synthetic pod-network IP in the `10.244.x.y` range (the same /16 minikube's default CNI uses) — no demo
+ *  bundle ever sets a real `status.podIP` on a generated Pod, so without this the Network view's
+ *  Services-To-Pods cards show every demo-generated backing pod with a blank IP column. `index` is a running
+ *  counter across every address this bundle emits (not per-Service), so addresses stay unique — deterministic,
+ *  not random, so the same generate call always produces the same-looking data. */
+function demoPodIp(index: number): string {
+  return `10.244.${Math.floor(index / 254)}.${(index % 254) + 1}`;
 }
 
 /**
@@ -328,6 +337,10 @@ function podResourceId(pod: RawObject): string {
  * than just taking the first `podCount` — see buildPvcPvForPods's identical fix for why: clustering every
  * Service onto the front of the list leaves the rest of a large cluster looking service-less in any view
  * that renders Pods in their staged order.
+ *
+ * Sharing/merging happens WITHIN each namespace independently (never across) — a Service and its Endpoints
+ * object are namespace-scoped, and an Endpoints targetRef can only ever point at a Pod in that SAME
+ * namespace, so a "shared" group can never legally include Pods from two different namespaces.
  */
 export function buildServicesForPods(pods: RawObject[], podPercent: number, sharedPercent: number): ServiceResult {
   const podCount = Math.round((podPercent / 100) * pods.length);
@@ -335,26 +348,43 @@ export function buildServicesForPods(pods: RawObject[], podPercent: number, shar
   const selected = Array.from({ length: podCount }, (_, i) => pods[Math.floor(i * stride)] as RawObject);
   if (selected.length === 0) return { updatedPods: [], services: [], endpoints: [] };
 
+  // A Service (and the Endpoints object backing it) is namespace-scoped — its Endpoints targetRefs can only
+  // ever point at Pods in that SAME namespace. Grouping must therefore stay within one namespace at a time, so
+  // the merge below runs independently per namespace rather than across the whole selection.
+  const selectedByNamespace = new Map<string, RawObject[]>();
+  for (const pod of selected) {
+    const ns = (pod.metadata as { namespace: string }).namespace;
+    const list = selectedByNamespace.get(ns) ?? [];
+    list.push(pod);
+    selectedByNamespace.set(ns, list);
+  }
+
   // Start with every selected pod as its own solo group, then merge consecutive groups (2-4 pods each) into
   // "shared" ones until the shared fraction of the resulting service count reaches sharedPercent (or we run
-  // out of solo groups to merge).
-  let groups: string[][] = selected.map((p) => [(p.metadata as { name: string }).name]);
-  const targetSharedFraction = sharedPercent / 100;
-  let mergeSize = 2;
-  while (groups.length > 1) {
-    const sharedCount = groups.filter((g) => g.length > 1).length;
-    if (sharedCount / groups.length >= targetSharedFraction) break;
-    const soloIndex = groups.findIndex((g) => g.length === 1);
-    if (soloIndex === -1) break; // nothing left to merge
-    const merged = groups.slice(soloIndex, soloIndex + mergeSize).flat();
-    groups = [...groups.slice(0, soloIndex), merged, ...groups.slice(soloIndex + mergeSize)];
-    mergeSize = mergeSize >= 4 ? 2 : mergeSize + 1; // vary shared-group size (2, 3, 4, 2, 3, 4, ...)
+  // out of solo groups to merge) — independently within each namespace, so a merged group's pods always share
+  // the same namespace.
+  const groups: string[][] = [];
+  for (const nsPods of selectedByNamespace.values()) {
+    let nsGroups: string[][] = nsPods.map((p) => [(p.metadata as { name: string }).name]);
+    const targetSharedFraction = sharedPercent / 100;
+    let mergeSize = 2;
+    while (nsGroups.length > 1) {
+      const sharedCount = nsGroups.filter((g) => g.length > 1).length;
+      if (sharedCount / nsGroups.length >= targetSharedFraction) break;
+      const soloIndex = nsGroups.findIndex((g) => g.length === 1);
+      if (soloIndex === -1) break; // nothing left to merge
+      const merged = nsGroups.slice(soloIndex, soloIndex + mergeSize).flat();
+      nsGroups = [...nsGroups.slice(0, soloIndex), merged, ...nsGroups.slice(soloIndex + mergeSize)];
+      mergeSize = mergeSize >= 4 ? 2 : mergeSize + 1; // vary shared-group size (2, 3, 4, 2, 3, 4, ...)
+    }
+    groups.push(...nsGroups);
   }
 
   const podByName = new Map(selected.map((p) => [(p.metadata as { name: string; namespace: string }).name, p]));
   const services: RawObject[] = [];
   const endpoints: RawObject[] = [];
   const labeledPodNames = new Map<string, string>(); // pod name -> service label value
+  let ipCounter = 0;
 
   groups.forEach((podNames, i) => {
     const serviceName = `demo-svc-${i + 1}`;
@@ -379,7 +409,7 @@ export function buildServicesForPods(pods: RawObject[], podPercent: number, shar
           addresses: podNames.map((podName) => {
             const pod = podByName.get(podName) as RawObject;
             const spec = pod.spec as { nodeName?: string } | undefined;
-            return { targetRef: { kind: 'Pod', uid: podResourceId(pod) }, nodeName: spec?.nodeName };
+            return { ip: demoPodIp(ipCounter++), targetRef: { kind: 'Pod', uid: podResourceId(pod) }, nodeName: spec?.nodeName };
           }),
           ports: [{ port: 8080 }],
         },
@@ -428,13 +458,22 @@ export function buildNamespaceBundle(existingNames: string[], additionalCount: n
  *  here is demo data that LOOKS like "this Node runs its usual handful of node-level agents" (kube-proxy,
  *  CNI, log shipper, ...), so each Node gets its own random-8-to-13 DaemonSets, each with exactly one backing
  *  Pod scheduled to that Node and owned by it (ownerReferences + matching uid — see demoTimestamps.ts's
- *  validateHierarchy, which can finally check something real once a Kind's data carries these). */
-export function buildDaemonSetsForNodes(nodeNames: string[], namespaces: string[]): { daemonSets: RawObject[]; pods: RawObject[] } {
+ *  validateHierarchy, which can finally check something real once a Kind's data carries these). Only Nodes
+ *  NOT already in `existingNodeNamesWithDaemonSets` get a fresh batch — "created as needed," the same "top
+ *  up, don't duplicate" shape as buildServiceAccountBundle/buildQuotaLimitBundle — so calling this again after
+ *  adding more Nodes only generates DaemonSets for the newly-added ones instead of piling a second random
+ *  8-13 batch (with fresh names, since `i` restarts at 1 each call) onto Nodes that already have one. */
+export function buildDaemonSetsForNodes(
+  nodeNames: string[],
+  namespaces: string[],
+  existingNodeNamesWithDaemonSets: Set<string> = new Set(),
+): { daemonSets: RawObject[]; pods: RawObject[] } {
   const daemonSets: RawObject[] = [];
   const pods: RawObject[] = [];
   const ns = namespaces.length > 0 ? namespaces : ['kube-system'];
+  const targetNodeNames = nodeNames.filter((n) => !existingNodeNamesWithDaemonSets.has(n));
 
-  nodeNames.forEach((nodeName, nodeIndex) => {
+  targetNodeNames.forEach((nodeName, nodeIndex) => {
     const count = 8 + Math.floor(Math.random() * 6); // 8-13 inclusive
     const namespace = ns[nodeIndex % ns.length] as string;
     for (let i = 1; i <= count; i++) {
@@ -478,7 +517,9 @@ export interface DeploymentResult {
  * Groups every currently un-owned Pod into chunks of 1-5 (randomly picked per chunk), gives each chunk a
  * ReplicaSet (spec.replicas = chunk size) owned by a fresh Deployment, and sets each Pod's ownerReferences to
  * that ReplicaSet. Pods that already have an ownerReferences entry (e.g. a DaemonSet-owned Pod) are left
- * untouched — this only wires up the ones nothing owns yet.
+ * untouched — this only wires up the ones nothing owns yet. Chunking happens WITHIN each namespace
+ * independently (never across) — a ReplicaSet/Deployment lives in one namespace, and every Pod it owns must
+ * live in that same namespace, which is only guaranteed if a chunk is never allowed to mix namespaces.
  */
 export function buildDeploymentsForPods(pods: RawObject[]): DeploymentResult {
   const unowned = pods.filter((p) => !((p.metadata as { ownerReferences?: unknown[] }).ownerReferences?.length));
@@ -486,60 +527,74 @@ export function buildDeploymentsForPods(pods: RawObject[]): DeploymentResult {
   const replicaSets: RawObject[] = [];
   const updatedByName = new Map<string, RawObject>();
 
-  let i = 0;
+  // A ReplicaSet's ownerReferences (and a Deployment's own metadata) are namespace-scoped — every Pod in a
+  // chunk must live in the SAME namespace as the Deployment/ReplicaSet that ends up owning it, so chunking has
+  // to stay within one namespace at a time rather than slicing straight across `unowned` in its given order
+  // (which interleaves namespaces whenever Pods from different namespaces are adjacent in that list).
+  const unownedByNamespace = new Map<string, RawObject[]>();
+  for (const pod of unowned) {
+    const ns = (pod.metadata as { namespace: string }).namespace;
+    const list = unownedByNamespace.get(ns) ?? [];
+    list.push(pod);
+    unownedByNamespace.set(ns, list);
+  }
+
   let groupIndex = 0;
-  while (i < unowned.length) {
-    const size = Math.min(1 + Math.floor(Math.random() * 5), unowned.length - i); // 1-5, capped by what's left
-    const chunk = unowned.slice(i, i + size);
-    i += size;
-    groupIndex += 1;
+  for (const nsPods of unownedByNamespace.values()) {
+    let i = 0;
+    while (i < nsPods.length) {
+      const size = Math.min(1 + Math.floor(Math.random() * 5), nsPods.length - i); // 1-5, capped by what's left
+      const chunk = nsPods.slice(i, i + size);
+      i += size;
+      groupIndex += 1;
 
-    const firstPod = chunk[0] as RawObject;
-    const namespace = (firstPod.metadata as { namespace: string }).namespace;
-    const deploymentName = `demo-deploy-${groupIndex}`;
-    const replicaSetName = `${deploymentName}-rs`;
-    const deploymentUid = crypto.randomUUID();
-    const replicaSetUid = crypto.randomUUID();
-    // Resolved directly (not left as a literal "{image}" token) — these objects are built straight from
-    // this bundle, not filled via fillTemplate/DEMO_TEMPLATES, so nothing else would ever resolve it.
-    const image = resolvePattern('{image}', 1);
+      const firstPod = chunk[0] as RawObject;
+      const namespace = (firstPod.metadata as { namespace: string }).namespace;
+      const deploymentName = `demo-deploy-${groupIndex}`;
+      const replicaSetName = `${deploymentName}-rs`;
+      const deploymentUid = crypto.randomUUID();
+      const replicaSetUid = crypto.randomUUID();
+      // Resolved directly (not left as a literal "{image}" token) — these objects are built straight from
+      // this bundle, not filled via fillTemplate/DEMO_TEMPLATES, so nothing else would ever resolve it.
+      const image = resolvePattern('{image}', 1);
 
-    deployments.push({
-      apiVersion: 'apps/v1',
-      kind: 'Deployment',
-      metadata: { name: deploymentName, namespace, uid: deploymentUid },
-      spec: {
-        replicas: chunk.length,
-        selector: { matchLabels: { app: deploymentName } },
-        template: { metadata: { labels: { app: deploymentName } }, spec: { containers: [{ name: 'app', image }] } },
-      },
-    });
-    replicaSets.push({
-      apiVersion: 'apps/v1',
-      kind: 'ReplicaSet',
-      metadata: {
-        name: replicaSetName,
-        namespace,
-        uid: replicaSetUid,
-        ownerReferences: [{ apiVersion: 'apps/v1', kind: 'Deployment', name: deploymentName, uid: deploymentUid }],
-      },
-      spec: {
-        replicas: chunk.length,
-        selector: { matchLabels: { app: deploymentName } },
-        template: { metadata: { labels: { app: deploymentName } }, spec: { containers: [{ name: 'app', image }] } },
-      },
-    });
-
-    for (const pod of chunk) {
-      const metadata = pod.metadata as { name: string; labels?: Record<string, string> };
-      updatedByName.set(metadata.name, {
-        ...pod,
-        metadata: {
-          ...metadata,
-          labels: { ...metadata.labels, app: deploymentName },
-          ownerReferences: [{ apiVersion: 'apps/v1', kind: 'ReplicaSet', name: replicaSetName, uid: replicaSetUid }],
+      deployments.push({
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: { name: deploymentName, namespace, uid: deploymentUid },
+        spec: {
+          replicas: chunk.length,
+          selector: { matchLabels: { app: deploymentName } },
+          template: { metadata: { labels: { app: deploymentName } }, spec: { containers: [{ name: 'app', image }] } },
         },
       });
+      replicaSets.push({
+        apiVersion: 'apps/v1',
+        kind: 'ReplicaSet',
+        metadata: {
+          name: replicaSetName,
+          namespace,
+          uid: replicaSetUid,
+          ownerReferences: [{ apiVersion: 'apps/v1', kind: 'Deployment', name: deploymentName, uid: deploymentUid }],
+        },
+        spec: {
+          replicas: chunk.length,
+          selector: { matchLabels: { app: deploymentName } },
+          template: { metadata: { labels: { app: deploymentName } }, spec: { containers: [{ name: 'app', image }] } },
+        },
+      });
+
+      for (const pod of chunk) {
+        const metadata = pod.metadata as { name: string; labels?: Record<string, string> };
+        updatedByName.set(metadata.name, {
+          ...pod,
+          metadata: {
+            ...metadata,
+            labels: { ...metadata.labels, app: deploymentName },
+            ownerReferences: [{ apiVersion: 'apps/v1', kind: 'ReplicaSet', name: replicaSetName, uid: replicaSetUid }],
+          },
+        });
+      }
     }
   }
 
@@ -981,8 +1036,11 @@ function networkPolicyObject(namespace: string): RawObject {
 }
 
 /** `percent`% of `namespaces` get a default-deny-ingress NetworkPolicy (e.g. 20 Namespaces at 50% -> 10 get
- *  one) — the first `count` Namespaces in the given order, same "take from the front" approach every other
- *  percent-based bundle here uses (buildPvcPvForPods, buildServicesForPods). */
+ *  one) — the first `count` Namespaces in the given order. Unlike buildPvcPvForPods/buildServicesForPods
+ *  (which spread their selection evenly across the whole input via a stride, so a large Pod list doesn't
+ *  visually cluster every selected item at the front), a plain "take from the front" slice is fine here: a
+ *  Namespace list has no equivalent "order Namespaces render in" concern for a namespace-wide policy to
+ *  cluster against. */
 export function buildNetworkPolicyBundle(namespaces: string[], percent: number): RawObject[] {
   const count = Math.round((percent / 100) * namespaces.length);
   return namespaces.slice(0, count).map(networkPolicyObject);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, extend, useFrame, type MaterialNode } from '@react-three/fiber';
+import { Canvas, extend, useFrame, useThree, type MaterialNode } from '@react-three/fiber';
 import { Line, OrbitControls, Text, Sky, Stars, shaderMaterial } from '@react-three/drei';
 import { Color, DoubleSide, type ShaderMaterial } from 'three';
 import { SKY_CONFIG, FOG_COLOR } from './skyConfig';
@@ -916,8 +916,8 @@ function findWheelSelection(
   // Checked before the plain Node lookup below: a local-storage cylinder's selection id is a Node id wrapped
   // in the "::local-storage" suffix (see PropertiesPanel), so it never collides with a real Node's own id —
   // this must resolve to the CYLINDER's position, not the Node box's, or the ring would jump to the wrong mesh.
-  const localStorage = wheel.localStorage.find((ls) => localStorageSelectionId(ls.nodeId) === selected);
-  if (localStorage) return { x: localStorage.x, y: localStorage.y, z: localStorage.z, radius: 0.15 };
+  const localStorageItem = wheel.localStorage.find((ls) => localStorageSelectionId(ls.nodeId) === selected);
+  if (localStorageItem) return { x: localStorageItem.x, y: localStorageItem.y, z: localStorageItem.z, radius: 0.15 };
   const node = wheel.nodes.find((n) => n.id === selected);
   if (node) return { x: node.x, y: 0.3, z: node.z, radius: 0.55 };
   const pod = wheel.pods.find((p) => p.id === selected);
@@ -1709,6 +1709,27 @@ function ThemeBackdrop({ theme }: { theme: Theme }) {
 
 type Mode = 'field' | 'wheel';
 
+const WHEEL_CAMERA_POSITION: [number, number, number] = [0, 10, 22];
+const FIELD_CAMERA_POSITION: [number, number, number] = [4, 4, 8];
+
+/** Repositions the camera (and OrbitControls' target) to each mode's default framing whenever `mode` changes.
+ *  Field and Wheel share one <Canvas> instance (see the comment above it), so the `camera` prop on <Canvas>
+ *  only ever applies at that canvas's initial mount — without this, switching modes keeps whatever orbit
+ *  position the previous mode was left at, which can leave the new mode's geometry off-screen or absurdly
+ *  close up. */
+function CameraReset({ mode }: { mode: Mode }) {
+  const camera = useThree((state) => state.camera);
+  const controls = useThree((state) => state.controls) as { target: { set: (x: number, y: number, z: number) => void }; update: () => void } | null;
+  useEffect(() => {
+    const [x, y, z] = mode === 'wheel' ? WHEEL_CAMERA_POSITION : FIELD_CAMERA_POSITION;
+    camera.position.set(x, y, z);
+    controls?.target.set(0, 0, 0);
+    camera.lookAt(0, 0, 0);
+    controls?.update();
+  }, [mode, camera, controls]);
+  return null;
+}
+
 /**
  * 3D hero view (DESIGN §6.8), scaling model: field (all nodes, flat grid) -> wheel (small-N radial layout with
  * network/endpoints/storage tiers) -> pill/single-node (not built yet). Toggle between the two built modes.
@@ -1799,17 +1820,26 @@ export function Scene3D({
     setAllNodes([]); // clear the PREVIOUS snapshot's Nodes immediately rather than leaving them showing until this fetch resolves
     const start = performance.now();
     console.log('[Scene3D] fetching /scene/nodes...');
+    // Guards against a slower response for a PREVIOUS snapshot landing after a newer one has already started
+    // (e.g. swapping snapshots twice in quick succession) — without this the stale response can overwrite the
+    // Field view's node set with the wrong snapshot's data.
+    let cancelled = false;
     fetch('/scene/nodes')
       .then((r) => r.json() as Promise<SceneNode[]>)
       .then((nodes) => {
+        if (cancelled) return;
         console.log(`[Scene3D] /scene/nodes returned ${nodes.length} nodes in ${(performance.now() - start).toFixed(0)}ms`);
         setAllNodes(nodes);
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error('[Scene3D] /scene/nodes failed:', err);
         setAllNodes([]);
       });
     setNodesHidden(false);
+    return () => {
+      cancelled = true;
+    };
   }, [snapshotKey]);
 
   // Recomputed on every filter tweak so the top-right count row and the "Hide excluded" button both reflect
@@ -1956,6 +1986,11 @@ export function Scene3D({
     if (mode !== 'wheel' || wheel) return;
     const start = performance.now();
     console.log(`[Scene3D] fetching /scene/wheel (nodeIds=${wheelNodeIds?.length ?? 'all'})...`);
+    // Guards against a slower response for a PREVIOUS snapshot/nodeIds combination landing after a newer
+    // request has already started (e.g. switching snapshots, or clicking "View in Wheel" again, while a prior
+    // /scene/wheel fetch is still in flight — both null `wheel` and re-trigger this effect) — without this the
+    // stale response can overwrite the current wheel with the wrong snapshot's data.
+    let cancelled = false;
     fetch('/scene/wheel', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -1963,13 +1998,18 @@ export function Scene3D({
     })
       .then((r) => r.json() as Promise<ClusterWheel>)
       .then((w) => {
+        if (cancelled) return;
         console.log(`[Scene3D] /scene/wheel returned ${w.pods.length} pods in ${(performance.now() - start).toFixed(0)}ms`);
         setWheel(remapWheelKindColors(w));
       })
       .catch((err) => {
+        if (cancelled) return;
         console.error('[Scene3D] /scene/wheel failed:', err);
         setWheel(null);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [mode, wheel, wheelNodeIds]);
 
   // WheelScene mounts its whole Pod set (one PodHex + up to two MetricBar meshes each — see the uncapped-Pod
@@ -2157,7 +2197,7 @@ export function Scene3D({
           <span style={{ color: 'var(--vpk-fg)' }}>Rendering {wheel.pods.length.toLocaleString()} pods…</span>
         </div>
       )}
-      <Canvas camera={{ position: mode === 'wheel' ? [0, 10, 22] : [4, 4, 8], fov: 50 }} style={{ background: 'var(--vpk-bg)' }}>
+      <Canvas camera={{ position: mode === 'wheel' ? WHEEL_CAMERA_POSITION : FIELD_CAMERA_POSITION, fov: 50 }} style={{ background: 'var(--vpk-bg)' }}>
         <ThemeBackdrop theme={theme} />
         {fogEnabled && <fog attach="fog" args={[FOG_COLOR[theme], 25, 110]} />}
         <ambientLight intensity={0.7} />
@@ -2186,6 +2226,7 @@ export function Scene3D({
         ) : null}
         {gridEnabled && <gridHelper args={[gridSize, gridDivisions, '#d9d9d5', '#e8e8e5']} />}
         <OrbitControls makeDefault />
+        <CameraReset mode={mode} />
       </Canvas>
     </div>
   );

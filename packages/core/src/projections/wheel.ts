@@ -11,6 +11,7 @@ import {
 } from '../podStatus';
 import { parseCpuQuantity, parseQuantity } from '../quantity';
 import { projectControlPlane, type ControlPlaneScene } from './controlPlane';
+import { allServiceBackingPods } from './serviceBackends';
 import type { ResourceGraph } from '../graph';
 import type { ResourceId } from '../identity';
 import type { Resource } from '../types';
@@ -299,28 +300,18 @@ function layoutPodRows(count: number, wedgeAngle: number): { slots: PodRowSlot[]
   return { slots, rows: row };
 }
 
-interface EndpointSubsetRaw {
-  addresses?: { targetRef?: { kind?: string; uid?: string } }[];
-}
-
-/** podId -> the Service ids that back it, via each Service's Endpoints object (targetRef) — same technique as
- *  projections/network.ts, computed here for the reverse (pod-centric) direction the wheel needs. */
+/** podId -> the Service ids that back it, via each Service's Endpoints object AND EndpointSlice objects
+ *  (targetRef) — see serviceBackends.ts's own doc comment for why both sources matter. Only READY backing
+ *  pods count here (mirrors the wheel's existing pod->Service edge convention — a not-ready pod still shows
+ *  in the Network cards view, flagged `ready: false`, but doesn't get a wheel line). */
 function podToServiceIds(graph: ResourceGraph): Map<ResourceId, Set<ResourceId>> {
-  const endpointsByNsName = new Map<string, Resource>();
-  for (const r of graph.nodes.values()) if (r.kind === 'Endpoints') endpointsByNsName.set(`${r.namespace ?? ''}/${r.name}`, r);
-
   const result = new Map<ResourceId, Set<ResourceId>>();
-  for (const svc of graph.nodes.values()) {
-    if (svc.kind !== 'Service') continue;
-    const endpoints = endpointsByNsName.get(`${svc.namespace ?? ''}/${svc.name}`);
-    const subsets = (endpoints?.raw.subsets as EndpointSubsetRaw[] | undefined) ?? [];
-    for (const subset of subsets) {
-      for (const addr of subset.addresses ?? []) {
-        if (addr.targetRef?.kind !== 'Pod' || !addr.targetRef.uid) continue;
-        const set = result.get(addr.targetRef.uid) ?? new Set<ResourceId>();
-        set.add(svc.id);
-        result.set(addr.targetRef.uid, set);
-      }
+  for (const [serviceId, backing] of allServiceBackingPods(graph)) {
+    for (const pod of backing) {
+      if (!pod.ready) continue;
+      const set = result.get(pod.uid) ?? new Set<ResourceId>();
+      set.add(serviceId);
+      result.set(pod.uid, set);
     }
   }
   return result;

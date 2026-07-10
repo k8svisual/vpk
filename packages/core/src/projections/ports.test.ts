@@ -15,11 +15,22 @@ const nodePortSvc: RawObject = {
   metadata: { uid: 'svc-2', name: 'np', namespace: 'default' },
   spec: { type: 'NodePort', ports: [{ port: 443, nodePort: 30443, protocol: 'TCP' }] },
 };
-const lbSvc: RawObject = {
+// A LoadBalancer Service commonly gets a nodePort allocated implicitly too — that's the host-level fact this
+// row should surface as `source: 'NodePort'`, not the generic `'LoadBalancer'` (see projectPortUsage's own
+// comment on this recoloring).
+const lbSvcWithNodePort: RawObject = {
   apiVersion: 'v1',
   kind: 'Service',
-  metadata: { uid: 'svc-3', name: 'lb', namespace: 'default' },
+  metadata: { uid: 'svc-3', name: 'lb-with-nodeport', namespace: 'default' },
   spec: { type: 'LoadBalancer', ports: [{ port: 80, nodePort: 31000, protocol: 'TCP' }] },
+};
+// A LoadBalancer Service with NO nodePort allocated (some cloud providers don't allocate one) stays typed as
+// the generic 'LoadBalancer' — nothing host-level to surface.
+const lbSvcNoNodePort: RawObject = {
+  apiVersion: 'v1',
+  kind: 'Service',
+  metadata: { uid: 'svc-4', name: 'lb-bare', namespace: 'default' },
+  spec: { type: 'LoadBalancer', ports: [{ port: 81, protocol: 'TCP' }] },
 };
 const pod: RawObject = {
   apiVersion: 'v1',
@@ -34,17 +45,21 @@ const pod: RawObject = {
 };
 
 describe('projectPortUsage', () => {
-  const usages = projectPortUsage(buildGraph([clusterIpSvc, nodePortSvc, lbSvc, pod]));
+  const usages = projectPortUsage(buildGraph([clusterIpSvc, nodePortSvc, lbSvcWithNodePort, lbSvcNoNodePort, pod]));
 
   it('emits one row per declared port across services and pod containers', () => {
-    // 3 service ports + 2 container ports
-    expect(usages).toHaveLength(5);
+    // 4 service ports + 2 container ports
+    expect(usages).toHaveLength(6);
   });
 
   it('types Service ports by the Service type', () => {
     expect(usages.find((u) => u.resourceName === 'web')?.source).toBe('ClusterIP');
     expect(usages.find((u) => u.resourceName === 'np')?.source).toBe('NodePort');
-    expect(usages.find((u) => u.resourceName === 'lb')?.source).toBe('LoadBalancer');
+    expect(usages.find((u) => u.resourceName === 'lb-bare')?.source).toBe('LoadBalancer');
+  });
+
+  it('recolors a LoadBalancer port that actually allocated a nodePort as the host-level NodePort source', () => {
+    expect(usages.find((u) => u.resourceName === 'lb-with-nodeport')?.source).toBe('NodePort');
   });
 
   it('carries targetPort/nodePort for service ports', () => {

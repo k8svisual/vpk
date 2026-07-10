@@ -125,10 +125,12 @@ export function clearWorkingSet(snapshotDir: string, kind?: string): void {
  *
  * creationTimestamps are assigned HERE, not at generate time — only once every staged Kind is known can the
  * whole set be ordered against one consistent "point in time" (see demoTimestamps.ts's assignCreationTimestamps),
- * and the resulting hierarchy checked (validateHierarchy) in a single pass. Any hierarchy problems are
- * returned as `warnings` rather than blocking the write — surfacing them is more useful than refusing to
- * produce a snapshot over an issue that (today) can't actually occur, since no template yet carries real
- * ownerReferences for that check to flag.
+ * and the resulting hierarchy checked (validateHierarchy) in a single pass — a real check now, not a no-op:
+ * several bundles (buildDaemonSetsForNodes, buildDeploymentsForPods, buildWorkloadsBundle's StatefulSet
+ * replicas) set real ownerReferences + uid on the objects they build, so a child staged with a creationTimestamp
+ * that predates its owner's is a genuine finding here (see validateHierarchy's own doc comment). Any hierarchy
+ * problems are returned as `warnings` rather than blocking the write — surfacing them is more useful than
+ * refusing to produce a snapshot over what's still just a display-ordering issue, not a broken reference.
  *
  * `churn`, when opted into (the Demo Data "Simulate pod churn" setting), runs AFTER assignCreationTimestamps
  * (churned pods need a real creationTimestamp to pick a later synthetic deletionTimestamp from) and BEFORE
@@ -287,11 +289,19 @@ export function runNamespaceBundle(snapshotDir: string, additionalCount: number)
  *  owned Pod scheduled to it — see bundles.ts's buildDaemonSetsForNodes. Spread across whatever Namespaces
  *  are currently staged (falling back to "kube-system" if none are, since node-level agents are almost always
  *  there in a real cluster). Appends (doesn't replace) — calling this again after adding more Nodes only adds
- *  DaemonSets for the NEW Nodes, since it reads whatever's staged right now. */
+ *  DaemonSets for the NEW Nodes: a Node already covered (detected via its existing DaemonSet-owned Pods'
+ *  `spec.nodeName`, not by re-deriving DaemonSet names) is skipped rather than getting a second random
+ *  8-13 batch piled on top of its first one. */
 export function runDaemonSetBundle(snapshotDir: string): Record<string, number> {
   const nodeNames = getStagedNames(snapshotDir, 'Node');
   const namespaces = getStagedNames(snapshotDir, 'Namespace');
-  const { daemonSets, pods } = buildDaemonSetsForNodes(nodeNames, namespaces);
+  const existingNodeNamesWithDaemonSets = new Set(
+    readKindList(snapshotDir, 'Pod')
+      .filter((p) => ((p.metadata as { ownerReferences?: { kind?: string }[] } | undefined)?.ownerReferences ?? []).some((o) => o.kind === 'DaemonSet'))
+      .map((p) => (p.spec as { nodeName?: string } | undefined)?.nodeName)
+      .filter((n): n is string => !!n),
+  );
+  const { daemonSets, pods } = buildDaemonSetsForNodes(nodeNames, namespaces, existingNodeNamesWithDaemonSets);
   return appendBundle(snapshotDir, [...daemonSets, ...pods]);
 }
 

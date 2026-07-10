@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { execSync } from 'node:child_process';
 import { buildGraph } from '@vpk/core';
-import { captureCore } from './cliSource';
+import { captureCore, parseApiResourcesWide } from './cliSource';
 import { SECRET_DATA_UNAVAILABLE, CONFIGMAP_DATA_UNAVAILABLE } from '../redact';
 
 function clusterUp(): boolean {
@@ -12,6 +12,65 @@ function clusterUp(): boolean {
     return false;
   }
 }
+
+function ocAvailable(): boolean {
+  try {
+    execSync('oc version --client', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe('parseApiResourcesWide VERBS format', () => {
+  // Real `kubectl api-resources -o wide` output (client 1.35 / server 1.32) — comma-joined, no brackets.
+  const KUBECTL_MODERN = `NAME                                SHORTNAMES   APIVERSION                        NAMESPACED   KIND                               VERBS                                                        CATEGORIES
+configmaps                          cm           v1                                true         ConfigMap                          create,delete,deletecollection,get,list,patch,update,watch
+bindings                                         v1                                true         Binding                            create                                                       `;
+
+  // Real `oc api-resources -o wide` output from oc v4.1.0 (client.GitVersion v4.1.0-201905191700, ~2019) —
+  // bracketed, space-separated, and no CATEGORIES column at all. Captured live against a running cluster while
+  // diagnosing this exact parsing gap (see cliSource.ts's own doc comment on parseApiResourcesWide).
+  const OC_LEGACY = `NAME                                SHORTNAMES   APIGROUP                       NAMESPACED   KIND                               VERBS
+configmaps                          cm                                          true         ConfigMap                          [create delete deletecollection get list patch update watch]
+bindings                                                                        true         Binding                            [create]
+componentstatuses                   cs                                          false        ComponentStatus                    [get list]`;
+
+  it('parses the modern comma-joined VERBS format', () => {
+    const resources = parseApiResourcesWide(KUBECTL_MODERN);
+    // `bindings` only supports `create` (no `get`) — correctly excluded, same as the legacy-format test below.
+    expect(resources.map((r) => r.name)).toEqual(['configmaps']);
+  });
+
+  it('parses the legacy bracketed, space-separated VERBS format (a real oc v4.1.0 client) without dropping every resource', () => {
+    // Before the fix, `.split(',')` treated the whole bracketed string as ONE verb, `get` never matched, and
+    // every resource — including get-able ones like ConfigMap — was silently dropped.
+    const resources = parseApiResourcesWide(OC_LEGACY);
+    expect(resources.map((r) => r.name)).toEqual(['componentstatuses', 'configmaps']);
+    // `bindings` only supports `create` (no `get`) — correctly excluded either way, confirming this isn't
+    // just "parse succeeds," it's "parse succeeds AND still filters correctly."
+    expect(resources.map((r) => r.name)).not.toContain('bindings');
+  });
+
+  it('returns an empty list, not a throw, for unparseable input', () => {
+    expect(parseApiResourcesWide('')).toEqual([]);
+    expect(parseApiResourcesWide('just one line, no header match')).toEqual([]);
+  });
+});
+
+describe.skipIf(!ocAvailable() || !clusterUp())('captureCore with a legacy oc client (live cluster)', () => {
+  it(
+    'captures a loadable snapshot via oc — confirms the VERBS-format fix end-to-end against a real old client, not just the parser fixture',
+    async () => {
+      const { items, manifest } = await captureCore({ cli: ['oc'] });
+      expect(items.length).toBeGreaterThan(30);
+      expect(manifest.kinds).toBeGreaterThan(10);
+      const g = buildGraph(items);
+      expect(g.nodes.size).toBeGreaterThan(30);
+    },
+    30_000,
+  );
+});
 
 describe.skipIf(!clusterUp())('captureCore (live cluster)', () => {
   it(

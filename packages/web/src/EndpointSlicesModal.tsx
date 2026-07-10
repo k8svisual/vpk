@@ -54,11 +54,24 @@ export function EndpointSlicesModal({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
 
   useEffect(() => {
+    setLoading(true);
+    // Guards against a slower response for a PREVIOUS serviceId landing after a newer one has already started
+    // (the modal has no `key={serviceId}` at its call site, so it can stay mounted across a serviceId change).
+    let cancelled = false;
     fetch(`/network/endpointslices?id=${encodeURIComponent(serviceId)}`)
       .then((r) => r.json() as Promise<EndpointSliceRow[]>)
-      .then(setSlices)
-      .catch(() => setSlices([]))
-      .finally(() => setLoading(false));
+      .then((rows) => {
+        if (!cancelled) setSlices(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setSlices([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [serviceId]);
 
   const columns = useMemo<ColumnDef<EndpointSliceRow>[]>(

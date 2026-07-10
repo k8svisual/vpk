@@ -394,11 +394,23 @@ export function ResourcesView({ onSelect }: { onSelect: (id: string) => void }) 
   useEffect(() => {
     if (scope !== 'node' || !selectedNode) return;
     setLoading(true);
+    // Guards against a slower response for a PREVIOUSLY-selected Node landing after a newer one has already
+    // started — without this a fast Node switch can leave the table showing the wrong Node's pods.
+    let cancelled = false;
     fetch(`/resources/pods-on-node?node=${encodeURIComponent(selectedNode)}`)
       .then((r) => r.json() as Promise<NodePodRow[]>)
-      .then(setNodePods)
-      .catch(() => setNodePods([]))
-      .finally(() => setLoading(false));
+      .then((rows) => {
+        if (!cancelled) setNodePods(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setNodePods([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [scope, selectedNode]);
 
   const namespaceRows = useMemo(() => {

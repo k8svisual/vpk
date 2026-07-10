@@ -65,15 +65,22 @@ export function RbacView({
   // Arriving from the Schematic: resolve the SA id to a subject identity so the dropdown reflects it too.
   useEffect(() => {
     if (!initialSaId) return;
+    // Guards against a slower response for a PREVIOUS initialSaId landing after a newer one has already
+    // started (e.g. a fast round-trip through Schematic's "RBAC ▸" pill for two different Pods).
+    let cancelled = false;
     fetch(`/definition?id=${encodeURIComponent(initialSaId)}`)
       .then((r) => r.json())
       .then((raw: unknown) => {
+        if (cancelled) return;
         const obj = raw as { kind?: string; metadata?: { name?: string; namespace?: string } };
         if (obj.metadata?.name) {
           setSelected(subjectKey({ kind: obj.kind ?? 'ServiceAccount', name: obj.metadata.name, namespace: obj.metadata.namespace }));
         }
       })
       .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [initialSaId]);
 
   useEffect(() => {
@@ -85,19 +92,28 @@ export function RbacView({
       return;
     }
     const [kind, ns, name] = selected.split('|') as [string, string, string];
+    // Guards against a slower response for a PREVIOUSLY-selected subject landing after a newer one has
+    // already started — without this a fast switch through the subject dropdown can leave the diagram
+    // showing the wrong subject's RBAC graph once the stale response finally lands.
+    let cancelled = false;
     fetch(`/rbac.svg?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(name)}&ns=${encodeURIComponent(ns)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('no RBAC bindings found for this subject in this snapshot');
         return r.text();
       })
       .then((text) => {
+        if (cancelled) return;
         setSvg(text);
         setError('');
       })
       .catch((e: unknown) => {
+        if (cancelled) return;
         setSvg('');
         setError(String(e));
       });
+    return () => {
+      cancelled = true;
+    };
   }, [selected]);
 
   useLayoutEffect(() => {

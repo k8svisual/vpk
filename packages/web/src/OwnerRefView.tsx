@@ -84,19 +84,28 @@ export function OwnerRefView({
       setError('');
       return;
     }
+    // Guards against a slower response for a PREVIOUS focus resource landing after a newer one has already
+    // started — this view is never key-remounted on selection change (see its own doc comment above), so a
+    // fast pick through the Namespace→Resource picker can otherwise leave the diagram showing the wrong graph.
+    let cancelled = false;
     fetch(`/ownerref?id=${encodeURIComponent(effectiveFocusId)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found in this snapshot');
         return r.text();
       })
       .then((text) => {
+        if (cancelled) return;
         setSvg(text);
         setError('');
       })
       .catch((e: unknown) => {
+        if (cancelled) return;
         setSvg('');
         setError(String(e));
       });
+    return () => {
+      cancelled = true;
+    };
   }, [effectiveFocusId]);
 
   function onClick(e: MouseEvent<HTMLDivElement>) {

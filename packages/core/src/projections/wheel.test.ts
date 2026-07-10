@@ -348,6 +348,36 @@ describe('projectClusterWheel pod linkage', () => {
     expect(Math.hypot(x1 - x2, z1 - z2)).toBeGreaterThanOrEqual(0.5 - 1e-9);
   });
 
+  it('draws the pod->Service edge from an EndpointSlice alone, with no legacy Endpoints object present', () => {
+    const sliceOnlySvc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-slice-only', name: 'slice-only', namespace: 'ns' } };
+    const slice: RawObject = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'eps-slice-only', name: 'slice-only-abcde', namespace: 'ns', labels: { 'kubernetes.io/service-name': 'slice-only' } },
+      endpoints: [{ targetRef: { kind: 'Pod', uid: 'pod-p1' }, conditions: { ready: true } }],
+    };
+    const graph = buildGraph([node('a'), sliceOnlySvc, slice, podWithVolume]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.network.items.map((i) => i.name)).toEqual(['slice-only']);
+    expect(wheel.podToNetwork).toEqual([{ podId: 'pod-p1', itemId: 'svc-slice-only' }]);
+  });
+
+  it('does not draw a pod->Service edge from an EndpointSlice entry marked not-ready', () => {
+    const sliceOnlySvc: RawObject = { apiVersion: 'v1', kind: 'Service', metadata: { uid: 'svc-slice-nr', name: 'slice-nr', namespace: 'ns' } };
+    const slice: RawObject = {
+      apiVersion: 'discovery.k8s.io/v1',
+      kind: 'EndpointSlice',
+      metadata: { uid: 'eps-slice-nr', name: 'slice-nr-abcde', namespace: 'ns', labels: { 'kubernetes.io/service-name': 'slice-nr' } },
+      endpoints: [{ targetRef: { kind: 'Pod', uid: 'pod-p1' }, conditions: { ready: false } }],
+    };
+    const graph = buildGraph([node('a'), sliceOnlySvc, slice, podWithVolume]);
+    const wheel = projectClusterWheel(graph);
+
+    expect(wheel.network.items).toHaveLength(0);
+    expect(wheel.podToNetwork).toHaveLength(0);
+  });
+
   it('builds an Endpoints/EndpointSlice tier one hop above each Service, both matched correctly', () => {
     const epSlice: RawObject = {
       apiVersion: 'discovery.k8s.io/v1',
