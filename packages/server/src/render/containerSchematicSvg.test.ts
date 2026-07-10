@@ -116,6 +116,40 @@ describe('renderContainerSchematicSvg', () => {
     expect(svg).toContain('#2f6df6'); // SELECT accent used on the selected card/radio
   });
 
+  it('draws the selected container\'s edges AFTER the cards so mount lines render on top', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    // The edge <path>s must come after the last container card <g> in document order (painted on top).
+    const lastCard = svg.lastIndexOf('data-select-container=');
+    const firstEdge = svg.search(/<path d="M[\d.]+ [\d.]+ L/);
+    expect(firstEdge).toBeGreaterThan(lastCard);
+  });
+
+  it('routes a configMap/secret volume mount to the Configuration icon, not the volume tile', () => {
+    // A container that ONLY mounts a configMap volume (no env, no ports, no other mounts).
+    const dto: SchematicDto = {
+      ...base,
+      containers: [c('cfg-only', { image: 'x', ready: true, stateLabel: 'Running', mounts: [{ volumeName: 'cfg', mountPath: '/etc' }] })],
+      initContainers: [],
+      ephemeralContainers: [],
+    };
+    const svg = renderContainerSchematicSvg(dto, { selectedContainer: 'cfg-only' });
+    // Exactly one edge path, and it's solid (to the ConfigMap icon) — no red/other edge to the cfg volume tile.
+    const paths = svg.match(/<path d="M[\d.]+ [\d.]+ L/g) ?? [];
+    expect(paths).toHaveLength(1);
+    expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
+  });
+
+  it('gives every volume tile a uniform 1px border, highlighting only the selected one', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    // The old per-mount highlight (orange 2px) is gone — no volume tile is orange-and-2px.
+    expect(svg).not.toContain('stroke="#c9974f" stroke-width="2"');
+  });
+
+  it('shows the "select a container" instruction when nothing is selected', () => {
+    expect(renderContainerSchematicSvg(base)).toContain('Select a container');
+    expect(renderContainerSchematicSvg(base, { selectedContainer: 'app' })).toContain('Showing edges for');
+  });
+
   it('volumes carry data-select-volume (click selects), not a direct resource-id drill', () => {
     const svg = renderContainerSchematicSvg(base);
     expect(svg).toContain('data-select-volume="data"');

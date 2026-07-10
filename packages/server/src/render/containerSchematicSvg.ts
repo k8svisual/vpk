@@ -80,6 +80,7 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   // drawn with the red "shares" marker so sidecar sharing still reads even though only one container's edges show.
   const mountCount = new Map<string, number>();
   for (const sec of sections) for (const c of sec.items) for (const m of c.mounts) mountCount.set(m.volumeName, (mountCount.get(m.volumeName) ?? 0) + 1);
+  const volByName = new Map(s.volumes.map((v) => [v.name, v]));
 
   const body: string[] = [];
   const cardByName = new Map<string, Rect>();
@@ -104,7 +105,6 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   // ---- shared volumes box (inside the Pod boundary, below every container section) ----
   const volRectByName = new Map<string, Rect>();
   let volBox: Rect | null = null;
-  const mountedBySelected = new Set(selectedContainer ? cards.find((c) => c.c.name === selectedContainer)?.c.mounts.map((m) => m.volumeName) ?? [] : []);
   if (hasVolumes) {
     const perRow = 5;
     const rows = Math.ceil(s.volumes.length / perRow);
@@ -118,7 +118,7 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       const vx = volBox!.x + 12 + col * (vw + 6);
       const vy = volBox!.y + 26 + row * 52;
       const vr: Rect = { x: vx, y: vy, w: vw, h: 42 };
-      body.push(volumeChip(v, vr, v.name === selectedVolume?.name, mountedBySelected.has(v.name)));
+      body.push(volumeChip(v, vr, v.name === selectedVolume?.name));
       volRectByName.set(v.name, vr);
     });
     cursorY += volBoxH;
@@ -131,6 +131,8 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   // ---- Configuration box (left) ----
   const sideBoxTop = boundaryTop + 30;
   let configBox: Rect | null = null;
+  let configCmIcon: { x: number; y: number } | null = null;
+  let configSecretIcon: { x: number; y: number } | null = null;
   if (hasConfig) {
     configBox = { x: MARGIN, y: sideBoxTop, w: CONFIG_W, h: 96 };
     body.push(dashedBox('#fdf6d3', '#c9b258', configBox, 'Configuration'));
@@ -138,9 +140,13 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
     const iconY = sideBoxTop + 56;
     if (s.config.configMaps.length > 0) {
       body.push(aggregateIcon(s.config.configMaps, 'ConfigMap', ix, iconY));
+      configCmIcon = { x: ix, y: iconY };
       ix += 84;
     }
-    if (s.config.secrets.length > 0) body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
+    if (s.config.secrets.length > 0) {
+      body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
+      configSecretIcon = { x: ix, y: iconY };
+    }
   }
 
   // ---- Network box (right, top) + Storage-implementation box (right, below it) ----
@@ -165,21 +171,23 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const sel = selectedContainer ? cards.find((c) => c.c.name === selectedContainer) : undefined;
   if (sel) {
     const { c, rect } = sel;
-    if (configBox && (c.configRefs.configMaps.length > 0 || c.configRefs.secrets.length > 0)) {
-      edges.push(solidEdge(configBox.x + configBox.w, configBox.y + configBox.h / 2, rect.x, rect.y + 22));
-    }
+    // A configMap/secret VOLUME mount points at the matching k8s icon in the Configuration box (not the volume
+    // tile) — the same place an env/envFrom reference points — so "where this container's config comes from"
+    // reads in one spot. At most one line per kind (the Configuration icons are per-kind aggregates).
+    const usesCm = c.configRefs.configMaps.length > 0 || c.mounts.some((m) => volByName.get(m.volumeName)?.type === 'configMap');
+    const usesSecret = c.configRefs.secrets.length > 0 || c.mounts.some((m) => volByName.get(m.volumeName)?.type === 'secret');
+    if (configCmIcon && usesCm) edges.push(solidEdge(configCmIcon.x + 18, configCmIcon.y, rect.x, rect.y + 22));
+    if (configSecretIcon && usesSecret) edges.push(solidEdge(configSecretIcon.x + 18, configSecretIcon.y, rect.x, rect.y + 42));
     if (serviceBox && c.ports.length > 0) {
       edges.push(solidEdge(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2));
     }
     for (const m of c.mounts) {
+      const v = volByName.get(m.volumeName);
+      if (!v || v.type === 'configMap' || v.type === 'secret') continue; // cm/secret handled via the Config icons above
       const vr = volRectByName.get(m.volumeName);
       if (!vr) continue;
       const shared = (mountCount.get(m.volumeName) ?? 0) > 1;
-      const x1 = rect.x + rect.w / 2;
-      const y1 = rect.y + rect.h;
-      const x2 = vr.x + vr.w / 2;
-      const y2 = vr.y;
-      edges.push(shared ? sharesEdge(x1, y1, x2, y2) : solidEdge(x1, y1, x2, y2));
+      edges.push((shared ? sharesEdge : solidEdge)(rect.x + rect.w / 2, rect.y + rect.h, vr.x + vr.w / 2, vr.y));
     }
     if (c.kind === 'ephemeral' && c.targetContainerName) {
       const target = cardByName.get(c.targetContainerName);
@@ -192,14 +200,23 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const canvasW = (hasRightCol ? rightX + rightColW : podX + podW) + MARGIN;
   const canvasH = Math.max(boundaryBottom, storageBottom) + MARGIN;
 
+  // Small call-to-action just above the Pod boundary telling the user how to drive the diagram.
+  const instruct = selectedContainer
+    ? `<text class="cs-instruct" x="${podX}" y="${boundaryTop - 7}">Showing edges for “${esc(clip(selectedContainer, 28))}” — click its radio again to clear</text>`
+    : `<text class="cs-instruct" x="${podX}" y="${boundaryTop - 7}">◉  Select a container below using its radio button to trace its config, ports and volume mounts</text>`;
+
+  // Edges are appended AFTER the body so the selected container's mount/config/port lines draw ON TOP of the
+  // intervening container cards — otherwise a line to a lower volume disappears behind the cards it crosses and
+  // you can't tell which volumes are actually in use.
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}" font-family="system-ui, sans-serif">` +
     defs() +
     styleBlock() +
-    legend(s.podName, selectedContainer) +
+    legend(s.podName) +
+    instruct +
     `<rect x="${boundaryRect.x}" y="${boundaryRect.y}" width="${boundaryRect.w}" height="${boundaryRect.h}" rx="6" fill="var(--vpk-surface, #f6f6f4)" stroke="var(--vpk-border, #888)" stroke-width="1.4" />` +
-    edges.join('') +
     body.join('') +
+    edges.join('') +
     `</svg>`
   );
 }
@@ -309,12 +326,13 @@ function containerCard(podId: string, c: Container, index: number, r: Rect, sele
 }
 
 /** A volume tile — carries data-select-volume (clicking it renders its storage-implementation sub-diagram, and
- *  toggles it off on a second click). Highlighted when it's the current selection, or ringed when it's mounted
- *  by the currently-selected container. */
-function volumeChip(v: Volume, r: Rect, selected: boolean, mountedBySelected: boolean): string {
+ *  toggles it off on a second click). Every tile has the same border (orange, 1px); only the currently-selected
+ *  tile is highlighted (accent, 2px) — which volumes the selected container mounts is shown by the edges, not
+ *  by varying tile borders. */
+function volumeChip(v: Volume, r: Rect, selected: boolean): string {
   const caption = v.backingRef?.kind === 'PersistentVolumeClaim' ? 'PVC' : v.type;
-  const stroke = selected ? SELECT : mountedBySelected ? '#c9974f' : '#c9974f';
-  const strokeW = selected ? 2.5 : mountedBySelected ? 2 : 1;
+  const stroke = selected ? SELECT : '#c9974f';
+  const strokeW = selected ? 2 : 1;
   return (
     `<g data-select-volume="${esc(v.name)}" data-names="${esc(JSON.stringify([v.name]))}" style="cursor:pointer">` +
     `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="#fff" stroke="${stroke}" stroke-width="${strokeW}" />` +
@@ -421,17 +439,14 @@ function styleBlock(): string {
     `.cs-muted{fill:#888}` +
     `.cs-boxtitle{font-size:11px;font-weight:600;fill:#444}` +
     `.cs-count{font-size:10px;fill:#333;font-weight:600}` +
+    `.cs-instruct{font-size:11px;font-weight:600;fill:${SELECT}}` +
     `</style>`
   );
 }
 
-function legend(podName: string, selectedContainer: string | null): string {
-  const hint = selectedContainer
-    ? `showing edges for: ${clip(selectedContainer, 22)}`
-    : 'select a container ● to show its edges · click a volume for its storage';
+function legend(podName: string): string {
   return (
     `<text class="cs-title" x="${MARGIN}" y="26">Pod: ${esc(clip(podName, 34))} · Container schematic</text>` +
-    `<text class="cs-legend" x="${MARGIN}" y="42">${esc(hint)}</text>` +
     `<line x1="${MARGIN + 470}" y1="21" x2="${MARGIN + 498}" y2="21" stroke="var(--vpk-fg,#444)" stroke-width="1.4" marker-end="url(#cs-solid)" />` +
     `<text class="cs-legend" x="${MARGIN + 504}" y="25">mount / env</text>` +
     `<line x1="${MARGIN + 600}" y1="21" x2="${MARGIN + 628}" y2="21" stroke="${STATUS_ERROR}" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#cs-red)" />` +

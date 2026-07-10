@@ -311,28 +311,26 @@ export function SchematicView({
     </div>
   );
 
-  // Two-diagram toggle (Pod ⇄ Containers) for the selected Pod — the app's established segmented-control
-  // pattern (3D Field/Wheel, Container Images tree/table). Only meaningful once a Pod is actually selected.
-  const diagramToggle = effectivePodId && (
-    <div style={{ display: 'inline-flex', marginBottom: 10, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--vpk-border)' }}>
-      {(['pod', 'containers'] as const).map((d) => (
-        <button
-          key={d}
-          onClick={() => setDiagram(d)}
-          style={{
-            padding: '4px 12px',
-            fontSize: 13,
-            cursor: 'pointer',
-            border: 'none',
-            background: diagram === d ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
-            color: diagram === d ? '#fff' : 'var(--vpk-fg)',
-          }}
-          title={d === 'pod' ? 'The Pod in its namespace/cluster' : 'Inside the Pod — init, app and ephemeral containers'}
-        >
-          {d === 'pod' ? 'Pod' : 'Containers'}
-        </button>
-      ))}
-    </div>
+  // Forward navigation (Pod -> Containers) is the "View Container Schematic ▸" pill on the Pod card itself
+  // (schematicSvg.ts). The reverse is this button, shown only while the container diagram is up — a prominent
+  // way back to the Pod/Deployment schematic, sitting near the top of the view.
+  const returnToPod = diagram === 'containers' && effectivePodId && (
+    <button
+      onClick={() => setDiagram('pod')}
+      style={{
+        marginBottom: 10,
+        padding: '4px 12px',
+        borderRadius: 999,
+        border: '1px solid var(--vpk-border)',
+        cursor: 'pointer',
+        background: 'var(--vpk-surface)',
+        color: 'var(--vpk-fg)',
+        fontSize: 13,
+        fontWeight: 600,
+      }}
+    >
+      ← Return to Deployment Schematic
+    </button>
   );
 
   const tooltip = hovered && (
@@ -379,7 +377,7 @@ export function SchematicView({
       <>
         {returnPill}
         {picker}
-        <div>{diagramToggle}</div>
+        <div>{returnToPod}</div>
         <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
           loading…
         </p>
@@ -391,7 +389,7 @@ export function SchematicView({
     <>
       {returnPill}
       {picker}
-      <div>{diagramToggle}</div>
+      <div>{returnToPod}</div>
       <div onClick={onClick} onMouseOver={onMouseOver} onMouseOut={onMouseOut} dangerouslySetInnerHTML={{ __html: svg }} />
       {tooltip}
       {resourceList && (
