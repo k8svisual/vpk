@@ -89,6 +89,27 @@ function InvolvedObjectCell({ e, onSelect }: { e: EventRecord; onSelect: (id: st
   );
 }
 
+/** The Message cell — a clickable Event k8s icon (kind:Event) that opens this Event's OWN raw source in the
+ *  editor (onSelect uses the Event's id, unlike InvolvedObjectCell which opens the object the Event is ABOUT),
+ *  followed by the message text. Used in both the Messages tab's flat list and the per-object popup modal. */
+function MessageCell({ e, onSelect }: { e: EventRecord; onSelect: (id: string) => void }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span
+        onClick={(ev) => {
+          ev.stopPropagation();
+          onSelect(e.id);
+        }}
+        title="View this Event's raw source"
+        style={{ cursor: 'pointer', display: 'inline-flex', flexShrink: 0 }}
+      >
+        <KindIcon kind="Event" name={e.reason ?? 'Event'} size={13} />
+      </span>
+      <span style={{ color: 'var(--vpk-fg-muted)' }}>{e.message ?? ''}</span>
+    </span>
+  );
+}
+
 // position:sticky keeps the header visible while scrolling inside a contained (maxHeight+overflow:auto) table
 // area — EventsView now wraps the Messages tab's tables that way, so without this the header would scroll out
 // of view entirely instead of the page itself scrolling past it.
@@ -233,9 +254,9 @@ function ObjectEventsModal({ group, events, onSelect, onClose }: { group: Object
       { accessorKey: 'count', header: 'Count' },
       { accessorKey: 'lastSeen', header: 'Last seen', cell: (c) => c.getValue<string>() ?? '—' },
       { accessorKey: 'reportingComponent', header: 'Component', cell: (c) => c.getValue<string>() ?? '—' },
-      { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: 'var(--vpk-fg-muted)' }}>{c.getValue<string>() ?? ''}</span> },
+      { accessorKey: 'message', header: 'Message', cell: (c) => <MessageCell e={c.row.original} onSelect={onSelect} /> },
     ],
-    [],
+    [onSelect],
   );
 
   const table = useReactTable({
@@ -339,7 +360,7 @@ function flatColumns(onSelect: (id: string) => void): ColumnDef<EventRecord>[] {
     { accessorKey: 'count', header: 'Count' },
     { accessorKey: 'lastSeen', header: 'Last seen', cell: (c) => c.getValue<string>() ?? '—' },
     { accessorKey: 'reportingComponent', header: 'Component', cell: (c) => c.getValue<string>() ?? '—' },
-    { accessorKey: 'message', header: 'Message', cell: (c) => <span style={{ color: 'var(--vpk-fg-muted)' }}>{c.getValue<string>() ?? ''}</span> },
+    { accessorKey: 'message', header: 'Message', cell: ({ row }) => <MessageCell e={row.original} onSelect={onSelect} /> },
   ];
 }
 

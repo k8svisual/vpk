@@ -500,17 +500,17 @@ function podCard(s: SchematicDto, x: number, y: number, w: number, h: number): s
   );
 }
 
-/** The discoverable entry point to the Container schematic: a filled pill at the bottom of the Pod card. Its
- *  data-show-containers is handled by SchematicView (which flips the Pod/Containers toggle to "containers")
- *  before the surrounding card's data-resource-id, so clicking it opens the container view instead of the
- *  editor. Mirrors the "RBAC ▸" pill's data-attribute delegation pattern. */
+/** The discoverable entry point to the Container schematic: a white pill (blue border + text) at the bottom of
+ *  the Pod card. Its data-show-containers is handled by SchematicView (which flips the Pod/Containers toggle to
+ *  "containers") before the surrounding card's data-resource-id, so clicking it opens the container view instead
+ *  of the editor. Mirrors the "RBAC ▸" pill's white-fill/colored-border/colored-text pattern. */
 function containersPill(cx: number, cy: number): string {
   const w = 168;
   const h = 20;
   return (
     `<g data-show-containers="1" style="cursor:pointer">` +
-    `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="10" fill="#2f6df6" />` +
-    `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">View Container Schematic ▸</text>` +
+    `<rect x="${cx - w / 2}" y="${cy - h / 2}" width="${w}" height="${h}" rx="10" fill="#fff" stroke="#2f6df6" />` +
+    `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#2f6df6">View Container Schematic ▸</text>` +
     `</g>`
   );
 }
