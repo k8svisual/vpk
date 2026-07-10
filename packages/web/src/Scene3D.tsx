@@ -1192,6 +1192,11 @@ function WheelScene({
     for (const item of vaEligible) map.set(item.id, item);
     for (const item of csiEligible) map.set(item.id, item);
     return map;
+    // visiblePods/pvcEligible/etc. above are pure derivations of wheel+filters+timelapseCategoryFilters (via
+    // categoryOn/passesScopeFilters), recomputed fresh every render; listing them would add references that
+    // change every render regardless, defeating this memo entirely. wheel/filters/timelapseCategoryFilters are
+    // the actual stable reactive inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wheel, filters, timelapseCategoryFilters]);
 
   const csiChainsByNode = useMemo(() => {
@@ -1203,6 +1208,9 @@ function WheelScene({
     }
     for (const list of byNode.values()) list.sort((a, b) => b.y - a.y); // closest-to-node first
     return byNode;
+    // visibleCsiNodeDrivers is a pure derivation of wheel+filters+timelapseCategoryFilters, same reasoning as
+    // byId's memo above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wheel, filters, timelapseCategoryFilters]);
 
   // The exact dot last clicked, so the selection ring can land on it specifically — see findWheelSelection's

@@ -175,10 +175,13 @@ export function EventsTimeline({
   const [windowStart, setWindowStart] = useState<number | null>(null);
   const initialized = useRef(false);
 
-  const times = events.map((e) => (e.lastSeen ? Date.parse(e.lastSeen) : NaN)).filter((t) => !Number.isNaN(t));
-  const domain = times.length > 0 ? { min: Math.min(...times), max: Math.max(...times) } : null;
-  const domainMin = domain?.min ?? 0;
-  const domainMax = domain?.max ?? 0;
+  // Memoized so `domain` is referentially stable across renders with the same `events` — otherwise every
+  // consumer keyed on it (the initial-window effect below, miniBins) would re-run on every render, not just
+  // when the event set actually changes.
+  const domain = useMemo(() => {
+    const times = events.map((e) => (e.lastSeen ? Date.parse(e.lastSeen) : NaN)).filter((t) => !Number.isNaN(t));
+    return times.length > 0 ? { min: Math.min(...times), max: Math.max(...times) } : null;
+  }, [events]);
 
   // Pick a sensible initial window size/position once the domain is first known — never again after that, so
   // a later filter change (which can shrink/shift the domain) doesn't yank the view out from under the user.
@@ -211,8 +214,7 @@ export function EventsTimeline({
       else b.failed++;
     }
     return bins;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, domainMin, domainMax]);
+  }, [events, domain]);
 
   const card: React.CSSProperties = {
     marginBottom: 12,

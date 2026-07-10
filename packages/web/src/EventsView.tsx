@@ -574,7 +574,6 @@ export function EventsView({
   useEffect(() => {
     if (syncEnabled) recomputeTopMessageTime();
     else setTopMessageTime(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncEnabled, view, visible]);
 
   const returnPill = onReturn && (

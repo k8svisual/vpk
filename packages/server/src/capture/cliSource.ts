@@ -298,7 +298,8 @@ function runCli(argv: string[], signal?: AbortSignal): Promise<string> {
         reject(new Error('Aborted'));
         return;
       }
-      code === 0 ? resolve(out) : reject(new Error(err.trim() || `${cmd} exited ${code}`));
+      if (code === 0) resolve(out);
+      else reject(new Error(err.trim() || `${cmd} exited ${code}`));
     });
   });
 }

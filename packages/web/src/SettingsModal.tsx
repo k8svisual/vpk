@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { THEMES, type Theme } from './theme';
 import { FONT_SIZES, applyFontSize, getStoredFontSize, initialFontSize, setStoredFontSize, type FontSize } from './fontSize';
-import { KIND_COLOR, colorForKind } from './kindColors';
+import { colorForKind } from './kindColors';
 import { applyKindColorOverrides, getStoredKindColorOverrides, setStoredKindColorOverrides } from './kindColorOverrides';
 import { PANES } from './FilterPanel';
 import { getStoredApiGroupColorOverrides, setStoredApiGroupColorOverrides } from './apiGroupColorOverrides';

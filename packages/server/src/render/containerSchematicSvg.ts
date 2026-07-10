@@ -94,7 +94,6 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   // drawn with the red "shares" marker so sidecar sharing still reads even though only one container's edges show.
   const mountCount = new Map<string, number>();
   for (const sec of sections) for (const c of sec.items) for (const m of c.mounts) mountCount.set(m.volumeName, (mountCount.get(m.volumeName) ?? 0) + 1);
-  const volByName = new Map(s.volumes.map((v) => [v.name, v]));
 
   // With a container selected, everything that isn't wired to it is muted (greyed + non-interactive): the OTHER
   // container cards, and every volume the selected container doesn't mount. Focuses the view on the one

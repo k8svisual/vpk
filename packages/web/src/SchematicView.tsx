@@ -97,6 +97,7 @@ export function SchematicView({
       .then((r) => r.json() as Promise<{ id: string; kind: string; name: string; namespace?: string }[]>)
       .then((rows) => setPods(rows.filter((r) => r.kind === 'Pod').map((r) => ({ id: r.id, name: r.name, namespace: r.namespace }))))
       .catch(() => setPods([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-once, see comment above
   }, []);
 
   const namespaces = useMemo(

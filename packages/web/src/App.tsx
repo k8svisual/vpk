@@ -200,6 +200,7 @@ export function App() {
   // not on every later change to `selected` while already there (see schematicPodId's own comment above).
   useEffect(() => {
     if (view === 'schematic') setSchematicPodId(selected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately `view`-only, see comment above
   }, [view]);
 
   // Runs once on mount — refreshSnaps/refreshNamespaces are stable callbacks (empty dep arrays).
