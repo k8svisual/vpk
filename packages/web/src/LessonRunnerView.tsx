@@ -81,9 +81,16 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return json as T;
 }
 
+const TERMINAL_MIN_WIDTH = 280;
+const TERMINAL_MAX_WIDTH = 900;
+const LESSON_MIN_WIDTH = 280;
+
 export function LessonRunnerView() {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [terminalWidth, setTerminalWidth] = useState(420);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +105,33 @@ export function LessonRunnerView() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!draggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const max = Math.min(TERMINAL_MAX_WIDTH, rect.width - LESSON_MIN_WIDTH);
+      setTerminalWidth(Math.min(max, Math.max(TERMINAL_MIN_WIDTH, rect.right - e.clientX)));
+    }
+    function onUp() {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  function startResize() {
+    draggingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }
 
   if (loadError) {
     return (
@@ -115,11 +149,20 @@ export function LessonRunnerView() {
   }
 
   return (
-    <div className="flex gap-4 h-full min-h-0">
+    <div ref={containerRef} className="flex h-full min-h-0">
       <div className="flex-1 min-w-0 overflow-auto pr-1">
         <LessonPane lesson={lesson} />
       </div>
-      <div className="w-[420px] shrink-0">
+      <div
+        onMouseDown={startResize}
+        role="separator"
+        aria-orientation="vertical"
+        title="Drag to resize"
+        className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center"
+      >
+        <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
+      </div>
+      <div className="shrink-0" style={{ width: terminalWidth }}>
         <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} cli={lesson.frontmatter.cli} />
       </div>
     </div>
