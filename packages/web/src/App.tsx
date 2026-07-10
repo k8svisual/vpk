@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2 } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
+import { CourseSmokeView } from './CourseSmokeView';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -48,7 +49,8 @@ type ViewId =
   | 'images'
   | 'events'
   | 'resources'
-  | 'demo';
+  | 'demo'
+  | 'course';
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
@@ -75,6 +77,12 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
       { id: 'events', label: 'Events', icon: AlertTriangle },
       { id: 'resources', label: 'Resources', icon: Table2 },
     ],
+  },
+  // Wiring-only smoke test (redesign/training-course.md) — not the real terminal/lesson experience, just
+  // proof /course/env, /course/command, /course/check work end-to-end before any UI design work on those.
+  {
+    title: 'Training',
+    items: [{ id: 'course', label: 'Course (smoke test)', icon: Terminal }],
   },
 ];
 
@@ -604,6 +612,7 @@ export function App() {
               </>
             )}
             {view === 'demo' && <DemoDataView />}
+            {view === 'course' && <CourseSmokeView />}
           </main>
         </div>
       </div>

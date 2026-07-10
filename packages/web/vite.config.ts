@@ -50,6 +50,7 @@ export default defineConfig({
       '/demo': API,
       '/load': API,
       '/capture': API,
+      '/course': API,
       '/settings': API,
       '/vendor-icons': API,
       '/network-catalog': API,
