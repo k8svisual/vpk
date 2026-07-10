@@ -129,26 +129,34 @@ describe('renderContainerSchematicSvg', () => {
     expect(firstEdge).toBeGreaterThan(lastCard);
   });
 
-  it('draws the ConfigMap line ONLY when the configMap volume is clicked, not on container-select', () => {
-    const mounts = [{ volumeName: 'cfg', mountPath: '/etc' }];
-    const dto: SchematicDto = {
-      ...base,
-      containers: [c('only', { image: 'x', ready: true, stateLabel: 'Running', mounts })],
-      initContainers: [],
-      ephemeralContainers: [],
-    };
-    const paths = (svg: string) => (svg.match(/<path d="M[\d.]+ [\d.]+ [VH]/g) ?? []).length;
-    const contSel = renderContainerSchematicSvg(dto, { selectedContainer: 'only' }); // mount edge to the tile only
-    const volSel = renderContainerSchematicSvg(dto, { selectedContainer: 'only', selectedVolume: 'cfg' });
-    // Clicking the cfg volume adds the extra line to the Configuration ConfigMap icon.
-    expect(paths(volSel)).toBeGreaterThan(paths(contSel));
-    expect(volSel).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
+  it('draws the Network box on the LEFT and Configuration on the RIGHT (swapped)', () => {
+    const svg = renderContainerSchematicSvg(base);
+    const netX = Number(/<rect x="([\d.]+)"[^>]*fill="#dbeefa"/.exec(svg)![1]);
+    const cfgX = Number(/<rect x="([\d.]+)"[^>]*fill="#fdf6d3"/.exec(svg)![1]);
+    expect(netX).toBeLessThan(cfgX);
   });
 
-  it('routes the ConfigMap line OUT the left (H first), not straight up through the cards', () => {
-    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app', selectedVolume: 'cfg' });
-    // orthoHVH starts horizontal: `M x y H …`. A straight-up route would start `M x y V …`.
-    expect(svg).toMatch(/<path d="M[\d.]+ [\d.]+ H/);
+  it('draws a dashed storage→Configuration connector ONLY when a configMap/secret volume is clicked', () => {
+    const connector = 'var(--vpk-fg-muted, #888)';
+    expect(renderContainerSchematicSvg(base)).not.toContain(connector); // nothing selected
+    expect(renderContainerSchematicSvg(base, { selectedVolume: 'cfg' })).toContain(connector); // configMap volume
+    expect(renderContainerSchematicSvg(base, { selectedVolume: 'data' })).not.toContain(connector); // PVC volume -> no connector
+  });
+
+  it('PVC storage popup uses the Deployment storage background; a node-local one uses the neutral background', () => {
+    expect(renderContainerSchematicSvg(base, { selectedVolume: 'cfg' })).toContain('#ede9e0'); // local -> neutral
+    // A PVC-backed volume's popup uses the storage color (#fbe3c2) instead — so the neutral fill is absent.
+    expect(renderContainerSchematicSvg(base, { selectedVolume: 'data' })).not.toContain('#ede9e0');
+  });
+
+  it('draws a kind-colored background disc behind storage icons that have a defined color', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedVolume: 'data' }); // PVC->PV->VA->CSIDriver chain
+    expect(svg).toMatch(/<circle[^>]*fill="var\(--vpk-kind-persistentvolume/);
+  });
+
+  it('gives storage popup icons a data-names tooltip carrying the resource type', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedVolume: 'data' });
+    expect(svg).toContain('PersistentVolume · pv-001'); // "<Kind> · <name>" for the hover tooltip
   });
 
   it('keeps the container→volume mount lines when a volume is then clicked', () => {

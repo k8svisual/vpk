@@ -218,6 +218,9 @@ export function SchematicView({
     if (selContainer) {
       const name = selContainer.getAttribute('data-select-container');
       setSelectedContainer((prev) => (prev === name ? null : name));
+      // Picking (or clearing) a container also closes any open storage popup and drops the volume highlight —
+      // the popup belongs to the previous container's exploration, so a container change resets it.
+      setSelectedVolume(null);
       return;
     }
     const selVolume = (e.target as Element).closest('[data-select-volume]');

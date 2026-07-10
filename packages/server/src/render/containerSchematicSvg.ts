@@ -1,4 +1,4 @@
-import { iconPathForKind } from '@vpk/core';
+import { iconPathForKind, KIND_COLOR, cssKindVar } from '@vpk/core';
 import type { SchematicDto } from '../schematic';
 
 type Container = SchematicDto['containers'][number];
@@ -75,7 +75,8 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const hasService = s.network.services.length > 0;
   const hasVolumes = s.volumes.length > 0;
 
-  const podX = MARGIN + (hasConfig ? CONFIG_W + COL_GAP : 0);
+  // Network is the LEFT column now (swapped with Configuration, which moved to the right).
+  const podX = MARGIN + (hasService ? SERVICE_W + COL_GAP : 0);
   const podInnerX = podX + POD_PAD;
   const boundaryTop = MARGIN + TITLE_H;
 
@@ -131,36 +132,15 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const podW = CARD_W + 2 * POD_PAD;
   const boundaryRect: Rect = { x: podX, y: boundaryTop, w: podW, h: boundaryBottom - boundaryTop };
 
-  // ---- Configuration box (left) ----
+  // ---- Network box (LEFT): ONE icon per Service, stacked vertically (top → down) ----
   const sideBoxTop = boundaryTop + 30;
-  let configBox: Rect | null = null;
-  let configCmIcon: { x: number; y: number } | null = null;
-  let configSecretIcon: { x: number; y: number } | null = null;
-  if (hasConfig) {
-    configBox = { x: MARGIN, y: sideBoxTop, w: CONFIG_W, h: 96 };
-    body.push(dashedBox('#fdf6d3', '#c9b258', configBox, 'Configuration'));
-    let ix = MARGIN + 34;
-    const iconY = sideBoxTop + 56;
-    if (s.config.configMaps.length > 0) {
-      body.push(aggregateIcon(s.config.configMaps, 'ConfigMap', ix, iconY));
-      configCmIcon = { x: ix, y: iconY };
-      ix += 84;
-    }
-    if (s.config.secrets.length > 0) {
-      body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
-      configSecretIcon = { x: ix, y: iconY };
-    }
-  }
-
-  // ---- Network box (right, top): ONE icon per Service, stacked vertically (top → down) ----
-  const rightX = podX + podW + COL_GAP;
-  let serviceBox: Rect | null = null;
+  let networkBox: Rect | null = null;
   const serviceIcons: { ref: Service; x: number; y: number }[] = [];
   if (hasService) {
     const boxH = 26 + s.network.services.length * SERVICE_ROW_H + 8;
-    serviceBox = { x: rightX, y: sideBoxTop, w: SERVICE_W, h: boxH };
-    body.push(dashedBox('#dbeefa', '#7aa9c9', serviceBox, 'Network'));
-    const cx = rightX + SERVICE_W / 2;
+    networkBox = { x: MARGIN, y: sideBoxTop, w: SERVICE_W, h: boxH };
+    body.push(dashedBox('#dbeefa', '#7aa9c9', networkBox, 'Network'));
+    const cx = MARGIN + SERVICE_W / 2;
     s.network.services.forEach((svc, i) => {
       const iy = sideBoxTop + 30 + i * SERVICE_ROW_H + 18;
       body.push(serviceIcon(svc, cx, iy));
@@ -168,29 +148,44 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
     });
   }
 
+  // ---- Configuration box (RIGHT, top) ----
+  const rightX = podX + podW + COL_GAP;
+  let configBox: Rect | null = null;
+  if (hasConfig) {
+    configBox = { x: rightX, y: sideBoxTop, w: CONFIG_W, h: 96 };
+    body.push(dashedBox('#fdf6d3', '#c9b258', configBox, 'Configuration'));
+    let ix = rightX + 34;
+    const iconY = sideBoxTop + 56;
+    if (s.config.configMaps.length > 0) {
+      body.push(aggregateIcon(s.config.configMaps, 'ConfigMap', ix, iconY));
+      ix += 84;
+    }
+    if (s.config.secrets.length > 0) body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
+  }
+
+  // ---- Storage popup (RIGHT, at the volumes' height, below the Configuration box) ----
   let storageBottom = 0;
+  let storageBoxRect: Rect | null = null;
   if (selectedVolume) {
-    // Sits at the volumes box's own height (bottom of the Pod boundary) — the clicked volume lives there, so its
-    // storage chain reads as an extension of it rather than floating up by the Network box. Never overlaps the
-    // Network box above it.
-    const storageTop = Math.max(volBox ? volBox.y : sideBoxTop, serviceBox ? serviceBox.y + serviceBox.h + 16 : 0);
+    const storageTop = Math.max(volBox ? volBox.y : sideBoxTop, configBox ? configBox.y + configBox.h + 16 : 0);
     const rendered = storageDetail(s, selectedVolume, rightX, storageTop);
     body.push(rendered.svg);
+    storageBoxRect = { x: rightX, y: storageTop, w: STORAGE_W, h: rendered.h };
     storageBottom = storageTop + rendered.h;
   }
 
   // ---- edges (all drawn as right-angle elbows, never diagonal) ----
   // Container selection and volume selection are independent: a selected container ALWAYS draws its own wiring
-  // (ports → the matching Service icon(s), mounts → volume tiles), and clicking a volume ADDS its storage/config
-  // line without clearing those. Picking a different container radio recomputes this from scratch for the new one.
+  // (ports → the matching Service icon(s), mounts → volume tiles), and clicking a volume ADDS its storage detail
+  // without clearing those. Picking a different container radio recomputes this from scratch for the new one.
   const edges: string[] = [];
   const sel = selectedContainer ? cards.find((c) => c.c.name === selectedContainer) : undefined;
   if (sel) {
     const { c, rect } = sel;
-    // ports → only the Service icon(s) whose targetPort matches one of this container's declared ports.
+    // ports → the matching Service icon(s) on the LEFT (out the container's left edge).
     for (const si of serviceIcons) {
       if (!serviceMatchesContainer(si.ref, c)) continue;
-      edges.push(edge(orthoHV(rect.x + rect.w, rect.y + rect.h / 2, si.x - ICON_R, si.y), 'solid'));
+      edges.push(edge(orthoHV(rect.x, rect.y + rect.h / 2, si.x + ICON_R, si.y), 'solid'));
     }
     const meetY = volBox ? volBox.y - 6 : rect.y + rect.h + 12;
     for (const m of c.mounts) {
@@ -204,18 +199,18 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       if (target) edges.push(edge(orthoVHV(rect.x + rect.w / 2, rect.y, target.x + target.w / 2, target.y + target.h, (rect.y + target.y + target.h) / 2), 'target'));
     }
   }
-  // A clicked configMap/secret VOLUME draws a line from its tile OUT the left side of the volumes area, then up
-  // to the matching k8s icon in the Configuration box (so it never runs up through the container cards).
-  if (selectedVolume && configBox) {
-    const vr = volRectByName.get(selectedVolume.name);
-    const target = selectedVolume.type === 'configMap' ? configCmIcon : selectedVolume.type === 'secret' ? configSecretIcon : null;
-    if (vr && target) edges.push(edge(orthoHVH(vr.x, vr.y + vr.h / 2, podX - 16, target.x, target.y), 'solid'));
+  // A clicked configMap/secret volume (always node-local) draws a plain dashed line from the storage popup box
+  // up to the Configuration box — box edge to box edge — since the volume's data comes from a ConfigMap/Secret
+  // in that group.
+  if (selectedVolume && configBox && storageBoxRect && (selectedVolume.type === 'configMap' || selectedVolume.type === 'secret')) {
+    const lx = rightX + 28;
+    edges.push(dashedConnector(lx, configBox.y + configBox.h, lx, storageBoxRect.y));
   }
 
-  const hasRightCol = hasService || !!selectedVolume;
-  const rightColW = Math.max(hasService ? SERVICE_W : 0, selectedVolume ? STORAGE_W : 0);
+  const hasRightCol = hasConfig || !!selectedVolume;
+  const rightColW = Math.max(hasConfig ? CONFIG_W : 0, selectedVolume ? STORAGE_W : 0);
   const canvasW = (hasRightCol ? rightX + rightColW : podX + podW) + MARGIN;
-  const canvasH = Math.max(boundaryBottom, storageBottom, serviceBox ? serviceBox.y + serviceBox.h : 0) + MARGIN;
+  const canvasH = Math.max(boundaryBottom, storageBottom, networkBox ? networkBox.y + networkBox.h : 0) + MARGIN;
 
   // Small call-to-action just above the Pod boundary telling the user how to drive the diagram.
   const instruct = selectedContainer
@@ -379,22 +374,38 @@ function storageDetail(s: SchematicDto, v: Volume, x: number, y: number): { svg:
     }
   }
 
-  const ROW = 64;
-  const box: Rect = { x, y, w: STORAGE_W, h: 30 + items.length * ROW + 6 };
-  const parts: string[] = [dashedBox('#ede9e0', '#a99', box, `Storage · ${clip(v.name, 16)}`)];
+  // Taller rows (was 64) so each icon's colored background disc and the name below it have clear air between
+  // them and the next item (see the per-icon background below).
+  const ROW = 82;
+  const box: Rect = { x, y, w: STORAGE_W, h: 30 + items.length * ROW + 8 };
+  // A PVC→PV persistent volume gets the Deployment schematic's own Storage-group background; a node-local
+  // volume (configMap/secret/emptyDir/hostPath) keeps the neutral fill.
+  const [boxFill, boxStroke] = v.implementation === 'local' ? ['#ede9e0', '#a99'] : ['#fbe3c2', '#c9974f'];
+  const parts: string[] = [dashedBox(boxFill, boxStroke, box, `Storage · ${clip(v.name, 16)}`)];
   const cx = x + STORAGE_W / 2;
   items.forEach((it, i) => {
-    const iy = y + 44 + i * ROW;
-    if (i > 0) parts.push(`<line x1="${cx}" y1="${iy - ROW + 20}" x2="${cx}" y2="${iy - 20}" stroke="var(--vpk-fg,#555)" stroke-width="1.2" marker-end="url(#cs-solid)" />`);
+    const iy = y + 50 + i * ROW;
+    if (i > 0) parts.push(`<line x1="${cx}" y1="${iy - ROW + 26}" x2="${cx}" y2="${iy - 26}" stroke="var(--vpk-fg,#555)" stroke-width="1.2" marker-end="url(#cs-solid)" />`);
     if (it.glyph === 'localdisk') {
       // A small disk/cylinder glyph for node-local storage (no K8s icon exists for "the node's own disk").
-      parts.push(`<ellipse cx="${cx}" cy="${iy - 12}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" /><rect x="${cx - 15}" y="${iy - 12}" width="30" height="18" fill="#e8e2d4" stroke="#a99" /><ellipse cx="${cx}" cy="${iy + 6}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" />`);
+      const g =
+        `<ellipse cx="${cx}" cy="${iy - 12}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" /><rect x="${cx - 15}" y="${iy - 12}" width="30" height="18" fill="#e8e2d4" stroke="#a99" /><ellipse cx="${cx}" cy="${iy + 6}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" />`;
+      parts.push(`<g data-names="${esc(JSON.stringify([`${v.type} (node-local storage)`]))}">${g}</g>`);
     } else {
-      const icon = `<image href="${iconPathForKind(it.kind)}" x="${cx - 17}" y="${iy - 17}" width="34" height="34" />`;
+      // A colored background disc behind the icon, using the kind's own themeable color — only when that kind
+      // actually has a color defined (KIND_COLOR), otherwise a plain icon. data-names carries the resource TYPE
+      // (plus name) so the shared hover tooltip shows what it is.
+      const bg = it.kind in KIND_COLOR ? `<circle cx="${cx}" cy="${iy - 2}" r="21" fill="${cssKindVar(it.kind)}" />` : '';
+      const icon = bg + `<image href="${iconPathForKind(it.kind)}" x="${cx - 17}" y="${iy - 19}" width="34" height="34" />`;
+      const names = esc(JSON.stringify([`${it.kind} · ${it.label}`]));
       const clickable = it.ref && !it.ref.id.includes('/');
-      parts.push(clickable ? `<g data-resource-id="${esc(it.ref!.id)}" data-names="${esc(JSON.stringify([it.label]))}" style="cursor:pointer">${icon}</g>` : icon);
+      parts.push(
+        clickable
+          ? `<g data-resource-id="${esc(it.ref!.id)}" data-names="${names}" style="cursor:pointer">${icon}</g>`
+          : `<g data-names="${names}">${icon}</g>`,
+      );
     }
-    parts.push(`<text x="${cx}" y="${iy + 24}" text-anchor="middle" font-size="9" fill="#333">${esc(clip(it.label, 24))}</text>`);
+    parts.push(`<text x="${cx}" y="${iy + 30}" text-anchor="middle" font-size="9" fill="#333">${esc(clip(it.label, 24))}</text>`);
   });
   return { svg: parts.join(''), h: box.h };
 }
@@ -492,22 +503,14 @@ function legend(podName: string): string {
   );
 }
 
-/** All connectors are right-angle elbows (per feedback: 90° bends, never diagonal). Three routers cover the
- *  cases: HV for card→Network (out sideways, up, in), VHV for card→volume (down to a corridor above the
- *  volumes box, across, down into the tile), and Vup for a volume tile→Configuration icon (straight up, then
- *  across to the icon). */
+/** Right-angle elbow routers (per feedback: 90° bends, never diagonal). HV for card→Network (out sideways, up,
+ *  in); VHV for card→volume (down to a corridor above the volumes box, across, down into the tile). */
 function orthoHV(x1: number, y1: number, x2: number, y2: number): string {
   const xm = (x1 + x2) / 2;
   return `M${x1} ${y1} H${xm} V${y2} H${x2}`;
 }
 function orthoVHV(x1: number, y1: number, x2: number, y2: number, meetY: number): string {
   return `M${x1} ${y1} V${meetY} H${x2} V${y2}`;
-}
-/** Horizontal out to a corridor X, up/down, then horizontal to the target — used for a volume tile→Configuration
- *  icon line so it exits the LEFT side of the volumes area (via `cx`, just left of the Pod boundary) and rises
- *  up the gap to the icon, rather than cutting straight up through the container cards. */
-function orthoHVH(x1: number, y1: number, cx: number, x2: number, y2: number): string {
-  return `M${x1} ${y1} H${cx} V${y2} H${x2}`;
 }
 
 function edge(d: string, kind: 'solid' | 'shares' | 'target'): string {
@@ -518,6 +521,12 @@ function edge(d: string, kind: 'solid' | 'shares' | 'target'): string {
         ? [EPHEMERAL, ' stroke-dasharray="4 3"', 'cs-pur']
         : ['var(--vpk-fg, #444)', '', 'cs-solid'];
   return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.3"${dash} marker-end="url(#${marker})" />`;
+}
+
+/** A plain (arrow-less) dashed connector — the storage-popup → Configuration box link for a node-local
+ *  configMap/secret volume, drawn box edge to box edge. */
+function dashedConnector(x1: number, y1: number, x2: number, y2: number): string {
+  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="var(--vpk-fg-muted, #888)" stroke-width="1.2" stroke-dasharray="4 3" />`;
 }
 
 function clip(str: string, max: number): string {
