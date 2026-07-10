@@ -75,8 +75,18 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const hasService = s.network.services.length > 0;
   const hasVolumes = s.volumes.length > 0;
 
-  // Network is the LEFT column now (swapped with Configuration, which moved to the right).
-  const podX = MARGIN + (hasService ? SERVICE_W + COL_GAP : 0);
+  // The selected container (if any) — used both for muting and for the "no Service" case below.
+  const selectedC = selectedContainer ? sections.flatMap((sec) => sec.items).find((c) => c.name === selectedContainer) : undefined;
+  // A selected container that declares ports which NO Service routes to (e.g. a Prometheus `:metrics` port
+  // scraped directly, never fronted by a Service). We surface that explicitly with an "undefined service"
+  // marker + a line to it, so the missing Service line reads as intentional, not a gap in the diagram.
+  const selHasUnexposedPorts =
+    !!selectedC && selectedC.ports.length > 0 && !s.network.services.some((svc) => serviceMatchesContainer(svc, selectedC));
+
+  // Network is the LEFT column now (swapped with Configuration, which moved to the right). The column is also
+  // reserved when the only thing to show there is the "no Service" marker (a pod with no Services at all).
+  const needLeftCol = hasService || selHasUnexposedPorts;
+  const podX = MARGIN + (needLeftCol ? SERVICE_W + COL_GAP : 0);
   const podInnerX = podX + POD_PAD;
   const boundaryTop = MARGIN + TITLE_H;
 
@@ -89,7 +99,6 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   // With a container selected, everything that isn't wired to it is muted (greyed + non-interactive): the OTHER
   // container cards, and every volume the selected container doesn't mount. Focuses the view on the one
   // container; a second click on its radio clears the selection and re-enables everything.
-  const selectedC = selectedContainer ? sections.flatMap((sec) => sec.items).find((c) => c.name === selectedContainer) : undefined;
   const selectedMounts: Set<string> | null = selectedC ? new Set(selectedC.mounts.map((m) => m.volumeName)) : null;
 
   const body: string[] = [];
@@ -156,6 +165,17 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
     });
   }
 
+  // "No Service" marker (below the Network box, LEFT) — shown ONLY while a container with Service-less ports is
+  // selected. The unk.svg icon + label makes clear the selected container's port(s) aren't fronted by any
+  // Service (so the absent Service line is intentional). Removed automatically when the selection changes.
+  let unkIcon: { x: number; y: number } | null = null;
+  if (selHasUnexposedPorts) {
+    const cx = MARGIN + SERVICE_W / 2;
+    const uy = (networkBox ? networkBox.y + networkBox.h + 28 : sideBoxTop) + 18;
+    body.push(unknownServiceMarker(cx, uy));
+    unkIcon = { x: cx, y: uy };
+  }
+
   // ---- Configuration box (RIGHT, top) ----
   const rightX = podX + podW + COL_GAP;
   let configBox: Rect | null = null;
@@ -195,6 +215,8 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       if (!serviceMatchesContainer(si.ref, c)) continue;
       edges.push(edge(orthoHV(rect.x, rect.y + rect.h / 2, si.x + ICON_R, si.y), 'solid'));
     }
+    // ...or, if it has ports but no Service routes to them, a line to the "no Service" marker instead.
+    if (unkIcon) edges.push(edge(orthoHV(rect.x, rect.y + rect.h / 2, unkIcon.x + ICON_R, unkIcon.y), 'solid'));
     const meetY = volBox ? volBox.y - 6 : rect.y + rect.h + 12;
     for (const m of c.mounts) {
       const vr = volRectByName.get(m.volumeName);
@@ -218,7 +240,7 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
   const hasRightCol = hasConfig || !!selectedVolume;
   const rightColW = Math.max(hasConfig ? CONFIG_W : 0, selectedVolume ? STORAGE_W : 0);
   const canvasW = (hasRightCol ? rightX + rightColW : podX + podW) + MARGIN;
-  const canvasH = Math.max(boundaryBottom, storageBottom, networkBox ? networkBox.y + networkBox.h : 0) + MARGIN;
+  const canvasH = Math.max(boundaryBottom, storageBottom, networkBox ? networkBox.y + networkBox.h : 0, unkIcon ? unkIcon.y + 34 : 0) + MARGIN;
 
   // Small call-to-action just above the Pod boundary telling the user how to drive the diagram.
   const instruct = selectedContainer
@@ -447,6 +469,19 @@ function serviceIcon(svc: Service, cx: number, cy: number): string {
     `<g data-resource-id="${esc(svc.id)}" data-names="${esc(JSON.stringify([svc.name]))}" style="cursor:pointer">` +
     iconImage('Service', cx, cy) +
     `<text x="${cx}" y="${cy + 28}" text-anchor="middle" font-size="8.5" fill="#555">${esc(clip(svc.name, 22))}</text>` +
+    `</g>`
+  );
+}
+
+/** The "no Service" marker (unk.svg + label) shown when the selected container's port(s) aren't fronted by any
+ *  Service — e.g. a `:metrics` port scraped directly by Prometheus. data-names explains it on hover. */
+function unknownServiceMarker(cx: number, cy: number): string {
+  const R = 18;
+  const tip = esc(JSON.stringify(["No Service routes to this container's port(s)"]));
+  return (
+    `<g data-names="${tip}">` +
+    `<image href="/icons/other/unk.svg" x="${cx - R}" y="${cy - R}" width="${R * 2}" height="${R * 2}" />` +
+    `<text x="${cx}" y="${cy + 28}" text-anchor="middle" font-size="8.5" fill="#a06a2c">no Service</text>` +
     `</g>`
   );
 }

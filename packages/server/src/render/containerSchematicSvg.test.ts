@@ -214,15 +214,36 @@ describe('renderContainerSchematicSvg', () => {
 
   it('links a selected container only to the Service whose targetPort matches one of its ports', () => {
     const solid = (svg: string) => svg.match(/<path[^>]*marker-end="url\(#cs-solid\)"/g) ?? [];
-    // app declares port 8080; svc targetPorts [8080] matches -> a solid service line exists.
-    expect(solid(renderContainerSchematicSvg(base, { selectedContainer: 'app' })).length).toBeGreaterThan(0);
-    // Same container, but the service now targets a port the container doesn't declare -> no service line.
+    // app declares port 8080; svc targetPorts [8080] matches -> a solid service line, and NO "no Service" marker.
+    const matched = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    expect(solid(matched).length).toBeGreaterThan(0);
+    expect(matched).not.toContain('/icons/other/unk.svg');
+    // Same container, but the service targets a port it doesn't declare -> the "no Service" marker appears instead.
     const noMatch: SchematicDto = {
       ...base,
       network: { services: [{ id: 'svc-1', name: 'web-api', targetPorts: [9999] }], endpoints: [], endpointKind: 'Endpoints' },
     };
-    // app's only mount is the shared `data` (red), so with no service match there is no solid path at all.
-    expect(solid(renderContainerSchematicSvg(noMatch, { selectedContainer: 'app' }))).toHaveLength(0);
+    expect(renderContainerSchematicSvg(noMatch, { selectedContainer: 'app' })).toContain('/icons/other/unk.svg');
+  });
+
+  it('shows a "no Service" marker + line when the selected container has ports no Service routes to', () => {
+    const dto: SchematicDto = {
+      ...base,
+      containers: [c('metrics', { image: 'exporter', ready: true, stateLabel: 'Running', ports: [{ containerPort: 9216, protocol: 'TCP', name: 'metrics' }] })],
+      initContainers: [],
+      ephemeralContainers: [],
+      network: { services: [{ id: 'svc-1', name: 'web', targetPorts: [8080] }], endpoints: [], endpointKind: 'Endpoints' },
+    };
+    const svg = renderContainerSchematicSvg(dto, { selectedContainer: 'metrics' });
+    expect(svg).toContain('/icons/other/unk.svg'); // the unk marker icon
+    expect(svg).toContain('>no Service<'); // its label
+    expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/); // a line to it
+  });
+
+  it('does NOT show the "no Service" marker when the port IS exposed, when nothing is selected, or with no ports', () => {
+    expect(renderContainerSchematicSvg(base, { selectedContainer: 'app' })).not.toContain('/icons/other/unk.svg'); // 8080 exposed
+    expect(renderContainerSchematicSvg(base)).not.toContain('/icons/other/unk.svg'); // nothing selected
+    expect(renderContainerSchematicSvg(base, { selectedContainer: 'sidecar' })).not.toContain('/icons/other/unk.svg'); // no ports
   });
 
   it('gives every volume tile a uniform 1px border, highlighting only the selected one', () => {
