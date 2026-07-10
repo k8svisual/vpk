@@ -21,11 +21,15 @@ function ctx(objects: RawObject[], overrides: Partial<CheckContext> = {}): Check
   };
 }
 
+// `status.readyReplicas` matches `spec.replicas` — a healthy, fully-Ready Deployment. Tests that specifically
+// exercise the FUNCTIONAL axis (broken/partial) build their own fixture with a different status; everything
+// else uses this one so conformance-focused assertions aren't accidentally contaminated by 'broken'.
 const deployment: RawObject = {
   apiVersion: 'apps/v1',
   kind: 'Deployment',
   metadata: { uid: 'd1', name: 'web', namespace: 'student-x' },
   spec: { replicas: 3, selector: { matchLabels: { app: 'web' } }, template: { spec: { containers: [{ name: 'web', image: 'nginx:1.25' }] } } },
+  status: { readyReplicas: 3 },
 };
 const service: RawObject = {
   apiVersion: 'v1',
@@ -317,6 +321,19 @@ describe('evaluateStep', () => {
     const step = evaluateStep([clusterBroken, inventoryMatch], unreachable, { strictness: 'loose', passWhen: 'functional', floor: 'loose' });
     expect(step.level).toBe('not-yet-working');
     expect(step.status).toBe('fail');
+  });
+
+  // Design-doc §7.9 pressure test, quadrant B: the OPPOSITE of "working-with-differences" above — shape
+  // matches the reference exactly (conformant), but the Deployment is CrashLooping (0/3 ready), so it isn't
+  // actually running. Proves the two axes are independent: conformance alone can't tell you it's broken.
+  it('not-yet-working: reference-shaped Deployment+Service, but CrashLooping — conformant does not imply working', () => {
+    const crashLooping: RawObject = { ...deployment, status: { readyReplicas: 0 } };
+    const step = evaluateStep([inventoryMatch], ctx([crashLooping]), { strictness: 'strict', passWhen: 'functional', floor: 'loose' });
+    expect(step.checks[0]?.conformance).toBe('matched'); // shape is exactly right
+    expect(step.checks[0]?.functional).toBe('broken'); // but nothing is actually running
+    expect(step.level).toBe('not-yet-working');
+    expect(step.status).toBe('fail');
+    expect(step.feedback[0]).toMatchObject({ severity: 'blocker' });
   });
 
   it('passWhen "conformant" requires full match even if functional would already pass', () => {

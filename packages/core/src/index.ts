@@ -29,4 +29,5 @@ export * from './projections/podsOnNode';
 export * from './course/types';
 export * from './course/paths';
 export * from './course/selectors';
+export * from './course/functional';
 export * from './course/evaluate';
