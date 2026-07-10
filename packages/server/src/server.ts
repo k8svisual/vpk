@@ -37,6 +37,8 @@ import {
   type VendorIconOverride,
   type NetworkCatalogOverride,
   type MeshCatalogOverride,
+  type PureCheck,
+  type StepPolicy,
 } from '@vpk/core';
 import { DEMO_TEMPLATES, extractPlaceholders, fillTemplate, resolvePattern } from '@vpk/demo-data';
 import {
@@ -69,6 +71,8 @@ import { loadSnapshotFile, loadSnapshotExplains } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
+import { probeClusterFacts } from './course/env';
+import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
 import { collectSystemDiagnostics } from './diagnostics';
 import { listResources } from './resources';
@@ -407,6 +411,91 @@ app.post('/capture/validate', async (req) => {
   const result = await validateCli(cliArgv);
   pushLog(result.ok ? 'info' : 'warn', `Validate "${cliArgv.join(' ')}": ${result.message}`);
   return result;
+});
+
+// Training Course mode (redesign/training-course.md §7/§9) — an opt-in MUTATING exception to VpK's normal
+// read-only stance (see DESIGN.md §1's signed-off exception), scoped entirely to these /course/* routes.
+// Environment/provisioner/capability probe: extends /capture/validate's "can this CLI even run" into the
+// fuller read the Lesson-Zero recommender and a ClusterCheck both need. Same cli-override contract as
+// /capture/validate.
+app.post('/course/env', async (req) => {
+  const { cli: cliOverride } = (req.body ?? {}) as { cli?: string };
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+  return probeClusterFacts(cliArgv);
+});
+
+/** The one course check that can be running at a time (same "just one at a time" simplicity as capture,
+ *  reasonable for a single-user local tool) — set for the duration of the /course/check route below, cleared
+ *  in its `finally`. /course/check/cancel aborts whichever one is currently set. */
+let activeCourseCheckController: AbortController | null = null;
+
+// Streams newline-delimited JSON StepResults as a step's checks are (re-)evaluated — one line per evaluation,
+// so a polling check (e.g. `timeoutMs` set while waiting for `minikube start` to bring nodes up) shows live
+// progress instead of one opaque wait, ending with a final {type:'done', result}/{type:'cancelled'} line.
+// Same reply.hijack() + ndjson pattern as /capture.
+app.post('/course/check', async (req, reply) => {
+  const {
+    checks,
+    policy,
+    cli: cliOverride,
+    timeoutMs,
+    pollMs,
+  } = (req.body ?? {}) as {
+    checks?: PureCheck[];
+    policy?: StepPolicy;
+    cli?: string;
+    timeoutMs?: number;
+    pollMs?: number;
+  };
+  if (!Array.isArray(checks) || checks.length === 0 || !policy) {
+    reply.code(400);
+    return { error: 'expected { checks: PureCheck[], policy: StepPolicy }' };
+  }
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+
+  reply.hijack();
+  reply.raw.writeHead(200, { 'content-type': 'application/x-ndjson', 'cache-control': 'no-cache' });
+  let ended = false;
+  const send = (evt: unknown) => {
+    if (!ended) reply.raw.write(JSON.stringify(evt) + '\n');
+  };
+
+  const controller = new AbortController();
+  activeCourseCheckController = controller;
+
+  pushLog('info', `Course check started — cli="${cliArgv.join(' ')}" checks=${checks.map((c) => c.id).join(',')}`);
+  try {
+    const result = await runStepLive(checks, {
+      cli: cliArgv,
+      policy,
+      timeoutMs,
+      pollMs,
+      signal: controller.signal,
+      onProgress: (r) => send({ type: 'progress', result: r }),
+    });
+    if (controller.signal.aborted) {
+      pushLog('warn', 'Course check cancelled by user');
+      send({ type: 'cancelled' });
+    } else {
+      pushLog('info', `Course check finished — status=${result.status} level=${result.level}`);
+      send({ type: 'done', result });
+    }
+  } catch (e: unknown) {
+    pushLog('error', `Course check failed: ${String(e)}`);
+    send({ type: 'error', error: String(e) });
+  } finally {
+    ended = true;
+    if (activeCourseCheckController === controller) activeCourseCheckController = null;
+    reply.raw.end();
+  }
+});
+
+app.post('/course/check/cancel', async () => {
+  if (activeCourseCheckController) {
+    activeCourseCheckController.abort();
+    return { ok: true, cancelled: true };
+  }
+  return { ok: true, cancelled: false };
 });
 
 app.get('/logs', async () => ({ logs: getLogs() }));

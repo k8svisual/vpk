@@ -219,13 +219,17 @@ export function parseApiResourcesWide(output: string): ApiResource[] {
   return resources.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function getOneKind(cli: string[], kind: string, namespaced: boolean, signal?: AbortSignal): Promise<RawObject[]> {
+/** Exported for course/env.ts's cluster-facts probe — `getOneKind(cli, 'nodes', false, signal)` fetches the
+ *  Node list the same way a capture would, without needing a second implementation of the argv/JSON-parse
+ *  plumbing. */
+export async function getOneKind(cli: string[], kind: string, namespaced: boolean, signal?: AbortSignal): Promise<RawObject[]> {
   const args = [...cli, 'get', kind, '-o', 'json', ...(namespaced ? ['-A'] : [])];
   const doc = JSON.parse(await runCli(args, signal)) as { items?: RawObject[] };
   return doc.items ?? [];
 }
 
-async function currentContext(cli: string[], signal?: AbortSignal): Promise<string> {
+/** Exported for course/env.ts — same "unknown" fallback-on-failure contract callers there rely on. */
+export async function currentContext(cli: string[], signal?: AbortSignal): Promise<string> {
   try {
     return (await runCli([...cli, 'config', 'current-context'], signal)).trim() || 'unknown';
   } catch {
@@ -266,8 +270,12 @@ export async function validateCli(cliArgv: string[]): Promise<ValidateResult> {
  *  see CaptureOptions.signal's own doc comment. The group-kill matters because `cli` isn't always a single
  *  compiled binary: a wrapper (`ssh host kubectl`, a custom shell shim) spawns its own grandchildren, which a
  *  plain kill on the direct child's PID would leave orphaned and still running after "Cancel" — confirmed live
- *  during testing (a `sleep`-based test double's own child outlived the SIGTERM until this was added). */
-function runCli(argv: string[], signal?: AbortSignal): Promise<string> {
+ *  during testing (a `sleep`-based test double's own child outlived the SIGTERM until this was added).
+ *
+ *  Exported for course/env.ts's cluster-facts probe (`kubectl version -o json`, etc.) — same argv-only, no-
+ *  shell, abortable contract every other CLI invocation in this codebase relies on; a second implementation
+ *  of this would either drop the group-kill behavior or duplicate it. */
+export function runCli(argv: string[], signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = argv;
     if (!cmd) {
