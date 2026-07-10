@@ -24,6 +24,12 @@ export interface LessonFrontmatter {
   allow?: string[];
   /** True for a provisioning lesson (§9) — no student namespace exists yet, `sandbox` is meaningless. */
   provisioning?: boolean;
+  /** How long a check keeps polling before giving up — maps straight onto RunStepLiveOptions.timeoutMs/
+   *  pollMs. Most lessons don't need this (an instant, single-shot evaluation is the default everywhere in
+   *  the check engine); a provisioning lesson waiting on `minikube start` to bring nodes up is the case that
+   *  does. Milliseconds, matching RunStepLiveOptions — not a duration string, to avoid a second parser. */
+  timeoutMs?: number;
+  pollMs?: number;
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';

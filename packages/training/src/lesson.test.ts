@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { evaluateCheck } from './evaluate';
 import { blocksOfKind, parseLesson } from './lesson';
+import type { ClusterFacts, PureCheck } from './types';
 
 const FULL_LESSON = `---
 id: workloads-03-scale
@@ -133,5 +136,46 @@ describe('blocksOfKind', () => {
     expect(blocksOfKind(lesson, 'teardown')).toHaveLength(1);
     expect(blocksOfKind(lesson, 'detect')).toHaveLength(0);
     expect(blocksOfKind(lesson, 'quiz')).toHaveLength(0);
+  });
+});
+
+// Round-trip against the real, authored Lesson Zero content (courses/getting-started/00-get-a-cluster-
+// running.md) — catches drift between this module's contract and the actual content the moment either one
+// changes, the same way core's projection tests run against real captured snapshots rather than fixtures
+// alone.
+describe('the real Lesson Zero file (courses/getting-started/00-get-a-cluster-running.md)', () => {
+  const source = readFileSync(new URL('../../../courses/getting-started/00-get-a-cluster-running.md', import.meta.url), 'utf8');
+  const lesson = parseLesson(source);
+
+  it('parses without throwing and has the expected frontmatter', () => {
+    expect(lesson.frontmatter).toMatchObject({
+      id: 'getting-started-00-cluster',
+      title: 'Get a Cluster Running',
+      provisioning: true,
+      passWhen: 'functional',
+      floor: 'loose',
+      timeoutMs: 300000,
+      pollMs: 5000,
+    });
+  });
+
+  it('has exactly one vpk-detect block and two vpk-check blocks, no setup/teardown (nothing to seed pre-cluster)', () => {
+    expect(blocksOfKind(lesson, 'detect')).toHaveLength(1);
+    expect(blocksOfKind(lesson, 'check')).toHaveLength(2);
+    expect(blocksOfKind(lesson, 'setup')).toHaveLength(0);
+    expect(blocksOfKind(lesson, 'teardown')).toHaveLength(0);
+  });
+
+  it('both check blocks parse as real, evaluatable ClusterChecks — not just arbitrary YAML', () => {
+    const checks = blocksOfKind(lesson, 'check').map((b) => b.data as PureCheck);
+    const reachable: ClusterFacts = {
+      contextReachable: true,
+      nodes: { total: 2, ready: 2 },
+      capabilities: { multiNode: true },
+    };
+    for (const check of checks) {
+      const result = evaluateCheck(check, { graph: { nodes: new Map(), edges: [], byUid: new Map(), deduped: 0 }, cluster: reachable, answerKey: () => [] });
+      expect(result.functional).toBe('working');
+    }
   });
 });
