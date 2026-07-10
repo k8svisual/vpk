@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, Moon, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -377,22 +377,40 @@ interface HistoryEntry {
   error?: string;
 }
 
+type TerminalTheme = 'dark' | 'light';
+
+const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string }> = {
+  dark: { bg: '#000000', fg: '#f5f5f5', border: '#333333', mutedFg: '#9a9a9a', inputBg: '#111111' },
+  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2' },
+};
+
+const CLEAR_COMMANDS = new Set(['clear', 'cls']);
+
 function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
   const cliName = cli?.[0] ?? 'kubectl';
   const [line, setLine] = useState(`${cliName} get nodes`);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [running, setRunning] = useState(false);
-  // Shell-style Up/Down recall over PAST TYPED COMMANDS (not full history.length — history entries are
-  // appended asynchronously after a command finishes, so indexing off it directly would drift). null = not
-  // currently browsing (the input holds whatever the student is actively typing); draftRef preserves that
-  // in-progress text so pressing Down back past the oldest browsed entry restores it, matching real shells.
+  const [theme, setTheme] = useState<TerminalTheme>('dark');
+  // Shell-style Up/Down recall over PAST TYPED COMMANDS — kept in its own log, separate from `history` (the
+  // visible transcript), so `clear`/`cls` can wipe the screen without erasing recall, matching real shells.
+  // null = not currently browsing (the input holds whatever the student is actively typing); draftRef
+  // preserves that in-progress text so pressing Down back past the oldest browsed entry restores it.
+  const [commandLog, setCommandLog] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const draftRef = useRef('');
+  const colors = TERMINAL_COLORS[theme];
 
   async function run() {
     const cmd = line.trim();
     if (!cmd) return;
     setHistoryIndex(null);
+    setCommandLog((p) => [...p, cmd]);
+    if (CLEAR_COMMANDS.has(cmd.toLowerCase())) {
+      setHistory([]);
+      setLine('');
+      return;
+    }
     setRunning(true);
     try {
       const result = await postJson<CommandResult>('/course/command', { line: cmd, allow, cli: cli?.join(' ') });
@@ -410,24 +428,24 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
       return;
     }
     if (e.key === 'ArrowUp') {
-      if (history.length === 0) return;
+      if (commandLog.length === 0) return;
       e.preventDefault();
       if (historyIndex === null) {
         draftRef.current = line;
-        setHistoryIndex(history.length - 1);
-        setLine(history[history.length - 1]?.line ?? '');
+        setHistoryIndex(commandLog.length - 1);
+        setLine(commandLog[commandLog.length - 1] ?? '');
       } else if (historyIndex > 0) {
         setHistoryIndex(historyIndex - 1);
-        setLine(history[historyIndex - 1]?.line ?? '');
+        setLine(commandLog[historyIndex - 1] ?? '');
       }
       return;
     }
     if (e.key === 'ArrowDown') {
       if (historyIndex === null) return;
       e.preventDefault();
-      if (historyIndex < history.length - 1) {
+      if (historyIndex < commandLog.length - 1) {
         setHistoryIndex(historyIndex + 1);
-        setLine(history[historyIndex + 1]?.line ?? '');
+        setLine(commandLog[historyIndex + 1] ?? '');
       } else {
         setHistoryIndex(null);
         setLine(draftRef.current);
@@ -436,16 +454,28 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
   }
 
   return (
-    <div className="border rounded flex flex-col h-full" style={panelStyle}>
-      <div className="px-3 py-2 border-b flex items-center gap-1.5 text-xs font-medium" style={panelStyle}>
-        <TerminalIcon size={13} />
-        Terminal
+    <div className="border rounded flex flex-col h-full" style={{ borderColor: colors.border, background: colors.bg, color: colors.fg }}>
+      <div className="px-3 py-2 border-b flex items-center justify-between gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
+        <span className="flex items-center gap-1.5">
+          <TerminalIcon size={13} />
+          Terminal
+        </span>
+        <button
+          onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          title={theme === 'dark' ? 'Switch to light terminal' : 'Switch to dark terminal'}
+          className="flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer"
+          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
+        >
+          {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
+          {theme === 'dark' ? 'Light' : 'Dark'}
+        </button>
       </div>
-      <p className="px-3 pt-2 text-xs" style={mutedStyle}>
+      <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
         Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
-        tools, use your own system terminal. ↑/↓ recall previous commands.
+        tools, use your own system terminal. ↑/↓ recall previous commands, <code>clear</code>/<code>cls</code>{' '}
+        wipes the screen.
       </p>
-      <div className="flex gap-2 p-2 border-b" style={panelStyle}>
+      <div className="flex gap-2 p-2 border-b" style={{ borderColor: colors.border }}>
         <input
           value={line}
           onChange={(e) => {
@@ -454,9 +484,14 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
           }}
           onKeyDown={handleKeyDown}
           className="flex-1 text-xs px-2 py-1 rounded border font-mono"
-          style={{ ...panelStyle, background: 'var(--vpk-surface)' }}
+          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
         />
-        <button onClick={() => void run()} disabled={running} className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed" style={panelStyle}>
+        <button
+          onClick={() => void run()}
+          disabled={running}
+          className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed"
+          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
+        >
           {running ? '…' : 'Run'}
         </button>
       </div>
@@ -466,7 +501,7 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
             <div className="font-semibold">$ {entry.line}</div>
             {entry.result && (
               <>
-                <div style={mutedStyle}>
+                <div style={{ color: colors.mutedFg }}>
                   exit {entry.result.exitCode ?? 'aborted'} ({entry.result.durationMs}ms)
                 </div>
                 {entry.result.stdout && <pre className="whitespace-pre-wrap">{entry.result.stdout}</pre>}
