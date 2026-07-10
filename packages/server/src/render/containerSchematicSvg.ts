@@ -3,6 +3,7 @@ import type { SchematicDto } from '../schematic';
 
 type Container = SchematicDto['containers'][number];
 type Volume = SchematicDto['volumes'][number];
+type Service = SchematicDto['network']['services'][number];
 
 // var(--vpk-status-*) — inlined into the live DOM (see index.css theming), so it re-themes across all 4 themes.
 const STATUS_OK = 'var(--vpk-status-ok, #2e8b57)';
@@ -31,6 +32,8 @@ const CARD_GAP = 12;
 const SECTION_GAP = 10;
 const ROW_H = 18;
 const RADIO_CX_OFF = 18;
+const SERVICE_ROW_H = 50;
+const ICON_R = 18;
 
 interface Rect {
   x: number;
@@ -149,36 +152,45 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
     }
   }
 
-  // ---- Network box (right, top) + Storage-implementation box (right, below it) ----
+  // ---- Network box (right, top): ONE icon per Service, stacked vertically (top → down) ----
   const rightX = podX + podW + COL_GAP;
   let serviceBox: Rect | null = null;
+  const serviceIcons: { ref: Service; x: number; y: number }[] = [];
   if (hasService) {
-    serviceBox = { x: rightX, y: sideBoxTop, w: SERVICE_W, h: 80 };
+    const boxH = 26 + s.network.services.length * SERVICE_ROW_H + 8;
+    serviceBox = { x: rightX, y: sideBoxTop, w: SERVICE_W, h: boxH };
     body.push(dashedBox('#dbeefa', '#7aa9c9', serviceBox, 'Network'));
-    body.push(aggregateIcon(s.network.services, 'Service', rightX + SERVICE_W / 2, sideBoxTop + 52));
+    const cx = rightX + SERVICE_W / 2;
+    s.network.services.forEach((svc, i) => {
+      const iy = sideBoxTop + 30 + i * SERVICE_ROW_H + 18;
+      body.push(serviceIcon(svc, cx, iy));
+      serviceIcons.push({ ref: svc, x: cx, y: iy });
+    });
   }
 
   let storageBottom = 0;
   if (selectedVolume) {
-    // Sits well below the Network box (not crowding it) — the two are unrelated (one's the Service, one's the
-    // clicked volume's storage), so the gap makes that clear.
-    const storageTop = sideBoxTop + (hasService ? serviceBox!.h + 64 : 0);
+    // Sits at the volumes box's own height (bottom of the Pod boundary) — the clicked volume lives there, so its
+    // storage chain reads as an extension of it rather than floating up by the Network box. Never overlaps the
+    // Network box above it.
+    const storageTop = Math.max(volBox ? volBox.y : sideBoxTop, serviceBox ? serviceBox.y + serviceBox.h + 16 : 0);
     const rendered = storageDetail(s, selectedVolume, rightX, storageTop);
     body.push(rendered.svg);
     storageBottom = storageTop + rendered.h;
   }
 
   // ---- edges (all drawn as right-angle elbows, never diagonal) ----
+  // Container selection and volume selection are independent: a selected container ALWAYS draws its own wiring
+  // (ports → the matching Service icon(s), mounts → volume tiles), and clicking a volume ADDS its storage/config
+  // line without clearing those. Picking a different container radio recomputes this from scratch for the new one.
   const edges: string[] = [];
   const sel = selectedContainer ? cards.find((c) => c.c.name === selectedContainer) : undefined;
   if (sel) {
-    // The selected container's own wiring: its ports to the Network box, and each of its mounts down to the
-    // volume tile it uses (red when that volume is shared with another container). The line to a configMap/
-    // secret's icon in the Configuration box is deliberately NOT drawn here — it only appears when the volume
-    // tile itself is clicked (below), so container-select stays focused on "what does this one use".
     const { c, rect } = sel;
-    if (serviceBox && c.ports.length > 0) {
-      edges.push(edge(orthoHV(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2), 'solid'));
+    // ports → only the Service icon(s) whose targetPort matches one of this container's declared ports.
+    for (const si of serviceIcons) {
+      if (!serviceMatchesContainer(si.ref, c)) continue;
+      edges.push(edge(orthoHV(rect.x + rect.w, rect.y + rect.h / 2, si.x - ICON_R, si.y), 'solid'));
     }
     const meetY = volBox ? volBox.y - 6 : rect.y + rect.h + 12;
     for (const m of c.mounts) {
@@ -192,18 +204,18 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
       if (target) edges.push(edge(orthoVHV(rect.x + rect.w / 2, rect.y, target.x + target.w / 2, target.y + target.h, (rect.y + target.y + target.h) / 2), 'target'));
     }
   }
-  // A clicked configMap/secret VOLUME draws a line from its tile to the matching k8s icon in the Configuration
-  // box — this is the ONLY place that line appears (not on container-select), per the volume-driven model.
+  // A clicked configMap/secret VOLUME draws a line from its tile OUT the left side of the volumes area, then up
+  // to the matching k8s icon in the Configuration box (so it never runs up through the container cards).
   if (selectedVolume && configBox) {
     const vr = volRectByName.get(selectedVolume.name);
     const target = selectedVolume.type === 'configMap' ? configCmIcon : selectedVolume.type === 'secret' ? configSecretIcon : null;
-    if (vr && target) edges.push(edge(orthoVup(vr.x + vr.w / 2, vr.y, target.x, target.y), 'solid'));
+    if (vr && target) edges.push(edge(orthoHVH(vr.x, vr.y + vr.h / 2, podX - 16, target.x, target.y), 'solid'));
   }
 
   const hasRightCol = hasService || !!selectedVolume;
   const rightColW = Math.max(hasService ? SERVICE_W : 0, selectedVolume ? STORAGE_W : 0);
   const canvasW = (hasRightCol ? rightX + rightColW : podX + podW) + MARGIN;
-  const canvasH = Math.max(boundaryBottom, storageBottom) + MARGIN;
+  const canvasH = Math.max(boundaryBottom, storageBottom, serviceBox ? serviceBox.y + serviceBox.h : 0) + MARGIN;
 
   // Small call-to-action just above the Pod boundary telling the user how to drive the diagram.
   const instruct = selectedContainer
@@ -407,6 +419,25 @@ function iconImage(kind: string, cx: number, cy: number): string {
   return `<image href="${iconPathForKind(kind)}" x="${cx - R}" y="${cy - R}" width="${R * 2}" height="${R * 2}" />`;
 }
 
+/** One Service icon (clickable to open its definition) with its name clipped below — the Network box stacks one
+ *  of these per Service so a selected container can point a line at the specific one(s) that expose it. */
+function serviceIcon(svc: Service, cx: number, cy: number): string {
+  return (
+    `<g data-resource-id="${esc(svc.id)}" data-names="${esc(JSON.stringify([svc.name]))}" style="cursor:pointer">` +
+    iconImage('Service', cx, cy) +
+    `<text x="${cx}" y="${cy + 28}" text-anchor="middle" font-size="8.5" fill="#555">${esc(clip(svc.name, 22))}</text>` +
+    `</g>`
+  );
+}
+
+/** Whether a Service routes to this container: any of the Service's targetPorts matches one of the container's
+ *  declared ports — by number (numeric targetPort == containerPort) or by name (named targetPort == port name). */
+function serviceMatchesContainer(svc: Service, c: Container): boolean {
+  return svc.targetPorts.some((tp) =>
+    typeof tp === 'number' ? c.ports.some((p) => p.containerPort === tp) : c.ports.some((p) => p.name === tp),
+  );
+}
+
 /** One icon for every item of a kind, "(N)" when more than one — single item is directly clickable, multiple
  *  carry data-resource-list for the "Resources" list modal (same delegation as the Pod schematic). */
 function aggregateIcon(items: { id: string; name: string }[], kind: string, cx: number, cy: number): string {
@@ -472,8 +503,11 @@ function orthoHV(x1: number, y1: number, x2: number, y2: number): string {
 function orthoVHV(x1: number, y1: number, x2: number, y2: number, meetY: number): string {
   return `M${x1} ${y1} V${meetY} H${x2} V${y2}`;
 }
-function orthoVup(x1: number, y1: number, x2: number, y2: number): string {
-  return `M${x1} ${y1} V${y2} H${x2}`;
+/** Horizontal out to a corridor X, up/down, then horizontal to the target — used for a volume tile→Configuration
+ *  icon line so it exits the LEFT side of the volumes area (via `cx`, just left of the Pod boundary) and rises
+ *  up the gap to the icon, rather than cutting straight up through the container cards. */
+function orthoHVH(x1: number, y1: number, cx: number, x2: number, y2: number): string {
+  return `M${x1} ${y1} H${cx} V${y2} H${x2}`;
 }
 
 function edge(d: string, kind: 'solid' | 'shares' | 'target'): string {

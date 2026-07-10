@@ -50,7 +50,7 @@ const base: SchematicDto = {
   ],
   ownerChain: [],
   config: { configMaps: [{ id: 'cm-1', name: 'app-config' }], secrets: [] },
-  network: { services: [{ id: 'svc-1', name: 'web-api' }], endpoints: [], endpointKind: 'Endpoints' },
+  network: { services: [{ id: 'svc-1', name: 'web-api', targetPorts: [8080] }], endpoints: [], endpointKind: 'Endpoints' },
   storage: { pvcs: [], pvs: [], storageClasses: [], volumeAttachments: [] },
   security: {},
   node: { id: 'node-1', name: 'minikube' },
@@ -143,6 +143,53 @@ describe('renderContainerSchematicSvg', () => {
     // Clicking the cfg volume adds the extra line to the Configuration ConfigMap icon.
     expect(paths(volSel)).toBeGreaterThan(paths(contSel));
     expect(volSel).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
+  });
+
+  it('routes the ConfigMap line OUT the left (H first), not straight up through the cards', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app', selectedVolume: 'cfg' });
+    // orthoHVH starts horizontal: `M x y H …`. A straight-up route would start `M x y V …`.
+    expect(svg).toMatch(/<path d="M[\d.]+ [\d.]+ H/);
+  });
+
+  it('keeps the container→volume mount lines when a volume is then clicked', () => {
+    const contOnly = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    const contPlusVol = renderContainerSchematicSvg(base, { selectedContainer: 'app', selectedVolume: 'data' });
+    // app's mount edge to the shared `data` volume (red) must still be present after the volume is selected.
+    expect(contOnly).toMatch(/<path[^>]*marker-end="url\(#cs-red\)"/);
+    expect(contPlusVol).toMatch(/<path[^>]*marker-end="url\(#cs-red\)"/);
+    // ...and the storage sub-diagram is now also shown.
+    expect(contPlusVol).toContain('Storage · data');
+  });
+
+  it('renders one Service icon per service in the Network box, each clickable', () => {
+    const twoSvc: SchematicDto = {
+      ...base,
+      network: {
+        services: [
+          { id: 'svc-1', name: 'web-api', targetPorts: [8080] },
+          { id: 'svc-2', name: 'metrics', targetPorts: [9090] },
+        ],
+        endpoints: [],
+        endpointKind: 'Endpoints',
+      },
+    };
+    const svg = renderContainerSchematicSvg(twoSvc);
+    expect(svg).toContain('data-resource-id="svc-1"');
+    expect(svg).toContain('data-resource-id="svc-2"');
+    expect((svg.match(/icons\/k8\/svc\.svg/g) ?? []).length).toBe(2);
+  });
+
+  it('links a selected container only to the Service whose targetPort matches one of its ports', () => {
+    const solid = (svg: string) => svg.match(/<path[^>]*marker-end="url\(#cs-solid\)"/g) ?? [];
+    // app declares port 8080; svc targetPorts [8080] matches -> a solid service line exists.
+    expect(solid(renderContainerSchematicSvg(base, { selectedContainer: 'app' })).length).toBeGreaterThan(0);
+    // Same container, but the service now targets a port the container doesn't declare -> no service line.
+    const noMatch: SchematicDto = {
+      ...base,
+      network: { services: [{ id: 'svc-1', name: 'web-api', targetPorts: [9999] }], endpoints: [], endpointKind: 'Endpoints' },
+    };
+    // app's only mount is the shared `data` (red), so with no service match there is no solid path at all.
+    expect(solid(renderContainerSchematicSvg(noMatch, { selectedContainer: 'app' }))).toHaveLength(0);
   });
 
   it('gives every volume tile a uniform 1px border, highlighting only the selected one', () => {

@@ -18,7 +18,7 @@ export interface SchematicDto {
   generatorLabel?: string;
   config: { configMaps: { id: string; name: string }[]; secrets: { id: string; name: string }[] };
   network: {
-    services: { id: string; name: string }[];
+    services: { id: string; name: string; targetPorts: (number | string)[] }[];
     endpoints: { id: string; name: string }[];
     endpointKind: 'Endpoints' | 'EndpointSlice';
   };
@@ -65,7 +65,7 @@ export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto 
       secrets: s.config.secrets.map((c) => ({ id: c.id, name: c.name })),
     },
     network: {
-      services: s.network.services.map((sv) => ({ id: sv.id, name: sv.name })),
+      services: s.network.services.map((sv) => ({ id: sv.id, name: sv.name, targetPorts: sv.targetPorts })),
       endpoints: s.network.endpoints.map((e) => ({ id: e.id, name: e.name })),
       endpointKind: s.network.endpointKind,
     },

@@ -116,6 +116,12 @@ export interface SchematicRef {
   name: string;
   kind: string;
 }
+/** A Service ref plus the container-side ports it routes to (spec.ports[].targetPort, defaulting to `port`
+ *  when targetPort is omitted — a number or a named container port). The Container schematic uses this to draw
+ *  a line from a selected container to the specific Service(s) that expose one of its ports. */
+export interface SchematicServiceRef extends SchematicRef {
+  targetPorts: (number | string)[];
+}
 export interface SchematicOwnerLink {
   id: ResourceId;
   kind: string;
@@ -153,7 +159,7 @@ export interface PodSchematic {
   config: { configMaps: SchematicRef[]; secrets: SchematicRef[] };
   /** The Service(s) that target this Pod, plus the Endpoints/EndpointSlices backing them (merged into one list).
    *  `endpointKind` is the icon/kind to show for that merged list — EndpointSlice when any slice is present. */
-  network: { services: SchematicRef[]; endpoints: SchematicRef[]; endpointKind: 'Endpoints' | 'EndpointSlice' };
+  network: { services: SchematicServiceRef[]; endpoints: SchematicRef[]; endpointKind: 'Endpoints' | 'EndpointSlice' };
   /** pvcs -> their bound pvs -> those pvs' storage classes (DESIGN §6.9 pvc<-pv<-sc chain). volumeAttachments
    *  is a sibling branch off the same pvs, not chained through storageClasses — mirrors the 3D wheel's
    *  pvToVolumeAttachment (see wheel.ts), which deliberately keeps VolumeAttachment and StorageClass as
@@ -462,7 +468,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     else slicesByService.set(svcName, [r]);
   }
 
-  const services: SchematicRef[] = [];
+  const services: SchematicServiceRef[] = [];
   // Endpoints + EndpointSlices backing the Service(s) that target this Pod, merged into one list. Both kinds can
   // coexist (a cluster may still publish the legacy Endpoints object alongside EndpointSlices); when they do the
   // renderer shows the EndpointSlice icon over the combined list (see network.endpointKind).
@@ -474,7 +480,11 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     const subsets = (endpointsObj?.raw.subsets as { addresses?: { targetRef?: { uid?: string } }[] }[] | undefined) ?? [];
     const targets = subsets.flatMap((s) => s.addresses ?? []).map((a) => a.targetRef?.uid);
     if (!targets.includes(pod.uid ?? pod.id)) continue;
-    services.push({ id: svc.id, name: svc.name, kind: 'Service' });
+    // targetPort defaults to `port` when omitted (standard Service semantics) — this is the container-side port
+    // the Service routes to, matched against each container's declared ports by number or name in the renderer.
+    const svcPorts = (svc.raw.spec as { ports?: { port?: number; targetPort?: number | string }[] } | undefined)?.ports ?? [];
+    const targetPorts = svcPorts.map((p) => p.targetPort ?? p.port).filter((v): v is number | string => v !== undefined);
+    services.push({ id: svc.id, name: svc.name, kind: 'Service', targetPorts });
     if (endpointsObj) endpoints.push({ id: endpointsObj.id, name: endpointsObj.name, kind: 'Endpoints' });
     for (const es of slicesByService.get(svc.name) ?? []) {
       endpoints.push({ id: es.id, name: es.name, kind: 'EndpointSlice' });

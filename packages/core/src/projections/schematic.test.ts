@@ -521,3 +521,24 @@ describe('projectPodSchematic network endpoints/endpointSlices', () => {
     expect(n?.endpointKind).toBe('EndpointSlice');
   });
 })
+
+describe('projectPodSchematic service targetPorts', () => {
+  it('records each Service\'s targetPorts (defaulting to port when omitted)', () => {
+    const pod: RawObject = { apiVersion: 'v1', kind: 'Pod', metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' }, spec: { containers: [] } };
+    const svc: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Service',
+      metadata: { uid: 'svc-1', name: 'web', namespace: 'ns1' },
+      spec: { ports: [{ port: 80, targetPort: 8080 }, { port: 443, targetPort: 'https' }, { port: 9090 }] },
+    };
+    const endpoints: RawObject = {
+      apiVersion: 'v1',
+      kind: 'Endpoints',
+      metadata: { uid: 'ep-1', name: 'web', namespace: 'ns1' },
+      subsets: [{ addresses: [{ targetRef: { uid: 'pod-1' } }] }],
+    };
+    const svcRef = projectPodSchematic(buildGraph([pod, svc, endpoints]), 'pod-1')?.network.services[0];
+    expect(svcRef?.name).toBe('web');
+    expect(svcRef?.targetPorts).toEqual([8080, 'https', 9090]); // 3rd defaults targetPort -> port (9090)
+  });
+});

@@ -30,7 +30,7 @@ const base: SchematicDto = {
     { id: 'rs-1', kind: 'ReplicaSet', name: 'coredns-abc123' },
   ],
   config: { configMaps: [{ id: 'cm-1', name: 'coredns' }], secrets: [] },
-  network: { services: [{ id: 'svc-1', name: 'kube-dns' }], endpoints: [], endpointKind: 'Endpoints' },
+  network: { services: [{ id: 'svc-1', name: 'kube-dns', targetPorts: [] }], endpoints: [], endpointKind: 'Endpoints' },
   storage: { pvcs: [], pvs: [], storageClasses: [], volumeAttachments: [] },
   security: { serviceAccount: { id: 'sa-1', name: 'coredns' } },
   node: { id: 'node-1', name: 'minikube' },
@@ -71,7 +71,7 @@ describe('renderSchematicSvg', () => {
   it('draws the Endpoints icon between Service and Pod (Service --creates--> Endpoints --references--> Pod)', () => {
     const withEp: SchematicDto = {
       ...base,
-      network: { services: [{ id: 'svc-1', name: 'kube-dns' }], endpoints: [{ id: 'ep-1', name: 'kube-dns' }], endpointKind: 'Endpoints' },
+      network: { services: [{ id: 'svc-1', name: 'kube-dns', targetPorts: [] }], endpoints: [{ id: 'ep-1', name: 'kube-dns' }], endpointKind: 'Endpoints' },
     };
     const svg = renderSchematicSvg(withEp);
     expect(svg).toContain('icons/k8/ep.svg'); // the Endpoints icon is drawn
@@ -82,7 +82,7 @@ describe('renderSchematicSvg', () => {
     const withSlices: SchematicDto = {
       ...base,
       network: {
-        services: [{ id: 'svc-1', name: 'kube-dns' }],
+        services: [{ id: 'svc-1', name: 'kube-dns', targetPorts: [] }],
         endpoints: [
           { id: 'ep-1', name: 'kube-dns' },
           { id: 'es-1', name: 'kube-dns-abc' },
@@ -102,8 +102,8 @@ describe('renderSchematicSvg', () => {
       ...base,
       network: {
         services: [
-          { id: 'svc-1', name: 'a' },
-          { id: 'svc-2', name: 'b' },
+          { id: 'svc-1', name: 'a', targetPorts: [] },
+          { id: 'svc-2', name: 'b', targetPorts: [] },
         ],
         endpoints: [],
         endpointKind: 'Endpoints',
