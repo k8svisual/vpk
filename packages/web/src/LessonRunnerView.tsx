@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
 import { CheckCircle2, CircleAlert, Loader2, Moon, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 
@@ -58,6 +58,7 @@ interface StepResult {
   feedback: Array<{ severity: 'blocker' | 'difference' | 'tip'; message: string }>;
 }
 type CheckStreamEvent = { type: 'progress' | 'done'; result: StepResult } | { type: 'error'; error: string } | { type: 'cancelled' };
+type CheckStatus = 'pass' | 'fail' | 'error' | 'cancelled' | undefined;
 
 // No lesson catalog/picker UI yet (§13's GET /course/lessons exists server-side but nothing consumes it) —
 // this is the one lesson that exists, hardcoded until that's built.
@@ -89,6 +90,9 @@ export function LessonRunnerView() {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(null);
+  const [checkStatuses, setCheckStatuses] = useState<Record<string, CheckStatus>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 
@@ -96,7 +100,10 @@ export function LessonRunnerView() {
     let cancelled = false;
     getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(LESSON_ID)}`)
       .then((l) => {
-        if (!cancelled) setLesson(l);
+        if (!cancelled) {
+          setLesson(l);
+          setStartTime(new Date());
+        }
       })
       .catch((e: unknown) => {
         if (!cancelled) setLoadError(String(e instanceof Error ? e.message : e));
@@ -104,6 +111,21 @@ export function LessonRunnerView() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // The countdown clock ticks off wall time — a plain `setInterval` (not a check-poll cadence) is the
+  // right primitive since it only drives a display, never anything server-side.
+  useEffect(() => {
+    if (!startTime) return;
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+
+  const totalTasks = useMemo(() => (lesson ? lesson.segments.filter((s) => s.type === 'block' && s.block.kind === 'check').length : 0), [lesson]);
+  const completedTasks = useMemo(() => Object.values(checkStatuses).filter((s) => s === 'pass').length, [checkStatuses]);
+  const handleCheckStatus = useCallback((id: string, status: CheckStatus) => {
+    setCheckStatuses((p) => (p[id] === status ? p : { ...p, [id]: status }));
   }, []);
 
   useEffect(() => {
@@ -149,27 +171,88 @@ export function LessonRunnerView() {
   }
 
   return (
-    <div ref={containerRef} className="flex h-full min-h-0">
-      <div className="flex-1 min-w-0 overflow-auto pr-1">
-        <LessonPane lesson={lesson} />
-      </div>
-      <div
-        onMouseDown={startResize}
-        role="separator"
-        aria-orientation="vertical"
-        title="Drag to resize"
-        className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center"
-      >
-        <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
-      </div>
-      <div className="shrink-0" style={{ width: terminalWidth }}>
-        <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} cli={lesson.frontmatter.cli} />
+    <div className="flex flex-col h-full min-h-0">
+      {startTime && now && (
+        <CourseHeader
+          title={lesson.frontmatter.title}
+          startTime={startTime}
+          now={now}
+          estimatedMinutes={lesson.frontmatter.estimatedMinutes}
+          totalTasks={totalTasks}
+          completedTasks={completedTasks}
+        />
+      )}
+      <div ref={containerRef} className="flex flex-1 min-h-0 mt-2">
+        <div className="flex-1 min-w-0 overflow-auto pr-1">
+          <LessonPane lesson={lesson} onCheckStatus={handleCheckStatus} />
+        </div>
+        <div
+          onMouseDown={startResize}
+          role="separator"
+          aria-orientation="vertical"
+          title="Drag to resize"
+          className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center"
+        >
+          <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
+        </div>
+        <div className="shrink-0" style={{ width: terminalWidth }}>
+          <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} cli={lesson.frontmatter.cli} />
+        </div>
       </div>
     </div>
   );
 }
 
-function LessonPane({ lesson }: { lesson: ParsedLesson }) {
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function CourseHeader({
+  title,
+  startTime,
+  now,
+  estimatedMinutes,
+  totalTasks,
+  completedTasks,
+}: {
+  title: string;
+  startTime: Date;
+  now: Date;
+  estimatedMinutes?: number;
+  totalTasks: number;
+  completedTasks: number;
+}) {
+  const stopTime = estimatedMinutes !== undefined ? new Date(startTime.getTime() + estimatedMinutes * 60_000) : null;
+  const remainingMs = stopTime ? stopTime.getTime() - now.getTime() : null;
+  const overtime = remainingMs !== null && remainingMs < 0;
+  const timeFmt: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
+
+  return (
+    <div className="border rounded px-3 py-2 flex items-center justify-between gap-4 text-xs shrink-0" style={panelStyle}>
+      <div className="font-semibold text-sm truncate">{title}</div>
+      <div className="flex items-center gap-4 shrink-0" style={mutedStyle}>
+        <span>Start {startTime.toLocaleTimeString([], timeFmt)}</span>
+        {stopTime && <span>Stop {stopTime.toLocaleTimeString([], timeFmt)}</span>}
+        {remainingMs !== null && (
+          <span className="font-mono font-medium" style={overtime ? errorStyle : undefined}>
+            {overtime ? '+' : ''}
+            {formatCountdown(Math.abs(remainingMs))} {overtime ? 'over' : 'left'}
+          </span>
+        )}
+        {totalTasks > 0 && (
+          <span>
+            {completedTasks}/{totalTasks} tasks
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LessonPane({ lesson, onCheckStatus }: { lesson: ParsedLesson; onCheckStatus: (id: string, status: CheckStatus) => void }) {
   return (
     <div className="max-w-2xl space-y-4 pb-8">
       <header>
@@ -180,19 +263,27 @@ function LessonPane({ lesson }: { lesson: ParsedLesson }) {
         </div>
       </header>
       {lesson.segments.map((segment, i) => (
-        <LessonSegmentView key={i} segment={segment} lesson={lesson} />
+        <LessonSegmentView key={i} segment={segment} lesson={lesson} onCheckStatus={onCheckStatus} />
       ))}
     </div>
   );
 }
 
-function LessonSegmentView({ segment, lesson }: { segment: LessonSegment; lesson: ParsedLesson }) {
+function LessonSegmentView({
+  segment,
+  lesson,
+  onCheckStatus,
+}: {
+  segment: LessonSegment;
+  lesson: ParsedLesson;
+  onCheckStatus: (id: string, status: CheckStatus) => void;
+}) {
   if (segment.type === 'prose') return <ProseBlock markdown={segment.markdown} />;
   switch (segment.block.kind) {
     case 'detect':
       return <DetectCard cli={lesson.frontmatter.cli} />;
     case 'check':
-      return <CheckCard block={segment.block} lesson={lesson} />;
+      return <CheckCard block={segment.block} lesson={lesson} onStatusChange={onCheckStatus} />;
     case 'setup':
     case 'teardown':
     case 'quiz':
@@ -278,7 +369,7 @@ interface CheckBlockData {
  *  construct in the lesson format yet (flagged in the Lesson Zero content commit as an open question for the
  *  step-runner), so each check block simply gets its own card rather than the UI inventing a grouping the
  *  format doesn't express. */
-function CheckCard({ block, lesson }: { block: LessonBlock; lesson: ParsedLesson }) {
+function CheckCard({ block, lesson, onStatusChange }: { block: LessonBlock; lesson: ParsedLesson; onStatusChange: (id: string, status: CheckStatus) => void }) {
   const data = block.data as CheckBlockData;
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState<CheckStreamEvent[]>([]);
@@ -286,6 +377,14 @@ function CheckCard({ block, lesson }: { block: LessonBlock; lesson: ParsedLesson
 
   const latest = events.length > 0 ? events[events.length - 1] : undefined;
   const latestResult = latest && latest.type !== 'error' && latest.type !== 'cancelled' ? latest.result : undefined;
+  const status: CheckStatus = latest?.type === 'error' ? 'error' : latest?.type === 'cancelled' ? 'cancelled' : latestResult?.status;
+
+  useEffect(() => {
+    if (data.id) onStatusChange(data.id, status);
+    // onStatusChange is a stable useCallback from the parent — depending on it would be redundant, and the
+    // parent dedupes no-op updates anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, data.id]);
 
   async function run() {
     setRunning(true);
@@ -339,7 +438,6 @@ function CheckCard({ block, lesson }: { block: LessonBlock; lesson: ParsedLesson
     abortRef.current?.abort();
   }
 
-  const status = latest?.type === 'error' ? 'error' : latest?.type === 'cancelled' ? 'cancelled' : latestResult?.status;
   const icon =
     status === 'pass' ? (
       <CheckCircle2 size={15} style={{ color: 'var(--vpk-status-ok)' }} />
