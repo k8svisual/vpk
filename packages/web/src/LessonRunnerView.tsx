@@ -23,6 +23,7 @@ interface LessonFrontmatter {
   allow?: string[];
   timeoutMs?: number;
   pollMs?: number;
+  cli?: string[];
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
 interface LessonBlock {
@@ -119,7 +120,7 @@ export function LessonRunnerView() {
         <LessonPane lesson={lesson} />
       </div>
       <div className="w-[420px] shrink-0">
-        <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} />
+        <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} cli={lesson.frontmatter.cli} />
       </div>
     </div>
   );
@@ -146,7 +147,7 @@ function LessonSegmentView({ segment, lesson }: { segment: LessonSegment; lesson
   if (segment.type === 'prose') return <ProseBlock markdown={segment.markdown} />;
   switch (segment.block.kind) {
     case 'detect':
-      return <DetectCard />;
+      return <DetectCard cli={lesson.frontmatter.cli} />;
     case 'check':
       return <CheckCard block={segment.block} lesson={lesson} />;
     case 'setup':
@@ -169,13 +170,13 @@ function ProseBlock({ markdown }: { markdown: string }) {
  *  binaries a lesson's `tools:` list names (minikube/k3d/microk8s aren't independently detectable server-side
  *  yet — see env.ts's own doc comment on why provisioner detection is context-name-based, not a live binary
  *  probe). The block's authored `tools` list is aspirational until that exists. */
-function DetectCard() {
+function DetectCard({ cli }: { cli?: string[] }) {
   const [facts, setFacts] = useState<ClusterFacts | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    postJson<ClusterFacts>('/course/env', {})
+    postJson<ClusterFacts>('/course/env', { cli: cli?.join(' ') })
       .then((f) => {
         if (!cancelled) setFacts(f);
       })
@@ -185,6 +186,8 @@ function DetectCard() {
     return () => {
       cancelled = true;
     };
+    // Mount-once — `cli` is fixed for the one lesson this page ever loads (no lesson switcher yet).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -256,6 +259,7 @@ function CheckCard({ block, lesson }: { block: LessonBlock; lesson: ParsedLesson
           policy: { strictness: lesson.frontmatter.floor ?? 'loose', passWhen: lesson.frontmatter.passWhen ?? 'functional', floor: lesson.frontmatter.floor ?? 'loose' },
           timeoutMs: lesson.frontmatter.timeoutMs,
           pollMs: lesson.frontmatter.pollMs,
+          cli: lesson.frontmatter.cli?.join(' '),
         }),
       });
       const reader = res.body?.getReader();
@@ -373,8 +377,9 @@ interface HistoryEntry {
   error?: string;
 }
 
-function TerminalPane({ allow }: { allow: string[] }) {
-  const [line, setLine] = useState('kubectl get nodes');
+function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
+  const cliName = cli?.[0] ?? 'kubectl';
+  const [line, setLine] = useState(`${cliName} get nodes`);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [running, setRunning] = useState(false);
   // Shell-style Up/Down recall over PAST TYPED COMMANDS (not full history.length — history entries are
@@ -390,7 +395,7 @@ function TerminalPane({ allow }: { allow: string[] }) {
     setHistoryIndex(null);
     setRunning(true);
     try {
-      const result = await postJson<CommandResult>('/course/command', { line: cmd, allow });
+      const result = await postJson<CommandResult>('/course/command', { line: cmd, allow, cli: cli?.join(' ') });
       setHistory((p) => [...p, { line: cmd, result }]);
     } catch (e: unknown) {
       setHistory((p) => [...p, { line: cmd, error: String(e instanceof Error ? e.message : e) }]);
@@ -437,7 +442,7 @@ function TerminalPane({ allow }: { allow: string[] }) {
         Terminal
       </div>
       <p className="px-3 pt-2 text-xs" style={mutedStyle}>
-        Runs <code>kubectl</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
+        Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
         tools, use your own system terminal. ↑/↓ recall previous commands.
       </p>
       <div className="flex gap-2 p-2 border-b" style={panelStyle}>

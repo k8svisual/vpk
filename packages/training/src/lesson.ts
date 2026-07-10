@@ -30,6 +30,14 @@ export interface LessonFrontmatter {
    *  does. Milliseconds, matching RunStepLiveOptions — not a duration string, to avoid a second parser. */
   timeoutMs?: number;
   pollMs?: number;
+  /** Which kubectl-compatible CLI this lesson's checks/commands target, as argv — e.g. `[kubectl]` (default,
+   *  if omitted) or `[oc]`. Maps straight onto the existing per-request `cli` override already accepted by
+   *  /course/check, /course/command, and /course/env (the same override capture/cliSource.ts's routes have
+   *  always had) — a lesson just needs to STATE which CLI it was authored against, since some content is
+   *  genuinely CLI-specific (OpenShift concepts like Route/Project/DeploymentConfig have no kubectl
+   *  equivalent to fall back to). Two lessons covering the same topic for kubectl vs OpenShift are authored
+   *  as separate lesson files with different `cli`, not one file branching on it. */
+  cli?: string[];
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
