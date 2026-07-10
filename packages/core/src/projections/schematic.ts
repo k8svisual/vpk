@@ -97,6 +97,19 @@ export interface SchematicVolume {
   /** persistentVolumeClaim | configMap | secret | projected | emptyDir | hostPath | downwardAPI | csi | other */
   type: string;
   backingRef?: SchematicRef;
+  /** How the volume is realized — drives the storage-implementation sub-diagram the Container schematic draws
+   *  when a volume is clicked. `local` covers configMap/secret/emptyDir/hostPath/projected/downwardAPI (data
+   *  lives on the Node the Pod runs on, no PV involved). The three `pvc-*` variants are the persistent chain,
+   *  distinguished by how far it resolves: a PVC bound to a PV that has a VolumeAttachment (CSI dynamic
+   *  attach) is `pvc-pv-va-csi`; one with only a StorageClass is `pvc-pv-sc`; one that resolves to neither is
+   *  `pvc-pv`. */
+  implementation: 'local' | 'pvc-pv' | 'pvc-pv-sc' | 'pvc-pv-va-csi';
+  /** The persistent chain (set only for `pvc-*` implementations), each resolved to a clickable id where the
+   *  resource exists in the snapshot. `backingRef` is the PVC itself for these. */
+  pv?: SchematicRef;
+  storageClass?: SchematicRef;
+  volumeAttachment?: SchematicRef;
+  csiDriver?: SchematicRef;
 }
 export interface SchematicRef {
   id: ResourceId;
@@ -355,18 +368,6 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   const pvcs = new Map<string, SchematicRef>();
   for (const v of spec?.volumes ?? []) addRef(pvcs, 'PersistentVolumeClaim', v.persistentVolumeClaim?.claimName);
 
-  // Full volume list for the Container schematic (the Pod-level schematic only surfaces the PVC subset above).
-  // Backing PVC/ConfigMap/Secret are namespace-scoped, so `lookup` resolves a clickable id where present.
-  const volumes: SchematicVolume[] = (spec?.volumes ?? []).map((v) => {
-    const { type, backing } = classifyVolume(v);
-    let backingRef: SchematicRef | undefined;
-    if (backing) {
-      const r = lookup(backing.kind, backing.name);
-      backingRef = { id: r?.id ?? `${backing.kind}/${backing.name}`, name: backing.name, kind: backing.kind };
-    }
-    return { name: v.name ?? '', type, backingRef };
-  });
-
   // Same by-PV-name lookup wheel.ts's pvToVolumeAttachmentId uses — a VolumeAttachment names its PV via
   // spec.source.persistentVolumeName, so it's the initiating/owning side of this edge (unlike StorageClass,
   // which the PV itself names via spec.storageClassName).
@@ -394,6 +395,58 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     const va = vaByPvName.get(volumeName);
     if (va) volumeAttachments.set(volumeName, { id: va.id, name: va.name, kind: 'VolumeAttachment' });
   }
+
+  // Resolves one PVC-backed volume's full persistent chain (PVC -> PV -> {StorageClass | VolumeAttachment ->
+  // CSIDriver}) for the Container schematic's per-volume storage-implementation sub-diagram. The CSIDriver is
+  // named either by the PV's own spec.csi.driver or the VolumeAttachment's spec.attacher (same driver, two
+  // places it can appear) — resolved to a real CSIDriver resource where one was captured.
+  const resolvePvChain = (claimName: string): Pick<SchematicVolume, 'implementation' | 'pv' | 'storageClass' | 'volumeAttachment' | 'csiDriver'> => {
+    const pvcResource = lookup('PersistentVolumeClaim', claimName);
+    const volumeName = (pvcResource?.raw.spec as { volumeName?: string } | undefined)?.volumeName;
+    if (!volumeName) return { implementation: 'pvc-pv' };
+    const pvResource = clusterLookup('PersistentVolume', volumeName);
+    const pv: SchematicRef = { id: pvResource?.id ?? `PersistentVolume/${volumeName}`, name: volumeName, kind: 'PersistentVolume' };
+
+    const scName = (pvResource?.raw.spec as { storageClassName?: string } | undefined)?.storageClassName;
+    let storageClass: SchematicRef | undefined;
+    if (scName) {
+      const sc = clusterLookup('StorageClass', scName);
+      storageClass = { id: sc?.id ?? `StorageClass/${scName}`, name: scName, kind: 'StorageClass' };
+    }
+
+    const vaResource = vaByPvName.get(volumeName);
+    let volumeAttachment: SchematicRef | undefined;
+    let csiDriver: SchematicRef | undefined;
+    if (vaResource) {
+      volumeAttachment = { id: vaResource.id, name: vaResource.name, kind: 'VolumeAttachment' };
+      const driverName =
+        (vaResource.raw.spec as { attacher?: string } | undefined)?.attacher ??
+        (pvResource?.raw.spec as { csi?: { driver?: string } } | undefined)?.csi?.driver;
+      if (driverName) {
+        const d = clusterLookup('CSIDriver', driverName);
+        csiDriver = { id: d?.id ?? `CSIDriver/${driverName}`, name: driverName, kind: 'CSIDriver' };
+      }
+    }
+
+    const implementation: SchematicVolume['implementation'] = volumeAttachment ? 'pvc-pv-va-csi' : storageClass ? 'pvc-pv-sc' : 'pvc-pv';
+    return { implementation, pv, storageClass, volumeAttachment, csiDriver };
+  };
+
+  // Full volume list for the Container schematic (the Pod-level schematic only surfaces the PVC subset above).
+  // Backing PVC/ConfigMap/Secret are namespace-scoped, so `lookup` resolves a clickable id where present; a
+  // PVC-type volume additionally carries its resolved persistent chain, everything else is `local`.
+  const volumes: SchematicVolume[] = (spec?.volumes ?? []).map((v) => {
+    const { type, backing } = classifyVolume(v);
+    let backingRef: SchematicRef | undefined;
+    if (backing) {
+      const r = lookup(backing.kind, backing.name);
+      backingRef = { id: r?.id ?? `${backing.kind}/${backing.name}`, name: backing.name, kind: backing.kind };
+    }
+    if (type === 'persistentVolumeClaim' && v.persistentVolumeClaim?.claimName) {
+      return { name: v.name ?? '', type, backingRef, ...resolvePvChain(v.persistentVolumeClaim.claimName) };
+    }
+    return { name: v.name ?? '', type, backingRef, implementation: 'local' as const };
+  });
 
   const services: SchematicRef[] = [];
   for (const svc of graph.nodes.values()) {

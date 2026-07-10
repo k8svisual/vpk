@@ -10,21 +10,27 @@ const STATUS_ERROR = 'var(--vpk-status-error, #c0392b)';
 const STATUS_NEUTRAL = 'var(--vpk-status-unknown, #9a9a9a)';
 
 /** Transient debug containers (spec.ephemeralContainers) get their own accent — deliberately distinct from the
- *  init (grey) and app (green/red) sections so it reads at a glance that they aren't part of the declared spec.
- *  Matches the Events badge purple already used elsewhere in the schematic family. */
+ *  init (grey) and app (green/red) sections so it reads at a glance that they aren't part of the declared spec. */
 const EPHEMERAL = '#8e44ad';
+/** The active-selection accent (the picked container's radio + card border, the picked volume's chip border) —
+ *  a blue distinct from every status/section color so "what's selected" never reads as a health state. */
+const SELECT = '#2f6df6';
 
 const MARGIN = 24;
 const TITLE_H = 44;
-const COL_GAP = 64;
+const COL_GAP = 60;
 const CONFIG_W = 172;
 const SERVICE_W = 160;
-const CARD_W = 330;
+const STORAGE_W = 196;
+// Wider than the first cut (was 330) so a container's image/mounts lines have room without clipping — the Pod
+// boundary and the volumes box both size to this.
+const CARD_W = 430;
 const POD_PAD = 18;
 const SECTION_HEADER_H = 22;
 const CARD_GAP = 12;
 const SECTION_GAP = 10;
 const ROW_H = 18;
+const RADIO_CX_OFF = 18;
 
 interface Rect {
   x: number;
@@ -33,16 +39,28 @@ interface Rect {
   h: number;
 }
 
+interface Opts {
+  selectedContainer?: string | null;
+  selectedVolume?: string | null;
+}
+
 /**
- * The Container schematic (companion to renderSchematicSvg): opens a single Pod up into its three container
- * arrays — initContainers, containers, ephemeralContainers — each drawn as a detail card (image, ports,
- * resources, probes, mounts) inside the Pod boundary, over a shared `volumes` box. Edges attribute config
- * (env/envFrom) to the specific container that consumes it, link container ports to the Service, and link each
- * container's mounts to the volume it uses — a volume mounted by more than one container is drawn with the
- * red "shares volume" edge so sidecar sharing is visible. Ephemeral containers are drawn distinctly and, per
- * the Kubernetes API (which forbids ports/resources/probes on them), show only image + target + mounts.
+ * The Container schematic (companion to renderSchematicSvg): a single Pod opened into its three container
+ * arrays — initContainers / containers / ephemeralContainers — each a detail card (image, ports, resources,
+ * probes, mounts) inside the Pod boundary, over a shared `volumes` box. Interaction-driven, not static:
+ *  - selecting a container (its radio) reveals ONLY that container's edges — config it consumes, its ports to
+ *    the Service, and its mounts to volumes (red when a volume is shared with another container). With nothing
+ *    selected there are no volume/config/port lines at all, keeping a busy Pod legible.
+ *  - clicking a volume renders that volume's storage-implementation sub-diagram in the right column below the
+ *    Network box: a Node + local storage for configMap/secret/emptyDir/hostPath, or the persistent chain
+ *    (PVC -> PV -> StorageClass, or PVC -> PV -> VolumeAttachment -> CSIDriver) for a PVC-backed volume.
+ * Ephemeral containers render distinctly and (per the K8s API, which forbids ports/resources/probes on them)
+ * show only image + target + mounts.
  */
-export function renderContainerSchematicSvg(s: SchematicDto): string {
+export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): string {
+  const selectedContainer = opts.selectedContainer ?? null;
+  const selectedVolume = s.volumes.find((v) => v.name === opts.selectedVolume) ?? null;
+
   const allSections: { kind: 'init' | 'app' | 'ephemeral'; label: string; items: Container[] }[] = [
     { kind: 'init', label: 'initContainers', items: s.initContainers },
     { kind: 'app', label: 'containers', items: s.containers },
@@ -58,7 +76,8 @@ export function renderContainerSchematicSvg(s: SchematicDto): string {
   const podInnerX = podX + POD_PAD;
   const boundaryTop = MARGIN + TITLE_H;
 
-  // How many containers mount each volume — a volume used by >1 container is drawn with the "shares" edge.
+  // How many containers mount each volume — the selected container's edge to a volume used by >1 container is
+  // drawn with the red "shares" marker so sidecar sharing still reads even though only one container's edges show.
   const mountCount = new Map<string, number>();
   for (const sec of sections) for (const c of sec.items) for (const m of c.mounts) mountCount.set(m.volumeName, (mountCount.get(m.volumeName) ?? 0) + 1);
 
@@ -74,7 +93,7 @@ export function renderContainerSchematicSvg(s: SchematicDto): string {
       const c = sec.items[i]!;
       const h = cardHeight(c);
       const rect: Rect = { x: podInnerX, y: cursorY, w: CARD_W, h };
-      body.push(containerCard(s.podId, c, i, rect));
+      body.push(containerCard(s.podId, c, i, rect, c.name === selectedContainer));
       cardByName.set(c.name, rect);
       cards.push({ c, rect });
       cursorY += h + CARD_GAP;
@@ -85,20 +104,21 @@ export function renderContainerSchematicSvg(s: SchematicDto): string {
   // ---- shared volumes box (inside the Pod boundary, below every container section) ----
   const volRectByName = new Map<string, Rect>();
   let volBox: Rect | null = null;
+  const mountedBySelected = new Set(selectedContainer ? cards.find((c) => c.c.name === selectedContainer)?.c.mounts.map((m) => m.volumeName) ?? [] : []);
   if (hasVolumes) {
-    const perRow = 4;
+    const perRow = 5;
     const rows = Math.ceil(s.volumes.length / perRow);
-    const volBoxH = 26 + rows * 52 + 22;
+    const volBoxH = 26 + rows * 52 + 12;
     volBox = { x: podInnerX, y: cursorY, w: CARD_W, h: volBoxH };
     body.push(dashedBox('#fbe3c2', '#c9974f', volBox, 'volumes'));
+    const vw = (CARD_W - 24 - (perRow - 1) * 6) / perRow;
     s.volumes.forEach((v, idx) => {
       const col = idx % perRow;
       const row = Math.floor(idx / perRow);
-      const vw = 74;
       const vx = volBox!.x + 12 + col * (vw + 6);
       const vy = volBox!.y + 26 + row * 52;
       const vr: Rect = { x: vx, y: vy, w: vw, h: 42 };
-      body.push(volumeChip(v, vr));
+      body.push(volumeChip(v, vr, v.name === selectedVolume?.name, mountedBySelected.has(v.name)));
       volRectByName.set(v.name, vr);
     });
     cursorY += volBoxH;
@@ -108,47 +128,49 @@ export function renderContainerSchematicSvg(s: SchematicDto): string {
   const podW = CARD_W + 2 * POD_PAD;
   const boundaryRect: Rect = { x: podX, y: boundaryTop, w: podW, h: boundaryBottom - boundaryTop };
 
-  // ---- Configuration box (left) + Service box (right) ----
+  // ---- Configuration box (left) ----
   const sideBoxTop = boundaryTop + 30;
   let configBox: Rect | null = null;
-  const configIconById = new Map<string, { x: number; y: number }>();
   if (hasConfig) {
-    const iconCount = (s.config.configMaps.length > 0 ? 1 : 0) + (s.config.secrets.length > 0 ? 1 : 0);
     configBox = { x: MARGIN, y: sideBoxTop, w: CONFIG_W, h: 96 };
     body.push(dashedBox('#fdf6d3', '#c9b258', configBox, 'Configuration'));
-    let ix = MARGIN + 30;
+    let ix = MARGIN + 34;
     const iconY = sideBoxTop + 56;
     if (s.config.configMaps.length > 0) {
       body.push(aggregateIcon(s.config.configMaps, 'ConfigMap', ix, iconY));
-      configIconById.set('configMaps', { x: ix, y: iconY });
-      ix += (CONFIG_W - 60) / Math.max(1, iconCount);
+      ix += 84;
     }
-    if (s.config.secrets.length > 0) {
-      body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
-      configIconById.set('secrets', { x: ix, y: iconY });
-    }
+    if (s.config.secrets.length > 0) body.push(aggregateIcon(s.config.secrets, 'Secret', ix, iconY));
   }
 
+  // ---- Network box (right, top) + Storage-implementation box (right, below it) ----
+  const rightX = podX + podW + COL_GAP;
   let serviceBox: Rect | null = null;
-  const serviceX = podX + podW + COL_GAP;
   if (hasService) {
-    serviceBox = { x: serviceX, y: sideBoxTop, w: SERVICE_W, h: 80 };
+    serviceBox = { x: rightX, y: sideBoxTop, w: SERVICE_W, h: 80 };
     body.push(dashedBox('#dbeefa', '#7aa9c9', serviceBox, 'Network'));
-    body.push(aggregateIcon(s.network.services, 'Service', serviceX + SERVICE_W / 2, sideBoxTop + 52));
+    body.push(aggregateIcon(s.network.services, 'Service', rightX + SERVICE_W / 2, sideBoxTop + 52));
   }
 
-  // ---- edges (drawn under the cards would be ideal, but appended after reads fine at this opacity) ----
+  let storageBottom = 0;
+  if (selectedVolume) {
+    const storageTop = sideBoxTop + (hasService ? serviceBox!.h + 24 : 0);
+    const rendered = storageDetail(s, selectedVolume, rightX, storageTop);
+    body.push(rendered.svg);
+    storageBottom = storageTop + rendered.h;
+  }
+
+  // ---- edges: ONLY the selected container's (config it uses, its ports, its mounts, its debug target) ----
   const edges: string[] = [];
-  for (const { c, rect } of cards) {
-    // config attribution: one edge from the Configuration box to any container that consumes config via env.
+  const sel = selectedContainer ? cards.find((c) => c.c.name === selectedContainer) : undefined;
+  if (sel) {
+    const { c, rect } = sel;
     if (configBox && (c.configRefs.configMaps.length > 0 || c.configRefs.secrets.length > 0)) {
-      edges.push(solidEdge(configBox.x + configBox.w, rect.y + 22, rect.x, rect.y + 22, 0.85));
+      edges.push(solidEdge(configBox.x + configBox.w, configBox.y + configBox.h / 2, rect.x, rect.y + 22));
     }
-    // ports -> Service
     if (serviceBox && c.ports.length > 0) {
-      edges.push(solidEdge(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2, 0.85));
+      edges.push(solidEdge(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2));
     }
-    // mounts -> volume (red-dashed when the volume is shared across containers)
     for (const m of c.mounts) {
       const vr = volRectByName.get(m.volumeName);
       if (!vr) continue;
@@ -157,23 +179,24 @@ export function renderContainerSchematicSvg(s: SchematicDto): string {
       const y1 = rect.y + rect.h;
       const x2 = vr.x + vr.w / 2;
       const y2 = vr.y;
-      edges.push(shared ? sharesEdge(x1, y1, x2, y2) : solidEdge(x1, y1, x2, y2, 0.55));
+      edges.push(shared ? sharesEdge(x1, y1, x2, y2) : solidEdge(x1, y1, x2, y2));
     }
-    // ephemeral debug container -> the container it targets
     if (c.kind === 'ephemeral' && c.targetContainerName) {
       const target = cardByName.get(c.targetContainerName);
       if (target) edges.push(targetsEdge(rect.x + rect.w / 2, rect.y, target.x + target.w / 2, target.y + target.h));
     }
   }
 
-  const canvasW = serviceX + (hasService ? SERVICE_W : 0) + MARGIN;
-  const canvasH = boundaryBottom + MARGIN;
+  const hasRightCol = hasService || !!selectedVolume;
+  const rightColW = Math.max(hasService ? SERVICE_W : 0, selectedVolume ? STORAGE_W : 0);
+  const canvasW = (hasRightCol ? rightX + rightColW : podX + podW) + MARGIN;
+  const canvasH = Math.max(boundaryBottom, storageBottom) + MARGIN;
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${canvasW} ${canvasH}" width="${canvasW}" height="${canvasH}" font-family="system-ui, sans-serif">` +
     defs() +
     styleBlock() +
-    legend(s.podName) +
+    legend(s.podName, selectedContainer) +
     `<rect x="${boundaryRect.x}" y="${boundaryRect.y}" width="${boundaryRect.w}" height="${boundaryRect.h}" rx="6" fill="var(--vpk-surface, #f6f6f4)" stroke="var(--vpk-border, #888)" stroke-width="1.4" />` +
     edges.join('') +
     body.join('') +
@@ -211,27 +234,43 @@ function statusPill(c: Container, x: number, y: number): string {
   );
 }
 
-function containerCard(podId: string, c: Container, index: number, r: Rect): string {
+/** The per-container select control — a radio dot (filled when this container is the current selection). Its own
+ *  data-select-container is checked before the card's data-resource-id in the client handler, so clicking the
+ *  dot selects (reveals edges) while clicking the card body still opens the editor. */
+function radio(name: string, selected: boolean, cx: number, cy: number): string {
+  return (
+    `<g data-select-container="${esc(name)}" style="cursor:pointer">` +
+    `<circle cx="${cx}" cy="${cy}" r="6.5" fill="#fff" stroke="${selected ? SELECT : '#999'}" stroke-width="${selected ? 2 : 1.3}" />` +
+    (selected ? `<circle cx="${cx}" cy="${cy}" r="3" fill="${SELECT}" />` : '') +
+    `</g>`
+  );
+}
+
+function containerCard(podId: string, c: Container, index: number, r: Rect, selected: boolean): string {
   const arrayKey = c.kind === 'init' ? 'initContainers' : c.kind === 'ephemeral' ? 'ephemeralContainers' : 'containers';
   const focusPath = esc(JSON.stringify(['spec', arrayKey, index]));
   const ephemeral = c.kind === 'ephemeral';
+  const nameX = r.x + 32;
   const parts: string[] = [];
+  const stroke = selected ? SELECT : ephemeral ? EPHEMERAL : '#b9b9b9';
+  const strokeW = selected ? 2 : 1;
   parts.push(
-    `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="${ephemeral ? '#faf4fd' : '#fff'}" stroke="${ephemeral ? EPHEMERAL : '#b9b9b9'}"${ephemeral ? ' stroke-dasharray="4 3"' : ''} />`,
+    `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="${ephemeral ? '#faf4fd' : '#fff'}" stroke="${stroke}" stroke-width="${strokeW}"${ephemeral && !selected ? ' stroke-dasharray="4 3"' : ''} />`,
   );
   parts.push(`<rect x="${r.x}" y="${r.y}" width="6" height="${r.h}" fill="${barColor(c)}" />`);
-  parts.push(`<text class="cs-name" x="${r.x + 16}" y="${r.y + 20}">${esc(clip(c.name, 26))}</text>`);
+  parts.push(radio(c.name, selected, r.x + RADIO_CX_OFF, r.y + 16));
+  parts.push(`<text class="cs-name" x="${nameX}" y="${r.y + 20}">${esc(clip(c.name, 30))}</text>`);
   parts.push(statusPill(c, r.x + r.w - 114, r.y + 20));
 
   let ry = r.y + 38;
   if (c.image) {
-    parts.push(`<text class="cs-row" x="${r.x + 16}" y="${ry}">image: ${esc(clip(c.image, 42))}</text>`);
+    parts.push(`<text class="cs-row" x="${nameX}" y="${ry}">image: ${esc(clip(c.image, 58))}</text>`);
     ry += ROW_H;
   }
   if (c.kind === 'app' && c.ports.length > 0) {
-    parts.push(`<text class="cs-row" x="${r.x + 16}" y="${ry}">ports</text>`);
-    let px = r.x + 58;
-    for (const p of c.ports.slice(0, 4)) {
+    parts.push(`<text class="cs-row" x="${nameX}" y="${ry}">ports</text>`);
+    let px = nameX + 42;
+    for (const p of c.ports.slice(0, 5)) {
       const label = `${p.containerPort}/${p.protocol ?? 'TCP'}`;
       parts.push(chip(label, px, ry - 11, '#dbeefa', '#7aa9c9', '#245'));
       px += label.length * 6 + 18;
@@ -241,12 +280,12 @@ function containerCard(podId: string, c: Container, index: number, r: Rect): str
   if (c.resources) {
     const cpu = c.resources.cpuRequest || c.resources.cpuLimit ? `cpu ${c.resources.cpuRequest ?? '—'} / ${c.resources.cpuLimit ?? '—'}` : '';
     const mem = c.resources.memRequest || c.resources.memLimit ? `mem ${c.resources.memRequest ?? '—'} / ${c.resources.memLimit ?? '—'}` : '';
-    parts.push(`<text class="cs-row" x="${r.x + 16}" y="${ry}">${esc([cpu, mem].filter(Boolean).join(' · '))}</text>`);
+    parts.push(`<text class="cs-row" x="${nameX}" y="${ry}">${esc([cpu, mem].filter(Boolean).join(' · '))}</text>`);
     ry += ROW_H;
   }
   if (c.kind === 'app' && (c.probes.liveness || c.probes.readiness || c.probes.startup)) {
-    parts.push(`<text class="cs-row" x="${r.x + 16}" y="${ry}">probes</text>`);
-    let px = r.x + 62;
+    parts.push(`<text class="cs-row" x="${nameX}" y="${ry}">probes</text>`);
+    let px = nameX + 46;
     for (const [on, label] of [[c.probes.liveness, 'live'], [c.probes.readiness, 'ready'], [c.probes.startup, 'startup']] as [boolean, string][]) {
       if (!on) continue;
       parts.push(chip(label, px, ry - 11, '#ddf3e4', '#5fb37e', '#255'));
@@ -256,29 +295,73 @@ function containerCard(podId: string, c: Container, index: number, r: Rect): str
   }
   if (c.mounts.length > 0) {
     const names = c.mounts.map((m) => `${m.volumeName}${m.readOnly ? ' (ro)' : ''}`).join(', ');
-    parts.push(`<text class="cs-row cs-muted" x="${r.x + 16}" y="${ry}">mounts: ${esc(clip(names, 42))}</text>`);
+    parts.push(`<text class="cs-row cs-muted" x="${nameX}" y="${ry}">mounts: ${esc(clip(names, 58))}</text>`);
     ry += ROW_H;
   }
   if (ephemeral && c.targetContainerName) {
-    parts.push(`<text class="cs-row" x="${r.x + 16}" y="${ry}" fill="${EPHEMERAL}" font-style="italic">target: ${esc(clip(c.targetContainerName, 20))} · no ports/probes/resources</text>`);
+    parts.push(`<text class="cs-row" x="${nameX}" y="${ry}" fill="${EPHEMERAL}" font-style="italic">target: ${esc(clip(c.targetContainerName, 24))} · no ports/probes/resources</text>`);
     ry += ROW_H;
   }
 
-  // Clicking the card opens the editor scrolled to this container's YAML (same data-focus-path delegation the
-  // Pod schematic's container rows use); data-names drives the shared hover tooltip.
+  // Card body opens the editor at this container's YAML (data-focus-path); the radio's data-select-container is
+  // handled first by the client so the dot selects instead.
   return `<g data-resource-id="${esc(podId)}" data-focus-path="${focusPath}" data-names="${esc(JSON.stringify([c.name]))}" style="cursor:pointer">${parts.join('')}</g>`;
 }
 
-function volumeChip(v: Volume, r: Rect): string {
-  const caption = v.backingRef ? `${v.backingRef.kind === 'PersistentVolumeClaim' ? 'PVC ▸' : v.type}` : v.type;
-  const inner =
-    `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="#fff" stroke="#c9974f" />` +
-    `<text x="${r.x + r.w / 2}" y="${r.y + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="#333">${esc(clip(v.name, 11))}</text>` +
-    `<text x="${r.x + r.w / 2}" y="${r.y + 32}" text-anchor="middle" font-size="8.5" fill="#666">${esc(clip(caption, 12))}</text>`;
-  // Backing PVC/ConfigMap/Secret is clickable; a plain emptyDir/hostPath volume just shows (no drill target).
-  return v.backingRef
-    ? `<g data-resource-id="${esc(v.backingRef.id)}" data-names="${esc(JSON.stringify([v.backingRef.name]))}" style="cursor:pointer">${inner}</g>`
-    : `<g data-names="${esc(JSON.stringify([v.name]))}">${inner}</g>`;
+/** A volume tile — carries data-select-volume (clicking it renders its storage-implementation sub-diagram, and
+ *  toggles it off on a second click). Highlighted when it's the current selection, or ringed when it's mounted
+ *  by the currently-selected container. */
+function volumeChip(v: Volume, r: Rect, selected: boolean, mountedBySelected: boolean): string {
+  const caption = v.backingRef?.kind === 'PersistentVolumeClaim' ? 'PVC' : v.type;
+  const stroke = selected ? SELECT : mountedBySelected ? '#c9974f' : '#c9974f';
+  const strokeW = selected ? 2.5 : mountedBySelected ? 2 : 1;
+  return (
+    `<g data-select-volume="${esc(v.name)}" data-names="${esc(JSON.stringify([v.name]))}" style="cursor:pointer">` +
+    `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="5" fill="#fff" stroke="${stroke}" stroke-width="${strokeW}" />` +
+    `<text x="${r.x + r.w / 2}" y="${r.y + 18}" text-anchor="middle" font-size="10" font-weight="700" fill="#333">${esc(clip(v.name, Math.floor(r.w / 7)))}</text>` +
+    `<text x="${r.x + r.w / 2}" y="${r.y + 32}" text-anchor="middle" font-size="8.5" fill="#666">${esc(clip(caption, Math.floor(r.w / 6)))}</text>` +
+    `</g>`
+  );
+}
+
+/** The clicked volume's storage-implementation chain, drawn top-to-bottom in the right column. `local` volumes
+ *  (configMap/secret/emptyDir/hostPath) resolve onto the Node the Pod runs on; PVC-backed volumes draw their
+ *  persistent chain. Returns the box height so the caller can size the canvas around it. */
+function storageDetail(s: SchematicDto, v: Volume, x: number, y: number): { svg: string; h: number } {
+  const items: { kind: string; ref?: { id: string; name: string }; label: string; glyph?: 'localdisk' }[] = [];
+  if (v.implementation === 'local') {
+    if (v.backingRef) items.push({ kind: v.backingRef.kind, ref: v.backingRef, label: v.backingRef.name });
+    if (s.node) items.push({ kind: 'Node', ref: s.node, label: s.node.name });
+    items.push({ kind: '', glyph: 'localdisk', label: `${v.type} (local)` });
+  } else {
+    if (v.backingRef) items.push({ kind: 'PersistentVolumeClaim', ref: v.backingRef, label: v.backingRef.name });
+    if (v.pv) items.push({ kind: 'PersistentVolume', ref: v.pv, label: v.pv.name });
+    if (v.implementation === 'pvc-pv-va-csi') {
+      if (v.volumeAttachment) items.push({ kind: 'VolumeAttachment', ref: v.volumeAttachment, label: v.volumeAttachment.name });
+      if (v.csiDriver) items.push({ kind: 'CSIDriver', ref: v.csiDriver, label: v.csiDriver.name });
+    } else if (v.storageClass) {
+      items.push({ kind: 'StorageClass', ref: v.storageClass, label: v.storageClass.name });
+    }
+  }
+
+  const ROW = 64;
+  const box: Rect = { x, y, w: STORAGE_W, h: 30 + items.length * ROW + 6 };
+  const parts: string[] = [dashedBox('#ede9e0', '#a99', box, `Storage · ${clip(v.name, 16)}`)];
+  const cx = x + STORAGE_W / 2;
+  items.forEach((it, i) => {
+    const iy = y + 44 + i * ROW;
+    if (i > 0) parts.push(`<line x1="${cx}" y1="${iy - ROW + 20}" x2="${cx}" y2="${iy - 20}" stroke="var(--vpk-fg,#555)" stroke-width="1.2" marker-end="url(#cs-solid)" />`);
+    if (it.glyph === 'localdisk') {
+      // A small disk/cylinder glyph for node-local storage (no K8s icon exists for "the node's own disk").
+      parts.push(`<ellipse cx="${cx}" cy="${iy - 12}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" /><rect x="${cx - 15}" y="${iy - 12}" width="30" height="18" fill="#e8e2d4" stroke="#a99" /><ellipse cx="${cx}" cy="${iy + 6}" rx="15" ry="5" fill="#e8e2d4" stroke="#a99" />`);
+    } else {
+      const icon = `<image href="${iconPathForKind(it.kind)}" x="${cx - 17}" y="${iy - 17}" width="34" height="34" />`;
+      const clickable = it.ref && !it.ref.id.includes('/');
+      parts.push(clickable ? `<g data-resource-id="${esc(it.ref!.id)}" data-names="${esc(JSON.stringify([it.label]))}" style="cursor:pointer">${icon}</g>` : icon);
+    }
+    parts.push(`<text x="${cx}" y="${iy + 24}" text-anchor="middle" font-size="9" fill="#333">${esc(clip(it.label, 24))}</text>`);
+  });
+  return { svg: parts.join(''), h: box.h };
 }
 
 function chip(label: string, x: number, y: number, fill: string, stroke: string, text: string): string {
@@ -342,9 +425,13 @@ function styleBlock(): string {
   );
 }
 
-function legend(podName: string): string {
+function legend(podName: string, selectedContainer: string | null): string {
+  const hint = selectedContainer
+    ? `showing edges for: ${clip(selectedContainer, 22)}`
+    : 'select a container ● to show its edges · click a volume for its storage';
   return (
-    `<text class="cs-title" x="${MARGIN}" y="26">Pod: ${esc(clip(podName, 40))} · Container schematic</text>` +
+    `<text class="cs-title" x="${MARGIN}" y="26">Pod: ${esc(clip(podName, 34))} · Container schematic</text>` +
+    `<text class="cs-legend" x="${MARGIN}" y="42">${esc(hint)}</text>` +
     `<line x1="${MARGIN + 470}" y1="21" x2="${MARGIN + 498}" y2="21" stroke="var(--vpk-fg,#444)" stroke-width="1.4" marker-end="url(#cs-solid)" />` +
     `<text class="cs-legend" x="${MARGIN + 504}" y="25">mount / env</text>` +
     `<line x1="${MARGIN + 600}" y1="21" x2="${MARGIN + 628}" y2="21" stroke="${STATUS_ERROR}" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#cs-red)" />` +
@@ -354,14 +441,14 @@ function legend(podName: string): string {
   );
 }
 
-function solidEdge(x1: number, y1: number, x2: number, y2: number, opacity = 1): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="var(--vpk-fg, #444)" stroke-width="1.2" opacity="${opacity}" marker-end="url(#cs-solid)" />`;
+function solidEdge(x1: number, y1: number, x2: number, y2: number): string {
+  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="var(--vpk-fg, #444)" stroke-width="1.3" marker-end="url(#cs-solid)" />`;
 }
 function sharesEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${STATUS_ERROR}" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#cs-red)" />`;
+  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${STATUS_ERROR}" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#cs-red)" />`;
 }
 function targetsEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${EPHEMERAL}" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#cs-pur)" />`;
+  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${EPHEMERAL}" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#cs-pur)" />`;
 }
 
 function clip(str: string, max: number): string {

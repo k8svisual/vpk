@@ -402,3 +402,88 @@ describe('projectPodSchematic container detail (Container schematic fields)', ()
     expect(scratch?.backingRef).toBeUndefined();
   });
 });
+
+describe('projectPodSchematic volume storage-implementation chain', () => {
+  const sc: RawObject = {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'StorageClass',
+    metadata: { uid: 'sc-1', name: 'fast-ssd' },
+    provisioner: 'ebs.csi.aws.com',
+  };
+  const csiDriver: RawObject = {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'CSIDriver',
+    metadata: { uid: 'csid-1', name: 'ebs.csi.aws.com' },
+  };
+  const pvSc: RawObject = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolume',
+    metadata: { uid: 'pv-sc', name: 'pv-sc-only' },
+    spec: { storageClassName: 'fast-ssd' },
+  };
+  const pvcSc: RawObject = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolumeClaim',
+    metadata: { uid: 'pvc-sc', name: 'claim-sc', namespace: 'ns1' },
+    spec: { volumeName: 'pv-sc-only' },
+  };
+  const pvCsi: RawObject = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolume',
+    metadata: { uid: 'pv-csi', name: 'pv-csi-attached' },
+    spec: { storageClassName: 'fast-ssd', csi: { driver: 'ebs.csi.aws.com' } },
+  };
+  const pvcCsi: RawObject = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolumeClaim',
+    metadata: { uid: 'pvc-csi', name: 'claim-csi', namespace: 'ns1' },
+    spec: { volumeName: 'pv-csi-attached' },
+  };
+  const va: RawObject = {
+    apiVersion: 'storage.k8s.io/v1',
+    kind: 'VolumeAttachment',
+    metadata: { uid: 'va-1', name: 'csi-attach-1' },
+    spec: { attacher: 'ebs.csi.aws.com', source: { persistentVolumeName: 'pv-csi-attached' } },
+  };
+  const cm: RawObject = { apiVersion: 'v1', kind: 'ConfigMap', metadata: { uid: 'cm-1', name: 'app-config', namespace: 'ns1' } };
+  const pod: RawObject = {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' },
+    spec: {
+      nodeName: 'worker-1',
+      containers: [{ name: 'app' }],
+      volumes: [
+        { name: 'sc-vol', persistentVolumeClaim: { claimName: 'claim-sc' } },
+        { name: 'csi-vol', persistentVolumeClaim: { claimName: 'claim-csi' } },
+        { name: 'cfg-vol', configMap: { name: 'app-config' } },
+      ],
+    },
+  };
+  const node: RawObject = { apiVersion: 'v1', kind: 'Node', metadata: { uid: 'node-1', name: 'worker-1' } };
+
+  const graph = buildGraph([sc, csiDriver, pvSc, pvcSc, pvCsi, pvcCsi, va, cm, node, pod]);
+
+  it('resolves a StorageClass-only volume as pvc-pv-sc with its PV and StorageClass', () => {
+    const v = projectPodSchematic(graph, 'pod-1')?.volumes.find((x) => x.name === 'sc-vol');
+    expect(v?.implementation).toBe('pvc-pv-sc');
+    expect(v?.pv?.name).toBe('pv-sc-only');
+    expect(v?.storageClass).toEqual({ id: 'sc-1', name: 'fast-ssd', kind: 'StorageClass' });
+    expect(v?.volumeAttachment).toBeUndefined();
+  });
+
+  it('resolves a CSI-attached volume as pvc-pv-va-csi with its VolumeAttachment and CSIDriver', () => {
+    const v = projectPodSchematic(graph, 'pod-1')?.volumes.find((x) => x.name === 'csi-vol');
+    expect(v?.implementation).toBe('pvc-pv-va-csi');
+    expect(v?.pv?.name).toBe('pv-csi-attached');
+    expect(v?.volumeAttachment).toEqual({ id: 'va-1', name: 'csi-attach-1', kind: 'VolumeAttachment' });
+    expect(v?.csiDriver).toEqual({ id: 'csid-1', name: 'ebs.csi.aws.com', kind: 'CSIDriver' });
+  });
+
+  it('marks a configMap volume as local (no PV chain)', () => {
+    const v = projectPodSchematic(graph, 'pod-1')?.volumes.find((x) => x.name === 'cfg-vol');
+    expect(v?.implementation).toBe('local');
+    expect(v?.backingRef).toEqual({ id: 'cm-1', name: 'app-config', kind: 'ConfigMap' });
+    expect(v?.pv).toBeUndefined();
+  });
+});

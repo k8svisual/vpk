@@ -71,6 +71,11 @@ export function SchematicView({
   // owner chain, config/network/storage/security) or "containers" (the Pod opened up into its init/app/
   // ephemeral container detail cards + shared volumes). Reset to "pod" whenever the Pod itself changes.
   const [diagram, setDiagram] = useState<'pod' | 'containers'>('pod');
+  // Container schematic interactive selection: which container's edges to draw (radio) and which volume's
+  // storage-implementation sub-diagram to show (volume click). Both are re-sent as query params so the server
+  // re-renders; cleared whenever the Pod or diagram changes.
+  const [selectedContainer, setSelectedContainer] = useState<string | null>(null);
+  const [selectedVolume, setSelectedVolume] = useState<string | null>(null);
   const [resourceList, setResourceList] = useState<{ kind: string; items: ResourceListItem[] } | null>(null);
   const [decodeSecretId, setDecodeSecretId] = useState<string | null>(null);
   const [hovered, setHovered] = useState<{ el: Element; names: string[] } | null>(null);
@@ -108,8 +113,17 @@ export function SchematicView({
   const effectivePodId = onReturn ? podId : manualPodId || null;
 
   // Switching to a different Pod resets to the default "pod" diagram — the container view is a drill-in on a
-  // specific Pod, not a mode the user means to keep as they pick different Pods.
-  useEffect(() => setDiagram('pod'), [effectivePodId]);
+  // specific Pod, not a mode the user means to keep as they pick different Pods. Also clears any container/
+  // volume selection so a fresh Pod (or a return to the Pod diagram) starts with no edges/storage detail shown.
+  useEffect(() => {
+    setDiagram('pod');
+    setSelectedContainer(null);
+    setSelectedVolume(null);
+  }, [effectivePodId]);
+  useEffect(() => {
+    setSelectedContainer(null);
+    setSelectedVolume(null);
+  }, [diagram]);
 
   useEffect(() => {
     if (showTimer.current) clearTimeout(showTimer.current);
@@ -119,8 +133,16 @@ export function SchematicView({
       setError('');
       return;
     }
-    const url = diagram === 'containers' ? '/container-schematic.svg' : '/schematic.svg';
-    fetch(`${url}?id=${encodeURIComponent(effectivePodId)}`)
+    let url: string;
+    if (diagram === 'containers') {
+      const params = new URLSearchParams({ id: effectivePodId });
+      if (selectedContainer) params.set('container', selectedContainer);
+      if (selectedVolume) params.set('volume', selectedVolume);
+      url = `/container-schematic.svg?${params.toString()}`;
+    } else {
+      url = `/schematic.svg?id=${encodeURIComponent(effectivePodId)}`;
+    }
+    fetch(url)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found (not a Pod id in this snapshot)');
         return r.text();
@@ -133,7 +155,7 @@ export function SchematicView({
         setSvg('');
         setError(String(e));
       });
-  }, [effectivePodId, diagram]);
+  }, [effectivePodId, diagram, selectedContainer, selectedVolume]);
 
   // Same placement algorithm as Tooltip.tsx: prefer below-and-centered on the anchor, flip above if that
   // would overflow the viewport's bottom, then clamp both axes so it's always fully on-screen.
@@ -183,6 +205,20 @@ export function SchematicView({
   }
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
+    // Container schematic selection — checked before data-resource-id (the radio/volume live inside cards that
+    // also carry it) so a select never also opens the editor. Clicking the same one again toggles it off.
+    const selContainer = (e.target as Element).closest('[data-select-container]');
+    if (selContainer) {
+      const name = selContainer.getAttribute('data-select-container');
+      setSelectedContainer((prev) => (prev === name ? null : name));
+      return;
+    }
+    const selVolume = (e.target as Element).closest('[data-select-volume]');
+    if (selVolume) {
+      const name = selVolume.getAttribute('data-select-volume');
+      setSelectedVolume((prev) => (prev === name ? null : name));
+      return;
+    }
     const rbacNode = (e.target as Element).closest('[data-rbac-sa]');
     if (rbacNode) {
       const saId = rbacNode.getAttribute('data-rbac-sa');

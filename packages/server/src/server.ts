@@ -955,14 +955,16 @@ app.get('/schematic.svg', async (req, reply) => {
 // Companion to /schematic.svg — the same Pod opened up into its init/app/ephemeral container detail cards +
 // shared volumes (see render/containerSchematicSvg.ts). Same DTO, different projection of it.
 app.get('/container-schematic.svg', async (req, reply) => {
-  const q = req.query as { id?: string };
+  // `container`/`volume` are the interactive selection (which container's edges to draw, which volume's
+  // storage-implementation sub-diagram to show) — the client re-fetches with these set as the user clicks.
+  const q = req.query as { id?: string; container?: string; volume?: string };
   const dto = q.id ? getSchematic(graph, q.id) : undefined;
   if (!dto) {
     reply.code(404);
     return { error: 'not found (not a Pod id in this snapshot)' };
   }
   reply.header('content-type', 'image/svg+xml');
-  return renderContainerSchematicSvg(dto);
+  return renderContainerSchematicSvg(dto, { selectedContainer: q.container ?? null, selectedVolume: q.volume ?? null });
 });
 
 // One subject's RBAC schematic. Addressable two ways: by explicit subject identity (kind/name/ns — how the
