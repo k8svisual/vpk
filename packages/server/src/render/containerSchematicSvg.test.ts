@@ -90,22 +90,27 @@ describe('renderContainerSchematicSvg', () => {
 
   it('draws NO volume/config/port edges when nothing is selected (clean default)', () => {
     const svg = renderContainerSchematicSvg(base);
-    // Edge paths look like `M<x> <y> L…` (space-separated coords); the only other <path>s are the arrowhead
-    // marker defs (`M0,0 …`). So a clean default has no coordinate edge path at all.
-    expect(svg).not.toMatch(/<path d="M[\d.]+ [\d.]+ L/);
+    // Edge paths are right-angle elbows (`M<x> <y> V…`/`H…`); the only other <path>s are the arrowhead marker
+    // defs (`M0,0 …`, no space). So a clean default has no coordinate edge path at all.
+    expect(svg).not.toMatch(/<path d="M[\d.]+ [\d.]+ [VH]/);
   });
 
-  it('reveals the selected container\'s edges — a red shares-path + solid paths for its port/config', () => {
+  it('draws edges as right-angle elbows (V/H commands), not diagonal L lines', () => {
+    const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
+    expect(svg).toMatch(/<path d="M[\d.]+ [\d.]+ [VH]/);
+  });
+
+  it('reveals the selected container\'s edges — a red shares-path (mount) + a solid path (port to Network)', () => {
     const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
     // `data` is shared with sidecar -> app's mount edge to it is a red path.
     expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-red\)"/);
-    // app has a port + consumes config -> at least one solid path edge (to Service / Configuration).
+    // app has a port -> a solid elbow to the Network box.
     expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
   });
 
   it('does not draw another container\'s edges — selecting `sidecar` yields only its shared mount, no solid edge', () => {
     const svg = renderContainerSchematicSvg(base, { selectedContainer: 'sidecar' });
-    // sidecar mounts `data` (shared) -> a red path; but it has no ports/config, so no solid path edge.
+    // sidecar mounts `data` (shared) -> a red path; but it has no ports, so no solid path edge.
     expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-red\)"/);
     expect(svg).not.toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
   });
@@ -120,23 +125,24 @@ describe('renderContainerSchematicSvg', () => {
     const svg = renderContainerSchematicSvg(base, { selectedContainer: 'app' });
     // The edge <path>s must come after the last container card <g> in document order (painted on top).
     const lastCard = svg.lastIndexOf('data-select-container=');
-    const firstEdge = svg.search(/<path d="M[\d.]+ [\d.]+ L/);
+    const firstEdge = svg.search(/<path d="M[\d.]+ [\d.]+ [VH]/);
     expect(firstEdge).toBeGreaterThan(lastCard);
   });
 
-  it('routes a configMap/secret volume mount to the Configuration icon, not the volume tile', () => {
-    // A container that ONLY mounts a configMap volume (no env, no ports, no other mounts).
+  it('draws the ConfigMap line ONLY when the configMap volume is clicked, not on container-select', () => {
+    const mounts = [{ volumeName: 'cfg', mountPath: '/etc' }];
     const dto: SchematicDto = {
       ...base,
-      containers: [c('cfg-only', { image: 'x', ready: true, stateLabel: 'Running', mounts: [{ volumeName: 'cfg', mountPath: '/etc' }] })],
+      containers: [c('only', { image: 'x', ready: true, stateLabel: 'Running', mounts })],
       initContainers: [],
       ephemeralContainers: [],
     };
-    const svg = renderContainerSchematicSvg(dto, { selectedContainer: 'cfg-only' });
-    // Exactly one edge path, and it's solid (to the ConfigMap icon) — no red/other edge to the cfg volume tile.
-    const paths = svg.match(/<path d="M[\d.]+ [\d.]+ L/g) ?? [];
-    expect(paths).toHaveLength(1);
-    expect(svg).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
+    const paths = (svg: string) => (svg.match(/<path d="M[\d.]+ [\d.]+ [VH]/g) ?? []).length;
+    const contSel = renderContainerSchematicSvg(dto, { selectedContainer: 'only' }); // mount edge to the tile only
+    const volSel = renderContainerSchematicSvg(dto, { selectedContainer: 'only', selectedVolume: 'cfg' });
+    // Clicking the cfg volume adds the extra line to the Configuration ConfigMap icon.
+    expect(paths(volSel)).toBeGreaterThan(paths(contSel));
+    expect(volSel).toMatch(/<path[^>]*marker-end="url\(#cs-solid\)"/);
   });
 
   it('gives every volume tile a uniform 1px border, highlighting only the selected one', () => {

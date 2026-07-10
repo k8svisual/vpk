@@ -160,39 +160,44 @@ export function renderContainerSchematicSvg(s: SchematicDto, opts: Opts = {}): s
 
   let storageBottom = 0;
   if (selectedVolume) {
-    const storageTop = sideBoxTop + (hasService ? serviceBox!.h + 24 : 0);
+    // Sits well below the Network box (not crowding it) — the two are unrelated (one's the Service, one's the
+    // clicked volume's storage), so the gap makes that clear.
+    const storageTop = sideBoxTop + (hasService ? serviceBox!.h + 64 : 0);
     const rendered = storageDetail(s, selectedVolume, rightX, storageTop);
     body.push(rendered.svg);
     storageBottom = storageTop + rendered.h;
   }
 
-  // ---- edges: ONLY the selected container's (config it uses, its ports, its mounts, its debug target) ----
+  // ---- edges (all drawn as right-angle elbows, never diagonal) ----
   const edges: string[] = [];
   const sel = selectedContainer ? cards.find((c) => c.c.name === selectedContainer) : undefined;
   if (sel) {
+    // The selected container's own wiring: its ports to the Network box, and each of its mounts down to the
+    // volume tile it uses (red when that volume is shared with another container). The line to a configMap/
+    // secret's icon in the Configuration box is deliberately NOT drawn here — it only appears when the volume
+    // tile itself is clicked (below), so container-select stays focused on "what does this one use".
     const { c, rect } = sel;
-    // A configMap/secret VOLUME mount points at the matching k8s icon in the Configuration box (not the volume
-    // tile) — the same place an env/envFrom reference points — so "where this container's config comes from"
-    // reads in one spot. At most one line per kind (the Configuration icons are per-kind aggregates).
-    const usesCm = c.configRefs.configMaps.length > 0 || c.mounts.some((m) => volByName.get(m.volumeName)?.type === 'configMap');
-    const usesSecret = c.configRefs.secrets.length > 0 || c.mounts.some((m) => volByName.get(m.volumeName)?.type === 'secret');
-    if (configCmIcon && usesCm) edges.push(solidEdge(configCmIcon.x + 18, configCmIcon.y, rect.x, rect.y + 22));
-    if (configSecretIcon && usesSecret) edges.push(solidEdge(configSecretIcon.x + 18, configSecretIcon.y, rect.x, rect.y + 42));
     if (serviceBox && c.ports.length > 0) {
-      edges.push(solidEdge(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2));
+      edges.push(edge(orthoHV(rect.x + rect.w, rect.y + rect.h / 2, serviceBox.x, serviceBox.y + serviceBox.h / 2), 'solid'));
     }
+    const meetY = volBox ? volBox.y - 6 : rect.y + rect.h + 12;
     for (const m of c.mounts) {
-      const v = volByName.get(m.volumeName);
-      if (!v || v.type === 'configMap' || v.type === 'secret') continue; // cm/secret handled via the Config icons above
       const vr = volRectByName.get(m.volumeName);
       if (!vr) continue;
       const shared = (mountCount.get(m.volumeName) ?? 0) > 1;
-      edges.push((shared ? sharesEdge : solidEdge)(rect.x + rect.w / 2, rect.y + rect.h, vr.x + vr.w / 2, vr.y));
+      edges.push(edge(orthoVHV(rect.x + rect.w / 2, rect.y + rect.h, vr.x + vr.w / 2, vr.y, meetY), shared ? 'shares' : 'solid'));
     }
     if (c.kind === 'ephemeral' && c.targetContainerName) {
       const target = cardByName.get(c.targetContainerName);
-      if (target) edges.push(targetsEdge(rect.x + rect.w / 2, rect.y, target.x + target.w / 2, target.y + target.h));
+      if (target) edges.push(edge(orthoVHV(rect.x + rect.w / 2, rect.y, target.x + target.w / 2, target.y + target.h, (rect.y + target.y + target.h) / 2), 'target'));
     }
+  }
+  // A clicked configMap/secret VOLUME draws a line from its tile to the matching k8s icon in the Configuration
+  // box — this is the ONLY place that line appears (not on container-select), per the volume-driven model.
+  if (selectedVolume && configBox) {
+    const vr = volRectByName.get(selectedVolume.name);
+    const target = selectedVolume.type === 'configMap' ? configCmIcon : selectedVolume.type === 'secret' ? configSecretIcon : null;
+    if (vr && target) edges.push(edge(orthoVup(vr.x + vr.w / 2, vr.y, target.x, target.y), 'solid'));
   }
 
   const hasRightCol = hasService || !!selectedVolume;
@@ -456,14 +461,29 @@ function legend(podName: string): string {
   );
 }
 
-function solidEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="var(--vpk-fg, #444)" stroke-width="1.3" marker-end="url(#cs-solid)" />`;
+/** All connectors are right-angle elbows (per feedback: 90° bends, never diagonal). Three routers cover the
+ *  cases: HV for card→Network (out sideways, up, in), VHV for card→volume (down to a corridor above the
+ *  volumes box, across, down into the tile), and Vup for a volume tile→Configuration icon (straight up, then
+ *  across to the icon). */
+function orthoHV(x1: number, y1: number, x2: number, y2: number): string {
+  const xm = (x1 + x2) / 2;
+  return `M${x1} ${y1} H${xm} V${y2} H${x2}`;
 }
-function sharesEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${STATUS_ERROR}" stroke-width="1.3" stroke-dasharray="5 4" marker-end="url(#cs-red)" />`;
+function orthoVHV(x1: number, y1: number, x2: number, y2: number, meetY: number): string {
+  return `M${x1} ${y1} V${meetY} H${x2} V${y2}`;
 }
-function targetsEdge(x1: number, y1: number, x2: number, y2: number): string {
-  return `<path d="M${x1} ${y1} L${x2} ${y2}" fill="none" stroke="${EPHEMERAL}" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#cs-pur)" />`;
+function orthoVup(x1: number, y1: number, x2: number, y2: number): string {
+  return `M${x1} ${y1} V${y2} H${x2}`;
+}
+
+function edge(d: string, kind: 'solid' | 'shares' | 'target'): string {
+  const [stroke, dash, marker] =
+    kind === 'shares'
+      ? [STATUS_ERROR, ' stroke-dasharray="5 4"', 'cs-red']
+      : kind === 'target'
+        ? [EPHEMERAL, ' stroke-dasharray="4 3"', 'cs-pur']
+        : ['var(--vpk-fg, #444)', '', 'cs-solid'];
+  return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.3"${dash} marker-end="url(#${marker})" />`;
 }
 
 function clip(str: string, max: number): string {
