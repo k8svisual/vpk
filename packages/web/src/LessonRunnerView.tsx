@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
 import { CheckCircle2, CircleAlert, Loader2, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 
@@ -377,10 +377,17 @@ function TerminalPane({ allow }: { allow: string[] }) {
   const [line, setLine] = useState('kubectl get nodes');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [running, setRunning] = useState(false);
+  // Shell-style Up/Down recall over PAST TYPED COMMANDS (not full history.length — history entries are
+  // appended asynchronously after a command finishes, so indexing off it directly would drift). null = not
+  // currently browsing (the input holds whatever the student is actively typing); draftRef preserves that
+  // in-progress text so pressing Down back past the oldest browsed entry restores it, matching real shells.
+  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
+  const draftRef = useRef('');
 
   async function run() {
     const cmd = line.trim();
     if (!cmd) return;
+    setHistoryIndex(null);
     setRunning(true);
     try {
       const result = await postJson<CommandResult>('/course/command', { line: cmd, allow });
@@ -392,6 +399,37 @@ function TerminalPane({ allow }: { allow: string[] }) {
     }
   }
 
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      void run();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      if (history.length === 0) return;
+      e.preventDefault();
+      if (historyIndex === null) {
+        draftRef.current = line;
+        setHistoryIndex(history.length - 1);
+        setLine(history[history.length - 1]?.line ?? '');
+      } else if (historyIndex > 0) {
+        setHistoryIndex(historyIndex - 1);
+        setLine(history[historyIndex - 1]?.line ?? '');
+      }
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      if (historyIndex === null) return;
+      e.preventDefault();
+      if (historyIndex < history.length - 1) {
+        setHistoryIndex(historyIndex + 1);
+        setLine(history[historyIndex + 1]?.line ?? '');
+      } else {
+        setHistoryIndex(null);
+        setLine(draftRef.current);
+      }
+    }
+  }
+
   return (
     <div className="border rounded flex flex-col h-full" style={panelStyle}>
       <div className="px-3 py-2 border-b flex items-center gap-1.5 text-xs font-medium" style={panelStyle}>
@@ -400,11 +438,26 @@ function TerminalPane({ allow }: { allow: string[] }) {
       </div>
       <p className="px-3 pt-2 text-xs" style={mutedStyle}>
         Runs <code>kubectl</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
-        tools, use your own system terminal.
+        tools, use your own system terminal. ↑/↓ recall previous commands.
       </p>
+      <div className="flex gap-2 p-2 border-b" style={panelStyle}>
+        <input
+          value={line}
+          onChange={(e) => {
+            setHistoryIndex(null);
+            setLine(e.target.value);
+          }}
+          onKeyDown={handleKeyDown}
+          className="flex-1 text-xs px-2 py-1 rounded border font-mono"
+          style={{ ...panelStyle, background: 'var(--vpk-surface)' }}
+        />
+        <button onClick={() => void run()} disabled={running} className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed" style={panelStyle}>
+          {running ? '…' : 'Run'}
+        </button>
+      </div>
       <div className="flex-1 overflow-auto px-3 py-2 space-y-3 text-xs font-mono min-h-0">
-        {history.map((entry, i) => (
-          <div key={i}>
+        {[...history].reverse().map((entry, i) => (
+          <div key={history.length - 1 - i}>
             <div className="font-semibold">$ {entry.line}</div>
             {entry.result && (
               <>
@@ -426,20 +479,6 @@ function TerminalPane({ allow }: { allow: string[] }) {
             )}
           </div>
         ))}
-      </div>
-      <div className="flex gap-2 p-2 border-t" style={panelStyle}>
-        <input
-          value={line}
-          onChange={(e) => setLine(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void run();
-          }}
-          className="flex-1 text-xs px-2 py-1 rounded border font-mono"
-          style={{ ...panelStyle, background: 'var(--vpk-surface)' }}
-        />
-        <button onClick={() => void run()} disabled={running} className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed" style={panelStyle}>
-          {running ? '…' : 'Run'}
-        </button>
       </div>
     </div>
   );
