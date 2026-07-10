@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@vpk/core": "workspace:*"
+    "@vpk/core": "workspace:*",
+    "yaml": "^2.9.0"
   }
 }
