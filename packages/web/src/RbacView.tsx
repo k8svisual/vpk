@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
+import { MousePointerClick } from 'lucide-react';
+import { EmptyState } from './EmptyState';
 
 const TOOLTIP_VIEWPORT_MARGIN = 8;
 const TOOLTIP_GAP = 6;
@@ -193,11 +195,7 @@ export function RbacView({
           ))}
         </select>
       </div>
-      {!selected && (
-        <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
-          Select a subject to view who granted it access and what it can do.
-        </p>
-      )}
+      {!selected && <EmptyState icon={MousePointerClick}>Select a subject to view who granted it access and what it can do.</EmptyState>}
       {error && (
         <p className="text-sm" style={{ color: 'var(--vpk-status-error)' }}>
           {error}

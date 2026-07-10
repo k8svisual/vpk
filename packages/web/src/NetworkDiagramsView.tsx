@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import { SvgDiagram } from './SvgDiagram';
 import { NodePodsModal } from './NodePodsModal';
 import { EndpointSlicesModal } from './EndpointSlicesModal';
 import { KindIcon } from './StorageView';
 import { networkIconBg } from './kindColors';
+import { EmptyState } from './EmptyState';
 
 interface ServiceOption {
   id: string;
@@ -154,7 +156,7 @@ export function NetworkDiagramsView({ namespaces, onSelect }: { namespaces: stri
       <p style={{ fontSize: 12, color: 'var(--vpk-fg-muted, #888)', margin: '0 0 12px' }}>{HINT[type]}</p>
 
       {error && <p style={{ fontSize: 13, color: 'var(--vpk-status-error, #c0392b)' }}>{error}</p>}
-      {scoped && !svcId && !error && <p style={{ fontSize: 13, color: '#888' }}>Select a service to render this diagram.</p>}
+      {scoped && !svcId && !error && <EmptyState icon={MousePointerClick}>Select a service to render this diagram.</EmptyState>}
 
       {type === 'layers' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

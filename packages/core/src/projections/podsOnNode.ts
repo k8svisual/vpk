@@ -1,6 +1,7 @@
 import type { ResourceGraph } from '../graph';
 import type { ResourceId } from '../identity';
 import { podStatusCategory, podStatusColor, isDaemonSetOwned, type PodStatusCategory } from '../podStatus';
+import { podResourceRequests } from '../podResources';
 
 export interface NodePodRow {
   id: ResourceId;
@@ -13,6 +14,12 @@ export interface NodePodRow {
   color: string;
   daemonSet: boolean;
   creationTimestamp?: string;
+  /** Total requested CPU (cores) / Memory (bytes) across this Pod's containers — see podResources.ts's own
+   *  doc comment for why initContainers are excluded. Undefined means that resource was never requested. */
+  cpuCores?: number;
+  memBytes?: number;
+  /** False when NEITHER cpuCores nor memBytes is set — the "Pods without requests" filter's signal. */
+  hasRequests: boolean;
 }
 
 /**
@@ -28,6 +35,7 @@ export function projectPodsOnNode(graph: ResourceGraph, nodeName: string): NodeP
     if (r.kind !== 'Pod') continue;
     const podNode = (r.raw.spec as { nodeName?: string } | undefined)?.nodeName;
     if (podNode !== nodeName) continue;
+    const { cpuCores, memBytes, hasRequests } = podResourceRequests(r);
     rows.push({
       id: r.id,
       name: r.name,
@@ -36,6 +44,9 @@ export function projectPodsOnNode(graph: ResourceGraph, nodeName: string): NodeP
       color: podStatusColor(r),
       daemonSet: isDaemonSetOwned(r),
       creationTimestamp: r.creationTimestamp,
+      cpuCores,
+      memBytes,
+      hasRequests,
     });
   }
   return rows.sort((a, b) => a.namespace.localeCompare(b.namespace) || a.name.localeCompare(b.name));

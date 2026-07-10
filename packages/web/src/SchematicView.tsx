@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import { ResourceListModal, type ResourceListItem } from './ResourceListModal';
 import { SecretDecodeModal } from './SecretDecodeModal';
+import { EmptyState } from './EmptyState';
 
 const TOOLTIP_VIEWPORT_MARGIN = 8;
 const TOOLTIP_GAP = 6;
@@ -279,9 +281,9 @@ export function SchematicView({
       <>
         {returnPill}
         {picker}
-        <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
+        <EmptyState icon={MousePointerClick}>
           {onReturn ? 'Select a Pod (e.g. from Search) to view its schematic.' : 'Select a namespace, then a Pod, to view its schematic.'}
-        </p>
+        </EmptyState>
       </>
     );
   }

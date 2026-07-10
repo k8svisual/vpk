@@ -54,6 +54,8 @@ export default defineConfig({
       '/network-catalog': API,
       '/stats': API,
       '/logs': API,
+      '/diagnostics': API,
+      '/client-error': API,
       '/shutdown': API,
     },
   },

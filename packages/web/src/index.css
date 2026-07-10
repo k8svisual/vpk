@@ -115,4 +115,37 @@
     outline: 2px solid var(--vpk-accent);
     outline-offset: -1px;
   }
+
+  /* A native <select> otherwise renders with the OS's own chrome (flat rectangle + generic arrow on macOS/
+   *  Chrome) regardless of the border/background above — the single biggest reason every dropdown in the app
+   *  reads as "unstyled HTML form" rather than part of one designed product. `appearance: none` clears that
+   *  chrome; the chevron is a plain `background-image` SVG (can't use `currentColor`/a CSS var inside a data-
+   *  URI, and `::after` isn't reliably supported on native `<select>` across browsers, so a mask-based
+   *  approach isn't an option here) with each theme's own `--vpk-fg-muted` hex baked in below — same
+   *  duplicate-per-[data-theme] convention the color tokens above already use. `!important` on padding-right
+   *  alone: `@layer base` always loses to an unlayered Tailwind utility class in the cascade regardless of
+   *  specificity, and several call sites set their own `px-2`/`px-1` — without it the chevron would overlap
+   *  whatever text sits at the end of a narrow-padded select. */
+  select {
+    appearance: none;
+    padding-right: 26px !important;
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 14px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%236b6b66' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+    cursor: pointer;
+    transition: border-color 0.1s ease;
+  }
+  select:hover {
+    border-color: var(--vpk-accent);
+  }
+}
+[data-theme='dark'] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%239a9a96' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+}
+[data-theme='forest'] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235c6e56' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+}
+[data-theme='ocean'] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%234d6b76' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
 }

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import { iconUrlForKind } from './kindIcons';
 import { cssKindVar } from './kindColors';
 import { Tooltip } from './Tooltip';
 import { StorageCountsView, type CountsDimension } from './StorageCountsView';
+import { EmptyState } from './EmptyState';
 
 interface StoragePod {
   id: string;
@@ -75,7 +77,7 @@ function buildDriverGroups(groups: StorageGroup[]): DriverGroup[] {
 }
 
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-function formatBytes(bytes: number | undefined): string {
+export function formatBytes(bytes: number | undefined): string {
   if (bytes === undefined || Number.isNaN(bytes)) return '—';
   if (bytes === 0) return '0 B';
   let n = bytes;
@@ -401,7 +403,10 @@ const VIEW_BUTTONS: { mode: ViewMode; label: string }[] = [
 ];
 
 export function StorageView({ onSelect }: { onSelect: (id: string) => void }) {
-  const [mode, setMode] = useState<ViewMode>('hierarchy');
+  // Starts with no category picked (see the EmptyState below) — same "make the user pick, don't just guess
+  // the first one" convention now applied consistently across the app (Images' Repository, Events' Graph/
+  // Messages), rather than defaulting to SC/PV/PVC just because it's first in VIEW_BUTTONS.
+  const [mode, setMode] = useState<ViewMode | null>(null);
   const [groups, setGroups] = useState<StorageGroup[]>([]);
 
   useEffect(() => {
@@ -426,7 +431,7 @@ export function StorageView({ onSelect }: { onSelect: (id: string) => void }) {
               padding: '5px 10px',
               borderRadius: 6,
               border: '1px solid var(--vpk-border, #ccc)',
-              background: mode === b.mode ? '#2a5db0' : 'var(--vpk-surface, #fff)',
+              background: mode === b.mode ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface, #fff)',
               color: mode === b.mode ? '#fff' : 'var(--vpk-fg, #222)',
               cursor: 'pointer',
               fontSize: 12,
@@ -436,7 +441,9 @@ export function StorageView({ onSelect }: { onSelect: (id: string) => void }) {
           </button>
         ))}
       </div>
-      {mode === 'hierarchy' ? (
+      {mode === null ? (
+        <EmptyState icon={MousePointerClick}>Select a category to view.</EmptyState>
+      ) : mode === 'hierarchy' ? (
         groups.length === 0 ? (
           <p style={{ color: '#888' }}>No StorageClasses or PersistentVolumes in this snapshot.</p>
         ) : (

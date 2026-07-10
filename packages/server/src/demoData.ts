@@ -28,6 +28,7 @@ import {
   type PodServiceRef,
 } from '@vpk/demo-data';
 import { assignCreationTimestamps, validateHierarchy, simulatePodChurn, type TimestampOptions } from './demoTimestamps';
+import { pushLog } from './logBuffer';
 
 const WORKING_SUBDIR = 'demo-wip';
 
@@ -49,8 +50,10 @@ function readKindList(snapshotDir: string, kind: string): RawObject[] {
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8')) as { items?: RawObject[] };
     return Array.isArray(parsed.items) ? parsed.items : [];
-  } catch {
-    return []; // corrupt/hand-edited-wrong staged file — degrade to empty rather than crash the endpoint
+  } catch (e) {
+    // corrupt/hand-edited-wrong staged file — degrade to empty rather than crash the endpoint
+    pushLog('warn', `Ignoring corrupt staged Demo Data file ${file}: ${String(e)}`);
+    return [];
   }
 }
 

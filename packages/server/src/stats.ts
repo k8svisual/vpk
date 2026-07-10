@@ -2,6 +2,7 @@ import type { ResourceGraph } from '@vpk/core';
 import { statSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import os from 'node:os';
+import { pushLog } from './logBuffer';
 
 export interface Stats {
   system: {
@@ -53,8 +54,11 @@ export function computeStats(params: {
     sizeBytes = statSync(currentPath).size;
     const parsed = JSON.parse(readFileSync(currentPath, 'utf8')) as { manifest?: unknown };
     manifest = parsed.manifest ?? null;
-  } catch {
-    // best-effort — a hand-authored or legacy-format snapshot may have no manifest, or the file may have moved
+  } catch (e) {
+    // best-effort — a hand-authored or legacy-format snapshot may have no manifest, so this isn't always a
+    // real problem, but still worth a trace: the file moving/disappearing out from under an active session
+    // (the currentPath the graph itself was loaded from) is exactly the kind of thing worth having a record of.
+    pushLog('warn', `Could not read manifest/size for ${currentPath}: ${String(e)}`);
   }
 
   return {

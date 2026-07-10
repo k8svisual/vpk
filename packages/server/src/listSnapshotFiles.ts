@@ -1,5 +1,6 @@
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { pushLog } from './logBuffer';
 
 /**
  * Snapshot files can sit flat in the configured directory, OR one level down in a per-capture subdirectory
@@ -11,11 +12,20 @@ import { join } from 'node:path';
  * — no changes needed there. Only recurses one level, matching that layout; a directory that's missing or
  * unreadable just contributes no entries rather than throwing.
  */
+// The snapshot dropdown re-fetches /snapshots on every open (see App.tsx's refreshSnaps calls), so a broken
+// snapshotDir would otherwise flood the log buffer with the same message on every click — logged once per
+// distinct `dir` value instead, not once per call.
+const warnedDirs = new Set<string>();
+
 export function listSnapshotFiles(dir: string): string[] {
   let entries: import('node:fs').Dirent[];
   try {
     entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch (e) {
+    if (!warnedDirs.has(dir)) {
+      warnedDirs.add(dir);
+      pushLog('warn', `Snapshot directory ${dir} is missing or unreadable: ${String(e)}`);
+    }
     return [];
   }
 

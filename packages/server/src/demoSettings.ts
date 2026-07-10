@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { pushLog } from './logBuffer';
 
 /**
  * Persisted Demo Data screen configuration (bundle percents/patterns, per-Kind form values, Node
@@ -27,12 +28,15 @@ export function saveDemoSettings(paths: string[], settings: DemoDataSettings): v
   for (const path of paths) writeFileSync(path, json);
 }
 
-/** Never throws — an absent or corrupt file just reads back as `null` (nothing saved there yet / not a
- *  reason to fail the request). */
+/** Never throws — an absent file just reads back as `null` (nothing saved there yet — checked on every
+ *  `/demo/settings` request, so this is far too common to log). A file that EXISTS but fails to parse is a
+ *  different story and worth a trace. */
 export function loadDemoSettings(path: string): DemoDataSettings | null {
+  if (!existsSync(path)) return null;
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as DemoDataSettings;
-  } catch {
+  } catch (e) {
+    pushLog('warn', `Ignoring unreadable Demo Data settings at ${path}: ${String(e)}`);
     return null;
   }
 }

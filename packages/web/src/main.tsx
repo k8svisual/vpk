@@ -3,7 +3,14 @@ import { App } from './App';
 import { applyTheme, initialTheme } from './theme';
 import { applyFontSize, initialFontSize } from './fontSize';
 import { applyKindColorOverrides, getStoredKindColorOverrides } from './kindColorOverrides';
+import { reportClientError } from './reportClientError';
 import './index.css';
+
+// ErrorBoundary.tsx only catches errors React itself throws during render/commit — an exception inside an
+// event handler (onClick, etc.) or an unawaited rejected promise anywhere in the app never reaches it at all,
+// so those need their own top-level net to end up in the same server-side log buffer.
+window.addEventListener('error', (e) => reportClientError('window.onerror', e.error ?? e.message));
+window.addEventListener('unhandledrejection', (e) => reportClientError('unhandled promise rejection', e.reason));
 
 // Applied before the first render (not inside App) so there's no flash of the wrong theme — index.html
 // ships with data-theme="light" as a static fallback; this immediately corrects it from localStorage/system

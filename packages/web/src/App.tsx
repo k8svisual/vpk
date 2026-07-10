@@ -22,6 +22,7 @@ import { LogsModal } from './LogsModal';
 import { StopConfirmModal } from './StopConfirmModal';
 import { AboutModal } from './AboutModal';
 import { CaptureConfirmModal } from './CaptureConfirmModal';
+import { NoSnapshotBanner } from './NoSnapshotBanner';
 import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
@@ -89,6 +90,13 @@ const VIEW_LABELS: Record<ViewId, string> = Object.fromEntries(
     .concat(DEMO_DATA_ITEM)
     .map((item) => [item.id, item.label]),
 ) as Record<ViewId, string>;
+/** Same lookup, for the title row's icon — the nav rail already carries one per view, so this is free
+ *  reinforcement of "you are here" rather than a second place that can drift out of sync with it. */
+const VIEW_ICONS: Record<ViewId, RailItem<ViewId>['icon']> = Object.fromEntries(
+  RAIL_GROUPS.flatMap((g) => g.items)
+    .concat(DEMO_DATA_ITEM)
+    .map((item) => [item.id, item.icon]),
+) as Record<ViewId, RailItem<ViewId>['icon']>;
 
 export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
@@ -178,6 +186,10 @@ export function App() {
     () => fetch('/snapshots').then((r) => r.json() as Promise<Snapshots>).then(setSnaps),
     [],
   );
+  // No snapshot files exist in the configured directory at all — every view (other than Demo Data, which
+  // needs no capture) is gated behind NoSnapshotBanner in that case, since there's genuinely nothing any of
+  // them could show. True only briefly on first mount too, before the initial /snapshots fetch resolves.
+  const noSnapshots = snaps.files.length === 0;
 
   const refreshNamespaces = useCallback(
     () => fetch('/namespaces').then((r) => r.json() as Promise<string[]>).then(setNamespaces),
@@ -450,16 +462,20 @@ export function App() {
           </div>
         </header>
         <div
-          className="flex items-center gap-3 border-b px-3 py-1.5"
+          className="flex items-center gap-2 border-b px-3 py-2.5"
           style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-bg)' }}
         >
-          <span className="text-xs font-medium" style={{ color: 'var(--vpk-fg)' }}>
+          {(() => {
+            const ViewIcon = VIEW_ICONS[view];
+            return <ViewIcon size={16} style={{ color: 'var(--vpk-fg-muted)' }} />;
+          })()}
+          <span className="text-sm font-semibold" style={{ color: 'var(--vpk-fg)' }}>
             {VIEW_LABELS[view]}
           </span>
         </div>
 
         <div className="flex flex-1 min-h-0">
-          <main className={`flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
+          <main className={`relative flex-1 overflow-auto ${view === 'cluster3d' ? '' : 'p-3'}`}>
             {/* Scene3D stays mounted (visibility toggle inside) so there's at most one WebGL context ever.
                 Wrapped in an ErrorBoundary since react-three-fiber's Canvas throws when WebGL can't be
                 created (e.g. a sandboxed/headless browser) — without one, that error has no boundary to stop
@@ -489,85 +505,102 @@ export function App() {
                 fogEnabled={fogEnabled}
                 gridEnabled={gridEnabled}
               />
+              {/* Nothing else on this page can show anything real with zero snapshot files available — an
+                  absolutely-positioned overlay rather than conditionally unmounting Scene3D itself, since that
+                  component has to stay mounted at all times (see its own comment above) for the single WebGL
+                  context invariant. */}
+              {view === 'cluster3d' && noSnapshots && (
+                <div className="absolute inset-0" style={{ background: 'var(--vpk-bg)' }}>
+                  <NoSnapshotBanner onCapture={() => setCaptureConfirmOpen(true)} />
+                </div>
+              )}
             </ErrorBoundary>
-            {view === 'ownerref' && (
-              <OwnerRefView
-                focusId={ownerRefFocusId}
-                onSelect={selectResource}
-                onReturn={ownerRefFocusId ? returnFrom3DOwnerRef : undefined}
-                snapshotKey={snaps.current}
-              />
+            {/* Every other view is entirely gated on a snapshot existing — Demo Data is the one exception,
+                since it generates its own synthetic data and needs no capture at all. */}
+            {view !== 'cluster3d' && view !== 'demo' && noSnapshots ? (
+              <NoSnapshotBanner onCapture={() => setCaptureConfirmOpen(true)} />
+            ) : (
+              <>
+                {view === 'ownerref' && (
+                  <OwnerRefView
+                    focusId={ownerRefFocusId}
+                    onSelect={selectResource}
+                    onReturn={ownerRefFocusId ? returnFrom3DOwnerRef : undefined}
+                    snapshotKey={snaps.current}
+                  />
+                )}
+                {/* key={snaps.current} on every view below (except Scene3D, which must stay mounted for its one
+                    WebGL context, and OwnerRefView/DemoDataView, which manage snapshot/shared-state transitions
+                    themselves) forces a full unmount+remount on snapshot switch. Without it, each view's
+                    fetch-on-mount effect has no dependency on which snapshot is loaded, so switching snapshots
+                    while that view is already open left it silently showing the PREVIOUS snapshot's data. */}
+                {view === 'search' && (
+                  <SearchView
+                    key={snaps.current}
+                    onSelect={selectResource}
+                    initialKind={searchScope?.kind}
+                    onReturn={searchScope ? returnFrom3DSearch : undefined}
+                  />
+                )}
+                {view === 'network' && <NetworkView key={snaps.current} namespaces={namespaces} onSelect={selectResource} />}
+                {view === 'security' && (
+                  <SecurityView key={snaps.current} onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />
+                )}
+                {view === 'whocan' && (
+                  <WhoCanView
+                    key={snaps.current}
+                    query={whoCanQuery}
+                    onQueryChange={setWhoCanQuery}
+                    onSelect={selectResource}
+                    onViewRbac={(s) => viewRbacFromSubject('whocan', s)}
+                  />
+                )}
+                {view === 'storage' && <StorageView key={snaps.current} onSelect={selectResource} />}
+                {view === 'schematic' && (
+                  <SchematicView
+                    key={snaps.current}
+                    podId={schematicPodId}
+                    onSelect={selectResource}
+                    onViewRbac={viewRbacFromSchematic}
+                    onViewEvents={viewEventsFromSchematic}
+                    onReturn={schematicFrom3D ? returnFrom3DSchematic : undefined}
+                    manualNamespace={schematicManualNamespace}
+                    onManualNamespaceChange={setSchematicManualNamespace}
+                    manualPodId={schematicManualPodId}
+                    onManualPodIdChange={setSchematicManualPodId}
+                  />
+                )}
+                {view === 'rbac' && (
+                  <RbacView
+                    key={snaps.current}
+                    initialSaId={rbacSaId ?? undefined}
+                    initialSubject={rbacSubject ?? undefined}
+                    onSelect={selectResource}
+                    onReturn={rbacFrom ? returnFromRbac : undefined}
+                    returnLabel={rbacReturnLabel}
+                  />
+                )}
+                {view === 'images' && (
+                  <ContainerImagesView
+                    key={snaps.current}
+                    onSelect={selectResource}
+                    initialRegistry={imagesRegistryFilter ?? undefined}
+                    onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}
+                  />
+                )}
+                {view === 'events' && (
+                  <EventsView
+                    key={snaps.current}
+                    onSelect={selectResource}
+                    initialNamespace={eventsPodFilter?.namespace}
+                    initialPodName={eventsPodFilter?.podName}
+                    initialPodId={eventsPodFilter?.podId}
+                    onReturn={eventsPodFilter ? returnFromEventsToSchematic : undefined}
+                  />
+                )}
+                {view === 'resources' && <ResourcesView key={snaps.current} onSelect={selectResource} />}
+              </>
             )}
-            {/* key={snaps.current} on every view below (except Scene3D, which must stay mounted for its one
-                WebGL context, and OwnerRefView/DemoDataView, which manage snapshot/shared-state transitions
-                themselves) forces a full unmount+remount on snapshot switch. Without it, each view's
-                fetch-on-mount effect has no dependency on which snapshot is loaded, so switching snapshots
-                while that view is already open left it silently showing the PREVIOUS snapshot's data. */}
-            {view === 'search' && (
-              <SearchView
-                key={snaps.current}
-                onSelect={selectResource}
-                initialKind={searchScope?.kind}
-                onReturn={searchScope ? returnFrom3DSearch : undefined}
-              />
-            )}
-            {view === 'network' && <NetworkView key={snaps.current} namespaces={namespaces} onSelect={selectResource} />}
-            {view === 'security' && (
-              <SecurityView key={snaps.current} onSelect={selectResource} onViewRbac={(s) => viewRbacFromSubject('security', s)} />
-            )}
-            {view === 'whocan' && (
-              <WhoCanView
-                key={snaps.current}
-                query={whoCanQuery}
-                onQueryChange={setWhoCanQuery}
-                onSelect={selectResource}
-                onViewRbac={(s) => viewRbacFromSubject('whocan', s)}
-              />
-            )}
-            {view === 'storage' && <StorageView key={snaps.current} onSelect={selectResource} />}
-            {view === 'schematic' && (
-              <SchematicView
-                key={snaps.current}
-                podId={schematicPodId}
-                onSelect={selectResource}
-                onViewRbac={viewRbacFromSchematic}
-                onViewEvents={viewEventsFromSchematic}
-                onReturn={schematicFrom3D ? returnFrom3DSchematic : undefined}
-                manualNamespace={schematicManualNamespace}
-                onManualNamespaceChange={setSchematicManualNamespace}
-                manualPodId={schematicManualPodId}
-                onManualPodIdChange={setSchematicManualPodId}
-              />
-            )}
-            {view === 'rbac' && (
-              <RbacView
-                key={snaps.current}
-                initialSaId={rbacSaId ?? undefined}
-                initialSubject={rbacSubject ?? undefined}
-                onSelect={selectResource}
-                onReturn={rbacFrom ? returnFromRbac : undefined}
-                returnLabel={rbacReturnLabel}
-              />
-            )}
-            {view === 'images' && (
-              <ContainerImagesView
-                key={snaps.current}
-                onSelect={selectResource}
-                initialRegistry={imagesRegistryFilter ?? undefined}
-                onReturn={imagesRegistryFilter ? returnFrom3DImages : undefined}
-              />
-            )}
-            {view === 'events' && (
-              <EventsView
-                key={snaps.current}
-                onSelect={selectResource}
-                initialNamespace={eventsPodFilter?.namespace}
-                initialPodName={eventsPodFilter?.podName}
-                initialPodId={eventsPodFilter?.podId}
-                onReturn={eventsPodFilter ? returnFromEventsToSchematic : undefined}
-              />
-            )}
-            {view === 'resources' && <ResourcesView key={snaps.current} onSelect={selectResource} />}
             {view === 'demo' && <DemoDataView />}
           </main>
         </div>

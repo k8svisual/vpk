@@ -179,7 +179,7 @@ export function CaptureConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={dismissible ? onClose : undefined} />
+      <div className="absolute inset-0 bg-black/55" onClick={dismissible ? onClose : undefined} />
       <div
         className="relative flex w-full max-w-lg flex-col overflow-hidden rounded border shadow-2xl"
         style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}

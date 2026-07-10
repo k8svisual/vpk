@@ -1,15 +1,20 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { basename, join, extname } from 'node:path';
 import type { VendorIconOverride } from '@vpk/core';
+import { pushLog } from './logBuffer';
 
 /** Loads the persisted vendor-icon overrides (Settings > Vendor Icons) from `path`. Never throws — an absent
  *  or corrupt file degrades to no overrides (the built-in VENDOR_ICONS table alone) instead of crashing the
- *  server at startup, same convention as settings.ts's loadSettings. */
+ *  server at startup, same convention as settings.ts's loadSettings. An absent file is the normal first-run
+ *  case (nothing's been customized yet) and stays silent; a file that EXISTS but fails to parse is a real
+ *  problem worth a trace, since it means whatever overrides were saved are now silently gone. */
 export function loadVendorIconOverrides(path: string): VendorIconOverride[] {
+  if (!existsSync(path)) return [];
   try {
     const raw = JSON.parse(readFileSync(path, 'utf8'));
     return Array.isArray(raw) ? (raw as VendorIconOverride[]) : [];
-  } catch {
+  } catch (e) {
+    pushLog('warn', `Ignoring unreadable vendor-icon overrides at ${path}: ${String(e)}`);
     return [];
   }
 }

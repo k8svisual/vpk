@@ -94,7 +94,7 @@ export function EndpointSlicesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div
         className="relative flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded border shadow-2xl"
         style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}

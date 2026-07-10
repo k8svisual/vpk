@@ -5,7 +5,7 @@ export function StopConfirmModal({ open, onCancel, onConfirm }: { open: boolean;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/55" onClick={onCancel} />
       <div
         className="relative w-full max-w-sm rounded border p-4 shadow-2xl"
         style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}

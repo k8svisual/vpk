@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import {
   flexRender,
   getCoreRowModel,
@@ -11,6 +12,7 @@ import {
 import { KindIcon } from './StorageView';
 import { networkIconBg } from './kindColors';
 import { EventsTimeline, formatBucketTime, messageCategory, CATEGORY_COLOR, type MessageCategory } from './EventsTimeline';
+import { EmptyState } from './EmptyState';
 
 // A translucent grey that reads on any theme — see PortsView.tsx's HOVER_BG for why not --vpk-rail-active-bg.
 const HOVER_BG = 'rgba(128,128,128,0.15)';
@@ -247,7 +249,7 @@ function ObjectEventsModal({ group, events, onSelect, onClose }: { group: Object
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div
         className="relative flex max-h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded border shadow-2xl"
         style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}
@@ -422,7 +424,11 @@ export function EventsView({
   // A Pod-scoped visit is here to review that Pod's whole history, not just its Warnings — and the aggregate
   // "By object" view would just show one row (the Pod itself), so both defaults flip for that entry path;
   // going straight to the Messages tab (skipping the Graph) matches the same "here to read messages" intent.
-  const [mainTab, setMainTab] = useState<'graph' | 'messages'>(initialPodName ? 'messages' : 'graph');
+  // Unscoped arrivals start with NEITHER tab picked (see the render below's EmptyState) — same "the picker
+  // prompt only for a direct, unscoped visit" convention as every other view's own picker (OwnerRef/Schematic/
+  // ContainerImages): a Pod-scoped visit already knows what it's here to see (Messages), so it skips straight
+  // there instead of asking a question the entry point already answered.
+  const [mainTab, setMainTab] = useState<'graph' | 'messages' | null>(initialPodName ? 'messages' : null);
   const [view, setView] = useState<'aggregate' | 'table'>(initialPodName ? 'table' : 'aggregate');
   // One independent checkbox per category (not a single "Warning only" boolean) — lets Warning and Failed be
   // shown/hidden separately (e.g. "Failed only"), not just together. A Pod-scoped visit starts with all three
@@ -590,6 +596,8 @@ export function EventsView({
           </button>
         ))}
       </div>
+
+      {mainTab === null && <EmptyState icon={MousePointerClick}>Select Graph or Messages to view Events.</EmptyState>}
 
       {mainTab === 'graph' &&
         (events.length > 0 ? (

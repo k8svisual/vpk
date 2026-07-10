@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { reportClientError } from './reportClientError';
 
 interface Props {
   children: ReactNode;
@@ -21,6 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: { componentStack?: string | null }) {
     console.error('ErrorBoundary caught an error:', error, info.componentStack);
+    reportClientError('React render', error);
   }
 
   override render() {

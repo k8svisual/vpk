@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { MousePointerClick } from 'lucide-react';
+import { EmptyState } from './EmptyState';
 
 interface ResourceOption {
   id: string;
@@ -164,11 +166,11 @@ export function OwnerRefView({
       <>
         {returnPill}
         {picker}
-        <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
+        <EmptyState icon={MousePointerClick}>
           {onReturn
             ? 'Select a resource (e.g. from Search) to view its ownership graph.'
             : 'Select a namespace, then a resource, to view its ownership graph.'}
-        </p>
+        </EmptyState>
       </>
     );
   }

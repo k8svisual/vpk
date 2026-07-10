@@ -70,6 +70,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
+import { collectSystemDiagnostics } from './diagnostics';
 import { listResources } from './resources';
 import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
@@ -125,6 +126,36 @@ function resolve(path: string): string {
 }
 
 const app = Fastify();
+
+// Last-resort net for anything a route's own try/catch didn't handle — a thrown error inside an async route
+// handler, a bad param that blew up before reaching that route's own validation, etc. Without this, Fastify's
+// own default handler still returns a 500, but the failure exists nowhere outside that one HTTP response: not
+// in the Logs viewer, not in the diagnostic bundle. This is the backstop, not the primary path — every route
+// above should still catch and pushLog what it specifically expects to go wrong; this just guarantees nothing
+// silently disappears. Includes the stack (not just error.message) — unlike the domain-specific pushLog calls
+// elsewhere in this file, which already say WHAT failed and on WHICH resource/file/command in the message
+// itself, this is exactly the "something nobody anticipated" bucket, where the stack is often the only way to
+// find which line actually broke.
+app.setErrorHandler((error: Error & { statusCode?: number }, req, reply) => {
+  pushLog('error', `Unhandled error on ${req.method} ${req.url}: ${error.stack ?? error.message}`);
+  reply.code(error.statusCode ?? 500).send({ error: error.message });
+});
+
+// Same reasoning one level up, for anything that happens OUTSIDE a Fastify request entirely (a stray
+// unawaited promise, a callback-based API rejecting with nowhere to catch it, ...) — these would otherwise
+// crash the process (uncaughtException) or vanish with only a runtime warning (unhandledRejection), in both
+// cases invisible to the Logs viewer/diagnostic bundle same as above. An uncaught exception leaves the
+// process in a genuinely unknown state (Node's own guidance: don't try to keep running), so this logs it and
+// exits — the log line survives in the ring buffer up until that exit, which is the whole point of putting it
+// here instead of just letting the crash dump go straight to stderr. A rejected promise nobody awaited is
+// less structurally dangerous than that, so it's logged and the process carries on.
+process.on('uncaughtException', (err) => {
+  pushLog('error', `Uncaught exception: ${err.stack ?? err.message}`);
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  pushLog('error', `Unhandled promise rejection: ${reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)}`);
+});
 
 app.get('/health', async () => ({
   ok: true,
@@ -192,6 +223,7 @@ app.post('/vendor-icons/upload', async (req, reply) => {
     const path = saveCustomIcon(customIconsDir, filename, dataBase64);
     return { path };
   } catch (e) {
+    pushLog('warn', `Vendor-icon upload rejected (${filename}): ${String((e as Error).message ?? e)}`);
     reply.code(400);
     return { error: String((e as Error).message ?? e) };
   }
@@ -281,6 +313,17 @@ app.post('/capture', async (req, reply) => {
   const controller = new AbortController();
   activeCaptureController = controller;
 
+  const startedAt = new Date().toISOString();
+  lastCapture = {
+    cli: cliArgv.join(' '),
+    scope: scope ?? 'core',
+    keepSecretData: keepSecretData ?? !settings.disablePullingSecrets,
+    keepConfigMapData: keepConfigMapData ?? true,
+    startedAt,
+    finishedAt: startedAt,
+    outcome: 'error',
+  };
+
   pushLog('info', `Capture started — cli="${cliArgv.join(' ')}" scope=${scope ?? 'core'}`);
   try {
     const { items, manifest } = await captureCore({
@@ -306,13 +349,16 @@ app.post('/capture', async (req, reply) => {
     writeFileSync(join(dirPath, 'desc.json'), JSON.stringify({ description: description ?? '' }, null, 2));
     setSnapshot(snapshotPath);
     pushLog('info', `Capture complete — ${items.length} objects → ${dirName}`);
+    lastCapture = { ...lastCapture, finishedAt: new Date().toISOString(), outcome: 'success', itemCount: items.length };
     send({ type: 'done', ok: true, snapshot: relative(settings.snapshotDir, snapshotPath), nodes: graph.nodes.size, items: items.length });
   } catch (e: unknown) {
     if (controller.signal.aborted) {
       pushLog('warn', 'Capture cancelled by user');
+      lastCapture = { ...lastCapture, finishedAt: new Date().toISOString(), outcome: 'cancelled' };
       send({ type: 'cancelled' });
     } else {
       pushLog('error', `Capture failed: ${String(e)}`);
+      lastCapture = { ...lastCapture, finishedAt: new Date().toISOString(), outcome: 'error', error: String(e) };
       send({ type: 'error', error: String(e) });
     }
   } finally {
@@ -325,6 +371,23 @@ app.post('/capture', async (req, reply) => {
 /** The one capture that can be running at a time (VpK never runs two concurrently) — set for the duration of
  *  the /capture route above, cleared in its `finally`. /capture/cancel aborts whichever one is currently set. */
 let activeCaptureController: AbortController | null = null;
+
+/** Diagnostic-bundle context (Logs modal's "Download Diagnostics") — deliberately just the CONFIG of the most
+ *  recent capture attempt (CLI/scope/flags/timing/outcome), never the captured resources themselves; a
+ *  diagnostic bundle describes the app's own behavior, not cluster contents. Kept in memory only (not
+ *  persisted across a server restart), same lifetime as the log ring buffer it's bundled alongside. */
+interface LastCaptureInfo {
+  cli: string;
+  scope: 'core' | 'all';
+  keepSecretData: boolean;
+  keepConfigMapData: boolean;
+  startedAt: string;
+  finishedAt: string;
+  outcome: 'success' | 'cancelled' | 'error';
+  error?: string;
+  itemCount?: number;
+}
+let lastCapture: LastCaptureInfo | null = null;
 
 app.post('/capture/cancel', async () => {
   if (activeCaptureController) {
@@ -349,6 +412,37 @@ app.get('/logs', async () => ({ logs: getLogs() }));
 
 app.delete('/logs', async () => {
   clearLogs();
+  return { ok: true };
+});
+
+// Diagnostic bundle (Logs modal's "Download Diagnostics") — everything server-side needed to troubleshoot a
+// reported problem: system/runtime facts, the app's own settings, which snapshot is loaded (metadata only —
+// counts, not resource contents), the most recent capture attempt's config/outcome, and the log ring buffer.
+// The web client merges in browser-only fields (user agent, theme, viewport) before triggering the download —
+// see LogsModal.tsx's own doc comment for why that merge has to happen client-side.
+app.get('/diagnostics', async () => ({
+  generatedAt: new Date().toISOString(),
+  system: collectSystemDiagnostics(),
+  settings,
+  snapshot: {
+    current: relative(settings.snapshotDir, currentPath),
+    dir: settings.snapshotDir,
+    nodeCount: graph.nodes.size,
+    edgeCount: graph.edges.length,
+    deduped: graph.deduped,
+  },
+  lastCapture,
+  logs: getLogs(),
+}));
+
+// Closes the other half of "every application issue is caught and reported": everything above catches
+// SERVER-side problems into the log buffer, but a React render crash or an uncaught client-side exception
+// previously had nowhere to go except the browser's own devtools console — invisible to the Logs viewer and
+// the diagnostic bundle alike. The web client's ErrorBoundary and its window-level error/rejection listeners
+// (see main.tsx) POST here so those end up in the same place server-side problems do.
+app.post('/client-error', async (req) => {
+  const { message, stack, source } = (req.body ?? {}) as { message?: string; stack?: string; source?: string };
+  pushLog('error', `Client error${source ? ` (${source})` : ''}: ${message ?? 'unknown error'}${stack ? `\n${stack}` : ''}`);
   return { ok: true };
 });
 
@@ -552,12 +646,15 @@ app.post('/demo/generate', async (req, reply) => {
     const total = appendGenerated(settings.snapshotDir, kind, (template.apiVersion as string) ?? 'v1', items);
     return { ok: true, kind, added: count, total };
   } catch (e: unknown) {
+    pushLog('warn', `Demo Data generate failed for ${kind}: ${String(e)}`);
     reply.code(400);
     return { error: String(e) };
   }
 });
 
-// Dry run of /demo/generate — resolves every pattern and validates masterCount (if given) WITHOUT staging
+// Dry run of /demo/generate — NOT logged the way /demo/generate above is: this runs on every keystroke of the
+// live preview (DemoDataView's pattern fields), so a transient "not valid yet, still typing" failure here is
+// the expected common case, not a real problem — logging it would just drown the log buffer in noise. — resolves every pattern and validates masterCount (if given) WITHOUT staging
 // anything, so a mistake (a malformed range token, masterCount > count, ...) surfaces before committing to a
 // possibly-large count. Returns the first and last item it would have produced as a sanity-check preview.
 app.post('/demo/validate', async (req, reply) => {
@@ -963,6 +1060,8 @@ listenWithRetry(
     }
   })
   .catch((err: unknown) => {
-    pushLog('error', String(err));
+    // A fatal listen() failure is usually self-explanatory (EADDRINUSE, EACCES) but not always — same
+    // stack-over-message-alone reasoning as the global setErrorHandler above.
+    pushLog('error', err instanceof Error ? (err.stack ?? err.message) : String(err));
     process.exit(1);
   });

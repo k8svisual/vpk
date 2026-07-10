@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { pushLog } from './logBuffer';
 
 /** Persisted, server-enforced app settings (DESIGN: settings that affect what data leaves the server — the
  *  snapshot directory and Secret handling — live here, not in browser-only state, since a client-side toggle
@@ -21,8 +22,10 @@ const DEFAULTS: Pick<Settings, 'redactSecrets' | 'disablePullingSecrets'> = {
 };
 
 /** Loads persisted settings from `configPath`, filling in defaults for anything missing/invalid. Never throws —
- *  an absent or corrupt config file degrades to defaults instead of crashing the server at startup. */
+ *  an absent or corrupt config file degrades to defaults instead of crashing the server at startup. An absent
+ *  file is the normal first-run case and stays silent; a file that EXISTS but fails to parse is worth a trace. */
 export function loadSettings(configPath: string, defaultSnapshotDir: string): Settings {
+  if (!existsSync(configPath)) return { snapshotDir: defaultSnapshotDir, ...DEFAULTS };
   try {
     const raw = JSON.parse(readFileSync(configPath, 'utf8')) as Partial<Settings>;
     return {
@@ -30,7 +33,8 @@ export function loadSettings(configPath: string, defaultSnapshotDir: string): Se
       redactSecrets: typeof raw.redactSecrets === 'boolean' ? raw.redactSecrets : DEFAULTS.redactSecrets,
       disablePullingSecrets: typeof raw.disablePullingSecrets === 'boolean' ? raw.disablePullingSecrets : DEFAULTS.disablePullingSecrets,
     };
-  } catch {
+  } catch (e) {
+    pushLog('warn', `Ignoring unreadable settings file at ${configPath}, using defaults: ${String(e)}`);
     return { snapshotDir: defaultSnapshotDir, ...DEFAULTS };
   }
 }

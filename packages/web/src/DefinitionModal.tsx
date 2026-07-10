@@ -152,7 +152,7 @@ export function DefinitionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div
         className="relative flex h-full w-full max-w-3xl flex-col shadow-2xl"
         style={{ background: 'var(--vpk-surface)' }}

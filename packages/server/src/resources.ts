@@ -1,4 +1,4 @@
-import type { ResourceGraph } from '@vpk/core';
+import { podResourceRequests, type ResourceGraph } from '@vpk/core';
 
 /** Flat row for the Search view table — one per node, no raw payload. */
 export interface ResourceRow {
@@ -16,6 +16,11 @@ export interface ResourceRow {
    *  exactly with what projectOwnerRef would draw. */
   hasOwnerRefs: boolean;
   placeholder: boolean;
+  /** Pod-kind rows only (undefined for everything else) — see podResources.ts's own doc comment. Used by the
+   *  Resources view's CPU/Memory columns and its "Pods without requests" filter. */
+  cpuCores?: number;
+  memBytes?: number;
+  hasRequests?: boolean;
 }
 
 /** Project the graph to the flat rows the Search table (and OwnerRef's picker) need. Excludes raw payloads
@@ -24,16 +29,22 @@ export function listResources(graph: ResourceGraph): ResourceRow[] {
   const owned = new Set<string>();
   for (const e of graph.edges) if (e.type === 'ownerReference') owned.add(e.to);
 
-  return [...graph.nodes.values()].map((r) => ({
-    id: r.id,
-    kind: r.kind,
-    apiVersion: r.apiVersion,
-    namespace: r.namespace,
-    name: r.name,
-    creationTimestamp: r.creationTimestamp,
-    labels: r.labels,
-    annotations: r.annotations,
-    hasOwnerRefs: owned.has(r.id),
-    placeholder: r.placeholder ?? false,
-  }));
+  return [...graph.nodes.values()].map((r) => {
+    const podResources = r.kind === 'Pod' ? podResourceRequests(r) : undefined;
+    return {
+      id: r.id,
+      kind: r.kind,
+      apiVersion: r.apiVersion,
+      namespace: r.namespace,
+      name: r.name,
+      creationTimestamp: r.creationTimestamp,
+      labels: r.labels,
+      annotations: r.annotations,
+      hasOwnerRefs: owned.has(r.id),
+      placeholder: r.placeholder ?? false,
+      cpuCores: podResources?.cpuCores,
+      memBytes: podResources?.memBytes,
+      hasRequests: podResources?.hasRequests,
+    };
+  });
 }

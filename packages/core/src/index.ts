@@ -5,6 +5,7 @@ export * from './kindIcons';
 export * from './vendorIcons';
 export * from './vendorIconOverrides';
 export * from './podStatus';
+export * from './podResources';
 export * from './types';
 export * from './normalize';
 export * from './graph';

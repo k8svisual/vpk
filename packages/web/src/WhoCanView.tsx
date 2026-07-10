@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import { iconUrlForKind } from './kindIcons';
 import { ChipList } from './Chips';
+import { EmptyState } from './EmptyState';
 
 interface ResourceRef {
   apiGroup: string;
@@ -222,9 +224,7 @@ export function WhoCanView({
         </div>
       </div>
 
-      {!hasQuery && (
-        <p style={{ color: '#888' }}>Pick one or more verbs, resources, or a namespace to see who has access.</p>
-      )}
+      {!hasQuery && <EmptyState icon={MousePointerClick}>Pick one or more verbs, resources, or a namespace to see who has access.</EmptyState>}
       {results && (
         <>
           <p style={{ color: '#555', marginBottom: 8 }}>

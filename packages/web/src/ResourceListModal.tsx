@@ -26,7 +26,7 @@ export function ResourceListModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       <div
         className="relative max-h-[80vh] w-full max-w-lg overflow-auto rounded border shadow-2xl"
         style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}

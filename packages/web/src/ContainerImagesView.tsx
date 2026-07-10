@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MousePointerClick } from 'lucide-react';
 import {
   flexRender,
   getCoreRowModel,
@@ -7,6 +8,7 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table';
 import { iconUrlForKind } from './kindIcons';
+import { EmptyState } from './EmptyState';
 
 interface Usage {
   image: string;
@@ -251,6 +253,11 @@ export function ContainerImagesView({
   const byRegistry = registryFilter ? usages.filter((u) => (u.registry ?? IMPLICIT_REGISTRY) === registryFilter) : usages;
   const repos = useMemo(() => [...new Set(byRegistry.map((u) => u.repoPath))].sort(), [byRegistry]);
   const filtered = repoFilter ? byRegistry.filter((u) => u.repoPath === repoFilter) : byRegistry;
+  // Arriving from the 3D view's "View Repository" button already scopes to one registry (its own doc comment
+  // above: a whole registry hostname, not literally one repository) — same convention as every other view's
+  // picker prompt (OwnerRef/Schematic) skipping the "make a selection" gate once 3D has already made one FOR
+  // the user. A direct, unscoped arrival still has to pick a specific repository first.
+  const needsRepoSelection = !onReturn && !repoFilter;
 
   return (
     <div>
@@ -258,7 +265,8 @@ export function ContainerImagesView({
         {onReturn && (
           <button
             onClick={onReturn}
-            style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid #999', cursor: 'pointer', background: '#fff', fontSize: 13 }}
+            className="cursor-pointer rounded-full border px-2.5 py-1 text-xs"
+            style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)', color: 'var(--vpk-fg)' }}
           >
             ← Return to 3D view
           </button>
@@ -273,13 +281,11 @@ export function ContainerImagesView({
             <button
               key={id}
               onClick={() => setMode(id)}
+              className="cursor-pointer rounded border px-2.5 py-1 text-xs"
               style={{
-                padding: '3px 10px',
-                fontSize: 12,
-                border: '1px solid #d0d0d0',
-                background: mode === id ? '#333' : '#fff',
-                color: mode === id ? '#fff' : '#333',
-                cursor: 'pointer',
+                borderColor: 'var(--vpk-border)',
+                background: mode === id ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
+                color: mode === id ? '#fff' : 'var(--vpk-fg)',
               }}
             >
               {label}
@@ -292,7 +298,8 @@ export function ContainerImagesView({
             setRegistryFilter(e.target.value);
             setRepoFilter('');
           }}
-          style={{ fontSize: 12 }}
+          className="rounded border px-2 py-1 text-xs"
+          style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
         >
           <option value="">All registries ({registries.length})</option>
           {registries.map((r) => (
@@ -301,7 +308,12 @@ export function ContainerImagesView({
             </option>
           ))}
         </select>
-        <select value={repoFilter} onChange={(e) => setRepoFilter(e.target.value)} style={{ fontSize: 12 }}>
+        <select
+          value={repoFilter}
+          onChange={(e) => setRepoFilter(e.target.value)}
+          className="rounded border px-2 py-1 text-xs"
+          style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+        >
           <option value="">All repositories ({repos.length})</option>
           {repos.map((r) => (
             <option key={r} value={r}>
@@ -309,10 +321,24 @@ export function ContainerImagesView({
             </option>
           ))}
         </select>
-        <span style={{ fontSize: 12, color: '#777' }}>{filtered.length} container usages</span>
+        {!needsRepoSelection && (
+          <span className="text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+            {filtered.length} container usages
+          </span>
+        )}
       </div>
-      {filtered.length === 0 && <p style={{ color: '#888', fontSize: 13 }}>No container images in this snapshot.</p>}
-      {mode === 'tree' ? <TreeMode rows={filtered} onSelect={onSelect} /> : <TableMode rows={filtered} onSelect={onSelect} />}
+      {needsRepoSelection ? (
+        <EmptyState icon={MousePointerClick}>Select a repository to see its container images.</EmptyState>
+      ) : (
+        <>
+          {filtered.length === 0 && (
+            <p className="text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
+              No container images in this snapshot.
+            </p>
+          )}
+          {mode === 'tree' ? <TreeMode rows={filtered} onSelect={onSelect} /> : <TableMode rows={filtered} onSelect={onSelect} />}
+        </>
+      )}
     </div>
   );
 }
