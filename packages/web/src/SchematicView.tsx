@@ -67,6 +67,10 @@ export function SchematicView({
 }) {
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
+  // Which of the two diagrams for this Pod is showing: the default "pod" (its place in the namespace/cluster —
+  // owner chain, config/network/storage/security) or "containers" (the Pod opened up into its init/app/
+  // ephemeral container detail cards + shared volumes). Reset to "pod" whenever the Pod itself changes.
+  const [diagram, setDiagram] = useState<'pod' | 'containers'>('pod');
   const [resourceList, setResourceList] = useState<{ kind: string; items: ResourceListItem[] } | null>(null);
   const [decodeSecretId, setDecodeSecretId] = useState<string | null>(null);
   const [hovered, setHovered] = useState<{ el: Element; names: string[] } | null>(null);
@@ -103,6 +107,10 @@ export function SchematicView({
   // selected — the incoming `podId` prop is ignored entirely in that mode (see the picker's own comment).
   const effectivePodId = onReturn ? podId : manualPodId || null;
 
+  // Switching to a different Pod resets to the default "pod" diagram — the container view is a drill-in on a
+  // specific Pod, not a mode the user means to keep as they pick different Pods.
+  useEffect(() => setDiagram('pod'), [effectivePodId]);
+
   useEffect(() => {
     if (showTimer.current) clearTimeout(showTimer.current);
     setHovered(null);
@@ -111,7 +119,8 @@ export function SchematicView({
       setError('');
       return;
     }
-    fetch(`/schematic.svg?id=${encodeURIComponent(effectivePodId)}`)
+    const url = diagram === 'containers' ? '/container-schematic.svg' : '/schematic.svg';
+    fetch(`${url}?id=${encodeURIComponent(effectivePodId)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found (not a Pod id in this snapshot)');
         return r.text();
@@ -124,7 +133,7 @@ export function SchematicView({
         setSvg('');
         setError(String(e));
       });
-  }, [effectivePodId]);
+  }, [effectivePodId, diagram]);
 
   // Same placement algorithm as Tooltip.tsx: prefer below-and-centered on the anchor, flip above if that
   // would overflow the viewport's bottom, then clamp both axes so it's always fully on-screen.
@@ -259,6 +268,30 @@ export function SchematicView({
     </div>
   );
 
+  // Two-diagram toggle (Pod ⇄ Containers) for the selected Pod — the app's established segmented-control
+  // pattern (3D Field/Wheel, Container Images tree/table). Only meaningful once a Pod is actually selected.
+  const diagramToggle = effectivePodId && (
+    <div style={{ display: 'inline-flex', marginBottom: 10, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--vpk-border)' }}>
+      {(['pod', 'containers'] as const).map((d) => (
+        <button
+          key={d}
+          onClick={() => setDiagram(d)}
+          style={{
+            padding: '4px 12px',
+            fontSize: 13,
+            cursor: 'pointer',
+            border: 'none',
+            background: diagram === d ? 'var(--vpk-rail-active-bg)' : 'var(--vpk-surface)',
+            color: diagram === d ? '#fff' : 'var(--vpk-fg)',
+          }}
+          title={d === 'pod' ? 'The Pod in its namespace/cluster' : 'Inside the Pod — init, app and ephemeral containers'}
+        >
+          {d === 'pod' ? 'Pod' : 'Containers'}
+        </button>
+      ))}
+    </div>
+  );
+
   const tooltip = hovered && (
     <div
       ref={tipRef}
@@ -303,6 +336,7 @@ export function SchematicView({
       <>
         {returnPill}
         {picker}
+        <div>{diagramToggle}</div>
         <p className="text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
           loading…
         </p>
@@ -314,6 +348,7 @@ export function SchematicView({
     <>
       {returnPill}
       {picker}
+      <div>{diagramToggle}</div>
       <div onClick={onClick} onMouseOver={onMouseOver} onMouseOut={onMouseOut} dangerouslySetInnerHTML={{ __html: svg }} />
       {tooltip}
       {resourceList && (

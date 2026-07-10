@@ -5,6 +5,16 @@ import type { Resource } from '../types';
 interface ContainerRaw {
   name?: string;
   image?: string;
+  ports?: { containerPort?: number; protocol?: string; name?: string }[];
+  volumeMounts?: { name?: string; mountPath?: string; readOnly?: boolean }[];
+  resources?: { requests?: { cpu?: string; memory?: string }; limits?: { cpu?: string; memory?: string } };
+  livenessProbe?: unknown;
+  readinessProbe?: unknown;
+  startupProbe?: unknown;
+  /** EphemeralContainer-only: which existing container's process namespace this debug container joins
+   *  (spec.ephemeralContainers[].targetContainerName). Never set on init/app containers — the API only
+   *  allows it on ephemeral containers, so it's the one field unique to that section. */
+  targetContainerName?: string;
   envFrom?: { configMapRef?: { name?: string }; secretRef?: { name?: string } }[];
   env?: { valueFrom?: { configMapKeyRef?: { name?: string }; secretKeyRef?: { name?: string } } }[];
 }
@@ -15,14 +25,43 @@ interface ContainerStatusRaw {
   state?: { running?: unknown; waiting?: { reason?: string }; terminated?: { reason?: string } };
 }
 interface VolumeRaw {
+  name?: string;
   configMap?: { name?: string };
   secret?: { secretName?: string };
   persistentVolumeClaim?: { claimName?: string };
   projected?: { sources?: { configMap?: { name?: string }; secret?: { name?: string } }[] };
+  emptyDir?: unknown;
+  hostPath?: unknown;
+  downwardAPI?: unknown;
+  csi?: { driver?: string };
 }
 interface ConditionRaw {
   type?: string;
   status?: string;
+}
+
+/** Which of a Pod's three container arrays a container came from — the Container schematic renders one
+ *  section per kind (spec.initContainers / spec.containers / spec.ephemeralContainers), and ephemeral
+ *  containers are drawn distinctly (transient debug containers, not part of the declared spec). */
+export type ContainerKind = 'init' | 'app' | 'ephemeral';
+
+export interface ContainerPort {
+  containerPort: number;
+  protocol?: string;
+  name?: string;
+}
+export interface ContainerMount {
+  /** The Pod volume name this mount targets (spec.volumes[].name) — links a container to an entry in
+   *  PodSchematic.volumes so the renderer can draw the mount edge and detect volumes shared across containers. */
+  volumeName: string;
+  mountPath: string;
+  readOnly?: boolean;
+}
+export interface ContainerResources {
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memRequest?: string;
+  memLimit?: string;
 }
 
 export interface SchematicContainer {
@@ -31,6 +70,33 @@ export interface SchematicContainer {
   ready?: boolean;
   restartCount?: number;
   stateLabel?: string;
+  /** Which array this came from — drives the Container schematic's init/app/ephemeral sectioning. */
+  kind: ContainerKind;
+  ports: ContainerPort[];
+  mounts: ContainerMount[];
+  resources?: ContainerResources;
+  /** Presence of each probe kind (the probe's own handler detail isn't needed for the schematic, only whether
+   *  the container declares one). The Kubernetes API forbids all three on ephemeral containers, so an
+   *  ephemeral container always reports false/absent here. */
+  probes: { liveness: boolean; readiness: boolean; startup: boolean };
+  /** ConfigMap/Secret names THIS container consumes via env/envFrom — lets the Container schematic attribute
+   *  config to the specific container that uses it, rather than the Pod-level aggregate (PodSchematic.config)
+   *  which merges every container's and every volume's references together. Names only (the clickable id comes
+   *  from matching these against the resolved Pod-level config refs). */
+  configRefs: { configMaps: string[]; secrets: string[] };
+  /** EphemeralContainer-only — see ContainerRaw.targetContainerName. */
+  targetContainerName?: string;
+}
+
+/** A Pod volume (spec.volumes[]) — the Container schematic draws these once inside the Pod boundary and links
+ *  each container's mounts to them, so a volume shared by multiple containers (e.g. a sidecar reading the app's
+ *  data dir) is visible as such. `backingRef` is set for the volume types that reference another resource
+ *  (PVC/ConfigMap/Secret), resolved to a clickable id where the resource exists in the snapshot. */
+export interface SchematicVolume {
+  name: string;
+  /** persistentVolumeClaim | configMap | secret | projected | emptyDir | hostPath | downwardAPI | csi | other */
+  type: string;
+  backingRef?: SchematicRef;
 }
 export interface SchematicRef {
   id: ResourceId;
@@ -62,6 +128,12 @@ export interface PodSchematic {
   conditions: ConditionRaw[];
   containers: SchematicContainer[];
   initContainers: SchematicContainer[];
+  /** Debug containers injected via `kubectl debug` (spec.ephemeralContainers) — rendered as their own section
+   *  in the Container schematic. Empty for the overwhelming majority of Pods. */
+  ephemeralContainers: SchematicContainer[];
+  /** Pod volumes (spec.volumes) — drives the Container schematic's shared-volumes box; unused by the Pod-level
+   *  schematic (which only surfaces the PVC subset, via `storage`). */
+  volumes: SchematicVolume[];
   /** Root -> immediate parent (the Pod itself is not included). */
   ownerChain: SchematicOwnerLink[];
   generatorLabel?: string;
@@ -103,18 +175,68 @@ function stateLabel(state: ContainerStatusRaw['state']): string | undefined {
   return undefined;
 }
 
-function toContainers(specList: ContainerRaw[], statusList: ContainerStatusRaw[]): SchematicContainer[] {
+/** ConfigMap/Secret names one container references via env/envFrom — the per-container slice of the same
+ *  logic projectPodSchematic runs Pod-wide for the aggregate config box. */
+function containerConfigRefs(c: ContainerRaw): { configMaps: string[]; secrets: string[] } {
+  const configMaps = new Set<string>();
+  const secrets = new Set<string>();
+  for (const ef of c.envFrom ?? []) {
+    if (ef.configMapRef?.name) configMaps.add(ef.configMapRef.name);
+    if (ef.secretRef?.name) secrets.add(ef.secretRef.name);
+  }
+  for (const e of c.env ?? []) {
+    const cm = e.valueFrom?.configMapKeyRef?.name;
+    const sec = e.valueFrom?.secretKeyRef?.name;
+    if (cm) configMaps.add(cm);
+    if (sec) secrets.add(sec);
+  }
+  return { configMaps: [...configMaps], secrets: [...secrets] };
+}
+
+function toContainers(specList: ContainerRaw[], statusList: ContainerStatusRaw[], kind: ContainerKind): SchematicContainer[] {
   const statusByName = new Map(statusList.map((s) => [s.name, s]));
   return specList.map((c) => {
     const status = c.name ? statusByName.get(c.name) : undefined;
+    const req = c.resources?.requests;
+    const lim = c.resources?.limits;
+    const resources: ContainerResources | undefined =
+      req?.cpu || req?.memory || lim?.cpu || lim?.memory
+        ? { cpuRequest: req?.cpu, cpuLimit: lim?.cpu, memRequest: req?.memory, memLimit: lim?.memory }
+        : undefined;
     return {
       name: c.name ?? '',
       image: c.image,
       ready: status?.ready,
       restartCount: status?.restartCount,
       stateLabel: stateLabel(status?.state),
+      kind,
+      ports: (c.ports ?? [])
+        .filter((p): p is { containerPort: number; protocol?: string; name?: string } => typeof p.containerPort === 'number')
+        .map((p) => ({ containerPort: p.containerPort, protocol: p.protocol, name: p.name })),
+      mounts: (c.volumeMounts ?? [])
+        .filter((m): m is { name: string; mountPath?: string; readOnly?: boolean } => !!m.name)
+        .map((m) => ({ volumeName: m.name, mountPath: m.mountPath ?? '', readOnly: m.readOnly })),
+      resources,
+      probes: { liveness: !!c.livenessProbe, readiness: !!c.readinessProbe, startup: !!c.startupProbe },
+      configRefs: containerConfigRefs(c),
+      targetContainerName: c.targetContainerName,
     };
   });
+}
+
+/** The volume's type + the resource it backs onto (for the types that reference another object). Order matters
+ *  only in that each K8s volume source is mutually exclusive, so the first present wins. */
+function classifyVolume(v: VolumeRaw): { type: string; backing?: { kind: string; name: string } } {
+  if (v.persistentVolumeClaim?.claimName)
+    return { type: 'persistentVolumeClaim', backing: { kind: 'PersistentVolumeClaim', name: v.persistentVolumeClaim.claimName } };
+  if (v.configMap?.name) return { type: 'configMap', backing: { kind: 'ConfigMap', name: v.configMap.name } };
+  if (v.secret?.secretName) return { type: 'secret', backing: { kind: 'Secret', name: v.secret.secretName } };
+  if (v.projected) return { type: 'projected' };
+  if (v.emptyDir) return { type: 'emptyDir' };
+  if (v.hostPath) return { type: 'hostPath' };
+  if (v.downwardAPI) return { type: 'downwardAPI' };
+  if (v.csi) return { type: 'csi' };
+  return { type: 'other' };
 }
 
 interface LabelSelectorRaw {
@@ -177,10 +299,23 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
   if (!pod || pod.kind !== 'Pod') return undefined;
 
   const spec = pod.raw.spec as
-    | { containers?: ContainerRaw[]; initContainers?: ContainerRaw[]; volumes?: VolumeRaw[]; serviceAccountName?: string; nodeName?: string }
+    | {
+        containers?: ContainerRaw[];
+        initContainers?: ContainerRaw[];
+        ephemeralContainers?: ContainerRaw[];
+        volumes?: VolumeRaw[];
+        serviceAccountName?: string;
+        nodeName?: string;
+      }
     | undefined;
   const status = pod.raw.status as
-    | { phase?: string; conditions?: ConditionRaw[]; containerStatuses?: ContainerStatusRaw[]; initContainerStatuses?: ContainerStatusRaw[] }
+    | {
+        phase?: string;
+        conditions?: ConditionRaw[];
+        containerStatuses?: ContainerStatusRaw[];
+        initContainerStatuses?: ContainerStatusRaw[];
+        ephemeralContainerStatuses?: ContainerStatusRaw[];
+      }
     | undefined;
 
   const byNsKindName = new Map<string, Resource>();
@@ -204,7 +339,7 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
       addRef(secrets, 'Secret', src.secret?.name);
     }
   }
-  for (const c of [...(spec?.containers ?? []), ...(spec?.initContainers ?? [])]) {
+  for (const c of [...(spec?.containers ?? []), ...(spec?.initContainers ?? []), ...(spec?.ephemeralContainers ?? [])]) {
     for (const ef of c.envFrom ?? []) {
       addRef(configMaps, 'ConfigMap', ef.configMapRef?.name);
       addRef(secrets, 'Secret', ef.secretRef?.name);
@@ -219,6 +354,18 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
 
   const pvcs = new Map<string, SchematicRef>();
   for (const v of spec?.volumes ?? []) addRef(pvcs, 'PersistentVolumeClaim', v.persistentVolumeClaim?.claimName);
+
+  // Full volume list for the Container schematic (the Pod-level schematic only surfaces the PVC subset above).
+  // Backing PVC/ConfigMap/Secret are namespace-scoped, so `lookup` resolves a clickable id where present.
+  const volumes: SchematicVolume[] = (spec?.volumes ?? []).map((v) => {
+    const { type, backing } = classifyVolume(v);
+    let backingRef: SchematicRef | undefined;
+    if (backing) {
+      const r = lookup(backing.kind, backing.name);
+      backingRef = { id: r?.id ?? `${backing.kind}/${backing.name}`, name: backing.name, kind: backing.kind };
+    }
+    return { name: v.name ?? '', type, backingRef };
+  });
 
   // Same by-PV-name lookup wheel.ts's pvToVolumeAttachmentId uses — a VolumeAttachment names its PV via
   // spec.source.persistentVolumeName, so it's the initiating/owning side of this edge (unlike StorageClass,
@@ -346,8 +493,10 @@ export function projectPodSchematic(graph: ResourceGraph, podId: ResourceId): Po
     pod,
     phase: status?.phase,
     conditions: status?.conditions ?? [],
-    containers: toContainers(spec?.containers ?? [], status?.containerStatuses ?? []),
-    initContainers: toContainers(spec?.initContainers ?? [], status?.initContainerStatuses ?? []),
+    containers: toContainers(spec?.containers ?? [], status?.containerStatuses ?? [], 'app'),
+    initContainers: toContainers(spec?.initContainers ?? [], status?.initContainerStatuses ?? [], 'init'),
+    ephemeralContainers: toContainers(spec?.ephemeralContainers ?? [], status?.ephemeralContainerStatuses ?? [], 'ephemeral'),
+    volumes,
     ownerChain,
     generatorLabel,
     config: { configMaps: [...configMaps.values()], secrets: [...secrets.values()] },

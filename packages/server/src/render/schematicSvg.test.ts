@@ -1,6 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { renderSchematicSvg } from './schematicSvg';
 import type { SchematicDto } from '../schematic';
+import type { SchematicContainer } from '@vpk/core';
+
+/** Fills the container fields the renderer doesn't read (ports/mounts/probes/configRefs — those are the
+ *  Container schematic's concern) so these Pod-schematic fixtures stay focused on name/status. */
+const c = (name: string, extra: Partial<SchematicContainer> = {}): SchematicContainer => ({
+  name,
+  kind: 'app',
+  ports: [],
+  mounts: [],
+  probes: { liveness: false, readiness: false, startup: false },
+  configRefs: { configMaps: [], secrets: [] },
+  ...extra,
+});
 
 const base: SchematicDto = {
   podId: 'pod-1',
@@ -8,8 +21,10 @@ const base: SchematicDto = {
   namespace: 'kube-system',
   phase: 'Running',
   conditions: [{ type: 'Ready', status: 'True' }],
-  containers: [{ name: 'coredns', ready: true, stateLabel: 'Running', restartCount: 2 }],
+  containers: [c('coredns', { ready: true, stateLabel: 'Running', restartCount: 2 })],
   initContainers: [],
+  ephemeralContainers: [],
+  volumes: [],
   ownerChain: [
     { id: 'dep-1', kind: 'Deployment', name: 'coredns' },
     { id: 'rs-1', kind: 'ReplicaSet', name: 'coredns-abc123' },
@@ -231,11 +246,8 @@ describe('renderSchematicSvg', () => {
   it('gives each container row a data-focus-path pointing at its own spec.containers/initContainers index', () => {
     const withInit: SchematicDto = {
       ...base,
-      initContainers: [{ name: 'init-a', ready: false, stateLabel: 'Completed' }],
-      containers: [
-        { name: 'main-a', ready: true, stateLabel: 'Running' },
-        { name: 'main-b', ready: true, stateLabel: 'Running' },
-      ],
+      initContainers: [c('init-a', { kind: 'init', ready: false, stateLabel: 'Completed' })],
+      containers: [c('main-a', { ready: true, stateLabel: 'Running' }), c('main-b', { ready: true, stateLabel: 'Running' })],
     };
     const svg = renderSchematicSvg(withInit);
     expect(svg).toContain(`data-focus-path="${'[&quot;spec&quot;,&quot;initContainers&quot;,0]'}"`);
@@ -272,6 +284,8 @@ describe('renderSchematicSvg', () => {
       conditions: [],
       containers: [],
       initContainers: [],
+      ephemeralContainers: [],
+      volumes: [],
       ownerChain: [],
       config: { configMaps: [], secrets: [] },
       network: { services: [] },

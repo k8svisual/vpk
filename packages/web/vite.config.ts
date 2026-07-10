@@ -42,6 +42,7 @@ export default defineConfig({
       '/events': API,
       '/schematic': API,
       '/schematic.svg': API,
+      '/container-schematic.svg': API,
       '/rbac.svg': API,
       '/who-can': API,
       '/container-images': API,

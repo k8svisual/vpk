@@ -317,3 +317,88 @@ describe('projectPodSchematic events summary', () => {
     expect(s?.events).toEqual({ total: 0, warnings: 0 });
   });
 });
+
+describe('projectPodSchematic container detail (Container schematic fields)', () => {
+  const cm: RawObject = { apiVersion: 'v1', kind: 'ConfigMap', metadata: { uid: 'cm-1', name: 'app-config', namespace: 'ns1' } };
+  const secret: RawObject = { apiVersion: 'v1', kind: 'Secret', metadata: { uid: 'sec-1', name: 'db-creds', namespace: 'ns1' } };
+  const pod: RawObject = {
+    apiVersion: 'v1',
+    kind: 'Pod',
+    metadata: { uid: 'pod-1', name: 'app', namespace: 'ns1' },
+    spec: {
+      initContainers: [{ name: 'migrate', image: 'myapp/migrate:v1', volumeMounts: [{ name: 'data', mountPath: '/var/data' }] }],
+      containers: [
+        {
+          name: 'app',
+          image: 'myapp/web:v1',
+          ports: [{ containerPort: 8080, protocol: 'TCP' }],
+          resources: { requests: { cpu: '250m', memory: '256Mi' }, limits: { cpu: '500m', memory: '512Mi' } },
+          livenessProbe: { httpGet: { path: '/healthz', port: 8080 } },
+          readinessProbe: { httpGet: { path: '/ready', port: 8080 } },
+          envFrom: [{ configMapRef: { name: 'app-config' } }],
+          env: [{ valueFrom: { secretKeyRef: { name: 'db-creds' } } }],
+          volumeMounts: [{ name: 'data', mountPath: '/var/data' }],
+        },
+        { name: 'sidecar', image: 'fluent/bit:2', volumeMounts: [{ name: 'data', mountPath: '/var/log', readOnly: true }] },
+      ],
+      ephemeralContainers: [{ name: 'debugger', image: 'busybox:1.36', targetContainerName: 'app' }],
+      volumes: [
+        { name: 'data', persistentVolumeClaim: { claimName: 'data-claim' } },
+        { name: 'cfg', configMap: { name: 'app-config' } },
+        { name: 'scratch', emptyDir: {} },
+      ],
+    },
+  };
+  const pvc: RawObject = {
+    apiVersion: 'v1',
+    kind: 'PersistentVolumeClaim',
+    metadata: { uid: 'pvc-1', name: 'data-claim', namespace: 'ns1' },
+    spec: {},
+  };
+
+  const graph = buildGraph([cm, secret, pvc, pod]);
+
+  it('splits containers into init / app / ephemeral sections with the right kind tag', () => {
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.initContainers.map((c) => c.name)).toEqual(['migrate']);
+    expect(s?.containers.map((c) => c.name)).toEqual(['app', 'sidecar']);
+    expect(s?.ephemeralContainers.map((c) => c.name)).toEqual(['debugger']);
+    expect(s?.initContainers[0]?.kind).toBe('init');
+    expect(s?.containers[0]?.kind).toBe('app');
+    expect(s?.ephemeralContainers[0]?.kind).toBe('ephemeral');
+  });
+
+  it('captures ports, resources, and probe presence on an app container', () => {
+    const app = projectPodSchematic(graph, 'pod-1')?.containers.find((c) => c.name === 'app');
+    expect(app?.ports).toEqual([{ containerPort: 8080, protocol: 'TCP', name: undefined }]);
+    expect(app?.resources).toEqual({ cpuRequest: '250m', cpuLimit: '500m', memRequest: '256Mi', memLimit: '512Mi' });
+    expect(app?.probes).toEqual({ liveness: true, readiness: true, startup: false });
+  });
+
+  it('attributes env/envFrom config to the specific container that consumes it', () => {
+    const app = projectPodSchematic(graph, 'pod-1')?.containers.find((c) => c.name === 'app');
+    expect(app?.configRefs).toEqual({ configMaps: ['app-config'], secrets: ['db-creds'] });
+    const sidecar = projectPodSchematic(graph, 'pod-1')?.containers.find((c) => c.name === 'sidecar');
+    expect(sidecar?.configRefs).toEqual({ configMaps: [], secrets: [] });
+  });
+
+  it('carries targetContainerName on the ephemeral container and no ports/probes', () => {
+    const dbg = projectPodSchematic(graph, 'pod-1')?.ephemeralContainers[0];
+    expect(dbg?.targetContainerName).toBe('app');
+    expect(dbg?.ports).toEqual([]);
+    expect(dbg?.probes).toEqual({ liveness: false, readiness: false, startup: false });
+  });
+
+  it('projects volumes with their type and a resolved, clickable backingRef where one exists', () => {
+    const s = projectPodSchematic(graph, 'pod-1');
+    expect(s?.volumes.map((v) => ({ name: v.name, type: v.type }))).toEqual([
+      { name: 'data', type: 'persistentVolumeClaim' },
+      { name: 'cfg', type: 'configMap' },
+      { name: 'scratch', type: 'emptyDir' },
+    ]);
+    const data = s?.volumes.find((v) => v.name === 'data');
+    expect(data?.backingRef).toEqual({ id: 'pvc-1', name: 'data-claim', kind: 'PersistentVolumeClaim' });
+    const scratch = s?.volumes.find((v) => v.name === 'scratch');
+    expect(scratch?.backingRef).toBeUndefined();
+  });
+});

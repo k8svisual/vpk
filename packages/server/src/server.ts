@@ -76,6 +76,7 @@ import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 import { getSchematic } from './schematic';
 import { renderSchematicSvg } from './render/schematicSvg';
+import { renderContainerSchematicSvg } from './render/containerSchematicSvg';
 import { renderServiceFlowSvg, renderIngressPathSvg, renderServiceNodesSvg, renderTopologySvg } from './render/networkSvg';
 import { redactSecret } from './redact';
 import { loadSettings, saveSettings, type Settings } from './settings';
@@ -949,6 +950,19 @@ app.get('/schematic.svg', async (req, reply) => {
   }
   reply.header('content-type', 'image/svg+xml');
   return renderSchematicSvg(dto);
+});
+
+// Companion to /schematic.svg — the same Pod opened up into its init/app/ephemeral container detail cards +
+// shared volumes (see render/containerSchematicSvg.ts). Same DTO, different projection of it.
+app.get('/container-schematic.svg', async (req, reply) => {
+  const q = req.query as { id?: string };
+  const dto = q.id ? getSchematic(graph, q.id) : undefined;
+  if (!dto) {
+    reply.code(404);
+    return { error: 'not found (not a Pod id in this snapshot)' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  return renderContainerSchematicSvg(dto);
 });
 
 // One subject's RBAC schematic. Addressable two ways: by explicit subject identity (kind/name/ns — how the

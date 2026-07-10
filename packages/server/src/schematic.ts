@@ -1,4 +1,4 @@
-import { projectPodSchematic, type ResourceGraph } from '@vpk/core';
+import { projectPodSchematic, type ResourceGraph, type SchematicContainer, type SchematicVolume } from '@vpk/core';
 
 export interface SchematicDto {
   podId: string;
@@ -6,8 +6,14 @@ export interface SchematicDto {
   namespace?: string;
   phase?: string;
   conditions: { type?: string; status?: string }[];
-  containers: { name: string; image?: string; ready?: boolean; restartCount?: number; stateLabel?: string }[];
-  initContainers: { name: string; image?: string; ready?: boolean; restartCount?: number; stateLabel?: string }[];
+  /** Full per-container detail (kind/ports/mounts/resources/probes/configRefs/targetContainerName) — the
+   *  Pod-level schematic uses only name/ready/stateLabel; the Container schematic uses the rest. */
+  containers: SchematicContainer[];
+  initContainers: SchematicContainer[];
+  /** Debug containers (spec.ephemeralContainers), rendered as their own section in the Container schematic. */
+  ephemeralContainers: SchematicContainer[];
+  /** Every Pod volume (spec.volumes), for the Container schematic's shared-volumes box. */
+  volumes: SchematicVolume[];
   ownerChain: { id: string; kind: string; name: string; crdLetter?: string }[];
   generatorLabel?: string;
   config: { configMaps: { id: string; name: string }[]; secrets: { id: string; name: string }[] };
@@ -46,6 +52,8 @@ export function getSchematic(graph: ResourceGraph, podId: string): SchematicDto 
     conditions: s.conditions,
     containers: s.containers,
     initContainers: s.initContainers,
+    ephemeralContainers: s.ephemeralContainers,
+    volumes: s.volumes,
     ownerChain: s.ownerChain.map((o) => ({ id: o.id, kind: o.kind, name: o.name, crdLetter: o.crdLetter })),
     generatorLabel: s.generatorLabel,
     config: {
