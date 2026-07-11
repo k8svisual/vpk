@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Clock, GraduationCap } from 'lucide-react';
+import { BookOpen, CheckCircle2, Circle, Clock, GraduationCap, PlayCircle } from 'lucide-react';
+import { getCourseProgress, type CourseStatus } from './courseProgress';
 
 /**
  * Course Catalog — the picker for Training Course mode (redesign/training-course.md §13's `GET
@@ -24,6 +25,30 @@ const errorStyle = { color: 'var(--vpk-status-error)' } as const;
 function groupTitle(path: string): string {
   const parts = path.split('/');
   return parts.length > 1 ? (parts[0] ?? 'Courses') : 'Courses';
+}
+
+const STATUS_BADGE: Record<CourseStatus, { icon: typeof Circle; label: string; color: string }> = {
+  'not-started': { icon: Circle, label: 'Not started', color: 'var(--vpk-fg-muted)' },
+  'in-progress': { icon: PlayCircle, label: 'In progress', color: 'var(--vpk-accent)' },
+  completed: { icon: CheckCircle2, label: 'Completed', color: 'var(--vpk-status-ok)' },
+};
+
+/** Reads courseProgress.ts's localStorage record fresh every render rather than caching it in state — this
+ *  is a cheap synchronous read, and re-reading means the badge reflects reality immediately after returning
+ *  from a course (e.g. via the Course view's Stop button) without needing an explicit refresh call wired
+ *  through App.tsx's navigation. */
+function StatusBadge({ lessonId }: { lessonId: string }) {
+  const progress = getCourseProgress(lessonId);
+  const status = progress?.status ?? 'not-started';
+  const { icon: Icon, label, color } = STATUS_BADGE[status];
+  const detail = status === 'in-progress' && progress && progress.totalTasks > 0 ? ` (${progress.completedTasks}/${progress.totalTasks})` : '';
+  return (
+    <span className="flex items-center gap-1" style={{ color }}>
+      <Icon size={11} />
+      {label}
+      {detail}
+    </span>
+  );
 }
 
 export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) => void }) {
@@ -111,6 +136,9 @@ export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) =
                       <Clock size={11} />~{lesson.estimatedMinutes} min
                     </span>
                   )}
+                </div>
+                <div className="text-xs mt-1">
+                  <StatusBadge lessonId={lesson.id} />
                 </div>
               </button>
             ))}

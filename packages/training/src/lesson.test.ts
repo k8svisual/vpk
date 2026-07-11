@@ -82,6 +82,16 @@ describe('parseLesson — frontmatter', () => {
     const { frontmatter } = parseLesson('---\nid: x\ntitle: X\ncolors:\n  page: "#fdf6e3"\n  question: "#eaf4ff"\n  code: "#f3e8ff"\n  answer: "#eafaf0"\n---\nbody');
     expect(frontmatter.colors).toEqual({ page: '#fdf6e3', question: '#eaf4ff', code: '#f3e8ff', answer: '#eafaf0' });
   });
+
+  it('passes an authored showCountdown: false through untouched', () => {
+    const { frontmatter } = parseLesson('---\nid: x\ntitle: X\nestimatedMinutes: 10\nshowCountdown: false\n---\nbody');
+    expect(frontmatter.showCountdown).toBe(false);
+  });
+
+  it('leaves showCountdown undefined when not authored', () => {
+    const { frontmatter } = parseLesson('---\nid: x\ntitle: X\n---\nbody');
+    expect(frontmatter.showCountdown).toBeUndefined();
+  });
 });
 
 describe('parseLesson — segments', () => {

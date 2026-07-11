@@ -50,6 +50,10 @@ export interface LessonFrontmatter {
     code?: string;
     answer?: string;
   };
+  /** Author opt-out for the Course view header's countdown clock — defaults to true (shown whenever
+   *  estimatedMinutes is set). Set false to keep the time budget documented for planning purposes without
+   *  putting a visibly ticking clock in front of the student. */
+  showCountdown?: boolean;
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';

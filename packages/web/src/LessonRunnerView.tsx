@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, Printer, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, PanelBottom, PanelRight, Printer, Square, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 import { FlipClock } from './FlipClock';
-import type { TerminalTheme } from './courseSettings';
+import { initialCourseLayout, setStoredCourseLayout, type CourseLayout, type TerminalTheme } from './courseSettings';
+import { markCourseStarted, updateCourseProgress } from './courseProgress';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -27,6 +28,10 @@ interface LessonFrontmatter {
   pollMs?: number;
   cli?: string[];
   colors?: { page?: string; question?: string; code?: string; answer?: string };
+  /** Author opt-out for the header's countdown clock — defaults to true (shown whenever estimatedMinutes is
+   *  set). Set to false to keep the time BUDGET documented in the lesson without putting a visibly ticking
+   *  clock in front of the student (some courses want the estimate for planning purposes only, not pressure). */
+  showCountdown?: boolean;
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
 interface LessonBlock {
@@ -88,22 +93,32 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 const TERMINAL_MIN_WIDTH = 280;
 const TERMINAL_MAX_WIDTH = 900;
 const LESSON_MIN_WIDTH = 280;
+const TERMINAL_MIN_HEIGHT = 160;
+const TERMINAL_MAX_HEIGHT = 900;
+const LESSON_MIN_HEIGHT = 160;
 
 export function LessonRunnerView({
   lessonId,
   cliOverride,
   terminalTheme,
   terminalFontSize,
+  onStop,
 }: {
   lessonId?: string;
   /** Empty string means "no override, use the lesson's own frontmatter cli" — see courseSettings.ts. */
   cliOverride?: string;
   terminalTheme: TerminalTheme;
   terminalFontSize: number;
+  /** "Stop" button in the header — pauses the course (progress is already saved continuously via
+   *  courseProgress.ts, so there's nothing extra to persist here) and navigates away. App.tsx owns where
+   *  "away" means, since that's nav-rail/view state this component doesn't have access to. */
+  onStop?: () => void;
 }) {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
+  const [terminalHeight, setTerminalHeight] = useState(360);
+  const [layout, setLayout] = useState<CourseLayout>(initialCourseLayout);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [checkStatuses, setCheckStatuses] = useState<Record<string, CheckStatus>>({});
@@ -111,6 +126,14 @@ export function LessonRunnerView({
   const containerRef = useRef<HTMLDivElement>(null);
   const lessonScrollRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+
+  function toggleLayout() {
+    setLayout((prev) => {
+      const next = prev === 'row' ? 'column' : 'row';
+      setStoredCourseLayout(next);
+      return next;
+    });
+  }
   const activeLessonId = lessonId ?? DEFAULT_LESSON_ID;
 
   // Forces every <details> (Hint/Step-by-step) open before printing when answers are wanted — relying on
@@ -147,6 +170,7 @@ export function LessonRunnerView({
         if (!cancelled) {
           setLesson(l);
           setStartTime(new Date());
+          markCourseStarted(activeLessonId);
         }
       })
       .catch((e: unknown) => {
@@ -168,7 +192,26 @@ export function LessonRunnerView({
 
   const totalTasks = useMemo(() => (lesson ? lesson.segments.filter((s) => s.type === 'block' && s.block.kind === 'check').length : 0), [lesson]);
   const completedTasks = useMemo(() => Object.values(checkStatuses).filter((s) => s === 'pass').length, [checkStatuses]);
+
+  // Progress tracking (Catalog's status badge) — reacts to actual check results, not just "was this lesson
+  // opened", so re-running a check that now fails correctly moves a course back out of 'completed'. Gated on
+  // hasRunCheckRef so simply REOPENING an already-completed lesson doesn't blow its status away: checkStatuses
+  // always starts empty on mount (nothing here remembers a PAST check run across a reload), so completedTasks
+  // is transiently 0 until the student actually runs something — without this guard, that transient 0 would
+  // race ahead of any real interaction and downgrade 'completed' straight back to 'in-progress (0/N)'.
+  const hasRunCheckRef = useRef(false);
+  useEffect(() => {
+    hasRunCheckRef.current = false;
+  }, [activeLessonId]);
+  useEffect(() => {
+    if (!lesson || !hasRunCheckRef.current) return;
+    updateCourseProgress(activeLessonId, completedTasks, totalTasks);
+  }, [activeLessonId, lesson, completedTasks, totalTasks]);
   const handleCheckStatus = useCallback((id: string, status: CheckStatus) => {
+    // CheckCard fires this once on mount with status===undefined (nothing has run yet) — only a REAL
+    // pass/fail/error/cancelled result counts as "the student actually did something" for the
+    // hasRunCheckRef guard above.
+    if (status !== undefined) hasRunCheckRef.current = true;
     setCheckStatuses((p) => (p[id] === status ? p : { ...p, [id]: status }));
   }, []);
 
@@ -176,8 +219,13 @@ export function LessonRunnerView({
     function onMove(e: MouseEvent) {
       if (!draggingRef.current || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const max = Math.min(TERMINAL_MAX_WIDTH, rect.width - LESSON_MIN_WIDTH);
-      setTerminalWidth(Math.min(max, Math.max(TERMINAL_MIN_WIDTH, rect.right - e.clientX)));
+      if (layout === 'row') {
+        const max = Math.min(TERMINAL_MAX_WIDTH, rect.width - LESSON_MIN_WIDTH);
+        setTerminalWidth(Math.min(max, Math.max(TERMINAL_MIN_WIDTH, rect.right - e.clientX)));
+      } else {
+        const max = Math.min(TERMINAL_MAX_HEIGHT, rect.height - LESSON_MIN_HEIGHT);
+        setTerminalHeight(Math.min(max, Math.max(TERMINAL_MIN_HEIGHT, rect.bottom - e.clientY)));
+      }
     }
     function onUp() {
       if (!draggingRef.current) return;
@@ -191,11 +239,11 @@ export function LessonRunnerView({
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
-  }, []);
+  }, [layout]);
 
   function startResize() {
     draggingRef.current = true;
-    document.body.style.cursor = 'col-resize';
+    document.body.style.cursor = layout === 'row' ? 'col-resize' : 'row-resize';
     document.body.style.userSelect = 'none';
   }
 
@@ -229,30 +277,37 @@ export function LessonRunnerView({
           startTime={startTime}
           now={now}
           estimatedMinutes={lesson.frontmatter.estimatedMinutes}
+          showCountdown={lesson.frontmatter.showCountdown}
           totalTasks={totalTasks}
           completedTasks={completedTasks}
           onPrint={() => setPrintModalOpen(true)}
+          onStop={onStop}
         />
       )}
-      <div ref={containerRef} className="flex flex-1 min-h-0 mt-2">
-        <div ref={lessonScrollRef} className="flex-1 min-w-0 overflow-auto pr-1">
+      <div ref={containerRef} className={`flex flex-1 min-h-0 mt-2 ${layout === 'column' ? 'flex-col' : ''}`}>
+        <div ref={lessonScrollRef} className={`flex-1 overflow-auto ${layout === 'row' ? 'min-w-0 pr-1' : 'min-h-0'}`}>
           <LessonPane lesson={effectiveLesson} onCheckStatus={handleCheckStatus} />
         </div>
         <div
           onMouseDown={startResize}
           role="separator"
-          aria-orientation="vertical"
+          aria-orientation={layout === 'row' ? 'vertical' : 'horizontal'}
           title="Drag to resize"
-          className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center no-print"
+          className={`shrink-0 group flex items-center justify-center no-print ${layout === 'row' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'}`}
         >
-          <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
+          <div
+            className={layout === 'row' ? 'w-px h-full group-hover:w-0.5 transition-[width]' : 'h-px w-full group-hover:h-0.5 transition-[height]'}
+            style={{ background: 'var(--vpk-border)' }}
+          />
         </div>
-        <div className="shrink-0 no-print" style={{ width: terminalWidth }}>
+        <div className="shrink-0 no-print" style={layout === 'row' ? { width: terminalWidth } : { height: terminalHeight }}>
           <TerminalPane
             allow={effectiveLesson.frontmatter.allow ?? ['get']}
             cli={effectiveLesson.frontmatter.cli}
             theme={terminalTheme}
             fontSizePx={terminalFontSize}
+            layout={layout}
+            onToggleLayout={toggleLayout}
           />
         </div>
       </div>
@@ -266,20 +321,25 @@ function CourseHeader({
   startTime,
   now,
   estimatedMinutes,
+  showCountdown,
   totalTasks,
   completedTasks,
   onPrint,
+  onStop,
 }: {
   title: string;
   startTime: Date;
   now: Date;
   estimatedMinutes?: number;
+  /** Author opt-out (frontmatter `showCountdown: false`) — defaults to true. */
+  showCountdown?: boolean;
   totalTasks: number;
   completedTasks: number;
   onPrint: () => void;
+  onStop?: () => void;
 }) {
   const stopTime = estimatedMinutes !== undefined ? new Date(startTime.getTime() + estimatedMinutes * 60_000) : null;
-  const remainingMs = stopTime ? stopTime.getTime() - now.getTime() : null;
+  const remainingMs = stopTime && showCountdown !== false ? stopTime.getTime() - now.getTime() : null;
   const overtime = remainingMs !== null && remainingMs < 0;
   const timeFmt: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
@@ -296,6 +356,17 @@ function CourseHeader({
           <Printer size={12} />
           Print
         </button>
+        {onStop && (
+          <button
+            onClick={onStop}
+            className="flex items-center gap-1 rounded border px-2 py-1 shrink-0 cursor-pointer"
+            style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+            title="Stop/pause this course — progress is saved, resume anytime from the Catalog"
+          >
+            <Square size={11} />
+            Stop
+          </button>
+        )}
       </div>
       <div className="flex items-center gap-4 shrink-0" style={mutedStyle}>
         <span>Start {startTime.toLocaleTimeString([], timeFmt)}</span>
@@ -636,7 +707,21 @@ const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: s
 
 const CLEAR_COMMANDS = new Set(['clear', 'cls']);
 
-function TerminalPane({ allow, cli, theme, fontSizePx }: { allow: string[]; cli?: string[]; theme: TerminalTheme; fontSizePx: number }) {
+function TerminalPane({
+  allow,
+  cli,
+  theme,
+  fontSizePx,
+  layout,
+  onToggleLayout,
+}: {
+  allow: string[];
+  cli?: string[];
+  theme: TerminalTheme;
+  fontSizePx: number;
+  layout: CourseLayout;
+  onToggleLayout: () => void;
+}) {
   const cliName = cli?.[0] ?? 'kubectl';
   const [line, setLine] = useState(`${cliName} get nodes`);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -704,14 +789,25 @@ function TerminalPane({ allow, cli, theme, fontSizePx }: { allow: string[]; cli?
 
   return (
     <div className="border rounded flex flex-col h-full" style={{ borderColor: colors.border, background: colors.bg, color: colors.fg }}>
-      <div className="px-3 py-2 border-b flex items-center gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
-        <TerminalIcon size={13} />
-        Terminal
+      <div className="px-3 py-2 border-b flex items-center justify-between gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
+        <span className="flex items-center gap-1.5">
+          <TerminalIcon size={13} />
+          Terminal
+        </span>
+        <button
+          onClick={onToggleLayout}
+          className="flex items-center gap-1 rounded border px-2 py-1 cursor-pointer"
+          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
+          title={layout === 'row' ? 'Move course content above the terminal (wider terminal)' : 'Move course content back beside the terminal'}
+        >
+          {layout === 'row' ? <PanelBottom size={12} /> : <PanelRight size={12} />}
+          {layout === 'row' ? 'Stack' : 'Side-by-side'}
+        </button>
       </div>
       <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
         Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
         tools, use your own system terminal. ↑/↓ recall previous commands, <code>clear</code>/<code>cls</code>{' '}
-        wipes the screen. Appearance, font size, and CLI are in Settings &gt; Course.
+        wipes the screen. Appearance, font size, and CLI are in Settings &gt; Education.
       </p>
       <div className="flex gap-2 p-2 border-b" style={{ borderColor: colors.border }}>
         <input

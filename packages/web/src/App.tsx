@@ -738,6 +738,7 @@ export function App() {
                 cliOverride={courseCliOverride}
                 terminalTheme={terminalTheme}
                 terminalFontSize={terminalFontSize}
+                onStop={() => setView(showCourseCatalog ? 'catalog' : 'ownerref')}
               />
             )}
             {view === 'teacher' && <TeacherView />}

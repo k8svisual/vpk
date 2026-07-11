@@ -359,6 +359,7 @@ function ReferencePanel({ onClose }: { onClose: () => void }) {
         <RefSection title="Frontmatter (optional)">
           <RefField name="difficulty" desc="Number, shown next to the title." />
           <RefField name="estimatedMinutes" desc="Whole-course time budget — drives the header's countdown clock." />
+          <RefField name="showCountdown" desc="false hides the ticking clock while keeping estimatedMinutes for planning. Defaults to true." />
           <RefField name="prereqs" desc="List of other lesson ids, e.g. [getting-started-00-cluster]." />
           <RefField name="allow" desc="List of verbs the terminal permits, e.g. [get, describe, create, delete]." />
           <RefField name="cli" desc="Which CLI this lesson targets, e.g. [oc]. Defaults to kubectl if omitted." />

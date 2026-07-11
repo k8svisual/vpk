@@ -46,3 +46,28 @@ export function setStoredTerminalTheme(theme: TerminalTheme): void {
     // best-effort
   }
 }
+
+export type CourseLayout = 'row' | 'column';
+
+const LAYOUT_KEY = 'vpk-course-layout';
+
+/** Side-by-side (lesson left, terminal right — the default) vs stacked (lesson above, terminal below, for a
+ *  wider terminal on a narrow window). Toggled via a button in the terminal's own banner line — unlike
+ *  theme/fontSize/cliOverride above, this is a workspace layout action the student reaches for in the
+ *  moment, not a background preference, so it stays as an in-terminal button rather than moving to Settings;
+ *  it's still persisted here so the choice survives a reload. */
+export function initialCourseLayout(): CourseLayout {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'column' ? 'column' : 'row';
+  } catch {
+    return 'row';
+  }
+}
+
+export function setStoredCourseLayout(layout: CourseLayout): void {
+  try {
+    localStorage.setItem(LAYOUT_KEY, layout);
+  } catch {
+    // best-effort
+  }
+}
