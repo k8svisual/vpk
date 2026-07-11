@@ -1,0 +1,161 @@
+# Release workflow — cross-compiles standalone Bun executables (web app embedded, no separate install step)
+# and attaches them to a GitHub Release as downloadable assets.
+#
+# HOW TO TRIGGER A RELEASE
+# -------------------------
+# Run scripts/release.sh from your Mac (bumps package.json, commits, tags, pushes):
+#
+#   ./scripts/release.sh 1.0.0
+#
+# ...or push a version tag directly:
+#
+#   git tag v1.0.0
+#   git push origin v1.0.0
+#
+# GitHub produces one binary per platform, all built from a SINGLE ubuntu runner (Bun's --compile can target a
+# different OS/arch than the machine running it — no per-OS runner matrix needed, unlike a Tauri/Rust build):
+#   macOS (Apple Silicon)  → vpk-macos-arm64.tar.gz
+#   macOS (Intel)          → vpk-macos-x64.tar.gz
+#   Linux (x64)             → vpk-linux-x64.tar.gz
+#   Linux (arm64)           → vpk-linux-arm64.tar.gz
+#   Windows (x64)           → vpk-windows-x64.zip
+#
+# The Release is created as a DRAFT — review and publish it manually on GitHub.
+#
+# WHY TWO PHASES (create-release → build matrix)
+# ----------------------------------------------
+# Same reasoning as Retirement Planner's release workflow: running "create-or-update the release" inside every
+# matrix job concurrently races and can silently drop assets. One `create-release` job makes the draft ONCE;
+# each build job then uploads to that same release via `gh release upload`.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # ── Phase 0: typecheck/lint/test gate the whole release ────────────────────
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run test
+
+  # ── Phase 1: create the draft release exactly once ────────────────────────
+  create-release:
+    needs: verify
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - name: Create (or reuse) the draft release
+        id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BODY: |
+            **Beta note:** these binaries are unsigned. First launch requires a one-time bypass:
+            - **macOS** — right-click the binary → Open, then click Open in the security dialog
+            - **Windows** — click "More info" → "Run anyway" in the SmartScreen popup
+            - **Linux** — `chmod +x` the binary, then run it directly
+
+            Each binary is self-contained — no install step, no separate assets folder. Run it, then open the
+            URL it prints in your browser.
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+
+          RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq ".[] | select(.tag_name == \"${TAG}\" and .draft == true) | .id" | head -1)
+
+          if [ -z "$RELEASE_ID" ]; then
+            RELEASE_ID=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              --method POST \
+              --field tag_name="${TAG}" \
+              --field name="VpK ${TAG}" \
+              --field draft=true \
+              --field prerelease=false \
+              --field body="${RELEASE_BODY}" \
+              --jq '.id')
+          fi
+
+          echo "release_id=${RELEASE_ID}" >> "$GITHUB_OUTPUT"
+
+  # ── Phase 2: build every target and upload to the pre-created release ──────
+  build:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - bunTarget: bun-darwin-arm64
+            outName: vpk-macos-arm64
+            archive: tar
+          - bunTarget: bun-darwin-x64
+            outName: vpk-macos-x64
+            archive: tar
+          - bunTarget: bun-linux-x64
+            outName: vpk-linux-x64
+            archive: tar
+          - bunTarget: bun-linux-arm64
+            outName: vpk-linux-arm64
+            archive: tar
+          - bunTarget: bun-windows-x64
+            outName: vpk-windows-x64.exe
+            archive: zip
+
+    name: Build (${{ matrix.outName }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Build the web app
+        run: bun run build:web
+
+      - name: Embed the web app into the server bundle
+        run: bun run build:web-assets
+
+      - name: Compile ${{ matrix.bunTarget }}
+        run: bun scripts/build-binary.ts ${{ matrix.bunTarget }}
+
+      - name: Package
+        id: package
+        run: |
+          cd dist-bin
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            ASSET="${{ matrix.outName }}.zip"
+            zip "$ASSET" "${{ matrix.outName }}"
+          else
+            ASSET="${{ matrix.outName }}.tar.gz"
+            chmod +x "${{ matrix.outName }}"
+            tar -czf "$ASSET" "${{ matrix.outName }}"
+          fi
+          echo "asset=dist-bin/$ASSET" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release upload "$TAG" "${{ steps.package.outputs.asset }}" --repo "${GITHUB_REPOSITORY}" --clobber

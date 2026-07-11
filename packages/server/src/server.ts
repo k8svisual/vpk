@@ -1,7 +1,14 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, isAbsolute, basename, relative } from 'node:path';
+import { dirname, join, isAbsolute, basename, relative, extname } from 'node:path';
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { WEB_ASSETS } from './webAssets.generated';
+// A literal `with { type: 'file' }` import (not the `join(here, ...)` path this used to be) so this resolves
+// correctly in BOTH a normal dev run (returns the real on-disk path, same file, unchanged behavior) and a
+// `bun build --compile` standalone binary (embeds the file and returns its virtual /$bunfs/ path) — a plain
+// relative path only ever worked in dev, since a compiled binary has no "next to server.ts" directory on disk
+// to resolve against.
+import defaultSnapshotFixture from '../test/fixtures/minikube.snapshot.json' with { type: 'file' };
 import {
   buildGraph,
   projectOwnerRef,
@@ -95,25 +102,52 @@ import { loadVendorIconOverrides, saveVendorIconOverrides, saveCustomIcon } from
 import { loadNetworkCatalogOverrides, saveNetworkCatalogOverrides } from './networkCatalogStore';
 
 // P3 slice server: snapshot manager (list/load/capture) + ownerRef SVG + definitions.
+//
+// `import.meta.url` resolves to a virtual `/$bunfs/...` path inside a `bun build --compile` standalone binary
+// — fine for the embedded, read-only imports above (defaultSnapshotFixture, WEB_ASSETS), but every default
+// BELOW needs a REAL, writable directory (settings, the snapshots directory, the port-discovery file).
+// `process.execPath` always points at the actual running binary on disk — the compiled executable itself when
+// running as one, `bun`'s own interpreter path otherwise (not useful, so only trusted in the compiled case,
+// detected via the same $bunfs marker the crash trace surfaces). This intentionally changes what "next to the
+// app" means between dev (repo root, three levels up from packages/server/src) and a compiled binary (right
+// beside the single executable file, since there's no source tree at all) — see the two `configPath`/
+// `customIconsDir` defaults below, which can't share one relative-join expression across both cases.
+const isCompiledBinary = import.meta.url.includes('$bunfs');
 const here = dirname(fileURLToPath(import.meta.url));
-const defaultSnapshot = process.env.VPK_SNAPSHOT ?? join(here, '../test/fixtures/minikube.snapshot.json');
+const runtimeDir = isCompiledBinary ? dirname(process.execPath) : join(here, '../../..');
+// Cast needed because tsc still resolves the real on-disk JSON file's content type alongside the `*.snapshot.json
+// -> string` ambient override above (a union of the two) rather than fully replacing it — the runtime value
+// really is just a path string either way (see embeddedFileTypes.d.ts's doc comment).
+const defaultSnapshot = process.env.VPK_SNAPSHOT ?? (defaultSnapshotFixture as unknown as string);
 const cli = (process.env.VPK_CLI ?? 'kubectl').split(' ').filter(Boolean);
-const configPath = process.env.VPK_CONFIG_FILE ?? join(here, '../../../vpkconfig.json');
+const configPath = process.env.VPK_CONFIG_FILE ?? join(runtimeDir, 'vpkconfig.json');
 const vendorIconsConfigPath = join(dirname(configPath), 'vpk-vendor-icons.json');
 const networkCatalogConfigPath = join(dirname(configPath), 'vpk-network-catalog.json');
-// Custom-uploaded vendor icons live under @vpk/web's own public/icons/ tree (not a server-owned directory) —
-// every other icon (k8/, other/, 3rdparty/) is already served straight out of there by Vite in dev with zero
-// server involvement, so a freshly-written file here is immediately servable at /icons/custom/<name> with no
-// new proxy route or restart needed, same as the rest of the icon set.
-const customIconsDir = join(here, '../../web/public/icons/custom');
+// Custom-uploaded vendor icons live under @vpk/web's own public/icons/ tree in dev — every other icon (k8/,
+// other/, 3rdparty/) is already served straight out of there by Vite with zero server involvement, so a
+// freshly-written file is immediately servable with no new route or restart. That serving mechanism doesn't
+// exist in a compiled binary at all (WEB_ASSETS is a frozen embedded snapshot of one `vite build`, not a live
+// directory) — KNOWN LIMITATION: custom vendor icon uploads are written here but not yet served back in a
+// compiled binary; needs its own small static route for this one writable directory as a follow-up, not
+// silently worked around here.
+const customIconsDir = isCompiledBinary ? join(runtimeDir, 'custom-icons') : join(here, '../../web/public/icons/custom');
 const requestedPort = Number(process.env.PORT ?? 4200);
 // Discovery file for the Vite dev server (which proxies to us but can't know our port ahead of time if the
 // requested one was taken) — written once we've actually bound, read by vite.config.ts at its own startup.
-const portFilePath = process.env.VPK_PORT_FILE ?? join(here, '../../../.vpk-port');
+const portFilePath = process.env.VPK_PORT_FILE ?? join(runtimeDir, '.vpk-port');
 const MAX_PORT_ATTEMPTS = 20;
 let actualPort = requestedPort;
 
-let settings: Settings = loadSettings(configPath, process.env.VPK_SNAPSHOT_DIR ?? dirname(defaultSnapshot));
+// dirname(defaultSnapshot) is only a sane default snapshots directory in dev, where it's a real on-disk
+// fixtures folder — in a compiled binary, defaultSnapshot is the embedded fixture's virtual /$bunfs/ path, so
+// its dirname isn't a real, writable directory a user could ever save a capture into.
+const defaultSnapshotDir = isCompiledBinary ? join(runtimeDir, 'snapshots') : dirname(defaultSnapshot);
+// Unlike the dev default (a real, checked-in fixtures folder that always already exists), a compiled binary's
+// default snapshots folder is a brand-new location next to wherever the user put the executable — nothing
+// creates it unless this does, and loadSettings/the /snapshots route only ever read/validate the path, never
+// create it.
+if (isCompiledBinary && !existsSync(defaultSnapshotDir)) mkdirSync(defaultSnapshotDir, { recursive: true });
+let settings: Settings = loadSettings(configPath, process.env.VPK_SNAPSHOT_DIR ?? defaultSnapshotDir);
 setVendorIconOverrides(loadVendorIconOverrides(vendorIconsConfigPath));
 const persistedNetworkCatalog = loadNetworkCatalogOverrides(networkCatalogConfigPath);
 setNetworkCatalogOverrides(persistedNetworkCatalog.network);
@@ -1491,6 +1525,34 @@ app.get('/stats', async () =>
 app.post('/shutdown', async () => {
   setTimeout(() => process.exit(0), 200);
   return { ok: true };
+});
+
+// Serves the built web app when this server is running as a standalone release binary (WEB_ASSETS is only
+// populated right before `bun build --compile` — see webAssets.generated.ts's header comment; in normal `bun
+// run dev:server` it's empty and Vite serves the web app itself instead, so this handler just 404s, which is
+// correct there too). Only fires for requests that missed every API route above, i.e. it can never shadow a
+// real endpoint. Scoped to GET — a mistyped POST to an unknown API path should still come back as a plain
+// JSON 404, not an HTML page. A request with a file extension that isn't a known embedded asset is a genuinely
+// missing file (a stale/mistyped reference) and gets a real 404 rather than being masked as the SPA shell;
+// anything else (an extensionless client-side route like `/course`) falls back to `/index.html` so the
+// React Router-less app can still take over navigation itself.
+app.setNotFoundHandler(async (req, reply) => {
+  if (req.method !== 'GET') {
+    reply.code(404);
+    return { error: 'Not found.' };
+  }
+  const path = new URL(req.url, 'http://localhost').pathname;
+  const assetPath = WEB_ASSETS[path] ?? (extname(path) ? undefined : WEB_ASSETS['/index.html']);
+  if (!assetPath) {
+    reply.code(404);
+    return { error: 'Not found.' };
+  }
+  // Fastify's reply.send() doesn't special-case a BunFile the way Bun.serve's Response constructor does — it
+  // falls through to JSON-serializing it (yielding a useless "{}" body), so the bytes have to be read out and
+  // sent explicitly, with the content-type set from Bun's own extension-based MIME inference.
+  const file = Bun.file(assetPath);
+  reply.type(file.type);
+  return reply.send(Buffer.from(await file.arrayBuffer()));
 });
 
 // Binds starting at `requestedPort`, trying the next port up on EADDRINUSE rather than crashing — a locally

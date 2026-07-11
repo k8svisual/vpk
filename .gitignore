@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-bin/
 *.tsbuildinfo
 .DS_Store
 .vpk-port

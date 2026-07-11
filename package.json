@@ -1,5 +1,6 @@
 {
   "name": "vpk-monorepo",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -11,10 +12,14 @@
     "dev:server": "bun packages/server/src/server.ts",
     "dev:web": "cd packages/web && bun run dev",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "build:web": "cd packages/web && bun run build",
+    "build:web-assets": "bun scripts/build-web-assets.ts",
+    "build:binary": "bun scripts/build-binary.ts"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
+    "bun-types": "^1.3.14",
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "prettier": "^3.3.3",
