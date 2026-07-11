@@ -28,6 +28,9 @@ import { StopConfirmModal } from './StopConfirmModal';
 import { AboutModal } from './AboutModal';
 import { CaptureConfirmModal } from './CaptureConfirmModal';
 import { NoSnapshotBanner } from './NoSnapshotBanner';
+import { SplashScreen } from './SplashScreen';
+import { hasPlayedSplashThisSession, markSplashPlayed } from './splashState';
+import { initWindowStatePersistence } from './windowState';
 import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
@@ -130,6 +133,7 @@ const VIEW_ICONS: Record<ViewId, RailItem<ViewId>['icon']> = Object.fromEntries(
 
 export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
+  const [showSplash, setShowSplash] = useState(() => !hasPlayedSplashThisSession());
   const [snaps, setSnaps] = useState<Snapshots>({ dir: '', current: '', files: [] });
   const [selected, setSelected] = useState<string | null>(null);
   // The Pod SchematicView actually renders — captured from `selected` only at the moment the user navigates
@@ -291,6 +295,12 @@ export function App() {
     void refreshSnaps();
     void refreshNamespaces();
   }, [refreshSnaps, refreshNamespaces]);
+
+  // Best-effort window position/size restore + persistence (windowState.ts's own doc comment covers why this
+  // silently no-ops in a normal browser tab) — mount-once, nothing here depends on component state.
+  useEffect(() => {
+    initWindowStatePersistence();
+  }, []);
 
   // Vendor-icon overrides (Settings > Vendor Icons) live server-side, not localStorage — see
   // vendorIconOverrides.ts's own doc comment — so every icon lookup on this side needs this fetched once up
@@ -469,6 +479,14 @@ export function App() {
       className="flex h-screen font-sans text-sm"
       style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
     >
+      {showSplash && (
+        <SplashScreen
+          onDone={() => {
+            markSplashPlayed();
+            setShowSplash(false);
+          }}
+        />
+      )}
       <NavRail
         groups={filterRailGroups(RAIL_GROUPS, hiddenNavIds)}
         active={view}

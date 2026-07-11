@@ -293,6 +293,31 @@
   }
 }
 
+/* SplashScreen's animated VpK badge — starts tiny, zooms + spins to a stop at its final 25vh size (set by the
+   wrapper's inline height, unanimated; what animates is the scale). Duration must stay in sync with
+   SplashScreen.tsx's ICON_ANIMATION_MS. */
+.vpk-splash-icon {
+  animation: vpk-splash-zoom-spin 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.vpk-splash-icon__svg {
+  width: auto;
+  height: 100%;
+  display: block;
+}
+@keyframes vpk-splash-zoom-spin {
+  0% {
+    transform: scale(0.15) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(720deg);
+    opacity: 1;
+  }
+}
+
 /* Print support — the app shell (nav rail, top header bars, terminal pane) is marked .no-print; only the
    current view's own content (SVG diagrams, tables, lesson prose, ...) is meant to end up on paper. `main`'s
    own overflow-auto is overridden so the browser prints the FULL scrollable content, not just whatever
