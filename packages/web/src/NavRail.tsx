@@ -37,7 +37,7 @@ export function NavRail<T extends string>({
 
   return (
     <nav
-      className="flex flex-col shrink-0 border-r"
+      className="flex flex-col shrink-0 border-r no-print"
       style={{ background: 'var(--vpk-rail-bg)', borderColor: 'var(--vpk-border)', width: collapsed ? 52 : 176 }}
     >
       <Tooltip label="About VpK">

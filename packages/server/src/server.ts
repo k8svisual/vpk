@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { type FastifyReply } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative } from 'node:path';
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -72,6 +72,7 @@ import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
 import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
+import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './course/resources';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
@@ -131,7 +132,9 @@ function resolve(path: string): string {
   return isAbsolute(path) ? path : join(settings.snapshotDir, path);
 }
 
-const app = Fastify();
+// Default 1MB body limit is too small for base64-encoded course-resource uploads (images, sample files) — see
+// /course/resources/upload's doc comment on why this is JSON+base64 rather than multipart.
+const app = Fastify({ bodyLimit: 25 * 1024 * 1024 });
 
 // Last-resort net for anything a route's own try/catch didn't handle — a thrown error inside an async route
 // handler, a bad param that blew up before reaching that route's own validation, etc. Without this, Fastify's
@@ -188,10 +191,22 @@ app.post('/settings', async (req, reply) => {
     reply.code(400);
     return { error: `snapshot directory does not exist: ${nextSnapshotDir}` };
   }
+  // Unlike snapshotDir (must already exist — it's where the user's existing captures live), courseResourcesDir
+  // is a workspace VpK itself writes into, so a not-yet-existing path is created rather than rejected.
+  const nextCourseResourcesDir = typeof body.courseResourcesDir === 'string' ? body.courseResourcesDir.trim() : settings.courseResourcesDir;
+  if (nextCourseResourcesDir && !existsSync(nextCourseResourcesDir)) {
+    try {
+      mkdirSync(nextCourseResourcesDir, { recursive: true });
+    } catch (e: unknown) {
+      reply.code(400);
+      return { error: `could not create course resources directory: ${e instanceof Error ? e.message : String(e)}` };
+    }
+  }
   settings = {
     snapshotDir: nextSnapshotDir,
     redactSecrets: typeof body.redactSecrets === 'boolean' ? body.redactSecrets : settings.redactSecrets,
     disablePullingSecrets: typeof body.disablePullingSecrets === 'boolean' ? body.disablePullingSecrets : settings.disablePullingSecrets,
+    courseResourcesDir: nextCourseResourcesDir,
   };
   saveSettings(configPath, settings);
   return settings;
@@ -497,6 +512,138 @@ app.post('/course/lesson/validate', async (req, reply) => {
   } catch (e: unknown) {
     reply.code(400);
     return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Teacher tools: course resources (images, sample files, anything a lesson links to) — a separate directory
+// tree from courses/ itself (Settings > Education's courseResourcesDir), one subdirectory per course. Every
+// route here 400s with a clear message if that directory hasn't been configured yet, rather than guessing a
+// location no one asked for.
+function requireCourseResourcesDir(reply: FastifyReply): string | null {
+  if (!settings.courseResourcesDir) {
+    reply.code(400);
+    return null;
+  }
+  return settings.courseResourcesDir;
+}
+
+app.get('/course/resources', async (req, reply) => {
+  const { course } = (req.query ?? {}) as { course?: string };
+  const dir = requireCourseResourcesDir(reply);
+  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
+  if (!course) {
+    reply.code(400);
+    return { error: 'expected ?course=<course-directory-name>' };
+  }
+  try {
+    return { files: listResourceFiles(dir, course) };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+app.post('/course/resources/ensure-dir', async (req, reply) => {
+  const { course } = (req.body ?? {}) as { course?: string };
+  const dir = requireCourseResourcesDir(reply);
+  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
+  if (!course) {
+    reply.code(400);
+    return { error: 'expected { course: string }' };
+  }
+  try {
+    ensureCourseResourceDir(dir, course);
+    return { ok: true };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Body carries the file as base64 rather than a multipart upload — course resources are small (images,
+// sample YAML/JSON), and this avoids adding a multipart-parsing dependency for what's otherwise a one-file
+// JSON API. Bumps against Fastify's default 1MB body limit, hence the larger bodyLimit passed to Fastify() at
+// startup.
+app.post('/course/resources/upload', async (req, reply) => {
+  const { course, name, dataBase64 } = (req.body ?? {}) as { course?: string; name?: string; dataBase64?: string };
+  const dir = requireCourseResourcesDir(reply);
+  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
+  if (!course || !name || typeof dataBase64 !== 'string') {
+    reply.code(400);
+    return { error: 'expected { course: string, name: string, dataBase64: string }' };
+  }
+  try {
+    const file = saveResourceFile(dir, course, name, dataBase64);
+    pushLog('info', `Teacher tools: uploaded resource "${name}" -> ${course}/`);
+    return { file };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Checked by the Resources panel BEFORE it shows a delete confirmation — see resources.ts's
+// findResourceReferences doc comment on why this is a plain substring search, not a link parser.
+app.get('/course/resources/references', async (req, reply) => {
+  const { course, name } = (req.query ?? {}) as { course?: string; name?: string };
+  if (!course || !name) {
+    reply.code(400);
+    return { error: 'expected ?course=<course>&name=<filename>' };
+  }
+  return { referencedIn: findResourceReferences(course, name) };
+});
+
+app.delete('/course/resources/file', async (req, reply) => {
+  const { course, name } = (req.query ?? {}) as { course?: string; name?: string };
+  const dir = requireCourseResourcesDir(reply);
+  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
+  if (!course || !name) {
+    reply.code(400);
+    return { error: 'expected ?course=<course>&name=<filename>' };
+  }
+  try {
+    deleteResourceFile(dir, course, name);
+    pushLog('info', `Teacher tools: deleted resource "${name}" from ${course}/`);
+    return { ok: true };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+app.post('/course/resources/rename', async (req, reply) => {
+  const { course, oldName, newName } = (req.body ?? {}) as { course?: string; oldName?: string; newName?: string };
+  const dir = requireCourseResourcesDir(reply);
+  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
+  if (!course || !oldName || !newName) {
+    reply.code(400);
+    return { error: 'expected { course: string, oldName: string, newName: string }' };
+  }
+  try {
+    const file = renameResourceFile(dir, course, oldName, newName);
+    pushLog('info', `Teacher tools: renamed resource "${oldName}" -> "${newName}" in ${course}/`);
+    return { file };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Static serving for uploaded resources — a lesson references one as e.g. `/course-resources/course02/diagram.png`.
+app.get('/course-resources/:course/:name', async (req, reply) => {
+  const { course, name } = req.params as { course: string; name: string };
+  const dir = settings.courseResourcesDir;
+  if (!dir) {
+    reply.code(404);
+    return { error: 'No course resources directory configured.' };
+  }
+  try {
+    const { data, contentType } = readResourceFile(dir, course, name);
+    reply.header('content-type', contentType);
+    return data;
+  } catch {
+    reply.code(404);
+    return { error: 'Not found.' };
   }
 });
 

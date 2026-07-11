@@ -14,6 +14,7 @@ interface Settings {
   snapshotDir: string;
   redactSecrets: boolean;
   disablePullingSecrets: boolean;
+  courseResourcesDir: string;
 }
 
 /** A picker row is either a real Kind (color comes from kindColorOverrides.ts, default from colorForKind) or a
@@ -54,7 +55,7 @@ const STRUCTURAL_LABEL: Record<StructuralColorKey, string> = Object.fromEntries(
   string
 >;
 
-type SettingsTab = 'snapshot' | 'ui' | 'colors' | 'icons' | 'network' | 'course';
+type SettingsTab = 'snapshot' | 'ui' | 'colors' | 'icons' | 'network' | 'education';
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'snapshot', label: 'Snapshot' },
@@ -62,7 +63,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'colors', label: 'Colors' },
   { key: 'icons', label: 'Vendor Icons' },
   { key: 'network', label: 'Network Identification' },
-  { key: 'course', label: 'Course' },
+  { key: 'education', label: 'Education' },
 ];
 
 const TERMINAL_FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 22];
@@ -140,6 +141,7 @@ export function SettingsModal({
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [dir, setDir] = useState('');
+  const [resourcesDir, setResourcesDir] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // Kind color overrides are localStorage-only (see kindColorOverrides.ts), not part of the server-persisted
@@ -166,6 +168,7 @@ export function SettingsModal({
       .then((s) => {
         setSettings(s);
         setDir(s.snapshotDir);
+        setResourcesDir(s.courseResourcesDir);
       });
     setKindOverrides(getStoredKindColorOverrides());
     setApiGroupOverrides(getStoredApiGroupColorOverrides());
@@ -260,6 +263,7 @@ export function SettingsModal({
     }
     setSettings(body);
     setDir(body.snapshotDir);
+    setResourcesDir(body.courseResourcesDir);
     onSaved();
   }
 
@@ -349,28 +353,6 @@ export function SettingsModal({
               <span style={{ color: 'var(--vpk-fg)' }}>
                 Grid floor (3D view) — the ground grid under the Field and Wheel views. Sized to always extend past
                 every node/item currently shown.
-              </span>
-            </label>
-
-            <label className="mb-2 flex items-start gap-2 text-xs">
-              <input type="checkbox" checked={showCourse} onChange={(e) => onShowCourseChange(e.target.checked)} />
-              <span style={{ color: 'var(--vpk-fg)' }}>
-                Show Course in menu — the Training group's lesson runner. Turn off if nobody here uses Training
-                Course mode. On by default.
-              </span>
-            </label>
-
-            <label className="mb-2 flex items-start gap-2 text-xs">
-              <input type="checkbox" checked={showCourseCatalog} onChange={(e) => onShowCourseCatalogChange(e.target.checked)} />
-              <span style={{ color: 'var(--vpk-fg)' }}>
-                Show Course Catalog in menu — the Training group's course picker. On by default.
-              </span>
-            </label>
-
-            <label className="mb-4 flex items-start gap-2 text-xs">
-              <input type="checkbox" checked={showTeacherTools} onChange={(e) => onShowTeacherToolsChange(e.target.checked)} />
-              <span style={{ color: 'var(--vpk-fg)' }}>
-                Show Teacher tools in menu — the Training group's course create/edit screen. On by default.
               </span>
             </label>
           </>
@@ -527,8 +509,57 @@ export function SettingsModal({
 
         {tab === 'network' && <NetworkCatalogPanel />}
 
-        {tab === 'course' && (
+        {tab === 'education' && (
           <>
+            <label className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Course resources directory</span>
+              <div className="flex gap-2">
+                <input
+                  value={resourcesDir}
+                  onChange={(e) => setResourcesDir(e.target.value)}
+                  placeholder="/path/to/course-resources"
+                  className="flex-1 rounded border px-2 py-1"
+                  style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+                />
+                <button
+                  disabled={saving || resourcesDir === (settings?.courseResourcesDir ?? '')}
+                  onClick={() => void save({ courseResourcesDir: resourcesDir })}
+                  className="cursor-pointer rounded border px-2 py-1 disabled:cursor-default disabled:opacity-50"
+                  style={{ borderColor: 'var(--vpk-border)' }}
+                >
+                  Save
+                </button>
+              </div>
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>
+                Where Teacher tools' Resources panel stores images/sample files a course links to — one
+                subdirectory per course, separate from the lesson markdown itself. Created automatically if it
+                doesn't exist yet. Required before the Resources panel will show anything.
+              </span>
+              {error && tab === 'education' && <span style={{ color: 'var(--vpk-status-error)' }}>{error}</span>}
+            </label>
+
+            <label className="mb-2 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showCourse} onChange={(e) => onShowCourseChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Course in menu — the Training group's lesson runner. Turn off if nobody here uses Training
+                Course mode. On by default.
+              </span>
+            </label>
+
+            <label className="mb-2 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showCourseCatalog} onChange={(e) => onShowCourseCatalogChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Course Catalog in menu — the Training group's course picker. On by default.
+              </span>
+            </label>
+
+            <label className="mb-4 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showTeacherTools} onChange={(e) => onShowTeacherToolsChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Teacher tools in menu — the Training group's course create/edit screen. On by default.
+              </span>
+            </label>
+
             <label className="mb-4 flex flex-col gap-1 text-xs">
               <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal CLI override</span>
               <select

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare, Printer } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { LessonRunnerView } from './LessonRunnerView';
@@ -479,7 +479,7 @@ export function App() {
 
       <div className="flex flex-1 flex-col min-w-0">
         <header
-          className="flex items-center gap-3 border-b px-3 py-2 flex-wrap"
+          className="flex items-center gap-3 border-b px-3 py-2 flex-wrap no-print"
           style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-surface)' }}
         >
           <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--vpk-fg-muted)' }}>
@@ -558,7 +558,7 @@ export function App() {
           </div>
         </header>
         <div
-          className="flex items-center gap-2 border-b px-3 py-2.5"
+          className="flex items-center gap-2 border-b px-3 py-2.5 no-print"
           style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-bg)' }}
         >
           {(() => {
@@ -577,6 +577,20 @@ export function App() {
             >
               <TerminalSquare size={12} />
               CLI Equivalent
+            </button>
+          )}
+          {/* The Course view has its own Print button (with/without answers) in its header instead — this
+              generic one just does window.print() on whatever's currently rendered, which isn't the right
+              semantics for lesson content. */}
+          {view !== 'course' && (
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1 rounded border px-2 py-1 text-xs cursor-pointer"
+              style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+              title="Print this view"
+            >
+              <Printer size={12} />
+              Print
             </button>
           )}
         </div>

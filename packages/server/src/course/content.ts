@@ -19,7 +19,7 @@ import { parseLesson, type ParsedLesson } from '@vpk/training';
 
 const here = dirname(fileURLToPath(import.meta.url));
 // packages/server/src/course/content.ts -> v2/courses
-const DEFAULT_COURSES_DIR = join(here, '../../../../courses');
+export const DEFAULT_COURSES_DIR = join(here, '../../../../courses');
 
 function walkMarkdownFiles(dir: string): string[] {
   let entries: import('node:fs').Dirent[];

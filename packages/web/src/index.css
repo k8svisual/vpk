@@ -292,3 +292,28 @@
     transform: rotateX(-90deg);
   }
 }
+
+/* Print support — the app shell (nav rail, top header bars, terminal pane) is marked .no-print; only the
+   current view's own content (SVG diagrams, tables, lesson prose, ...) is meant to end up on paper. `main`'s
+   own overflow-auto is overridden so the browser prints the FULL scrollable content, not just whatever
+   happened to be visible in the viewport when Print was clicked. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body,
+  html {
+    background: #fff !important;
+  }
+  main {
+    overflow: visible !important;
+  }
+  /* Course print with/without answers — LessonRunnerView's printCourse() forces every <details> open (or
+     removes it entirely for the no-answers case) right before calling window.print(), and restores the
+     original state on the browser's `afterprint` event. This class only controls the no-answers case; the
+     with-answers case relies on the JS-forced `open` attribute instead of CSS, since browsers are
+     inconsistent about whether a collapsed <details> prints its content at all. */
+  body.vpk-print-no-answers details {
+    display: none !important;
+  }
+}

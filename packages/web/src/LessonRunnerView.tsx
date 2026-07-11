@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, Printer, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 import { FlipClock } from './FlipClock';
 import type { TerminalTheme } from './courseSettings';
 
@@ -107,9 +107,34 @@ export function LessonRunnerView({
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [checkStatuses, setCheckStatuses] = useState<Record<string, CheckStatus>>({});
+  const [printModalOpen, setPrintModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lessonScrollRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const activeLessonId = lessonId ?? DEFAULT_LESSON_ID;
+
+  // Forces every <details> (Hint/Step-by-step) open before printing when answers are wanted — relying on
+  // CSS alone is unreliable here, since browsers disagree about whether a COLLAPSED <details> prints its
+  // content at all. The no-answers case instead hides <details> entirely via the vpk-print-no-answers body
+  // class (see index.css's @media print block), since there's nothing to force open in that case.
+  function printCourse(includeAnswers: boolean) {
+    setPrintModalOpen(false);
+    const root = lessonScrollRef.current;
+    const detailsEls = root ? Array.from(root.querySelectorAll('details')) : [];
+    const originalOpen = detailsEls.map((d) => d.open);
+    if (includeAnswers) detailsEls.forEach((d) => (d.open = true));
+    document.body.classList.toggle('vpk-print-no-answers', !includeAnswers);
+    const restore = () => {
+      detailsEls.forEach((d, i) => (d.open = originalOpen[i] ?? false));
+      document.body.classList.remove('vpk-print-no-answers');
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    // Deferred a tick so the DOM mutations above (details.open, body class) are painted before the browser
+    // snapshots the page for print — calling window.print() synchronously right after them is sometimes too
+    // early.
+    setTimeout(() => window.print(), 50);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -206,10 +231,11 @@ export function LessonRunnerView({
           estimatedMinutes={lesson.frontmatter.estimatedMinutes}
           totalTasks={totalTasks}
           completedTasks={completedTasks}
+          onPrint={() => setPrintModalOpen(true)}
         />
       )}
       <div ref={containerRef} className="flex flex-1 min-h-0 mt-2">
-        <div className="flex-1 min-w-0 overflow-auto pr-1">
+        <div ref={lessonScrollRef} className="flex-1 min-w-0 overflow-auto pr-1">
           <LessonPane lesson={effectiveLesson} onCheckStatus={handleCheckStatus} />
         </div>
         <div
@@ -217,11 +243,11 @@ export function LessonRunnerView({
           role="separator"
           aria-orientation="vertical"
           title="Drag to resize"
-          className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center"
+          className="w-2 shrink-0 cursor-col-resize group flex items-center justify-center no-print"
         >
           <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
         </div>
-        <div className="shrink-0" style={{ width: terminalWidth }}>
+        <div className="shrink-0 no-print" style={{ width: terminalWidth }}>
           <TerminalPane
             allow={effectiveLesson.frontmatter.allow ?? ['get']}
             cli={effectiveLesson.frontmatter.cli}
@@ -230,6 +256,7 @@ export function LessonRunnerView({
           />
         </div>
       </div>
+      {printModalOpen && <PrintCourseModal onClose={() => setPrintModalOpen(false)} onPrint={printCourse} />}
     </div>
   );
 }
@@ -241,6 +268,7 @@ function CourseHeader({
   estimatedMinutes,
   totalTasks,
   completedTasks,
+  onPrint,
 }: {
   title: string;
   startTime: Date;
@@ -248,6 +276,7 @@ function CourseHeader({
   estimatedMinutes?: number;
   totalTasks: number;
   completedTasks: number;
+  onPrint: () => void;
 }) {
   const stopTime = estimatedMinutes !== undefined ? new Date(startTime.getTime() + estimatedMinutes * 60_000) : null;
   const remainingMs = stopTime ? stopTime.getTime() - now.getTime() : null;
@@ -255,8 +284,19 @@ function CourseHeader({
   const timeFmt: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
   return (
-    <div className="border rounded px-3 py-2 flex items-center justify-between gap-4 text-xs shrink-0" style={panelStyle}>
-      <div className="font-semibold text-sm truncate">{title}</div>
+    <div className="border rounded px-3 py-2 flex items-center justify-between gap-4 text-xs shrink-0 no-print" style={panelStyle}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-semibold text-sm truncate">{title}</span>
+        <button
+          onClick={onPrint}
+          className="flex items-center gap-1 rounded border px-2 py-1 shrink-0 cursor-pointer"
+          style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+          title="Print this course"
+        >
+          <Printer size={12} />
+          Print
+        </button>
+      </div>
       <div className="flex items-center gap-4 shrink-0" style={mutedStyle}>
         <span>Start {startTime.toLocaleTimeString([], timeFmt)}</span>
         {stopTime && <span>Stop {stopTime.toLocaleTimeString([], timeFmt)}</span>}
@@ -266,6 +306,45 @@ function CourseHeader({
             {completedTasks}/{totalTasks} tasks
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** With/without-answers choice before printing — deliberately its own tiny modal rather than a native
+ *  confirm()/two-button pair, since "which of two named actions" reads more clearly as two labeled buttons
+ *  in a dialog than as an OK/Cancel with the semantics baked into the message text. */
+function PrintCourseModal({ onClose, onPrint }: { onClose: () => void; onPrint: (includeAnswers: boolean) => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center no-print" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/55" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded border p-4 shadow-2xl" style={{ background: 'var(--vpk-surface)', borderColor: 'var(--vpk-border)' }}>
+        <h2 className="mb-3 font-medium text-sm" style={{ color: 'var(--vpk-fg)' }}>
+          Print course
+        </h2>
+        <p className="mb-4 text-xs" style={mutedStyle}>
+          Hints and Step-by-step answers can be included or left out — useful for handing a printed copy to a
+          student without giving the answers away.
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => onPrint(true)}
+            className="rounded border px-3 py-2 text-xs cursor-pointer text-left"
+            style={panelStyle}
+          >
+            Print with answers
+          </button>
+          <button
+            onClick={() => onPrint(false)}
+            className="rounded border px-3 py-2 text-xs cursor-pointer text-left"
+            style={panelStyle}
+          >
+            Print without answers
+          </button>
+          <button onClick={onClose} className="rounded border px-3 py-2 text-xs cursor-pointer text-left" style={{ ...panelStyle, ...mutedStyle }}>
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );

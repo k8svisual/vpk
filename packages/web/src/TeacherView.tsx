@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { CheckCircle2, CircleAlert, FilePlus2, GraduationCap, HelpCircle, Loader2, Save, ShieldCheck, X } from 'lucide-react';
+import { CourseResourcesPanel } from './CourseResourcesPanel';
 
 /**
  * Teacher tools — create/edit lesson `.md` files directly (redesign/training-course.md's authoring loop:
@@ -49,6 +50,13 @@ async function getJson<T>(url: string): Promise<T> {
   return json as T;
 }
 
+/** Resources are per-course, not per-lesson-file — derived from the lesson path's first segment
+ *  (course02/00-using-oc.md -> "course02"), the same identity server-side resources.ts groups by. */
+function courseOfPath(path: string): string {
+  const slash = path.indexOf('/');
+  return slash >= 0 ? path.slice(0, slash) : path;
+}
+
 export function TeacherView() {
   const [lessons, setLessons] = useState<LessonSummary[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -62,6 +70,7 @@ export function TeacherView() {
   const [creating, setCreating] = useState(false);
   const [newPath, setNewPath] = useState('');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [editorTab, setEditorTab] = useState<'content' | 'resources'>('content');
 
   function refreshList() {
     getJson<{ lessons: LessonSummary[] }>('/course/lessons')
@@ -75,6 +84,7 @@ export function TeacherView() {
     setSelectedPath(path);
     setSaveResult(null);
     setValidation(null);
+    setEditorTab('content');
     setLoadingSource(true);
     getJson<{ source: string }>(`/course/lesson/source?path=${encodeURIComponent(path)}`)
       .then((d) => setSource(d.source))
@@ -88,12 +98,21 @@ export function TeacherView() {
   }
 
   function confirmNewLesson() {
-    if (!newPath.trim()) return;
-    setSelectedPath(newPath.trim());
+    const path = newPath.trim();
+    if (!path) return;
+    setSelectedPath(path);
     setSource(NEW_LESSON_TEMPLATE);
     setSaveResult(null);
     setValidation(null);
+    setEditorTab('content');
     setCreating(false);
+    // Best-effort — a resources directory that isn't configured yet (Settings > Education) shouldn't block
+    // creating the lesson itself; the Resources tab surfaces that same "not configured" state on its own.
+    void fetch('/course/resources/ensure-dir', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ course: courseOfPath(path) }),
+    }).catch(() => undefined);
   }
 
   async function save() {
@@ -243,11 +262,30 @@ export function TeacherView() {
               </div>
             )}
             {validation && <ValidationBanner validation={validation} />}
+
+            <div className="px-3 pt-2 flex items-center gap-1 border-b" style={panelStyle}>
+              {(['content', 'resources'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setEditorTab(t)}
+                  className="px-2 py-1 text-xs rounded-t border border-b-0 cursor-pointer capitalize"
+                  style={{
+                    borderColor: 'var(--vpk-border)',
+                    background: editorTab === t ? 'var(--vpk-bg)' : undefined,
+                    color: editorTab === t ? 'var(--vpk-fg)' : 'var(--vpk-fg-muted)',
+                    marginBottom: -1,
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
             {loadingSource ? (
               <p className="text-sm p-3 flex items-center gap-1.5" style={mutedStyle}>
                 <Loader2 size={14} className="animate-spin" /> Loading…
               </p>
-            ) : (
+            ) : editorTab === 'content' ? (
               <textarea
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -255,6 +293,8 @@ export function TeacherView() {
                 className="flex-1 w-full p-3 text-xs font-mono resize-none outline-none"
                 style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
               />
+            ) : (
+              <CourseResourcesPanel course={courseOfPath(selectedPath)} />
             )}
           </>
         )}
