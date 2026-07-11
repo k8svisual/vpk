@@ -116,3 +116,71 @@ export function saveLessonSource(relativePath: string, source: string, coursesDi
   writeFileSync(full, source, 'utf8');
   return parsed;
 }
+
+export interface LessonValidationResult {
+  frontmatter: ParsedLesson['frontmatter'];
+  counts: Record<'prose' | 'detect' | 'setup' | 'check' | 'teardown' | 'quiz', number>;
+  /** Non-fatal problems — the lesson still parsed and will load, but something about it likely won't work as
+   *  the author intended (a check block missing a field its kind needs, no checks at all, ...). Structural
+   *  problems (bad frontmatter, an unclosed fence) aren't warnings — parseLesson throws for those, and the
+   *  route surfaces that as a 400 instead, since there's no lesson to report counts/warnings ABOUT. */
+  warnings: string[];
+}
+
+const PURE_CHECK_KINDS = new Set(['cluster', 'inventory', 'fields', 'value']);
+const LIVE_CHECK_KINDS = new Set(['command', 'probe', 'callback']);
+
+/** Structural + light content validation for the Teacher editor's "Validate" button — a dry run that never
+ *  writes anything (see saveLessonSource for the write path). parseLesson already catches malformed
+ *  frontmatter/YAML/unclosed fences (thrown, not a warning — see LessonValidationResult's doc comment); this
+ *  adds the next layer down: does each vpk-check block have the fields ITS OWN kind actually needs to
+ *  evaluate. Deliberately duck-typed against `unknown` rather than importing @vpk/training's Check union and
+ *  doing a full structural match — a lesson author needs "you're missing `namespace`", not a TypeScript
+ *  discriminated-union error dump. */
+export function validateLessonSource(source: string): LessonValidationResult {
+  const lesson = parseLesson(source);
+  const counts = { prose: 0, detect: 0, setup: 0, check: 0, teardown: 0, quiz: 0 };
+  const warnings: string[] = [];
+  for (const segment of lesson.segments) {
+    if (segment.type === 'prose') {
+      counts.prose++;
+      continue;
+    }
+    counts[segment.block.kind]++;
+    if (segment.block.kind === 'check') warnings.push(...validateCheckBlock(segment.block.data));
+  }
+  if (counts.check === 0) warnings.push('No vpk-check blocks — nothing in this lesson is automatically graded.');
+  if (lesson.frontmatter.estimatedMinutes === undefined) {
+    warnings.push("No estimatedMinutes set — the Course view's header countdown clock won't show for this lesson.");
+  }
+  return { frontmatter: lesson.frontmatter, counts, warnings };
+}
+
+function validateCheckBlock(data: unknown): string[] {
+  if (data === undefined || data === null || typeof data !== 'object') {
+    return ['A vpk-check block is empty or not a YAML mapping — expected at least id, describe, and kind.'];
+  }
+  const d = data as Record<string, unknown>;
+  const label = typeof d.id === 'string' && d.id ? `"${d.id}"` : '(missing id)';
+  const problems: string[] = [];
+  if (typeof d.id !== 'string' || !d.id) problems.push(`Check ${label}: missing required field "id".`);
+  if (typeof d.describe !== 'string' || !d.describe) problems.push(`Check ${label}: missing required field "describe".`);
+  if (typeof d.kind !== 'string' || !d.kind) {
+    problems.push(`Check ${label}: missing required field "kind".`);
+    return problems;
+  }
+  if (!PURE_CHECK_KINDS.has(d.kind) && !LIVE_CHECK_KINDS.has(d.kind)) {
+    problems.push(`Check ${label}: unknown kind "${d.kind}" — expected one of cluster, inventory, fields, value, command, probe, callback.`);
+    return problems;
+  }
+  if (d.kind === 'cluster') {
+    if (d.assert === undefined) problems.push(`Check ${label}: kind "cluster" needs an "assert" field.`);
+  } else if (d.kind === 'inventory' || d.kind === 'fields') {
+    if (typeof d.namespace !== 'string' || !d.namespace) problems.push(`Check ${label}: kind "${d.kind}" needs a "namespace" field.`);
+    if (d.expect === undefined) problems.push(`Check ${label}: kind "${d.kind}" needs an "expect" field.`);
+  } else if (d.kind === 'value') {
+    if (typeof d.namespace !== 'string' || !d.namespace) problems.push(`Check ${label}: kind "value" needs a "namespace" field.`);
+    if (!Array.isArray(d.assert) || d.assert.length === 0) problems.push(`Check ${label}: kind "value" needs a non-empty "assert" list.`);
+  }
+  return problems;
+}

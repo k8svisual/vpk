@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, Minus, Moon, Plus, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 import { FlipClock } from './FlipClock';
-import { TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, initialTerminalFontSize, setStoredTerminalFontSize } from './terminalFontSize';
+import type { TerminalTheme } from './courseSettings';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -89,7 +89,18 @@ const TERMINAL_MIN_WIDTH = 280;
 const TERMINAL_MAX_WIDTH = 900;
 const LESSON_MIN_WIDTH = 280;
 
-export function LessonRunnerView({ lessonId }: { lessonId?: string }) {
+export function LessonRunnerView({
+  lessonId,
+  cliOverride,
+  terminalTheme,
+  terminalFontSize,
+}: {
+  lessonId?: string;
+  /** Empty string means "no override, use the lesson's own frontmatter cli" — see courseSettings.ts. */
+  cliOverride?: string;
+  terminalTheme: TerminalTheme;
+  terminalFontSize: number;
+}) {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
@@ -178,6 +189,13 @@ export function LessonRunnerView({ lessonId }: { lessonId?: string }) {
     );
   }
 
+  // Applies the Settings > Course CLI override (if any) uniformly to LessonPane (DetectCard/CheckCard) and
+  // TerminalPane, by overriding it once on a shallow-copied lesson rather than threading a second `cli` prop
+  // through every consumer — see courseSettings.ts's doc comment on why oc/kubectl swap is safe here.
+  const effectiveLesson: ParsedLesson = cliOverride
+    ? { ...lesson, frontmatter: { ...lesson.frontmatter, cli: [cliOverride] } }
+    : lesson;
+
   return (
     <div className="flex flex-col h-full min-h-0">
       {startTime && now && (
@@ -192,7 +210,7 @@ export function LessonRunnerView({ lessonId }: { lessonId?: string }) {
       )}
       <div ref={containerRef} className="flex flex-1 min-h-0 mt-2">
         <div className="flex-1 min-w-0 overflow-auto pr-1">
-          <LessonPane lesson={lesson} onCheckStatus={handleCheckStatus} />
+          <LessonPane lesson={effectiveLesson} onCheckStatus={handleCheckStatus} />
         </div>
         <div
           onMouseDown={startResize}
@@ -204,7 +222,12 @@ export function LessonRunnerView({ lessonId }: { lessonId?: string }) {
           <div className="w-px h-full group-hover:w-0.5 transition-[width]" style={{ background: 'var(--vpk-border)' }} />
         </div>
         <div className="shrink-0" style={{ width: terminalWidth }}>
-          <TerminalPane allow={lesson.frontmatter.allow ?? ['get']} cli={lesson.frontmatter.cli} />
+          <TerminalPane
+            allow={effectiveLesson.frontmatter.allow ?? ['get']}
+            cli={effectiveLesson.frontmatter.cli}
+            theme={terminalTheme}
+            fontSizePx={terminalFontSize}
+          />
         </div>
       </div>
     </div>
@@ -525,8 +548,6 @@ interface HistoryEntry {
   error?: string;
 }
 
-type TerminalTheme = 'dark' | 'light';
-
 const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string }> = {
   // var(--vpk-status-error) is tuned for the app's light surfaces — too dark to read on pure black, so the
   // terminal gets its own brighter red independent of the app-wide error color.
@@ -536,13 +557,11 @@ const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: s
 
 const CLEAR_COMMANDS = new Set(['clear', 'cls']);
 
-function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
+function TerminalPane({ allow, cli, theme, fontSizePx }: { allow: string[]; cli?: string[]; theme: TerminalTheme; fontSizePx: number }) {
   const cliName = cli?.[0] ?? 'kubectl';
   const [line, setLine] = useState(`${cliName} get nodes`);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [running, setRunning] = useState(false);
-  const [theme, setTheme] = useState<TerminalTheme>('dark');
-  const [fontSizePx, setFontSizePxState] = useState(initialTerminalFontSize);
   // Shell-style Up/Down recall over PAST TYPED COMMANDS — kept in its own log, separate from `history` (the
   // visible transcript), so `clear`/`cls` can wipe the screen without erasing recall, matching real shells.
   // null = not currently browsing (the input holds whatever the student is actively typing); draftRef
@@ -551,14 +570,6 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const draftRef = useRef('');
   const colors = TERMINAL_COLORS[theme];
-
-  function bumpFontSize(delta: number) {
-    setFontSizePxState((p) => {
-      const next = Math.min(TERMINAL_FONT_SIZE_MAX, Math.max(TERMINAL_FONT_SIZE_MIN, p + delta));
-      setStoredTerminalFontSize(next);
-      return next;
-    });
-  }
 
   async function run() {
     const cmd = line.trim();
@@ -614,49 +625,14 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
 
   return (
     <div className="border rounded flex flex-col h-full" style={{ borderColor: colors.border, background: colors.bg, color: colors.fg }}>
-      <div className="px-3 py-2 border-b flex items-center justify-between gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
-        <span className="flex items-center gap-1.5">
-          <TerminalIcon size={13} />
-          Terminal
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="flex items-center rounded border overflow-hidden" style={{ borderColor: colors.border }}>
-            <button
-              onClick={() => bumpFontSize(-1)}
-              disabled={fontSizePx <= TERMINAL_FONT_SIZE_MIN}
-              title="Decrease terminal font size"
-              aria-label="Decrease terminal font size"
-              className="flex items-center px-1.5 py-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
-              style={{ background: colors.buttonBg, color: colors.fg }}
-            >
-              <Minus size={11} />
-            </button>
-            <button
-              onClick={() => bumpFontSize(1)}
-              disabled={fontSizePx >= TERMINAL_FONT_SIZE_MAX}
-              title="Increase terminal font size"
-              aria-label="Increase terminal font size"
-              className="flex items-center px-1.5 py-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 border-l"
-              style={{ background: colors.buttonBg, color: colors.fg, borderColor: colors.border }}
-            >
-              <Plus size={11} />
-            </button>
-          </span>
-          <button
-            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            title={theme === 'dark' ? 'Switch to light terminal' : 'Switch to dark terminal'}
-            className="flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer"
-            style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
-          >
-            {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-        </span>
+      <div className="px-3 py-2 border-b flex items-center gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
+        <TerminalIcon size={13} />
+        Terminal
       </div>
       <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
         Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
         tools, use your own system terminal. ↑/↓ recall previous commands, <code>clear</code>/<code>cls</code>{' '}
-        wipes the screen.
+        wipes the screen. Appearance, font size, and CLI are in Settings &gt; Course.
       </p>
       <div className="flex gap-2 p-2 border-b" style={{ borderColor: colors.border }}>
         <input

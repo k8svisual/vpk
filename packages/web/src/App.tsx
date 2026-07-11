@@ -31,6 +31,8 @@ import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } 
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
 import { initialGridEnabled, setStoredGridEnabled } from './gridSetting';
 import { initialShowCourseCatalog, initialShowTeacherTools, setStoredShowCourseCatalog, setStoredShowTeacherTools } from './navVisibility';
+import { initialCliOverride, initialTerminalTheme, setStoredCliOverride, setStoredTerminalTheme, type TerminalTheme } from './courseSettings';
+import { initialTerminalFontSize, setStoredTerminalFontSize } from './terminalFontSize';
 import { setVendorIconOverrides, type VendorIconOverride } from './vendorIconOverrides';
 
 interface Snapshots {
@@ -189,6 +191,24 @@ export function App() {
   // The Course Catalog's current pick — undefined means "use LessonRunnerView's own default" (Lesson Zero),
   // so the Course view stays usable even if the student never visits the Catalog at all.
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
+  // Course-mode terminal/CLI preferences — same "App.tsx owns it, instant apply, no /settings round-trip"
+  // pattern as theme/fog/grid (see courseSettings.ts/terminalFontSize.ts doc comments for why each exists).
+  const [courseCliOverride, setCourseCliOverride] = useState<string>(initialCliOverride);
+  const [terminalTheme, setTerminalTheme] = useState<TerminalTheme>(initialTerminalTheme);
+  const [terminalFontSize, setTerminalFontSize] = useState<number>(initialTerminalFontSize);
+
+  function changeCourseCliOverride(next: string) {
+    setCourseCliOverride(next);
+    setStoredCliOverride(next);
+  }
+  function changeTerminalTheme(next: TerminalTheme) {
+    setTerminalTheme(next);
+    setStoredTerminalTheme(next);
+  }
+  function changeTerminalFontSize(next: number) {
+    setTerminalFontSize(next);
+    setStoredTerminalFontSize(next);
+  }
   const hiddenNavIds = useMemo(() => {
     const ids = new Set<ViewId>();
     if (!showCourseCatalog) ids.add('catalog');
@@ -668,7 +688,14 @@ export function App() {
                 }}
               />
             )}
-            {view === 'course' && <LessonRunnerView lessonId={selectedLessonId} />}
+            {view === 'course' && (
+              <LessonRunnerView
+                lessonId={selectedLessonId}
+                cliOverride={courseCliOverride}
+                terminalTheme={terminalTheme}
+                terminalFontSize={terminalFontSize}
+              />
+            )}
             {view === 'teacher' && <TeacherView />}
           </main>
         </div>
@@ -694,6 +721,12 @@ export function App() {
         onShowCourseCatalogChange={changeShowCourseCatalog}
         showTeacherTools={showTeacherTools}
         onShowTeacherToolsChange={changeShowTeacherTools}
+        courseCliOverride={courseCliOverride}
+        onCourseCliOverrideChange={changeCourseCliOverride}
+        terminalTheme={terminalTheme}
+        onTerminalThemeChange={changeTerminalTheme}
+        terminalFontSize={terminalFontSize}
+        onTerminalFontSizeChange={changeTerminalFontSize}
       />
       <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
       <LogsModal open={logsOpen} onClose={() => setLogsOpen(false)} />

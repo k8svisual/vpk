@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { coursesDirExists, findLessonById, findLessonPath, listLessonFiles, listLessons, readLessonSource, saveLessonSource } from './content';
+import { coursesDirExists, findLessonById, findLessonPath, listLessonFiles, listLessons, readLessonSource, saveLessonSource, validateLessonSource } from './content';
 
 describe('listLessons / findLessonById against the real courses/ directory', () => {
   it('finds the real, authored Lesson Zero by id', () => {
@@ -114,5 +114,80 @@ describe('readLessonSource / saveLessonSource', () => {
   it('readLessonSource throws for a file that does not exist', () => {
     dir = mkdtempSync(join(tmpdir(), 'vpk-courses-'));
     expect(() => readLessonSource('missing.md', dir)).toThrow();
+  });
+});
+
+describe('validateLessonSource', () => {
+  it('throws (structural) for malformed frontmatter — same as parseLesson', () => {
+    expect(() => validateLessonSource('no frontmatter at all')).toThrow(/frontmatter/);
+  });
+
+  it('reports counts and no warnings for a well-formed lesson with a complete check block', () => {
+    const source = [
+      '---',
+      'id: good-lesson',
+      'title: Good Lesson',
+      'estimatedMinutes: 10',
+      '---',
+      '',
+      'Some intro prose.',
+      '',
+      '```vpk-check',
+      'id: reachable',
+      'describe: cluster is reachable',
+      'kind: cluster',
+      'assert: contextReachable',
+      '```',
+    ].join('\n');
+    const result = validateLessonSource(source);
+    expect(result.frontmatter.id).toBe('good-lesson');
+    expect(result.counts).toEqual({ prose: 1, detect: 0, setup: 0, check: 1, teardown: 0, quiz: 0 });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('warns when there are no check blocks at all', () => {
+    const result = validateLessonSource('---\nid: x\ntitle: X\nestimatedMinutes: 5\n---\nJust prose, no checks.');
+    expect(result.warnings).toContain('No vpk-check blocks — nothing in this lesson is automatically graded.');
+  });
+
+  it('warns when estimatedMinutes is missing', () => {
+    const result = validateLessonSource('---\nid: x\ntitle: X\n---\nbody');
+    expect(result.warnings.some((w) => w.includes('estimatedMinutes'))).toBe(true);
+  });
+
+  it('flags a check block missing required fields', () => {
+    const source = ['---', 'id: x', 'title: X', 'estimatedMinutes: 5', '---', '', '```vpk-check', 'kind: inventory', '```'].join('\n');
+    const result = validateLessonSource(source);
+    expect(result.warnings.some((w) => w.includes('missing required field "id"'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('missing required field "describe"'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('needs a "namespace" field'))).toBe(true);
+    expect(result.warnings.some((w) => w.includes('needs an "expect" field'))).toBe(true);
+  });
+
+  it('flags an unknown check kind', () => {
+    const source = ['---', 'id: x', 'title: X', 'estimatedMinutes: 5', '---', '', '```vpk-check', 'id: c', 'describe: d', 'kind: bogus', '```'].join('\n');
+    const result = validateLessonSource(source);
+    expect(result.warnings.some((w) => w.includes('unknown kind "bogus"'))).toBe(true);
+  });
+
+  it('does not flag a well-formed value check', () => {
+    const source = [
+      '---',
+      'id: x',
+      'title: X',
+      'estimatedMinutes: 5',
+      '---',
+      '',
+      '```vpk-check',
+      'id: c',
+      'describe: d',
+      'kind: value',
+      'namespace: default',
+      'assert:',
+      '  - { select: { kind: Service, name: s }, path: ".spec.ports[0].port", op: "==", value: 80 }',
+      '```',
+    ].join('\n');
+    const result = validateLessonSource(source);
+    expect(result.warnings).toEqual([]);
   });
 });

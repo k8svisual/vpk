@@ -71,7 +71,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
-import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource } from './course/content';
+import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
@@ -476,6 +476,24 @@ app.post('/course/lesson/save', async (req, reply) => {
     const lesson = saveLessonSource(path, source);
     pushLog('info', `Teacher tools: saved lesson "${lesson.frontmatter.id}" -> ${path}`);
     return { frontmatter: lesson.frontmatter };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Teacher tools: the editor's "Validate" button — a dry run (never writes) that reports structural errors
+// (bad frontmatter, unclosed fences — via parseLesson throwing) as a 400, and lighter content problems (a
+// check block missing a field its kind needs, no checks at all) as warnings alongside a 200. See
+// validateLessonSource's own doc comment on why this is a separate route from save rather than a save flag.
+app.post('/course/lesson/validate', async (req, reply) => {
+  const { source } = (req.body ?? {}) as { source?: string };
+  if (typeof source !== 'string') {
+    reply.code(400);
+    return { error: 'expected { source: string }' };
+  }
+  try {
+    return validateLessonSource(source);
   } catch (e: unknown) {
     reply.code(400);
     return { error: e instanceof Error ? e.message : String(e) };

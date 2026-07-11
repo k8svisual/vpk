@@ -8,6 +8,7 @@ import { getStoredApiGroupColorOverrides, setStoredApiGroupColorOverrides } from
 import { STRUCTURAL_COLORS, defaultStructuralColor, getStoredStructuralColorOverrides, setStoredStructuralColorOverrides, type StructuralColorKey } from './structuralColorOverrides';
 import { VendorIconsPanel } from './VendorIconsPanel';
 import { NetworkCatalogPanel } from './NetworkCatalogPanel';
+import type { TerminalTheme } from './courseSettings';
 
 interface Settings {
   snapshotDir: string;
@@ -53,7 +54,7 @@ const STRUCTURAL_LABEL: Record<StructuralColorKey, string> = Object.fromEntries(
   string
 >;
 
-type SettingsTab = 'snapshot' | 'ui' | 'colors' | 'icons' | 'network';
+type SettingsTab = 'snapshot' | 'ui' | 'colors' | 'icons' | 'network' | 'course';
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'snapshot', label: 'Snapshot' },
@@ -61,7 +62,10 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: 'colors', label: 'Colors' },
   { key: 'icons', label: 'Vendor Icons' },
   { key: 'network', label: 'Network Identification' },
+  { key: 'course', label: 'Course' },
 ];
+
+const TERMINAL_FONT_SIZES = [10, 11, 12, 13, 14, 16, 18, 20, 22];
 
 /**
  * Settings dialog (DESIGN: the previous version's snapshot-directory config + secret-handling toggles, ported
@@ -88,6 +92,12 @@ export function SettingsModal({
   onShowCourseCatalogChange,
   showTeacherTools,
   onShowTeacherToolsChange,
+  courseCliOverride,
+  onCourseCliOverrideChange,
+  terminalTheme,
+  onTerminalThemeChange,
+  terminalFontSize,
+  onTerminalFontSizeChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -108,6 +118,18 @@ export function SettingsModal({
   /** Same pattern, for the Training group's "Teacher" (course create/edit) nav item. */
   showTeacherTools: boolean;
   onShowTeacherToolsChange: (next: boolean) => void;
+  /** Overrides which kubectl-compatible CLI the in-app terminal/DetectCard/CheckCard run, regardless of a
+   *  lesson's own frontmatter `cli` — empty string means "no override, use the lesson's own cli". Same
+   *  pattern as fogEnabled; LessonRunnerView needs it directly. */
+  courseCliOverride: string;
+  onCourseCliOverrideChange: (next: string) => void;
+  /** The in-app terminal's dark/light display — same pattern as fogEnabled, moved here from an in-terminal
+   *  button (see courseSettings.ts's doc comment). */
+  terminalTheme: TerminalTheme;
+  onTerminalThemeChange: (next: TerminalTheme) => void;
+  /** The in-app terminal's font size (px) — same pattern, moved here from in-terminal +/- buttons. */
+  terminalFontSize: number;
+  onTerminalFontSizeChange: (next: number) => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [dir, setDir] = useState('');
@@ -489,6 +511,59 @@ export function SettingsModal({
         {tab === 'icons' && <VendorIconsPanel />}
 
         {tab === 'network' && <NetworkCatalogPanel />}
+
+        {tab === 'course' && (
+          <>
+            <label className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal CLI override</span>
+              <select
+                value={courseCliOverride}
+                onChange={(e) => onCourseCliOverrideChange(e.target.value)}
+                className="rounded border px-2 py-1"
+                style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+              >
+                <option value="">Auto (use each lesson's own cli)</option>
+                <option value="kubectl">Always kubectl</option>
+                <option value="oc">Always oc</option>
+              </select>
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>
+                Forces the in-app terminal (and its environment/check probes) to run this CLI regardless of what a
+                lesson authored — useful if you only have <code>oc</code> installed and hit "Only 'kubectl' commands
+                are allowed here" on a kubectl-authored lesson. oc is a documented superset of kubectl for every verb
+                these lessons use, so switching the binary doesn't relax which verbs are allowed.
+              </span>
+            </label>
+
+            <label className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal appearance</span>
+              <select
+                value={terminalTheme}
+                onChange={(e) => onTerminalThemeChange(e.target.value as TerminalTheme)}
+                className="rounded border px-2 py-1"
+                style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+              >
+                <option value="dark">Dark (black background)</option>
+                <option value="light">Light (white background)</option>
+              </select>
+            </label>
+
+            <label className="mb-2 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal font size</span>
+              <select
+                value={terminalFontSize}
+                onChange={(e) => onTerminalFontSizeChange(Number(e.target.value))}
+                className="rounded border px-2 py-1"
+                style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+              >
+                {TERMINAL_FONT_SIZES.map((px) => (
+                  <option key={px} value={px}>
+                    {px}px
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
 
         {tab === 'snapshot' &&
           (!settings ? (
