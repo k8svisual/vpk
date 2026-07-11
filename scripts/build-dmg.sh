@@ -31,6 +31,8 @@ fi
 
 VERSION="$(node -e "console.log(require('./package.json').version)")"
 DMG_NAME="vpk-${VERSION}-${ARCH}.dmg"
+OUT_DIR="$REPO_ROOT/dist-dmg"
+mkdir -p "$OUT_DIR"
 
 echo "▶ Building VpK v$VERSION for $ARCH ($BUN_TARGET)"
 echo ""
@@ -60,11 +62,11 @@ echo "==> Packaging into $DMG_NAME"
 STAGING_DIR="$(mktemp -d)"
 cp "dist-bin/$OUT_NAME" "$STAGING_DIR/"
 chmod +x "$STAGING_DIR/$OUT_NAME"
-rm -f "$DMG_NAME"
-hdiutil create -volname "VpK $VERSION" -srcfolder "$STAGING_DIR" -ov -format UDZO "$DMG_NAME"
+rm -f "$OUT_DIR/$DMG_NAME"
+hdiutil create -volname "VpK $VERSION" -srcfolder "$STAGING_DIR" -ov -format UDZO "$OUT_DIR/$DMG_NAME"
 rm -rf "$STAGING_DIR"
 
 echo ""
-echo "✅ Built $REPO_ROOT/$DMG_NAME"
+echo "✅ Built $OUT_DIR/$DMG_NAME"
 echo "   Mount it, drag out '$OUT_NAME', then run it directly (Terminal, or double-click and approve the"
 echo "   Gatekeeper prompt — it's unsigned). It opens a local server and prints the URL to open in your browser."

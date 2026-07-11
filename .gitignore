@@ -1,7 +1,7 @@
 node_modules/
 dist/
 dist-bin/
-*.dmg
+dist-dmg/
 *.tsbuildinfo
 .DS_Store
 .vpk-port
