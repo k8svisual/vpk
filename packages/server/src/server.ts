@@ -1,6 +1,7 @@
 import Fastify, { type FastifyReply } from 'fastify';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative, extname } from 'node:path';
+import { homedir } from 'node:os';
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { WEB_ASSETS } from './webAssets.generated';
 // A literal `with { type: 'file' }` import (not the `join(here, ...)` path this used to be) so this resolves
@@ -106,15 +107,18 @@ import { loadNetworkCatalogOverrides, saveNetworkCatalogOverrides } from './netw
 // `import.meta.url` resolves to a virtual `/$bunfs/...` path inside a `bun build --compile` standalone binary
 // — fine for the embedded, read-only imports above (defaultSnapshotFixture, WEB_ASSETS), but every default
 // BELOW needs a REAL, writable directory (settings, the snapshots directory, the port-discovery file).
-// `process.execPath` always points at the actual running binary on disk — the compiled executable itself when
-// running as one, `bun`'s own interpreter path otherwise (not useful, so only trusted in the compiled case,
-// detected via the same $bunfs marker the crash trace surfaces). This intentionally changes what "next to the
-// app" means between dev (repo root, three levels up from packages/server/src) and a compiled binary (right
-// beside the single executable file, since there's no source tree at all) — see the two `configPath`/
-// `customIconsDir` defaults below, which can't share one relative-join expression across both cases.
+//
+// This used to default to "next to the compiled binary" (dirname(process.execPath)) — broken for the
+// completely normal case of running the binary straight off a mounted, read-only .dmg without dragging it out
+// first: mkdir'ing a snapshots/ folder next to it throws EROFS and crashes on startup. A binary's location
+// isn't a reliable writable directory in general (a locked-down Program Files on Windows has the same
+// problem), so this now anchors to the user's home directory instead — stable regardless of where the binary
+// currently happens to sit, survives it being moved, and is the standard place a portable CLI tool keeps its
+// own data. Detected via the same $bunfs marker the crash trace surfaces; dev keeps its old "repo root, three
+// levels up from packages/server/src" default, unchanged.
 const isCompiledBinary = import.meta.url.includes('$bunfs');
 const here = dirname(fileURLToPath(import.meta.url));
-const runtimeDir = isCompiledBinary ? dirname(process.execPath) : join(here, '../../..');
+const runtimeDir = isCompiledBinary ? join(homedir(), '.vpk') : join(here, '../../..');
 // Cast needed because tsc still resolves the real on-disk JSON file's content type alongside the `*.snapshot.json
 // -> string` ambient override above (a union of the two) rather than fully replacing it — the runtime value
 // really is just a path string either way (see embeddedFileTypes.d.ts's doc comment).
