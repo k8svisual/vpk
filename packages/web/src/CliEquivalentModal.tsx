@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
 import type { CliEquivalent } from './cliEquivalents';
+import { CommandBlock } from './CommandBlock';
 
 /** "CLI Equivalent" popup — same modal shell as LogsModal/StatsModal (fixed overlay, centered card). Purely
  *  a static reference: no server round-trip, nothing here is executed by VpK itself (unlike the Training
@@ -40,46 +39,6 @@ export function CliEquivalentModal({ title, equivalent, onClose }: { title: stri
           or a kubectl plugin (krew) is installed — these are starting points, not guaranteed one-liners for every cluster.
         </p>
       </div>
-    </div>
-  );
-}
-
-function CommandBlock({ description, command }: { description: string; command: string }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(command);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard API can be unavailable (insecure context, permissions) — the text is still visible/selectable
-    }
-  }
-
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-xs" style={{ color: 'var(--vpk-fg)' }}>
-          {description}
-        </span>
-        <button
-          onClick={() => void copy()}
-          title="Copy to clipboard"
-          aria-label="Copy to clipboard"
-          className="flex shrink-0 cursor-pointer items-center gap-1 rounded border px-1.5 py-0.5 text-xs"
-          style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
-        >
-          {copied ? <Check size={11} /> : <Copy size={11} />}
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      </div>
-      <pre
-        className="overflow-x-auto rounded border p-2 font-mono whitespace-pre-wrap"
-        style={{ borderColor: 'var(--vpk-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)', fontSize: 11 }}
-      >
-        {command}
-      </pre>
     </div>
   );
 }

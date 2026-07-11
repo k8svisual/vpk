@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare, Printer } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare, Printer, CircleHelp } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { LessonRunnerView } from './LessonRunnerView';
@@ -26,6 +26,7 @@ import { StatsModal } from './StatsModal';
 import { LogsModal } from './LogsModal';
 import { StopConfirmModal } from './StopConfirmModal';
 import { AboutModal } from './AboutModal';
+import { HelpPanel } from './HelpPanel';
 import { CaptureConfirmModal } from './CaptureConfirmModal';
 import { NoSnapshotBanner } from './NoSnapshotBanner';
 import { SplashScreen } from './SplashScreen';
@@ -232,6 +233,7 @@ export function App() {
   const [logsOpen, setLogsOpen] = useState(false);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [captureConfirmOpen, setCaptureConfirmOpen] = useState(false);
   const [stopped, setStopped] = useState(false);
   // Set only when Search was entered via a 3D resource-pane sphere's "Search" button — drives both the Kind
@@ -533,6 +535,16 @@ export function App() {
             {busy}
           </span>
           <div className="ml-auto flex items-center gap-1">
+            <Tooltip label="Help">
+              <button
+                onClick={() => setHelpOpen(true)}
+                aria-label="Help"
+                className="flex cursor-pointer items-center rounded border p-1.5"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+              >
+                <CircleHelp size={15} />
+              </button>
+            </Tooltip>
             <Tooltip label="Settings">
               <button
                 onClick={() => setSettingsOpen(true)}
@@ -800,6 +812,14 @@ export function App() {
       )}
       <StopConfirmModal open={confirmStopOpen} onCancel={() => setConfirmStopOpen(false)} onConfirm={onConfirmStop} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <HelpPanel
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        screen={view}
+        screenLabel={VIEW_LABELS[view]}
+        screenIcons={VIEW_ICONS}
+        hiddenScreens={hiddenNavIds}
+      />
       <CaptureConfirmModal
         open={captureConfirmOpen}
         onClose={() => setCaptureConfirmOpen(false)}
