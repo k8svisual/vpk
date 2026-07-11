@@ -31,6 +31,17 @@ const TARGETS: Target[] = [
 const here = import.meta.dir;
 const ENTRY = join(here, '../packages/server/src/server.ts');
 const OUT_DIR = join(here, '../dist-bin');
+// scripts/build-icons.sh's output — Bun embeds this directly into the .exe's resources (no bundle/wrapper
+// needed the way macOS's Finder-visible icon requires one, see build-dmg.sh's .app step).
+//
+// CAVEAT: Bun rejects --windows-icon outright ("only available when compiling on Windows") when the HOST
+// isn't Windows — confirmed by actually running this cross-compile from macOS. That's true for every other
+// --windows-* flag too. So on the single-runner cross-compile setup this repo uses (see this file's own
+// module doc comment), the icon can't be embedded today; it only would be if this ever ran ON a Windows
+// runner for that one target, or a separate PE resource-editing step (e.g. resedit-js, which is pure JS and
+// doesn't need Wine/an actual Windows host) post-processed dist-bin/vpk-windows-x64.exe afterward. Neither is
+// wired up — this just skips the flag with a warning so cross-compiling the other 4 targets still works.
+const WINDOWS_ICON = join(here, '../build/icon.ico');
 
 function main() {
   const requested = process.argv[2];
@@ -45,9 +56,16 @@ function main() {
   for (const target of targets) {
     const outfile = join(OUT_DIR, target.outName);
     console.log(`\n▶ ${target.bunTarget} → dist-bin/${target.outName}`);
-    const result = spawnSync('bun', ['build', '--compile', `--target=${target.bunTarget}`, `--outfile=${outfile}`, ENTRY], {
-      stdio: 'inherit',
-    });
+    const args = ['build', '--compile', `--target=${target.bunTarget}`, `--outfile=${outfile}`];
+    if (target.bunTarget === 'bun-windows-x64' && existsSync(WINDOWS_ICON)) {
+      if (process.platform === 'win32') {
+        args.push(`--windows-icon=${WINDOWS_ICON}`, '--windows-title=VpK', '--windows-publisher=VpK');
+      } else {
+        console.log('  ⚠ Skipping --windows-icon — only supported when compiling on an actual Windows host (see WINDOWS_ICON doc comment above).');
+      }
+    }
+    args.push(ENTRY);
+    const result = spawnSync('bun', args, { stdio: 'inherit' });
     if (result.status !== 0) {
       console.error(`✗ Build failed for ${target.bunTarget}`);
       process.exit(result.status ?? 1);
