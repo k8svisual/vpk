@@ -110,6 +110,42 @@ export function checkCommandPolicy(argv: string[], cli: string[], policy: Comman
   return { allowed: true };
 }
 
+/** Probes whether `cli` resolves to a real, spawnable binary — the "is oc even installed" half of the
+ *  auto-validation command approval flow (training-course.md design discussion, item #4): before a task's
+ *  command-check can be approved, the student needs to know whether the CLI it names is actually on this
+ *  machine's PATH (or at whatever absolute path they're offered to enter instead). Spawns `cli` with no
+ *  arguments and `stdio: 'ignore'` — kubectl/oc (and any kubectl-compatible CLI this app targets) print usage
+ *  and exit immediately when given no args, so this never hangs waiting on stdin; the 3s timeout is a safety
+ *  net for anything unusual, not the expected path. Node's 'spawn' event fires once the OS has actually
+ *  started the process (so the binary genuinely exists and is executable); 'error' with code 'ENOENT' is the
+ *  well-defined signal for "not found" — any OTHER error (e.g. EACCES) still means the binary is THERE, just
+ *  broken in some other way, which counts as "found" for this probe's purpose (that's a different problem for
+ *  the student to fix, not what this check is for). */
+export function probeBinary(cli: string, signal?: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve(false);
+      return;
+    }
+    let settled = false;
+    const child = spawn(cli, [], { stdio: 'ignore' });
+    const timer = setTimeout(() => finish(false), 3000);
+    function finish(found: boolean) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        child.kill();
+      } catch {
+        // already exited
+      }
+      resolve(found);
+    }
+    child.on('error', (err: NodeJS.ErrnoException) => finish(err.code !== 'ENOENT'));
+    child.on('spawn', () => finish(true));
+  });
+}
+
 /** Runs one argv (no shell). Unlike cliSource.ts's runCli, this ALWAYS resolves — a non-zero exit is a
  *  normal result to show the student, not a rejection — and checks `signal?.aborted` before spawning at all,
  *  so an already-aborted signal short-circuits cleanly instead of the subprocess running to completion with

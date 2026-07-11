@@ -141,7 +141,7 @@ describe('validateLessonSource', () => {
     ].join('\n');
     const result = validateLessonSource(source);
     expect(result.frontmatter.id).toBe('good-lesson');
-    expect(result.counts).toEqual({ prose: 1, detect: 0, setup: 0, check: 1, teardown: 0, quiz: 0 });
+    expect(result.counts).toEqual({ prose: 1, detect: 0, setup: 0, check: 1, teardown: 0, quiz: 0, task: 0 });
     expect(result.warnings).toEqual([]);
   });
 

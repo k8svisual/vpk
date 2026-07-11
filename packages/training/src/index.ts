@@ -4,3 +4,4 @@ export * from './selectors';
 export * from './functional';
 export * from './evaluate';
 export * from './lesson';
+export * from './commandResult';

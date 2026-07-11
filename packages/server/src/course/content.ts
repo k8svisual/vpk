@@ -139,7 +139,7 @@ const LIVE_CHECK_KINDS = new Set(['command', 'probe', 'callback']);
  *  discriminated-union error dump. */
 export function validateLessonSource(source: string): LessonValidationResult {
   const lesson = parseLesson(source);
-  const counts = { prose: 0, detect: 0, setup: 0, check: 0, teardown: 0, quiz: 0 };
+  const counts = { prose: 0, detect: 0, setup: 0, check: 0, teardown: 0, quiz: 0, task: 0 };
   const warnings: string[] = [];
   for (const segment of lesson.segments) {
     if (segment.type === 'prose') {
@@ -148,6 +148,7 @@ export function validateLessonSource(source: string): LessonValidationResult {
     }
     counts[segment.block.kind]++;
     if (segment.block.kind === 'check') warnings.push(...validateCheckBlock(segment.block.data));
+    if (segment.block.kind === 'task') warnings.push(...validateTaskBlock(segment.block.data));
   }
   if (counts.check === 0) warnings.push('No vpk-check blocks — nothing in this lesson is automatically graded.');
   if (lesson.frontmatter.estimatedMinutes === undefined) {
@@ -181,6 +182,28 @@ function validateCheckBlock(data: unknown): string[] {
   } else if (d.kind === 'value') {
     if (typeof d.namespace !== 'string' || !d.namespace) problems.push(`Check ${label}: kind "value" needs a "namespace" field.`);
     if (!Array.isArray(d.assert) || d.assert.length === 0) problems.push(`Check ${label}: kind "value" needs a non-empty "assert" list.`);
+  }
+  return problems;
+}
+
+function validateTaskBlock(data: unknown): string[] {
+  if (data === undefined || data === null || typeof data !== 'object') {
+    return ['A vpk-task block is empty or not a YAML mapping — expected at least id and completion.'];
+  }
+  const d = data as Record<string, unknown>;
+  const label = typeof d.id === 'string' && d.id ? `"${d.id}"` : '(missing id)';
+  const problems: string[] = [];
+  if (typeof d.id !== 'string' || !d.id) problems.push(`Task ${label}: missing required field "id".`);
+  if (d.completion !== 'manual' && d.completion !== 'auto') problems.push(`Task ${label}: "completion" must be "manual" or "auto".`);
+  if (d.completion === 'auto' && typeof d.estimatedMinutes !== 'number') {
+    problems.push(`Task ${label}: completion "auto" needs a numeric "estimatedMinutes" (used for the polling timeout).`);
+  }
+  if (d.check !== undefined) {
+    const c = d.check as Record<string, unknown>;
+    if (typeof c.verb !== 'string' || !c.verb) problems.push(`Task ${label}: "check.verb" is required when "check" is set.`);
+    if (c.expect === undefined || typeof c.expect !== 'object') problems.push(`Task ${label}: "check.expect" is required when "check" is set.`);
+  } else if (d.completion === 'auto') {
+    problems.push(`Task ${label}: completion "auto" needs a "check" to poll — otherwise nothing can ever mark it complete.`);
   }
   return problems;
 }

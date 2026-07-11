@@ -39,7 +39,8 @@ import {
   type MeshCatalogOverride,
 } from '@vpk/core';
 import { DEMO_TEMPLATES, extractPlaceholders, fillTemplate, resolvePattern } from '@vpk/demo-data';
-import type { PureCheck, StepPolicy } from '@vpk/training';
+import { evaluateCommandResult } from '@vpk/training';
+import type { CommandExpect, PureCheck, StepPolicy } from '@vpk/training';
 import {
   appendGenerated,
   clearWorkingSet,
@@ -70,7 +71,7 @@ import { loadSnapshotFile, loadSnapshotExplains } from './snapshotFile';
 import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
-import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
+import { checkCommandPolicy, probeBinary, runCourseCommand, tokenizeCommand } from './course/command';
 import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
 import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './course/resources';
 import { probeClusterFacts } from './course/env';
@@ -681,6 +682,53 @@ app.post('/course/command', async (req, reply) => {
   const result = await runCourseCommand(argv);
   pushLog('info', `Course command: "${line}" -> exit ${result.exitCode}`);
   return result;
+});
+
+// Probes whether a CLI binary resolves on this machine's PATH (or at an absolute path the student supplies) —
+// the "is it even installed" half of a vpk-task's auto-validation command approval flow. Never the destructive
+// terminal boundary /course/command is: this doesn't run a lesson-authored verb at all, it just asks "does
+// this binary launch."
+app.post('/course/probe-cli', async (req, reply) => {
+  const { cli: cliBinary } = (req.body ?? {}) as { cli?: string };
+  if (typeof cliBinary !== 'string' || !cliBinary.trim()) {
+    reply.code(400);
+    return { error: 'expected { cli: string }' };
+  }
+  const found = await probeBinary(cliBinary.trim());
+  return { found };
+});
+
+// Runs one author-defined, SERVER-initiated validation command for a vpk-task block (training-course.md design
+// discussion, item #4) — distinct from /course/command, which only ever runs what the STUDENT typed. Still
+// goes through the exact same checkCommandPolicy gate as the terminal (defense in depth: even though the web
+// client only calls this after the student has locally approved the verb — see @vpk/web's commandApproval.ts —
+// the server independently re-derives that the argv matches the lesson's own `cli`/`allow`, so a malformed or
+// tampered request can't get the server to run something the lesson itself never declared safe).
+app.post('/course/task-check', async (req, reply) => {
+  const { verb, args, cli: cliOverride, allow, expect } = (req.body ?? {}) as {
+    verb?: string;
+    args?: string[];
+    cli?: string;
+    allow?: string[];
+    expect?: CommandExpect;
+  };
+  if (typeof verb !== 'string' || !verb || !Array.isArray(allow) || !expect) {
+    reply.code(400);
+    return { error: 'expected { verb: string, args?: string[], allow: string[], expect: CommandExpect }' };
+  }
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+  const argv = [...cliArgv, verb, ...(Array.isArray(args) ? args : [])];
+
+  const decision = checkCommandPolicy(argv, cliArgv, { allow });
+  if (!decision.allowed) {
+    reply.code(403);
+    return { error: decision.reason };
+  }
+
+  const result = await runCourseCommand(argv);
+  const evaluation = evaluateCommandResult(result.stdout, expect);
+  pushLog('info', `Task check: "${argv.join(' ')}" -> exit ${result.exitCode}, passed=${evaluation.passed}`);
+  return { ...evaluation, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode };
 });
 
 /** The one course check that can be running at a time (same "just one at a time" simplicity as capture,

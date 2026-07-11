@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml';
-import type { Strictness } from './types';
+import type { CommandExpect, Strictness } from './types';
 
 /**
  * Lesson content format (redesign/training-course.md §6): markdown frontmatter + a handful of typed fenced
@@ -56,13 +56,39 @@ export interface LessonFrontmatter {
   showCountdown?: boolean;
 }
 
-export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
+export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';
 
 export interface LessonBlock {
   kind: LessonBlockKind;
   /** The block's fenced content, parsed as YAML. Shape depends on `kind` — validated by the caller, not
    *  here (see module doc comment). */
   data: unknown;
+}
+
+export type TaskCompletion = 'manual' | 'auto';
+
+/** `vpk-task` block shape (training-course.md design discussion, item #4) — a completable unit with its own
+ *  Start/Complete lifecycle, additive alongside the existing bare `vpk-check` blocks (which keep working
+ *  exactly as before, single "Run check" button, no lifecycle). `completion: 'manual'` gets Start + Complete
+ *  buttons where Complete is self-attested (an attached `check`, if any, only annotates a hint, never gates
+ *  it); `completion: 'auto'` gets a Start button that arms background polling of `check` until it passes or
+ *  `estimatedMinutes * 1.25` elapses, per-task rather than reusing the course's overall estimate — see
+ *  LessonRunnerView.tsx's TaskCard/task-runtime logic, which owns polling and is the only consumer of this
+ *  shape (this module still just parses structure, per the module doc comment — it does not validate this
+ *  data any more than it validates a `vpk-check` block's). */
+export interface LessonTaskData {
+  id: string;
+  describe?: string;
+  completion: TaskCompletion;
+  /** Required for `completion: 'auto'` polling's timeout math; unused for 'manual'. */
+  estimatedMinutes?: number;
+  check?: {
+    cli?: string[];
+    verb: string;
+    args?: string[];
+    expect: CommandExpect;
+  };
+  hint?: string;
 }
 
 export type LessonSegment = { type: 'prose'; markdown: string } | { type: 'block'; block: LessonBlock };
@@ -75,7 +101,7 @@ export interface ParsedLesson {
 }
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-const BLOCK_RE = /```vpk-(detect|setup|check|teardown|quiz)\r?\n([\s\S]*?)\r?\n```/g;
+const BLOCK_RE = /```vpk-(detect|setup|check|teardown|quiz|task)\r?\n([\s\S]*?)\r?\n```/g;
 
 function parseFrontmatter(raw: string): LessonFrontmatter {
   const parsed = parseYaml(raw);

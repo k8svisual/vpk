@@ -285,6 +285,25 @@ namespace: default
 expect: { source: literal, value: { Deployment: 1 } }
 ```
 
+This task also demonstrates the auto-validation Start/Complete lifecycle: click **Start** and this card polls
+in the background (roughly every few seconds) for the Deployment to report one ready replica, then flips to
+Complete on its own — no need to come back and click anything. If it's still not ready after a while, it
+pauses and the **Progress** button in the header lets you re-check when you're ready.
+
+```vpk-task
+id: oc-deployment-rollout
+describe: oc-course-web rollout finishes (auto-checked)
+completion: auto
+estimatedMinutes: 3
+check:
+  verb: get
+  args: [deployment, oc-course-web, -n, default, -o, json]
+  expect:
+    path: .status.readyReplicas
+    op: '=='
+    value: 1
+```
+
 Get an interactive shell inside the pod you just created, look around, then exit.
 
 <details><summary>Hint</summary>

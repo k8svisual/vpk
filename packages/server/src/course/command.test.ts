@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './command';
+import { checkCommandPolicy, probeBinary, runCourseCommand, tokenizeCommand } from './command';
 
 function clusterUp(): boolean {
   try {
@@ -88,6 +88,26 @@ describe('checkCommandPolicy', () => {
 
   it('does NOT block a read verb combined with -A — that is normal, safe usage', () => {
     expect(checkCommandPolicy(['kubectl', 'get', 'pods', '-A'], cli, readOnly).allowed).toBe(true);
+  });
+});
+
+describe('probeBinary', () => {
+  it('resolves true for a real binary on PATH', async () => {
+    // Every POSIX box this runs on has `ls` — a stand-in for kubectl/oc without depending on either being
+    // installed in the test environment.
+    expect(await probeBinary('ls')).toBe(true);
+  });
+
+  it('resolves false for a binary name that does not exist', async () => {
+    expect(await probeBinary('vpk-totally-not-a-real-binary')).toBe(false);
+  });
+
+  it('resolves false immediately when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const start = Date.now();
+    expect(await probeBinary('ls', controller.signal)).toBe(false);
+    expect(Date.now() - start).toBeLessThan(50);
   });
 });
 

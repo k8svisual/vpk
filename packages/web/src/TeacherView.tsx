@@ -20,7 +20,7 @@ interface LessonSummary {
 
 interface ValidationResult {
   frontmatter: { id: string; title: string };
-  counts: Record<'prose' | 'detect' | 'setup' | 'check' | 'teardown' | 'quiz', number>;
+  counts: Record<'prose' | 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task', number>;
   warnings: string[];
 }
 
@@ -315,7 +315,7 @@ function ValidationBanner({ validation }: { validation: { ok: true; result: Vali
     );
   }
   const { counts, warnings } = validation.result;
-  const countLine = `${counts.prose} prose, ${counts.detect} detect, ${counts.setup} setup, ${counts.check} check, ${counts.teardown} teardown, ${counts.quiz} quiz`;
+  const countLine = `${counts.prose} prose, ${counts.detect} detect, ${counts.setup} setup, ${counts.check} check, ${counts.teardown} teardown, ${counts.quiz} quiz, ${counts.task} task`;
   return (
     <div className="px-3 py-2 text-xs border-b space-y-1" style={panelStyle}>
       <div className="flex items-center gap-1.5" style={warnings.length === 0 ? okStyle : undefined}>
@@ -381,6 +381,23 @@ function ReferencePanel({ onClose }: { onClose: () => void }) {
           <RefField name="fields" desc="namespace + expect with paths — checks fields are PRESENT (not their value)." />
           <RefField name="value" desc="namespace + assert: [{ select, path, op: '==', value }] — checks an exact value." />
           <Code>{`\`\`\`vpk-check\nid: my-check\ndescribe: Deployment exists and is Ready\nkind: inventory\nnamespace: default\nexpect: { source: literal, value: { Deployment: 1 } }\n\`\`\``}</Code>
+        </RefSection>
+        <RefSection title="vpk-task block (Start/Complete lifecycle)">
+          <p style={mutedStyle}>
+            Fenced ```vpk-task block — a completable unit with its own Start/Complete buttons, additive
+            alongside vpk-check (which keeps its single "Run check" button, no lifecycle). "manual" completion
+            is self-attested by the student; "auto" arms background polling of an author-run command until it
+            passes or gives up (see below).
+          </p>
+          <RefField name="id" desc="Unique within the lesson." />
+          <RefField name="describe" desc="Shown as the card's title. Falls back to id if omitted." />
+          <RefField name="completion" desc='"manual" (Start + self-attested Complete) or "auto" (Start arms polling).' />
+          <RefField name="estimatedMinutes" desc='Required for "auto" — polling gives up after estimatedMinutes × 1.25, then the student re-checks from the Progress modal. Unused for "manual".' />
+          <RefField
+            name="check"
+            desc="verb + args (argv after the CLI) + expect: { path?, op, value }. Runs SERVER-SIDE, not typed by the student — still gated by this lesson's own allow list, PLUS a separate student-granted approval (per course or for all courses) before the server will ever auto-run it. path resolves into the command's stdout parsed as JSON (dotted, [*] wildcards supported, same convention as vpk-check's fields kind); omit path to compare the whole value. op is ==, >=, <=, matches (regex), or contains (substring, for non-JSON stdout)."
+          />
+          <Code>{`\`\`\`vpk-task\nid: deploy-ready\ndescribe: Deployment rolled out\ncompletion: auto\nestimatedMinutes: 5\ncheck:\n  verb: get\n  args: [deployment, my-app, -n, default, -o, json]\n  expect:\n    path: .status.readyReplicas\n    op: '=='\n    value: 1\n\`\`\``}</Code>
         </RefSection>
         <RefSection title="Other fences (authored, not yet automated)">
           <RefField name="vpk-detect" desc="Environment probe shown as a card (context, provisioner, nodes)." />

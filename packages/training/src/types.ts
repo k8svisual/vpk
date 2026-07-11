@@ -112,6 +112,38 @@ export type LiveCheck = CommandCheck | ProbeCheck | CallbackCheck;
 
 export type Check = PureCheck | LiveCheck;
 
+/** Where a CommandResultCheck's expected value comes from and how it's compared — deliberately reusing
+ *  ValueAssertion's op vocabulary (plus `contains`, needed for matching plain-text stdout that isn't JSON)
+ *  rather than inventing a separate matching language for command output (training-course.md design
+ *  discussion: authors should feel like this is "the same check format, one more source", not a parallel
+ *  system). `path` is omitted for a whole-value comparison (e.g. exact stdout match); when set, it's resolved
+ *  against stdout parsed as JSON via paths.ts's pathValues — see commandResult.ts. */
+export interface CommandExpect {
+  path?: string;
+  op: '==' | '>=' | '<=' | 'matches' | 'contains';
+  value: unknown;
+}
+
+/** An author-defined, SERVER-run validation command (training-course.md design discussion, item #4) —
+ *  distinct from CommandCheck above, which grades the student's own typed argv. This runs on its own
+ *  initiative (manually via a "Check now" click, or on a background poll while a task is armed), which is why
+ *  it is NOT folded into `Check`/`LiveCheck`/evaluateCheck's dispatch: those all operate on an already-built
+ *  CheckContext (a captured ResourceGraph), whereas this evaluates a command's raw stdout — a different input
+ *  shape entirely. Lives alongside a `vpk-task` block's `check` field (see lesson.ts), not a bare `vpk-check`
+ *  block. `cli` optionally overrides the lesson's own frontmatter `cli` (e.g. a check that must run kubectl
+ *  even inside an oc-authored lesson). Execution is still gated by the lesson's `allow` verb list, same
+ *  checkCommandPolicy boundary the student terminal uses — this is a second, separate grant on top of that
+ *  (see commandApproval.ts in @vpk/web): the student must also have approved the server auto-running this
+ *  specific verb before the client will ever call it. */
+export interface CommandResultCheck {
+  id: string;
+  describe: string;
+  cli?: string[];
+  verb: string;
+  args?: string[];
+  expect: CommandExpect;
+}
+
 /** One tier of the structural fingerprint. Strictness (§7.3) decides which tiers GATE a pass; all tiers are
  *  always computed so the UI can show "you'd also need X at Strict" even when it isn't required yet. */
 export type FindingTier = 'kinds' | 'counts' | 'fields' | 'values';

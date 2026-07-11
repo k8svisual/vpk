@@ -364,3 +364,50 @@ describe('the real "Troubleshooting" course (courses/course04/00-troubleshooting
     expect(checkIds).not.toContain('t-forward-healthy');
   });
 });
+
+describe('vpk-task blocks', () => {
+  it('parses a manual-completion task with no check', () => {
+    const source = `---
+id: x
+title: X
+---
+
+\`\`\`vpk-task
+id: install-cli
+completion: manual
+\`\`\`
+`;
+    const { segments } = parseLesson(source);
+    const task = blocksOfKind({ frontmatter: { id: 'x', title: 'X' }, segments }, 'task')[0];
+    expect(task?.data).toEqual({ id: 'install-cli', completion: 'manual' });
+  });
+
+  it('parses an auto-completion task with a command check and expect assertion', () => {
+    const source = `---
+id: x
+title: X
+---
+
+\`\`\`vpk-task
+id: deploy-ready
+completion: auto
+estimatedMinutes: 5
+check:
+  verb: get
+  args: [deployment, oc-course-web, -n, default, -o, json]
+  expect:
+    path: .status.readyReplicas
+    op: '=='
+    value: 1
+\`\`\`
+`;
+    const { segments } = parseLesson(source);
+    const task = blocksOfKind({ frontmatter: { id: 'x', title: 'X' }, segments }, 'task')[0];
+    expect(task?.data).toMatchObject({
+      id: 'deploy-ready',
+      completion: 'auto',
+      estimatedMinutes: 5,
+      check: { verb: 'get', expect: { path: '.status.readyReplicas', op: '==', value: 1 } },
+    });
+  });
+});

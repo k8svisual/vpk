@@ -1,9 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, PanelBottom, PanelRight, Printer, Square, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  CircleAlert,
+  ListChecks,
+  Loader2,
+  PanelBottom,
+  PanelRight,
+  Play,
+  Printer,
+  Square,
+  Terminal as TerminalIcon,
+  TriangleAlert,
+  X,
+  XCircle,
+} from 'lucide-react';
 import { FlipClock } from './FlipClock';
 import { initialCourseLayout, setStoredCourseLayout, type CourseLayout, type TerminalTheme } from './courseSettings';
 import { markCourseStarted, updateCourseProgress } from './courseProgress';
+import { approveCommand, getBinaryPath, isCommandApproved, setBinaryPath } from './commandApproval';
+import { ToastStack, type ToastItem } from './Toast';
+import { CourseProgressModal, type TaskProgressEntry, type TaskRuntimeStatus } from './CourseProgressModal';
+import { TaskApprovalPanel, type UnresolvedTaskCommand } from './TaskApprovalPanel';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -33,10 +51,24 @@ interface LessonFrontmatter {
    *  clock in front of the student (some courses want the estimate for planning purposes only, not pressure). */
   showCountdown?: boolean;
 }
-type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
+type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';
 interface LessonBlock {
   kind: LessonBlockKind;
   data: unknown;
+}
+interface CommandExpect {
+  path?: string;
+  op: '==' | '>=' | '<=' | 'matches' | 'contains';
+  value: unknown;
+}
+type TaskCompletion = 'manual' | 'auto';
+interface LessonTaskData {
+  id: string;
+  describe?: string;
+  completion: TaskCompletion;
+  estimatedMinutes?: number;
+  check?: { cli?: string[]; verb: string; args?: string[]; expect: CommandExpect };
+  hint?: string;
 }
 type LessonSegment = { type: 'prose'; markdown: string } | { type: 'block'; block: LessonBlock };
 interface ParsedLesson {
@@ -96,6 +128,14 @@ const LESSON_MIN_WIDTH = 280;
 const TERMINAL_MIN_HEIGHT = 160;
 const TERMINAL_MAX_HEIGHT = 900;
 const LESSON_MIN_HEIGHT = 160;
+/** Background poll cadence for an armed auto-completion task — matches the terminal-friendly ~few-second
+ *  cadence liveCheck.ts's DEFAULT_POLL_MS already uses server-side for a different polling case. */
+const TASK_POLL_MS = 4000;
+/** A task's polling gives up after estimatedMinutes * this multiplier (training-course.md design discussion:
+ *  "use course duration, add 25%") — applied per-task, not to the whole course's estimate, since a task's own
+ *  `estimatedMinutes` is what actually bounds how long that ONE command should reasonably take to pass. */
+const TASK_TIMEOUT_MULTIPLIER = 1.25;
+const DEFAULT_TASK_ESTIMATE_MINUTES = 5;
 
 export function LessonRunnerView({
   lessonId,
@@ -123,9 +163,126 @@ export function LessonRunnerView({
   const [now, setNow] = useState<Date | null>(null);
   const [checkStatuses, setCheckStatuses] = useState<Record<string, CheckStatus>>({});
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [taskRuntime, setTaskRuntime] = useState<Record<string, TaskRuntimeStatus>>({});
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [unresolvedTasks, setUnresolvedTasks] = useState<UnresolvedTaskCommand[]>([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [approvalPanelOpen, setApprovalPanelOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const lessonScrollRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const toastIdRef = useRef(0);
+  const taskStartedAtRef = useRef<Record<string, number>>({});
+  const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+
+  function pushToast(message: string) {
+    const id = ++toastIdRef.current;
+    setToasts((p) => [...p, { id, message }]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 5000);
+  }
+
+  function clearTaskTimer(id: string) {
+    const timer = pollTimersRef.current[id];
+    if (timer) {
+      clearInterval(timer);
+      delete pollTimersRef.current[id];
+    }
+  }
+
+  function taskCli(task: LessonTaskData): string[] {
+    return task.check?.cli ?? (cliOverride ? [cliOverride] : lesson?.frontmatter.cli) ?? ['kubectl'];
+  }
+
+  async function pollOnce(task: LessonTaskData) {
+    if (!task.check || !lesson) return;
+    const deadlineMs = (task.estimatedMinutes ?? DEFAULT_TASK_ESTIMATE_MINUTES) * 60_000 * TASK_TIMEOUT_MULTIPLIER;
+    const startedAt = taskStartedAtRef.current[task.id] ?? Date.now();
+    try {
+      const res = await postJson<{ passed: boolean }>('/course/task-check', {
+        verb: task.check.verb,
+        args: task.check.args,
+        cli: taskCli(task).join(' '),
+        allow: lesson.frontmatter.allow ?? [],
+        expect: task.check.expect,
+      });
+      if (res.passed) {
+        clearTaskTimer(task.id);
+        setTaskRuntime((p) => ({ ...p, [task.id]: 'complete' }));
+        pushToast(`✓ Task complete: ${task.describe ?? task.id}`);
+        return;
+      }
+    } catch {
+      // Transient error (cluster hiccup, brief unreachability) — treated as "not passed yet" rather than a
+      // hard stop, since a polling loop that gives up on the first blip would defeat the point of polling.
+    }
+    if (Date.now() - startedAt >= deadlineMs) {
+      clearTaskTimer(task.id);
+      setTaskRuntime((p) => ({ ...p, [task.id]: 'timed-out' }));
+      pushToast(`"${task.describe ?? task.id}" is taking longer than expected — check Progress to re-check when ready.`);
+    }
+  }
+
+  function armPolling(task: LessonTaskData) {
+    clearTaskTimer(task.id);
+    taskStartedAtRef.current[task.id] = Date.now();
+    setTaskRuntime((p) => ({ ...p, [task.id]: 'polling' }));
+    void pollOnce(task);
+    pollTimersRef.current[task.id] = setInterval(() => void pollOnce(task), TASK_POLL_MS);
+  }
+
+  function startTask(task: LessonTaskData) {
+    if (task.completion === 'auto' && task.check) armPolling(task);
+    else setTaskRuntime((p) => ({ ...p, [task.id]: 'in-progress' }));
+  }
+
+  function completeTaskManually(task: LessonTaskData) {
+    setTaskRuntime((p) => ({ ...p, [task.id]: 'complete' }));
+  }
+
+  function repollTask(task: LessonTaskData) {
+    armPolling(task);
+  }
+
+  async function checkBinaryPath(cli: string, path: string): Promise<boolean> {
+    const res = await postJson<{ found: boolean }>('/course/probe-cli', { cli: path });
+    if (res.found) {
+      setBinaryPath(cli, path);
+      void runPreflight();
+    }
+    return res.found;
+  }
+
+  function approveTaskCommand(cli: string, verb: string, scope: 'global' | 'course') {
+    approveCommand(activeLessonId, cli, verb, scope);
+    void runPreflight();
+  }
+
+  // Course-start preflight (training-course.md design discussion, item #4): for every auto-completion task's
+  // command-check, confirm the binary resolves and the verb has been granted the separate "server may
+  // auto-run this" permission (commandApproval.ts) BEFORE the task is ever armed — never blocks entering the
+  // course (per the explicit design decision), just informs the banner/approval panel of what's unresolved.
+  async function runPreflight() {
+    if (!lesson) return;
+    const tasks = lesson.segments
+      .filter((s): s is Extract<LessonSegment, { type: 'block' }> => s.type === 'block' && s.block.kind === 'task')
+      .map((s) => s.block.data as LessonTaskData)
+      .filter((t) => t.completion === 'auto' && t.check);
+    const results = await Promise.all(
+      tasks.map(async (task) => {
+        const cliArr = taskCli(task);
+        const cliBinary = cliArr[0] ?? 'kubectl';
+        const verb = task.check?.verb ?? '';
+        const override = getBinaryPath(cliBinary);
+        const binaryFound = override ? true : (await postJson<{ found: boolean }>('/course/probe-cli', { cli: cliBinary }).catch(() => ({ found: false }))).found;
+        const approved = isCommandApproved(activeLessonId, cliBinary, verb);
+        if (binaryFound && approved) return null;
+        const item: UnresolvedTaskCommand = { taskId: task.id, taskTitle: task.describe ?? task.id, cli: cliBinary, verb, binaryFound };
+        return item;
+      }),
+    );
+    setUnresolvedTasks(results.filter((r): r is UnresolvedTaskCommand => r !== null));
+  }
 
   function toggleLayout() {
     setLayout((prev) => {
@@ -165,6 +322,12 @@ export function LessonRunnerView({
     setLoadError(null);
     setStartTime(null);
     setCheckStatuses({});
+    setTaskRuntime({});
+    setUnresolvedTasks([]);
+    setBannerDismissed(false);
+    Object.values(pollTimersRef.current).forEach(clearInterval);
+    pollTimersRef.current = {};
+    taskStartedAtRef.current = {};
     getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(activeLessonId)}`)
       .then((l) => {
         if (!cancelled) {
@@ -181,6 +344,25 @@ export function LessonRunnerView({
     };
   }, [activeLessonId]);
 
+  // Runs the preflight once the lesson has actually loaded (needs its task blocks/frontmatter) — separate
+  // effect from the load effect above since `lesson` isn't set synchronously there.
+  useEffect(() => {
+    if (lesson) void runPreflight();
+    // runPreflight closes over `lesson` itself; re-running on every state change it touches would just re-run
+    // the same probes needlessly — only a genuinely new lesson should trigger this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson]);
+
+  // Stops any in-flight background polling when the component unmounts (e.g. Stop button navigates away) —
+  // without this, a poll interval armed on one lesson would keep firing /course/task-check requests after the
+  // student has already left it.
+  useEffect(() => {
+    return () => {
+      Object.values(pollTimersRef.current).forEach(clearInterval);
+      pollTimersRef.current = {};
+    };
+  }, []);
+
   // The countdown clock ticks off wall time — a plain `setInterval` (not a check-poll cadence) is the
   // right primitive since it only drives a display, never anything server-side.
   useEffect(() => {
@@ -192,6 +374,24 @@ export function LessonRunnerView({
 
   const totalTasks = useMemo(() => (lesson ? lesson.segments.filter((s) => s.type === 'block' && s.block.kind === 'check').length : 0), [lesson]);
   const completedTasks = useMemo(() => Object.values(checkStatuses).filter((s) => s === 'pass').length, [checkStatuses]);
+
+  // vpk-task blocks (Start/Complete lifecycle) are a SEPARATE progress concept from the totalTasks/
+  // completedTasks pair above (which stays scoped to vpk-check blocks, unchanged, matching what
+  // courseProgress.ts's Catalog badge already tracks) — surfaced only in the Progress modal, not merged into
+  // the header's X/Y counter.
+  const lessonTaskBlocks = useMemo(
+    () =>
+      lesson
+        ? lesson.segments
+            .filter((s): s is Extract<LessonSegment, { type: 'block' }> => s.type === 'block' && s.block.kind === 'task')
+            .map((s) => s.block.data as LessonTaskData)
+        : [],
+    [lesson],
+  );
+  const taskProgressEntries: TaskProgressEntry[] = useMemo(
+    () => lessonTaskBlocks.map((t) => ({ id: t.id, title: t.describe ?? t.id, status: taskRuntime[t.id] ?? 'idle' })),
+    [lessonTaskBlocks, taskRuntime],
+  );
 
   // Progress tracking (Catalog's status badge) — reacts to actual check results, not just "was this lesson
   // opened", so re-running a check that now fails correctly moves a course back out of 'completed'. Gated on
@@ -280,13 +480,41 @@ export function LessonRunnerView({
           showCountdown={lesson.frontmatter.showCountdown}
           totalTasks={totalTasks}
           completedTasks={completedTasks}
+          hasTasks={lessonTaskBlocks.length > 0}
           onPrint={() => setPrintModalOpen(true)}
           onStop={onStop}
+          onOpenProgress={() => setProgressModalOpen(true)}
         />
+      )}
+      {unresolvedTasks.length > 0 && !bannerDismissed && (
+        <div
+          className="border rounded px-3 py-2 flex items-center justify-between gap-2 text-xs mt-2 shrink-0 no-print"
+          style={{ borderColor: 'var(--vpk-status-error)' }}
+        >
+          <span className="flex items-center gap-1.5" style={errorStyle}>
+            <TriangleAlert size={13} />
+            {unresolvedTasks.length} task{unresolvedTasks.length === 1 ? '' : 's'} can't auto-validate yet — full
+            functionality isn't available.
+          </span>
+          <span className="flex items-center gap-2 shrink-0">
+            <button onClick={() => setApprovalPanelOpen(true)} className="rounded border px-2 py-1 cursor-pointer" style={panelStyle}>
+              Configure
+            </button>
+            <button onClick={() => setBannerDismissed(true)} className="cursor-pointer" style={mutedStyle} title="Dismiss for now">
+              <X size={14} />
+            </button>
+          </span>
+        </div>
       )}
       <div ref={containerRef} className={`flex flex-1 min-h-0 mt-2 ${layout === 'column' ? 'flex-col' : ''}`}>
         <div ref={lessonScrollRef} className={`flex-1 overflow-auto ${layout === 'row' ? 'min-w-0 pr-1' : 'min-h-0'}`}>
-          <LessonPane lesson={effectiveLesson} onCheckStatus={handleCheckStatus} />
+          <LessonPane
+            lesson={effectiveLesson}
+            onCheckStatus={handleCheckStatus}
+            taskRuntime={taskRuntime}
+            onStartTask={startTask}
+            onCompleteTask={completeTaskManually}
+          />
         </div>
         <div
           onMouseDown={startResize}
@@ -312,6 +540,20 @@ export function LessonRunnerView({
         </div>
       </div>
       {printModalOpen && <PrintCourseModal onClose={() => setPrintModalOpen(false)} onPrint={printCourse} />}
+      {progressModalOpen && (
+        <CourseProgressModal
+          tasks={taskProgressEntries}
+          onRepoll={(id) => {
+            const task = lessonTaskBlocks.find((t) => t.id === id);
+            if (task) repollTask(task);
+          }}
+          onClose={() => setProgressModalOpen(false)}
+        />
+      )}
+      {approvalPanelOpen && (
+        <TaskApprovalPanel items={unresolvedTasks} onClose={() => setApprovalPanelOpen(false)} onCheckPath={checkBinaryPath} onApprove={approveTaskCommand} />
+      )}
+      <ToastStack toasts={toasts} />
     </div>
   );
 }
@@ -324,8 +566,10 @@ function CourseHeader({
   showCountdown,
   totalTasks,
   completedTasks,
+  hasTasks,
   onPrint,
   onStop,
+  onOpenProgress,
 }: {
   title: string;
   startTime: Date;
@@ -335,8 +579,10 @@ function CourseHeader({
   showCountdown?: boolean;
   totalTasks: number;
   completedTasks: number;
+  hasTasks: boolean;
   onPrint: () => void;
   onStop?: () => void;
+  onOpenProgress: () => void;
 }) {
   const stopTime = estimatedMinutes !== undefined ? new Date(startTime.getTime() + estimatedMinutes * 60_000) : null;
   const remainingMs = stopTime && showCountdown !== false ? stopTime.getTime() - now.getTime() : null;
@@ -356,6 +602,17 @@ function CourseHeader({
           <Printer size={12} />
           Print
         </button>
+        {hasTasks && (
+          <button
+            onClick={onOpenProgress}
+            className="flex items-center gap-1 rounded border px-2 py-1 shrink-0 cursor-pointer"
+            style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+            title="See every task's status"
+          >
+            <ListChecks size={12} />
+            Progress
+          </button>
+        )}
         {onStop && (
           <button
             onClick={onStop}
@@ -421,7 +678,19 @@ function PrintCourseModal({ onClose, onPrint }: { onClose: () => void; onPrint: 
   );
 }
 
-function LessonPane({ lesson, onCheckStatus }: { lesson: ParsedLesson; onCheckStatus: (id: string, status: CheckStatus) => void }) {
+function LessonPane({
+  lesson,
+  onCheckStatus,
+  taskRuntime,
+  onStartTask,
+  onCompleteTask,
+}: {
+  lesson: ParsedLesson;
+  onCheckStatus: (id: string, status: CheckStatus) => void;
+  taskRuntime: Record<string, TaskRuntimeStatus>;
+  onStartTask: (task: LessonTaskData) => void;
+  onCompleteTask: (task: LessonTaskData) => void;
+}) {
   const colors = lesson.frontmatter.colors;
   // Page background is an explicit inline style (only added when authored, so unstyled lessons render
   // exactly as before); code/answer are CSS custom properties consumed by .lesson-prose in index.css, with
@@ -442,7 +711,15 @@ function LessonPane({ lesson, onCheckStatus }: { lesson: ParsedLesson; onCheckSt
         </div>
       </header>
       {lesson.segments.map((segment, i) => (
-        <LessonSegmentView key={i} segment={segment} lesson={lesson} onCheckStatus={onCheckStatus} />
+        <LessonSegmentView
+          key={i}
+          segment={segment}
+          lesson={lesson}
+          onCheckStatus={onCheckStatus}
+          taskRuntime={taskRuntime}
+          onStartTask={onStartTask}
+          onCompleteTask={onCompleteTask}
+        />
       ))}
     </div>
   );
@@ -452,10 +729,16 @@ function LessonSegmentView({
   segment,
   lesson,
   onCheckStatus,
+  taskRuntime,
+  onStartTask,
+  onCompleteTask,
 }: {
   segment: LessonSegment;
   lesson: ParsedLesson;
   onCheckStatus: (id: string, status: CheckStatus) => void;
+  taskRuntime: Record<string, TaskRuntimeStatus>;
+  onStartTask: (task: LessonTaskData) => void;
+  onCompleteTask: (task: LessonTaskData) => void;
 }) {
   if (segment.type === 'prose') return <ProseBlock markdown={segment.markdown} questionBg={lesson.frontmatter.colors?.question} />;
   switch (segment.block.kind) {
@@ -463,6 +746,10 @@ function LessonSegmentView({
       return <DetectCard cli={lesson.frontmatter.cli} />;
     case 'check':
       return <CheckCard block={segment.block} lesson={lesson} onStatusChange={onCheckStatus} />;
+    case 'task': {
+      const data = segment.block.data as LessonTaskData;
+      return <TaskCard data={data} status={taskRuntime[data.id] ?? 'idle'} onStart={() => onStartTask(data)} onCompleteManual={() => onCompleteTask(data)} />;
+    }
     case 'setup':
     case 'teardown':
     case 'quiz':
@@ -669,6 +956,79 @@ function CheckCard({ block, lesson, onStatusChange }: { block: LessonBlock; less
         </p>
       )}
       {data.hint && !status && (
+        <p className="text-xs mt-2 italic" style={mutedStyle}>
+          {data.hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** One vpk-task block — a completable unit with a Start/Complete lifecycle, additive alongside vpk-check's
+ *  existing single "Run check" button (which is untouched by this). `completion: 'manual'` gets Start +
+ *  Complete, where Complete is self-attested (an attached `check`, if any, is evaluated on demand elsewhere —
+ *  see LessonRunnerView's task-runtime section — but never gates this button). `completion: 'auto'` gets just
+ *  Start, which arms LessonRunnerView's background polling; this component itself owns no fetch/poll logic at
+ *  all — it's purely a view onto the `status` its parent already computed, so the Course Progress modal and
+ *  this card can never disagree about a task's state. */
+function TaskCard({
+  data,
+  status,
+  onStart,
+  onCompleteManual,
+}: {
+  data: LessonTaskData;
+  status: TaskRuntimeStatus;
+  onStart: () => void;
+  onCompleteManual: () => void;
+}) {
+  const icon =
+    status === 'complete' ? (
+      <CheckCircle2 size={15} style={{ color: 'var(--vpk-status-ok)' }} />
+    ) : status === 'polling' ? (
+      <Loader2 size={15} className="animate-spin" style={mutedStyle} />
+    ) : status === 'timed-out' ? (
+      <TriangleAlert size={15} style={errorStyle} />
+    ) : null;
+
+  return (
+    <div className="border rounded p-3 text-sm" style={panelStyle}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="font-medium">{data.describe ?? data.id}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {status === 'idle' && (
+            <button onClick={onStart} className="text-xs px-2 py-1 rounded border cursor-pointer flex items-center gap-1" style={panelStyle}>
+              <Play size={11} />
+              Start
+            </button>
+          )}
+          {status === 'in-progress' && (
+            <button onClick={onCompleteManual} className="text-xs px-2 py-1 rounded border cursor-pointer flex items-center gap-1" style={panelStyle}>
+              <CheckCircle2 size={11} />
+              Complete
+            </button>
+          )}
+          {status === 'polling' && (
+            <span className="text-xs" style={mutedStyle}>
+              Checking in the background…
+            </span>
+          )}
+          {status === 'timed-out' && (
+            <span className="text-xs" style={errorStyle}>
+              Paused — see Progress
+            </span>
+          )}
+          {status === 'complete' && (
+            <span className="text-xs" style={{ color: 'var(--vpk-status-ok)' }}>
+              Complete
+            </span>
+          )}
+        </div>
+      </div>
+      {data.hint && status === 'idle' && (
         <p className="text-xs mt-2 italic" style={mutedStyle}>
           {data.hint}
         </p>
