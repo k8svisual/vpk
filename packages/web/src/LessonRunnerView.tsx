@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
-import { CheckCircle2, CircleAlert, Loader2, Moon, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Loader2, Minus, Moon, Plus, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
 import { FlipClock } from './FlipClock';
+import { TERMINAL_FONT_SIZE_MAX, TERMINAL_FONT_SIZE_MIN, initialTerminalFontSize, setStoredTerminalFontSize } from './terminalFontSize';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -62,9 +63,9 @@ interface StepResult {
 type CheckStreamEvent = { type: 'progress' | 'done'; result: StepResult } | { type: 'error'; error: string } | { type: 'cancelled' };
 type CheckStatus = 'pass' | 'fail' | 'error' | 'cancelled' | undefined;
 
-// No lesson catalog/picker UI yet (§13's GET /course/lessons exists server-side but nothing consumes it) —
-// this is the one lesson that exists, hardcoded until that's built.
-const LESSON_ID = 'getting-started-00-cluster';
+// Falls back to Lesson Zero when no id is passed in — preserves the old hardcoded-single-lesson behavior for
+// any caller that doesn't care which lesson (and keeps the view usable before the Course Catalog picks one).
+const DEFAULT_LESSON_ID = 'getting-started-00-cluster';
 
 const panelStyle = { borderColor: 'var(--vpk-border)' } as const;
 const mutedStyle = { color: 'var(--vpk-fg-muted)' } as const;
@@ -88,7 +89,7 @@ const TERMINAL_MIN_WIDTH = 280;
 const TERMINAL_MAX_WIDTH = 900;
 const LESSON_MIN_WIDTH = 280;
 
-export function LessonRunnerView() {
+export function LessonRunnerView({ lessonId }: { lessonId?: string }) {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
@@ -97,10 +98,15 @@ export function LessonRunnerView() {
   const [checkStatuses, setCheckStatuses] = useState<Record<string, CheckStatus>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const activeLessonId = lessonId ?? DEFAULT_LESSON_ID;
 
   useEffect(() => {
     let cancelled = false;
-    getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(LESSON_ID)}`)
+    setLesson(null);
+    setLoadError(null);
+    setStartTime(null);
+    setCheckStatuses({});
+    getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(activeLessonId)}`)
       .then((l) => {
         if (!cancelled) {
           setLesson(l);
@@ -113,7 +119,7 @@ export function LessonRunnerView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeLessonId]);
 
   // The countdown clock ticks off wall time — a plain `setInterval` (not a check-poll cadence) is the
   // right primitive since it only drives a display, never anything server-side.
@@ -536,6 +542,7 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [running, setRunning] = useState(false);
   const [theme, setTheme] = useState<TerminalTheme>('dark');
+  const [fontSizePx, setFontSizePxState] = useState(initialTerminalFontSize);
   // Shell-style Up/Down recall over PAST TYPED COMMANDS — kept in its own log, separate from `history` (the
   // visible transcript), so `clear`/`cls` can wipe the screen without erasing recall, matching real shells.
   // null = not currently browsing (the input holds whatever the student is actively typing); draftRef
@@ -544,6 +551,14 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
   const [historyIndex, setHistoryIndex] = useState<number | null>(null);
   const draftRef = useRef('');
   const colors = TERMINAL_COLORS[theme];
+
+  function bumpFontSize(delta: number) {
+    setFontSizePxState((p) => {
+      const next = Math.min(TERMINAL_FONT_SIZE_MAX, Math.max(TERMINAL_FONT_SIZE_MIN, p + delta));
+      setStoredTerminalFontSize(next);
+      return next;
+    });
+  }
 
   async function run() {
     const cmd = line.trim();
@@ -604,15 +619,39 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
           <TerminalIcon size={13} />
           Terminal
         </span>
-        <button
-          onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-          title={theme === 'dark' ? 'Switch to light terminal' : 'Switch to dark terminal'}
-          className="flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer"
-          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
-        >
-          {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
-          {theme === 'dark' ? 'Light' : 'Dark'}
-        </button>
+        <span className="flex items-center gap-1.5">
+          <span className="flex items-center rounded border overflow-hidden" style={{ borderColor: colors.border }}>
+            <button
+              onClick={() => bumpFontSize(-1)}
+              disabled={fontSizePx <= TERMINAL_FONT_SIZE_MIN}
+              title="Decrease terminal font size"
+              aria-label="Decrease terminal font size"
+              className="flex items-center px-1.5 py-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ background: colors.buttonBg, color: colors.fg }}
+            >
+              <Minus size={11} />
+            </button>
+            <button
+              onClick={() => bumpFontSize(1)}
+              disabled={fontSizePx >= TERMINAL_FONT_SIZE_MAX}
+              title="Increase terminal font size"
+              aria-label="Increase terminal font size"
+              className="flex items-center px-1.5 py-1 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 border-l"
+              style={{ background: colors.buttonBg, color: colors.fg, borderColor: colors.border }}
+            >
+              <Plus size={11} />
+            </button>
+          </span>
+          <button
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            title={theme === 'dark' ? 'Switch to light terminal' : 'Switch to dark terminal'}
+            className="flex items-center gap-1 text-xs px-2 py-1 rounded border cursor-pointer"
+            style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
+          >
+            {theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+        </span>
       </div>
       <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
         Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
@@ -627,8 +666,8 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
             setLine(e.target.value);
           }}
           onKeyDown={handleKeyDown}
-          className="flex-1 text-xs px-2 py-1 rounded border font-mono"
-          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
+          className="flex-1 px-2 py-1 rounded border font-mono"
+          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg, fontSize: fontSizePx }}
         />
         <button
           onClick={() => void run()}
@@ -639,7 +678,7 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
           {running ? '…' : 'Run'}
         </button>
       </div>
-      <div className="flex-1 overflow-auto px-3 py-2 space-y-3 text-xs font-mono min-h-0">
+      <div className="flex-1 overflow-auto px-3 py-2 space-y-3 font-mono min-h-0" style={{ fontSize: fontSizePx }}>
         {[...history].reverse().map((entry, i) => (
           <div key={history.length - 1 - i}>
             <div className="font-semibold">$ {entry.line}</div>

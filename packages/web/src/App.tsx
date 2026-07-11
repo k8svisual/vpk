@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { LessonRunnerView } from './LessonRunnerView';
+import { CourseCatalogView } from './CourseCatalogView';
+import { TeacherView } from './TeacherView';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -28,6 +30,7 @@ import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
 import { initialGridEnabled, setStoredGridEnabled } from './gridSetting';
+import { initialShowCourseCatalog, initialShowTeacherTools, setStoredShowCourseCatalog, setStoredShowTeacherTools } from './navVisibility';
 import { setVendorIconOverrides, type VendorIconOverride } from './vendorIconOverrides';
 
 interface Snapshots {
@@ -50,7 +53,16 @@ type ViewId =
   | 'events'
   | 'resources'
   | 'demo'
-  | 'course';
+  | 'course'
+  | 'catalog'
+  | 'teacher';
+
+/** Filters a nav group list down to visible items given the Settings > UI "show in menu" toggles — items not
+ *  named here are always visible; `hiddenIds` only ever contains 'catalog'/'teacher' when their toggle is
+ *  off. A group left with zero items is dropped entirely rather than rendered as an empty header. */
+function filterRailGroups(groups: RailGroup<ViewId>[], hiddenIds: ReadonlySet<ViewId>): RailGroup<ViewId>[] {
+  return groups.map((g) => ({ ...g, items: g.items.filter((it) => !hiddenIds.has(it.id)) })).filter((g) => g.items.length > 0);
+}
 
 const RAIL_GROUPS: RailGroup<ViewId>[] = [
   {
@@ -79,10 +91,16 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
     ],
   },
   // Training Course mode (redesign/training-course.md) — the opt-in mutating exception to VpK's read-only
-  // stance (see DESIGN.md §1's signed-off exception). Only one lesson exists so far; no catalog/picker yet.
+  // stance (see DESIGN.md §1's signed-off exception). Catalog/Teacher visibility is a per-user Settings > UI
+  // toggle (see filterRailGroups/navVisibility.ts) — this array always includes both, unconditionally, so
+  // VIEW_LABELS/VIEW_ICONS below stay correct even when a toggle hides the nav item itself.
   {
     title: 'Training',
-    items: [{ id: 'course', label: 'Course', icon: Terminal }],
+    items: [
+      { id: 'catalog', label: 'Catalog', icon: BookOpen },
+      { id: 'course', label: 'Course', icon: Terminal },
+      { id: 'teacher', label: 'Teacher', icon: GraduationCap },
+    ],
   },
 ];
 
@@ -155,6 +173,28 @@ export function App() {
     setGridEnabled(next);
     setStoredGridEnabled(next);
   }
+  // Same reasoning as fog/grid — the nav rail needs it directly to decide which items to render, so it's
+  // tracked here rather than owned inside SettingsModal.
+  const [showCourseCatalog, setShowCourseCatalog] = useState<boolean>(initialShowCourseCatalog);
+  const [showTeacherTools, setShowTeacherTools] = useState<boolean>(initialShowTeacherTools);
+
+  function changeShowCourseCatalog(next: boolean) {
+    setShowCourseCatalog(next);
+    setStoredShowCourseCatalog(next);
+  }
+  function changeShowTeacherTools(next: boolean) {
+    setShowTeacherTools(next);
+    setStoredShowTeacherTools(next);
+  }
+  // The Course Catalog's current pick — undefined means "use LessonRunnerView's own default" (Lesson Zero),
+  // so the Course view stays usable even if the student never visits the Catalog at all.
+  const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
+  const hiddenNavIds = useMemo(() => {
+    const ids = new Set<ViewId>();
+    if (!showCourseCatalog) ids.add('catalog');
+    if (!showTeacherTools) ids.add('teacher');
+    return ids;
+  }, [showCourseCatalog, showTeacherTools]);
   const [statsOpen, setStatsOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
@@ -226,6 +266,14 @@ export function App() {
       .then((d) => setVendorIconOverrides(d.overrides))
       .catch(() => {});
   }, []);
+
+  // If the student is currently ON the Catalog or Teacher view and then turns its "show in menu" toggle off
+  // in Settings, that view is no longer reachable via the nav rail — fall back to the plain Course view
+  // rather than leaving them stranded on a screen with no way back to it.
+  useEffect(() => {
+    if (view === 'catalog' && !showCourseCatalog) setView('course');
+    if (view === 'teacher' && !showTeacherTools) setView('course');
+  }, [view, showCourseCatalog, showTeacherTools]);
 
   async function post(path: string, body: unknown) {
     const r = await fetch(path, {
@@ -383,7 +431,7 @@ export function App() {
       style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
     >
       <NavRail
-        groups={RAIL_GROUPS}
+        groups={filterRailGroups(RAIL_GROUPS, hiddenNavIds)}
         active={view}
         onSelect={setView}
         onAbout={() => setAboutOpen(true)}
@@ -612,7 +660,16 @@ export function App() {
               </>
             )}
             {view === 'demo' && <DemoDataView />}
-            {view === 'course' && <LessonRunnerView />}
+            {view === 'catalog' && (
+              <CourseCatalogView
+                onSelect={(id) => {
+                  setSelectedLessonId(id);
+                  setView('course');
+                }}
+              />
+            )}
+            {view === 'course' && <LessonRunnerView lessonId={selectedLessonId} />}
+            {view === 'teacher' && <TeacherView />}
           </main>
         </div>
       </div>
@@ -633,6 +690,10 @@ export function App() {
         onFogEnabledChange={changeFogEnabled}
         gridEnabled={gridEnabled}
         onGridEnabledChange={changeGridEnabled}
+        showCourseCatalog={showCourseCatalog}
+        onShowCourseCatalogChange={changeShowCourseCatalog}
+        showTeacherTools={showTeacherTools}
+        onShowTeacherToolsChange={changeShowTeacherTools}
       />
       <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
       <LogsModal open={logsOpen} onClose={() => setLogsOpen(false)} />

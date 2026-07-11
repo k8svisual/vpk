@@ -71,7 +71,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, runCourseCommand, tokenizeCommand } from './course/command';
-import { findLessonById, listLessons } from './course/content';
+import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource } from './course/content';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
@@ -442,7 +442,45 @@ app.get('/course/lesson', async (req, reply) => {
   return lesson;
 });
 
-app.get('/course/lessons', async () => ({ lessons: listLessons().map((l) => l.frontmatter) }));
+// `path` is included alongside each lesson's frontmatter so the Course Catalog can link a selection straight
+// to a lesson id (via /course/lesson?id=) while Teacher tools can address the same entry by file path (via
+// /course/lesson/source and /course/lesson/save) — one listing serves both.
+app.get('/course/lessons', async () => ({ lessons: listLessonFiles().map(({ path, lesson }) => ({ ...lesson.frontmatter, path })) }));
+
+// Teacher tools: raw markdown source for the editor to load — see content.ts's readLessonSource doc comment
+// on why this is deliberately unparsed.
+app.get('/course/lesson/source', async (req, reply) => {
+  const { path } = (req.query ?? {}) as { path?: string };
+  if (!path) {
+    reply.code(400);
+    return { error: 'expected ?path=<relative .md path>' };
+  }
+  try {
+    return { source: readLessonSource(path) };
+  } catch (e: unknown) {
+    reply.code(404);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// Teacher tools: create or overwrite a lesson file. Validates by parsing before writing (see
+// saveLessonSource's doc comment) — a save that would corrupt the lesson format is rejected with a 400
+// instead of landing on disk, so a broken edit never overwrites a previously-good file.
+app.post('/course/lesson/save', async (req, reply) => {
+  const { path, source } = (req.body ?? {}) as { path?: string; source?: string };
+  if (!path || typeof source !== 'string') {
+    reply.code(400);
+    return { error: 'expected { path: string, source: string }' };
+  }
+  try {
+    const lesson = saveLessonSource(path, source);
+    pushLog('info', `Teacher tools: saved lesson "${lesson.frontmatter.id}" -> ${path}`);
+    return { frontmatter: lesson.frontmatter };
+  } catch (e: unknown) {
+    reply.code(400);
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+});
 
 // The student's terminal — a STRUCTURED runner, never a shell/PTY (§5): tokenizes the typed line, checks it
 // against the current lesson step's verb allowlist, and runs it as exactly the configured kubectl-compatible

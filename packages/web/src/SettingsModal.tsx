@@ -84,6 +84,10 @@ export function SettingsModal({
   onFogEnabledChange,
   gridEnabled,
   onGridEnabledChange,
+  showCourseCatalog,
+  onShowCourseCatalogChange,
+  showTeacherTools,
+  onShowTeacherToolsChange,
 }: {
   open: boolean;
   onClose: () => void;
@@ -97,6 +101,13 @@ export function SettingsModal({
   /** The 3D view's ground-grid floor toggle — same pattern as fogEnabled. */
   gridEnabled: boolean;
   onGridEnabledChange: (next: boolean) => void;
+  /** Whether the Training group's "Catalog" nav item shows up — same pattern as fogEnabled; App.tsx needs it
+   *  directly to decide what to pass NavRail. */
+  showCourseCatalog: boolean;
+  onShowCourseCatalogChange: (next: boolean) => void;
+  /** Same pattern, for the Training group's "Teacher" (course create/edit) nav item. */
+  showTeacherTools: boolean;
+  onShowTeacherToolsChange: (next: boolean) => void;
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [dir, setDir] = useState('');
@@ -309,6 +320,20 @@ export function SettingsModal({
               <span style={{ color: 'var(--vpk-fg)' }}>
                 Grid floor (3D view) — the ground grid under the Field and Wheel views. Sized to always extend past
                 every node/item currently shown.
+              </span>
+            </label>
+
+            <label className="mb-2 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showCourseCatalog} onChange={(e) => onShowCourseCatalogChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Course Catalog in menu — the Training group's course picker. On by default.
+              </span>
+            </label>
+
+            <label className="mb-4 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showTeacherTools} onChange={(e) => onShowTeacherToolsChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Teacher tools in menu — the Training group's course create/edit screen. On by default.
               </span>
             </label>
           </>
