@@ -520,9 +520,11 @@ interface HistoryEntry {
 
 type TerminalTheme = 'dark' | 'light';
 
-const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string }> = {
-  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e' },
-  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2', buttonBg: '#e2e2e2' },
+const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string }> = {
+  // var(--vpk-status-error) is tuned for the app's light surfaces — too dark to read on pure black, so the
+  // terminal gets its own brighter red independent of the app-wide error color.
+  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b' },
+  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2', buttonBg: '#e2e2e2', errorFg: 'var(--vpk-status-error)' },
 };
 
 const CLEAR_COMMANDS = new Set(['clear', 'cls']);
@@ -647,14 +649,14 @@ function TerminalPane({ allow, cli }: { allow: string[]; cli?: string[] }) {
                 </div>
                 {entry.result.stdout && <pre className="whitespace-pre-wrap">{entry.result.stdout}</pre>}
                 {entry.result.stderr && (
-                  <pre className="whitespace-pre-wrap" style={errorStyle}>
+                  <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
                     {entry.result.stderr}
                   </pre>
                 )}
               </>
             )}
             {entry.error && (
-              <pre className="whitespace-pre-wrap" style={errorStyle}>
+              <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
                 {entry.error}
               </pre>
             )}
