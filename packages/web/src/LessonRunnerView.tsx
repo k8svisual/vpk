@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import {
   CheckCircle2,
   CircleAlert,
   ListChecks,
   Loader2,
-  PanelBottom,
-  PanelRight,
   Play,
   Printer,
   Square,
@@ -16,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { FlipClock } from './FlipClock';
+import { TerminalPane } from './TerminalPane';
 import { initialCourseLayout, setStoredCourseLayout, type CourseLayout, type TerminalTheme } from './courseSettings';
 import { markCourseStarted, updateCourseProgress } from './courseProgress';
 import { approveCommand, getBinaryPath, isCommandApproved, setBinaryPath } from './commandApproval';
@@ -83,13 +82,6 @@ interface ClusterFacts {
   nodes: { total: number; ready: number };
   provisioner?: string;
   capabilities: { multiNode: boolean };
-}
-interface CommandResult {
-  argv: string[];
-  stdout: string;
-  stderr: string;
-  exitCode: number | null;
-  durationMs: number;
 }
 interface StepResult {
   status: 'pass' | 'fail';
@@ -169,6 +161,12 @@ export function LessonRunnerView({
   const [unresolvedTasks, setUnresolvedTasks] = useState<UnresolvedTaskCommand[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [approvalPanelOpen, setApprovalPanelOpen] = useState(false);
+  // Whether the terminal is currently living in its own window instead of the embedded pane below — see
+  // popOutTerminal/bringTerminalBack. The popup Window object itself lives in a ref (not state — it's a
+  // mutable handle, re-rendering on its own identity changing would be pointless) so the close-detection poll
+  // and the unmount cleanup can both reach it without threading it through props.
+  const [terminalPoppedOut, setTerminalPoppedOut] = useState(false);
+  const terminalPopupRef = useRef<Window | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lessonScrollRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
@@ -194,6 +192,20 @@ export function LessonRunnerView({
     return task.check?.cli ?? (cliOverride ? [cliOverride] : lesson?.frontmatter.cli) ?? ['kubectl'];
   }
 
+  // getBinaryPath's saved override previously only fed runPreflight's "is it found" check (so the banner
+  // stopped nagging) — it was never actually substituted into what got SPAWNED, so a student who'd resolved a
+  // path here would still hit the exact same ENOENT the override was supposed to fix. Same bug, same fix as
+  // TerminalPane.tsx's resolveLeadingCli, just simpler here: /course/task-check builds its own argv from a
+  // structured verb+args (not a typed line to tokenize), so the `cli` field IS argv[0..n] directly — no
+  // leading-token rewrite needed, just resolve it before sending.
+  function resolvedTaskCli(task: LessonTaskData): string[] {
+    const arr = taskCli(task);
+    const bin = arr[0];
+    if (!bin) return arr;
+    const override = getBinaryPath(bin);
+    return override ? [override, ...arr.slice(1)] : arr;
+  }
+
   async function pollOnce(task: LessonTaskData) {
     if (!task.check || !lesson) return;
     const deadlineMs = (task.estimatedMinutes ?? DEFAULT_TASK_ESTIMATE_MINUTES) * 60_000 * TASK_TIMEOUT_MULTIPLIER;
@@ -202,7 +214,7 @@ export function LessonRunnerView({
       const res = await postJson<{ passed: boolean }>('/course/task-check', {
         verb: task.check.verb,
         args: task.check.args,
-        cli: taskCli(task).join(' '),
+        cli: resolvedTaskCli(task).join(' '),
         allow: lesson.frontmatter.allow ?? [],
         expect: task.check.expect,
       });
@@ -291,6 +303,52 @@ export function LessonRunnerView({
       return next;
     });
   }
+
+  // Opens TerminalPopout.tsx (see main.tsx's ?popout=terminal branch) in a real separate window at the SAME
+  // origin/bundle, rather than a portal into a blank window — that gets the popup the exact CSS/theme the
+  // main window has for free. allow/cli come from the lesson itself (not `effectiveLesson`, which isn't
+  // computed yet at this point in the function body — same override logic, just inlined).
+  function popOutTerminal() {
+    if (!lesson) return;
+    const allow = lesson.frontmatter.allow ?? ['get'];
+    const cli = cliOverride ? [cliOverride] : lesson.frontmatter.cli;
+    const params = new URLSearchParams({ popout: 'terminal', allow: allow.join(',') });
+    if (cli && cli.length > 0) params.set('cli', cli.join(','));
+    const popup = window.open(`${window.location.pathname}?${params.toString()}`, 'vpk-course-terminal', 'width=640,height=560');
+    if (!popup) {
+      pushToast("Pop-up blocked — allow pop-ups for this site to open a separate terminal window.");
+      return;
+    }
+    terminalPopupRef.current = popup;
+    setTerminalPoppedOut(true);
+  }
+
+  function bringTerminalBack() {
+    terminalPopupRef.current?.close();
+    terminalPopupRef.current = null;
+    setTerminalPoppedOut(false);
+  }
+
+  // Polls rather than listening for a popup-side event — closing a window doesn't reliably fire anything
+  // observable from the OPENER side (no 'close' event, and cross-window 'beforeunload' isn't guaranteed), so
+  // `.closed` is the standard way to notice. Only runs while actually popped out.
+  useEffect(() => {
+    if (!terminalPoppedOut) return;
+    const interval = setInterval(() => {
+      if (terminalPopupRef.current?.closed) {
+        terminalPopupRef.current = null;
+        setTerminalPoppedOut(false);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [terminalPoppedOut]);
+
+  // Closes the popup if the Course view itself unmounts (navigating away, clicking Stop) — otherwise the
+  // terminal window is orphaned, still open but with no lesson left for "bring it back" to return it to.
+  useEffect(() => {
+    return () => terminalPopupRef.current?.close();
+  }, []);
+
   const activeLessonId = lessonId ?? DEFAULT_LESSON_ID;
 
   // Forces every <details> (Hint/Step-by-step) open before printing when answers are wanted — relying on
@@ -516,27 +574,53 @@ export function LessonRunnerView({
             onCompleteTask={completeTaskManually}
           />
         </div>
-        <div
-          onMouseDown={startResize}
-          role="separator"
-          aria-orientation={layout === 'row' ? 'vertical' : 'horizontal'}
-          title="Drag to resize"
-          className={`shrink-0 group flex items-center justify-center no-print ${layout === 'row' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'}`}
-        >
+        {!terminalPoppedOut && (
           <div
-            className={layout === 'row' ? 'w-px h-full group-hover:w-0.5 transition-[width]' : 'h-px w-full group-hover:h-0.5 transition-[height]'}
-            style={{ background: 'var(--vpk-border)' }}
-          />
-        </div>
-        <div className="shrink-0 no-print" style={layout === 'row' ? { width: terminalWidth } : { height: terminalHeight }}>
-          <TerminalPane
-            allow={effectiveLesson.frontmatter.allow ?? ['get']}
-            cli={effectiveLesson.frontmatter.cli}
-            theme={terminalTheme}
-            fontSizePx={terminalFontSize}
-            layout={layout}
-            onToggleLayout={toggleLayout}
-          />
+            onMouseDown={startResize}
+            role="separator"
+            aria-orientation={layout === 'row' ? 'vertical' : 'horizontal'}
+            title="Drag to resize"
+            className={`shrink-0 group flex items-center justify-center no-print ${layout === 'row' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'}`}
+          >
+            <div
+              className={layout === 'row' ? 'w-px h-full group-hover:w-0.5 transition-[width]' : 'h-px w-full group-hover:h-0.5 transition-[height]'}
+              style={{ background: 'var(--vpk-border)' }}
+            />
+          </div>
+        )}
+        <div
+          className="shrink-0 no-print"
+          // Popped out, there's nothing to drag-resize (the terminal isn't rendering here at all) — a small
+          // fixed footprint for the placeholder card instead of the full terminalWidth/terminalHeight is what
+          // actually gives the lesson pane the extra room this feature is for.
+          style={terminalPoppedOut ? (layout === 'row' ? { width: 210 } : { height: 64 }) : layout === 'row' ? { width: terminalWidth } : { height: terminalHeight }}
+        >
+          {terminalPoppedOut ? (
+            <div
+              className="h-full flex flex-col items-center justify-center gap-1.5 border rounded p-2 text-center"
+              style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+            >
+              <TerminalIcon size={14} />
+              <span className="text-xs">Terminal is open in a separate window</span>
+              <button
+                onClick={bringTerminalBack}
+                className="rounded border px-2 py-1 text-xs cursor-pointer"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+              >
+                Bring it back
+              </button>
+            </div>
+          ) : (
+            <TerminalPane
+              allow={effectiveLesson.frontmatter.allow ?? ['get']}
+              cli={effectiveLesson.frontmatter.cli}
+              theme={terminalTheme}
+              fontSizePx={terminalFontSize}
+              layout={layout}
+              onToggleLayout={toggleLayout}
+              onPopOut={popOutTerminal}
+            />
+          )}
         </div>
       </div>
       {printModalOpen && <PrintCourseModal onClose={() => setPrintModalOpen(false)} onPrint={printCourse} />}
@@ -1048,172 +1132,6 @@ function PlaceholderCard({ kind, data }: { kind: LessonBlockKind; data: unknown 
         {label} <span className="italic">(not yet automated)</span>
       </div>
       <pre className="overflow-auto">{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
-}
-
-interface HistoryEntry {
-  line: string;
-  result?: CommandResult;
-  error?: string;
-}
-
-const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string }> = {
-  // var(--vpk-status-error) is tuned for the app's light surfaces — too dark to read on pure black, so the
-  // terminal gets its own brighter red independent of the app-wide error color.
-  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b' },
-  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2', buttonBg: '#e2e2e2', errorFg: 'var(--vpk-status-error)' },
-};
-
-const CLEAR_COMMANDS = new Set(['clear', 'cls']);
-
-function TerminalPane({
-  allow,
-  cli,
-  theme,
-  fontSizePx,
-  layout,
-  onToggleLayout,
-}: {
-  allow: string[];
-  cli?: string[];
-  theme: TerminalTheme;
-  fontSizePx: number;
-  layout: CourseLayout;
-  onToggleLayout: () => void;
-}) {
-  const cliName = cli?.[0] ?? 'kubectl';
-  const [line, setLine] = useState(`${cliName} get nodes`);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [running, setRunning] = useState(false);
-  // Shell-style Up/Down recall over PAST TYPED COMMANDS — kept in its own log, separate from `history` (the
-  // visible transcript), so `clear`/`cls` can wipe the screen without erasing recall, matching real shells.
-  // null = not currently browsing (the input holds whatever the student is actively typing); draftRef
-  // preserves that in-progress text so pressing Down back past the oldest browsed entry restores it.
-  const [commandLog, setCommandLog] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number | null>(null);
-  const draftRef = useRef('');
-  const colors = TERMINAL_COLORS[theme];
-
-  async function run() {
-    const cmd = line.trim();
-    if (!cmd) return;
-    setHistoryIndex(null);
-    setCommandLog((p) => [...p, cmd]);
-    if (CLEAR_COMMANDS.has(cmd.toLowerCase())) {
-      setHistory([]);
-      setLine('');
-      return;
-    }
-    setRunning(true);
-    try {
-      const result = await postJson<CommandResult>('/course/command', { line: cmd, allow, cli: cli?.join(' ') });
-      setHistory((p) => [...p, { line: cmd, result }]);
-    } catch (e: unknown) {
-      setHistory((p) => [...p, { line: cmd, error: String(e instanceof Error ? e.message : e) }]);
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      void run();
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      if (commandLog.length === 0) return;
-      e.preventDefault();
-      if (historyIndex === null) {
-        draftRef.current = line;
-        setHistoryIndex(commandLog.length - 1);
-        setLine(commandLog[commandLog.length - 1] ?? '');
-      } else if (historyIndex > 0) {
-        setHistoryIndex(historyIndex - 1);
-        setLine(commandLog[historyIndex - 1] ?? '');
-      }
-      return;
-    }
-    if (e.key === 'ArrowDown') {
-      if (historyIndex === null) return;
-      e.preventDefault();
-      if (historyIndex < commandLog.length - 1) {
-        setHistoryIndex(historyIndex + 1);
-        setLine(commandLog[historyIndex + 1] ?? '');
-      } else {
-        setHistoryIndex(null);
-        setLine(draftRef.current);
-      }
-    }
-  }
-
-  return (
-    <div className="border rounded flex flex-col h-full" style={{ borderColor: colors.border, background: colors.bg, color: colors.fg }}>
-      <div className="px-3 py-2 border-b flex items-center justify-between gap-1.5 text-xs font-medium" style={{ borderColor: colors.border }}>
-        <span className="flex items-center gap-1.5">
-          <TerminalIcon size={13} />
-          Terminal
-        </span>
-        <button
-          onClick={onToggleLayout}
-          className="flex items-center gap-1 rounded border px-2 py-1 cursor-pointer"
-          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
-          title={layout === 'row' ? 'Move course content above the terminal (wider terminal)' : 'Move course content back beside the terminal'}
-        >
-          {layout === 'row' ? <PanelBottom size={12} /> : <PanelRight size={12} />}
-          {layout === 'row' ? 'Stack' : 'Side-by-side'}
-        </button>
-      </div>
-      <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
-        Runs <code>{cliName}</code> only — allowed here: {allow.join(', ')}. For minikube/k3d/other cluster
-        tools, use your own system terminal. ↑/↓ recall previous commands, <code>clear</code>/<code>cls</code>{' '}
-        wipes the screen. Appearance, font size, and CLI are in Settings &gt; Education.
-      </p>
-      <div className="flex gap-2 p-2 border-b" style={{ borderColor: colors.border }}>
-        <input
-          value={line}
-          onChange={(e) => {
-            setHistoryIndex(null);
-            setLine(e.target.value);
-          }}
-          onKeyDown={handleKeyDown}
-          className="flex-1 px-2 py-1 rounded border font-mono"
-          style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg, fontSize: fontSizePx }}
-        />
-        <button
-          onClick={() => void run()}
-          disabled={running}
-          className="text-xs px-2 py-1 rounded border cursor-pointer disabled:cursor-not-allowed"
-          style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
-        >
-          {running ? '…' : 'Run'}
-        </button>
-      </div>
-      <div className="flex-1 overflow-auto px-3 py-2 space-y-3 font-mono min-h-0" style={{ fontSize: fontSizePx }}>
-        {[...history].reverse().map((entry, i) => (
-          <div key={history.length - 1 - i}>
-            <div className="font-semibold">$ {entry.line}</div>
-            {entry.result && (
-              <>
-                <div style={{ color: colors.mutedFg }}>
-                  exit {entry.result.exitCode ?? 'aborted'} ({entry.result.durationMs}ms)
-                </div>
-                {entry.result.stdout && <pre className="whitespace-pre-wrap">{entry.result.stdout}</pre>}
-                {entry.result.stderr && (
-                  <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
-                    {entry.result.stderr}
-                  </pre>
-                )}
-              </>
-            )}
-            {entry.error && (
-              <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
-                {entry.error}
-              </pre>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

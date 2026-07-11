@@ -9,6 +9,10 @@ import { STRUCTURAL_COLORS, defaultStructuralColor, getStoredStructuralColorOver
 import { VendorIconsPanel } from './VendorIconsPanel';
 import { NetworkCatalogPanel } from './NetworkCatalogPanel';
 import type { TerminalTheme } from './courseSettings';
+import { ChipList } from './Chips';
+import { initialExtraAllowedVerbs, setStoredExtraAllowedVerbs } from './terminalAllowlist';
+import { clearBinaryPath, getBinaryPath, setBinaryPath } from './commandApproval';
+import { CliPathFixer } from './CliPathFixer';
 
 interface Settings {
   snapshotDir: string;
@@ -158,6 +162,15 @@ export function SettingsModal({
   // Same localStorage-only, instant-apply model as theme — see fontSize.ts's own doc comment.
   const [fontSize, setFontSize] = useState<FontSize>(initialFontSize);
   const [tab, setTab] = useState<SettingsTab>('snapshot');
+  // Same localStorage-only, instant-apply model — see terminalAllowlist.ts's own doc comment for why this is
+  // safe to expose as a plain editable list (single-tenant assumption).
+  const [extraVerbs, setExtraVerbs] = useState<string[]>([]);
+  const [newVerb, setNewVerb] = useState('');
+  // Which of the two CLIs' path-tester is expanded (or neither) — commandApproval.ts's binary-path store
+  // itself has no "which CLI is active" concept (it's a plain map), so this is purely local UI state re-read
+  // fresh each time the modal opens, same as the other localStorage-backed sections above.
+  const [testingCli, setTestingCli] = useState<string | null>(null);
+  const [cliPaths, setCliPaths] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (!open) return;
@@ -174,6 +187,9 @@ export function SettingsModal({
     setApiGroupOverrides(getStoredApiGroupColorOverrides());
     setStructuralOverrides(getStoredStructuralColorOverrides());
     setFontSize(getStoredFontSize() ?? 'medium');
+    setExtraVerbs(initialExtraAllowedVerbs());
+    setTestingCli(null);
+    setCliPaths({ kubectl: getBinaryPath('kubectl'), oc: getBinaryPath('oc') });
   }, [open]);
 
   if (!open) return null;
@@ -197,6 +213,35 @@ export function SettingsModal({
     setFontSize(next);
     applyFontSize(next);
     setStoredFontSize(next);
+  }
+
+  function addExtraVerb() {
+    const verb = newVerb.trim();
+    if (!verb || extraVerbs.includes(verb)) {
+      setNewVerb('');
+      return;
+    }
+    const next = [...extraVerbs, verb];
+    setExtraVerbs(next);
+    setStoredExtraAllowedVerbs(next);
+    setNewVerb('');
+  }
+
+  function removeExtraVerb(i: number) {
+    const next = extraVerbs.filter((_, idx) => idx !== i);
+    setExtraVerbs(next);
+    setStoredExtraAllowedVerbs(next);
+  }
+
+  function resolveCliPath(cli: string, path: string) {
+    setBinaryPath(cli, path);
+    setCliPaths((p) => ({ ...p, [cli]: path }));
+    setTestingCli(null);
+  }
+
+  function clearCliPath(cli: string) {
+    clearBinaryPath(cli);
+    setCliPaths((p) => ({ ...p, [cli]: null }));
   }
 
   function resetAllKindColors() {
@@ -579,6 +624,83 @@ export function SettingsModal({
                 these lessons use, so switching the binary doesn't relax which verbs are allowed.
               </span>
             </label>
+
+            <div className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Additional terminal commands</span>
+              <div className="flex gap-2">
+                <input
+                  value={newVerb}
+                  onChange={(e) => setNewVerb(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addExtraVerb()}
+                  placeholder="e.g. exec, apply"
+                  className="flex-1 rounded border px-2 py-1"
+                  style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+                />
+                <button onClick={addExtraVerb} className="cursor-pointer rounded border px-2 py-1" style={{ borderColor: 'var(--vpk-border)' }}>
+                  Add
+                </button>
+              </div>
+              <ChipList items={extraVerbs} label={(v) => v} onRemove={removeExtraVerb} />
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>
+                Verbs added here work in the terminal on every lesson, on top of whatever that lesson's own
+                <code> allow</code> list declares — this doesn't loosen a lesson's own auto-graded task checks,
+                only what you can type in the terminal yourself. Only meaningful for a single student on their
+                own machine/cluster (this app has no multi-tenant mode yet), which is exactly why it's safe to
+                self-expand here.
+              </span>
+            </div>
+
+            <div className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal CLI path</span>
+              {(['kubectl', 'oc'] as const).map((cliName) => (
+                <div key={cliName} className="rounded border p-2" style={{ borderColor: 'var(--vpk-border)' }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span style={{ color: 'var(--vpk-fg)' }}>
+                      <code>{cliName}</code>{' '}
+                      {cliPaths[cliName] ? (
+                        <span style={{ color: 'var(--vpk-fg-muted)' }}>→ {cliPaths[cliName]}</span>
+                      ) : (
+                        <span style={{ color: 'var(--vpk-fg-muted)' }}>not overridden — resolved from PATH</span>
+                      )}
+                    </span>
+                    <span className="flex shrink-0 gap-2">
+                      {cliPaths[cliName] && (
+                        <button onClick={() => clearCliPath(cliName)} className="cursor-pointer rounded border px-2 py-0.5" style={{ borderColor: 'var(--vpk-border)' }}>
+                          Clear
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setTestingCli((c) => (c === cliName ? null : cliName))}
+                        className="cursor-pointer rounded border px-2 py-0.5"
+                        style={{ borderColor: 'var(--vpk-border)' }}
+                      >
+                        Test path
+                      </button>
+                    </span>
+                  </div>
+                  {testingCli === cliName && (
+                    <div className="mt-2">
+                      <CliPathFixer
+                        cli={cliName}
+                        colors={{
+                          border: 'var(--vpk-field-border)',
+                          fg: 'var(--vpk-fg)',
+                          mutedFg: 'var(--vpk-fg-muted)',
+                          inputBg: 'var(--vpk-bg)',
+                          buttonBg: 'var(--vpk-surface)',
+                          errorFg: 'var(--vpk-status-error)',
+                        }}
+                        onResolved={(path) => resolveCliPath(cliName, path)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>
+                Test whether kubectl/oc resolve on this machine now, rather than waiting to find out mid-lesson —
+                the terminal shows the same tester inline if it hits an unresolved binary itself.
+              </span>
+            </div>
 
             <label className="mb-4 flex flex-col gap-1 text-xs">
               <span style={{ color: 'var(--vpk-fg-muted)' }}>Terminal appearance</span>

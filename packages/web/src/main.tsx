@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { TerminalPopout } from './TerminalPopout';
 import { applyTheme, initialTheme } from './theme';
 import { applyFontSize, initialFontSize } from './fontSize';
 import { applyKindColorOverrides, getStoredKindColorOverrides } from './kindColorOverrides';
@@ -23,5 +24,11 @@ applyFontSize(initialFontSize());
 // server-rendered SVG (already embedding var(--vpk-kind-<kind>, <default>)) picks up the instant it's inlined.
 applyKindColorOverrides(getStoredKindColorOverrides());
 
+// LessonRunnerView.tsx's "Pop out Terminal" button opens a new window at this same URL (just this query
+// param added) rather than a different route — same bundle, same index.html, so the popup window gets the
+// exact CSS/theme the main window has for free, none of the stylesheet-cloning a raw `window.open('', ...)` +
+// cross-document portal would need.
+const isTerminalPopout = new URLSearchParams(window.location.search).get('popout') === 'terminal';
+
 const el = document.getElementById('root');
-if (el) createRoot(el).render(<App />);
+if (el) createRoot(el).render(isTerminalPopout ? <TerminalPopout /> : <App />);

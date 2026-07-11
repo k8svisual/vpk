@@ -83,3 +83,16 @@ export function setBinaryPath(cli: string, path: string): void {
     // best-effort
   }
 }
+
+/** Reverts `cli` back to "no override on file" — e.g. Settings' proactive tester, if a previously-saved path
+ *  stops being correct (the binary moved) and the student would rather fall back to bare-name PATH resolution
+ *  than overwrite it with another absolute path. */
+export function clearBinaryPath(cli: string): void {
+  try {
+    const paths = readBinaryPaths();
+    delete paths[cli];
+    localStorage.setItem(BINARY_PATHS_KEY, JSON.stringify(paths));
+  } catch {
+    // best-effort
+  }
+}
