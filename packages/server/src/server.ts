@@ -1,4 +1,5 @@
 import Fastify, { type FastifyReply } from 'fastify';
+import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative, extname } from 'node:path';
 import { homedir } from 'node:os';
@@ -1559,6 +1560,24 @@ app.setNotFoundHandler(async (req, reply) => {
   return reply.send(Buffer.from(await file.arrayBuffer()));
 });
 
+// Best-effort — launching the OS's default browser is a nicety for the double-clicked standalone binary
+// (nobody's watching a terminal to read the URL off), never worth failing startup over. Deliberately only
+// called when WEB_ASSETS is non-empty (see the static handler above) so a normal `bun run dev:server` never
+// pops a browser window every time it restarts.
+function openBrowser(url: string): void {
+  try {
+    const [cmd, args] =
+      process.platform === 'darwin'
+        ? ['open', [url]]
+        : process.platform === 'win32'
+          ? ['cmd', ['/c', 'start', '""', url]]
+          : ['xdg-open', [url]];
+    spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref();
+  } catch (err) {
+    pushLog('warn', `Couldn't auto-open a browser: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 // Binds starting at `requestedPort`, trying the next port up on EADDRINUSE rather than crashing — a locally
 // running second instance, or anything else already on the default port, shouldn't block VpK from starting at
 // all. Writes the port it actually bound to `portFilePath` so the Vite dev server (which can't know our port
@@ -1571,10 +1590,13 @@ listenWithRetry(
   .then((boundPort) => {
     actualPort = boundPort;
     writeFileSync(portFilePath, String(actualPort));
-    pushLog('info', `vpk server → http://127.0.0.1:${actualPort}  (${graph.nodes.size} nodes, snapshots in ${settings.snapshotDir})`);
+    const url = `http://127.0.0.1:${actualPort}`;
+    pushLog('info', `vpk server → ${url}  (${graph.nodes.size} nodes, snapshots in ${settings.snapshotDir})`);
     if (actualPort !== requestedPort) {
       pushLog('warn', `Requested port ${requestedPort} was busy — the web dev server will find me at ${actualPort} automatically`);
     }
+    // Standalone release binary only (WEB_ASSETS is empty in a normal dev checkout — see webAssets.generated.ts).
+    if (Object.keys(WEB_ASSETS).length > 0) openBrowser(url);
   })
   .catch((err: unknown) => {
     // A fatal listen() failure is usually self-explanatory (EADDRINUSE, EACCES) but not always — same
