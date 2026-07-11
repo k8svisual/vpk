@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { LessonRunnerView } from './LessonRunnerView';
 import { CourseCatalogView } from './CourseCatalogView';
 import { TeacherView } from './TeacherView';
+import { CliEquivalentModal } from './CliEquivalentModal';
+import { CLI_EQUIVALENTS } from './cliEquivalents';
 import { SearchView } from './SearchView';
 import { NetworkView } from './NetworkView';
 import { SecurityView } from './SecurityView';
@@ -30,7 +32,7 @@ import { Tooltip } from './Tooltip';
 import { applyTheme, getStoredTheme, initialTheme, setStoredTheme, type Theme } from './theme';
 import { initialFogEnabled, setStoredFogEnabled } from './fogSetting';
 import { initialGridEnabled, setStoredGridEnabled } from './gridSetting';
-import { initialShowCourseCatalog, initialShowTeacherTools, setStoredShowCourseCatalog, setStoredShowTeacherTools } from './navVisibility';
+import { initialShowCourse, initialShowCourseCatalog, initialShowTeacherTools, setStoredShowCourse, setStoredShowCourseCatalog, setStoredShowTeacherTools } from './navVisibility';
 import { initialCliOverride, initialTerminalTheme, setStoredCliOverride, setStoredTerminalTheme, type TerminalTheme } from './courseSettings';
 import { initialTerminalFontSize, setStoredTerminalFontSize } from './terminalFontSize';
 import { setVendorIconOverrides, type VendorIconOverride } from './vendorIconOverrides';
@@ -151,6 +153,7 @@ export function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [busy, setBusy] = useState<string>('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cliHelpOpen, setCliHelpOpen] = useState(false);
   // Owned here (not inside SettingsModal) because DefinitionModal also needs the current theme, to pick a
   // matching CodeMirror editor theme (see DefinitionModal.tsx's editorThemeFor) — main.tsx already applied
   // the initial theme before this component ever mounted, so this just tracks it for both consumers.
@@ -177,9 +180,14 @@ export function App() {
   }
   // Same reasoning as fog/grid — the nav rail needs it directly to decide which items to render, so it's
   // tracked here rather than owned inside SettingsModal.
+  const [showCourse, setShowCourse] = useState<boolean>(initialShowCourse);
   const [showCourseCatalog, setShowCourseCatalog] = useState<boolean>(initialShowCourseCatalog);
   const [showTeacherTools, setShowTeacherTools] = useState<boolean>(initialShowTeacherTools);
 
+  function changeShowCourse(next: boolean) {
+    setShowCourse(next);
+    setStoredShowCourse(next);
+  }
   function changeShowCourseCatalog(next: boolean) {
     setShowCourseCatalog(next);
     setStoredShowCourseCatalog(next);
@@ -211,10 +219,11 @@ export function App() {
   }
   const hiddenNavIds = useMemo(() => {
     const ids = new Set<ViewId>();
+    if (!showCourse) ids.add('course');
     if (!showCourseCatalog) ids.add('catalog');
     if (!showTeacherTools) ids.add('teacher');
     return ids;
-  }, [showCourseCatalog, showTeacherTools]);
+  }, [showCourse, showCourseCatalog, showTeacherTools]);
   const [statsOpen, setStatsOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [confirmStopOpen, setConfirmStopOpen] = useState(false);
@@ -271,6 +280,12 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately `view`-only, see comment above
   }, [view]);
 
+  // Close the CLI Equivalent popup on navigation — otherwise switching views while it's open would leave it
+  // showing commands for whichever view was active when it opened, not the one now on screen.
+  useEffect(() => {
+    setCliHelpOpen(false);
+  }, [view]);
+
   // Runs once on mount — refreshSnaps/refreshNamespaces are stable callbacks (empty dep arrays).
   useEffect(() => {
     void refreshSnaps();
@@ -291,9 +306,13 @@ export function App() {
   // in Settings, that view is no longer reachable via the nav rail — fall back to the plain Course view
   // rather than leaving them stranded on a screen with no way back to it.
   useEffect(() => {
-    if (view === 'catalog' && !showCourseCatalog) setView('course');
-    if (view === 'teacher' && !showTeacherTools) setView('course');
-  }, [view, showCourseCatalog, showTeacherTools]);
+    // Falls back to plain Course when Catalog/Teacher gets hidden, UNLESS Course itself is also hidden, in
+    // which case there's no Training-group view left to land on — go to the app's own initial default.
+    const courseFallback: ViewId = showCourse ? 'course' : 'ownerref';
+    if (view === 'course' && !showCourse) setView('ownerref');
+    if (view === 'catalog' && !showCourseCatalog) setView(courseFallback);
+    if (view === 'teacher' && !showTeacherTools) setView(courseFallback);
+  }, [view, showCourse, showCourseCatalog, showTeacherTools]);
 
   async function post(path: string, body: unknown) {
     const r = await fetch(path, {
@@ -549,6 +568,17 @@ export function App() {
           <span className="text-sm font-semibold" style={{ color: 'var(--vpk-fg)' }}>
             {VIEW_LABELS[view]}
           </span>
+          {CLI_EQUIVALENTS[view] && (
+            <button
+              onClick={() => setCliHelpOpen(true)}
+              className="ml-1 flex items-center gap-1 rounded border px-2 py-1 text-xs cursor-pointer"
+              style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+              title="Show an equivalent kubectl/CLI command for this view"
+            >
+              <TerminalSquare size={12} />
+              CLI Equivalent
+            </button>
+          )}
         </div>
 
         <div className="flex flex-1 min-h-0">
@@ -717,6 +747,8 @@ export function App() {
         onFogEnabledChange={changeFogEnabled}
         gridEnabled={gridEnabled}
         onGridEnabledChange={changeGridEnabled}
+        showCourse={showCourse}
+        onShowCourseChange={changeShowCourse}
         showCourseCatalog={showCourseCatalog}
         onShowCourseCatalogChange={changeShowCourseCatalog}
         showTeacherTools={showTeacherTools}
@@ -730,6 +762,9 @@ export function App() {
       />
       <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
       <LogsModal open={logsOpen} onClose={() => setLogsOpen(false)} />
+      {cliHelpOpen && CLI_EQUIVALENTS[view] && (
+        <CliEquivalentModal title={VIEW_LABELS[view]} equivalent={CLI_EQUIVALENTS[view]} onClose={() => setCliHelpOpen(false)} />
+      )}
       <StopConfirmModal open={confirmStopOpen} onCancel={() => setConfirmStopOpen(false)} onConfirm={onConfirmStop} />
       <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <CaptureConfirmModal

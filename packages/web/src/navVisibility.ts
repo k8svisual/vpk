@@ -1,3 +1,4 @@
+const COURSE_KEY = 'vpk-show-course';
 const CATALOG_KEY = 'vpk-show-course-catalog';
 const TEACHER_KEY = 'vpk-show-teacher-tools';
 
@@ -16,6 +17,19 @@ function setBool(key: string, value: boolean): void {
   } catch {
     // best-effort — a failed write just means the choice won't survive a reload, not worth surfacing
   }
+}
+
+/** Whether the "Course" nav item (the Training group's lesson runner itself) shows up at all — for
+ *  deployments where nobody uses Training Course mode and it's just clutter in the rail. Same
+ *  localStorage-only display-preference model as theme/fontSize/fog/grid; defaults ON. Hiding this
+ *  independently of showCourseCatalog/showTeacherTools below means an admin CAN leave Catalog/Teacher visible
+ *  while hiding the plain Course entry (unusual, but not prevented) — App.tsx's hiddenNavIds just unions
+ *  whichever of the three are individually off. */
+export function initialShowCourse(): boolean {
+  return getBool(COURSE_KEY) ?? true;
+}
+export function setStoredShowCourse(v: boolean): void {
+  setBool(COURSE_KEY, v);
 }
 
 /** Whether the "Catalog" (course picker) and "Teacher" (course create/edit) nav items show up in the

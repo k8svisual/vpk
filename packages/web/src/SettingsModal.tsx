@@ -88,6 +88,8 @@ export function SettingsModal({
   onFogEnabledChange,
   gridEnabled,
   onGridEnabledChange,
+  showCourse,
+  onShowCourseChange,
   showCourseCatalog,
   onShowCourseCatalogChange,
   showTeacherTools,
@@ -111,6 +113,11 @@ export function SettingsModal({
   /** The 3D view's ground-grid floor toggle — same pattern as fogEnabled. */
   gridEnabled: boolean;
   onGridEnabledChange: (next: boolean) => void;
+  /** Whether the Training group's plain "Course" nav item shows up at all — for deployments where nobody
+   *  uses Training Course mode. Same pattern as fogEnabled; App.tsx needs it directly to decide what to pass
+   *  NavRail (and to redirect away if the student was on it when it got hidden). */
+  showCourse: boolean;
+  onShowCourseChange: (next: boolean) => void;
   /** Whether the Training group's "Catalog" nav item shows up — same pattern as fogEnabled; App.tsx needs it
    *  directly to decide what to pass NavRail. */
   showCourseCatalog: boolean;
@@ -342,6 +349,14 @@ export function SettingsModal({
               <span style={{ color: 'var(--vpk-fg)' }}>
                 Grid floor (3D view) — the ground grid under the Field and Wheel views. Sized to always extend past
                 every node/item currently shown.
+              </span>
+            </label>
+
+            <label className="mb-2 flex items-start gap-2 text-xs">
+              <input type="checkbox" checked={showCourse} onChange={(e) => onShowCourseChange(e.target.checked)} />
+              <span style={{ color: 'var(--vpk-fg)' }}>
+                Show Course in menu — the Training group's lesson runner. Turn off if nobody here uses Training
+                Course mode. On by default.
               </span>
             </label>
 
