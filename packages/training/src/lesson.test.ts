@@ -77,6 +77,11 @@ describe('parseLesson — frontmatter', () => {
     expect(frontmatter.title).toBe('X');
     expect(frontmatter.difficulty).toBeUndefined();
   });
+
+  it('passes an authored colors block through untouched (this module does not validate color values)', () => {
+    const { frontmatter } = parseLesson('---\nid: x\ntitle: X\ncolors:\n  page: "#fdf6e3"\n  question: "#eaf4ff"\n  code: "#f3e8ff"\n  answer: "#eafaf0"\n---\nbody');
+    expect(frontmatter.colors).toEqual({ page: '#fdf6e3', question: '#eaf4ff', code: '#f3e8ff', answer: '#eafaf0' });
+  });
 });
 
 describe('parseLesson — segments', () => {

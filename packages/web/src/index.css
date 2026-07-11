@@ -197,7 +197,7 @@
   padding: 0.1em 0.35em;
 }
 .lesson-prose pre {
-  background: var(--vpk-bg);
+  background: var(--lesson-code-bg, var(--vpk-bg));
   border: 1px solid var(--vpk-border);
   border-radius: 4px;
   padding: 0.6em 0.8em;
@@ -208,4 +208,87 @@
   background: none;
   border: none;
   padding: 0;
+}
+.lesson-prose details {
+  background: var(--lesson-answer-bg, var(--vpk-surface));
+  border: 1px solid var(--vpk-border);
+  border-radius: 6px;
+  padding: 0.5em 0.75em;
+  margin: 0.6em 0;
+}
+.lesson-prose details[open] summary {
+  margin-bottom: 0.4em;
+}
+.lesson-prose summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+/* Retro split-flap countdown clock — CourseHeader's "eye candy" time-left display (FlipClock.tsx). Its own
+   fixed dark card look on purpose, independent of the app's light/dark theme, like a physical desk clock. */
+.flip-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  perspective: 240px;
+  --flip-bg: #1c1c1c;
+  --flip-fg: #e8e8e8;
+}
+.flip-clock--danger {
+  --flip-bg: #3a1414;
+  --flip-fg: #ff6b6b;
+}
+.flip-clock__colon {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--flip-fg);
+  padding: 0 1px;
+}
+.flip-digit {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--flip-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.flip-digit::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.5);
+  transform: translateY(-0.5px);
+  z-index: 1;
+}
+.flip-digit__static,
+.flip-digit__flap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--flip-fg);
+}
+.flip-digit__flap {
+  background: var(--flip-bg);
+  transform-origin: bottom;
+  backface-visibility: hidden;
+  animation: flip-clock-flap 320ms ease-in forwards;
+}
+@keyframes flip-clock-flap {
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-90deg);
+  }
 }

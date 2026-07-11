@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { marked } from 'marked';
 import { CheckCircle2, CircleAlert, Loader2, Moon, Sun, Terminal as TerminalIcon, XCircle } from 'lucide-react';
+import { FlipClock } from './FlipClock';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -24,6 +25,7 @@ interface LessonFrontmatter {
   timeoutMs?: number;
   pollMs?: number;
   cli?: string[];
+  colors?: { page?: string; question?: string; code?: string; answer?: string };
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
 interface LessonBlock {
@@ -203,13 +205,6 @@ export function LessonRunnerView() {
   );
 }
 
-function formatCountdown(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
 function CourseHeader({
   title,
   startTime,
@@ -236,12 +231,7 @@ function CourseHeader({
       <div className="flex items-center gap-4 shrink-0" style={mutedStyle}>
         <span>Start {startTime.toLocaleTimeString([], timeFmt)}</span>
         {stopTime && <span>Stop {stopTime.toLocaleTimeString([], timeFmt)}</span>}
-        {remainingMs !== null && (
-          <span className="font-mono font-medium" style={overtime ? errorStyle : undefined}>
-            {overtime ? '+' : ''}
-            {formatCountdown(Math.abs(remainingMs))} {overtime ? 'over' : 'left'}
-          </span>
-        )}
+        {remainingMs !== null && <FlipClock totalMs={Math.abs(remainingMs)} danger={overtime} label={overtime ? 'over' : 'left'} />}
         {totalTasks > 0 && (
           <span>
             {completedTasks}/{totalTasks} tasks
@@ -253,8 +243,18 @@ function CourseHeader({
 }
 
 function LessonPane({ lesson, onCheckStatus }: { lesson: ParsedLesson; onCheckStatus: (id: string, status: CheckStatus) => void }) {
+  const colors = lesson.frontmatter.colors;
+  // Page background is an explicit inline style (only added when authored, so unstyled lessons render
+  // exactly as before); code/answer are CSS custom properties consumed by .lesson-prose in index.css, with
+  // var() fallbacks to the existing theme colors — the raw HTML from `marked` (pre/details) has no React
+  // props to thread a color through directly, but it does inherit ancestor custom properties.
+  const docStyle: Record<string, string> = {};
+  if (colors?.page) docStyle.background = colors.page;
+  if (colors?.code) docStyle['--lesson-code-bg'] = colors.code;
+  if (colors?.answer) docStyle['--lesson-answer-bg'] = colors.answer;
+
   return (
-    <div className="max-w-2xl space-y-4 pb-8">
+    <div className={`max-w-2xl space-y-4 pb-8 ${colors?.page ? 'p-3 rounded' : ''}`} style={docStyle}>
       <header>
         <h2 className="text-base font-semibold">{lesson.frontmatter.title}</h2>
         <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
@@ -278,7 +278,7 @@ function LessonSegmentView({
   lesson: ParsedLesson;
   onCheckStatus: (id: string, status: CheckStatus) => void;
 }) {
-  if (segment.type === 'prose') return <ProseBlock markdown={segment.markdown} />;
+  if (segment.type === 'prose') return <ProseBlock markdown={segment.markdown} questionBg={lesson.frontmatter.colors?.question} />;
   switch (segment.block.kind) {
     case 'detect':
       return <DetectCard cli={lesson.frontmatter.cli} />;
@@ -291,11 +291,12 @@ function LessonSegmentView({
   }
 }
 
-function ProseBlock({ markdown }: { markdown: string }) {
+function ProseBlock({ markdown, questionBg }: { markdown: string; questionBg?: string }) {
   const html = useMemo(() => marked.parse(markdown, { async: false }) as string, [markdown]);
+  const style = questionBg ? { background: questionBg, padding: '0.5em 0.75em', borderRadius: 6 } : undefined;
   // Lesson content is authored/reviewed repo content, never student input — marked's default renderer
   // doesn't execute embedded scripts either way.
-  return <div className="lesson-prose text-sm" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="lesson-prose text-sm" style={style} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 /** The first real consumer of a vpk-detect block's RUNTIME behavior — until now the block existed only as

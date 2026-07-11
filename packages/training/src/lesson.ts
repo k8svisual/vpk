@@ -38,6 +38,18 @@ export interface LessonFrontmatter {
    *  equivalent to fall back to). Two lessons covering the same topic for kubectl vs OpenShift are authored
    *  as separate lesson files with different `cli`, not one file branching on it. */
   cli?: string[];
+  /** Optional per-lesson color overrides — any valid CSS color (hex, rgb(), var(), etc.), applied by the web
+   *  renderer as CSS custom properties/inline backgrounds. All slots optional; an omitted slot falls back to
+   *  the app's default theme. `page` colors the whole document background, `question` the prose/task text,
+   *  `code` fenced example-code blocks, `answer` the Hint/Step-by-step `<details>` disclosures. Purely a
+   *  presentation hint — this module doesn't validate the values are real colors, same as it doesn't
+   *  validate any other frontmatter field (see module doc comment). */
+  colors?: {
+    page?: string;
+    question?: string;
+    code?: string;
+    answer?: string;
+  };
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz';
