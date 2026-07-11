@@ -5,8 +5,8 @@ import { VpkIcon } from './VpkIcon';
  * Once-per-session branded launch screen (splashState.ts gates whether this even mounts) — same gradient
  * banner treatment as AboutModal (var(--vpk-accent) -> var(--vpk-rail-bg), re-colors with the active theme),
  * with the VpK badge zooming/spinning in via CSS (see index.css's vpk-splash-icon keyframes) to settle at
- * 25% of the viewport height. The "VpK" + "Visually presented Kubernetes" text lives in the banner ONCE,
- * same as AboutModal — no separate caption repeating it below the icon.
+ * 25% of the viewport height. Caption below is "Visually presented Kubernetes" only — the badge itself
+ * already spells out "VpK", so repeating the wordmark as text below it was redundant.
  *
  * ICON_ANIMATION_MS below must stay in sync with index.css's vpk-splash-icon animation-duration — there's no
  * single source shared between CSS and JS for it, so if one changes, change the other too.
@@ -46,10 +46,7 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         <VpkIcon size={1000} className="vpk-splash-icon__svg" />
       </div>
       <div className="text-center">
-        <div className="text-2xl font-semibold" style={{ color: '#fff' }}>
-          VpK
-        </div>
-        <div className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+        <div className="text-2xl font-semibold" style={{ color: 'rgba(255,255,255,0.85)' }}>
           Visually presented Kubernetes
         </div>
       </div>
