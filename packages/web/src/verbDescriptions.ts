@@ -1,9 +1,9 @@
 /** Plain-English gloss for the verbs a lesson commonly allows — shared by the terminal's "Allowed" popover
  *  (TerminalPane.tsx) and Settings' additional-commands tester (VerbTester.tsx/SettingsModal.tsx), so the two
- *  don't drift into two separate half-lists of the same thing. Mirrors (but doesn't import) server/src/
- *  course/command.ts's MUTATING_VERBS/checkCommandPolicy — that's the actual enforcement, this is just
- *  documentation for the student; a verb missing from this map still works fine if allowed, it just falls back
- *  to the generic description below. */
+ *  don't drift into two separate half-lists of the same thing. Pure documentation for the student — the actual
+ *  enforcement is server/src/course/command.ts's checkCommandPolicy (which gates on the lesson's `allow` list);
+ *  a verb missing from this map still works fine if allowed, it just falls back to the generic description
+ *  below. */
 export const VERB_DESCRIPTIONS: Record<string, string> = {
   get: 'List or show one or more resources',
   describe: 'Show detailed information about a resource',

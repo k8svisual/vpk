@@ -23,6 +23,9 @@ export function TerminalPopout() {
   const allow = (params.get('allow') ?? 'get').split(',').filter(Boolean);
   const cliParam = params.get('cli');
   const cli = cliParam ? cliParam.split(',').filter(Boolean) : undefined;
+  // The lesson's delete-confirmation opt-out rides along in the URL like allow/cli (LessonRunnerView sets
+  // confirmDelete=0 only when the lesson turned it off); absent means the default, confirm on.
+  const confirmDelete = params.get('confirmDelete') !== '0';
 
   useEffect(() => {
     document.title = 'VpK Terminal';
@@ -30,7 +33,7 @@ export function TerminalPopout() {
 
   return (
     <div className="flex h-screen flex-col p-2" style={{ background: 'var(--vpk-bg)' }}>
-      <TerminalPane allow={allow} cli={cli} theme={initialTerminalTheme()} fontSizePx={initialTerminalFontSize()} />
+      <TerminalPane allow={allow} cli={cli} confirmDelete={confirmDelete} theme={initialTerminalTheme()} fontSizePx={initialTerminalFontSize()} />
     </div>
   );
 }

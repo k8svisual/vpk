@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { probeCli } from './cliProbe';
 
@@ -33,15 +33,27 @@ export function CliPathFixer({
 }) {
   const [path, setPath] = useState(cli);
   const [status, setStatus] = useState<CheckStatus>('idle');
+  // The success delay must not outlive the component: if this unmounts inside the 700ms window for a reason
+  // other than the resolve itself (the Settings modal or terminal popout closes), the timer would otherwise
+  // still fire onResolved — persisting a binary path for a fix the user was abandoning. Clear it on unmount.
+  const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      aliveRef.current = false;
+      if (resolveTimer.current) clearTimeout(resolveTimer.current);
+    };
+  }, []);
 
   async function check() {
     const trimmed = path.trim();
     if (!trimmed) return;
     setStatus('checking');
     const found = await probeCli(trimmed);
+    if (!aliveRef.current) return;
     if (found) {
       setStatus('found');
-      setTimeout(() => onResolved(trimmed), RESOLVED_DELAY_MS);
+      resolveTimer.current = setTimeout(() => onResolved(trimmed), RESOLVED_DELAY_MS);
     } else {
       setStatus('not-found');
     }

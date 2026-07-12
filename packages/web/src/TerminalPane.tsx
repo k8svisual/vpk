@@ -125,6 +125,7 @@ function setStoredSession(session: TerminalSession): void {
 export function TerminalPane({
   allow,
   cli,
+  confirmDelete = true,
   theme,
   fontSizePx,
   layout,
@@ -133,6 +134,9 @@ export function TerminalPane({
 }: {
   allow: string[];
   cli?: string[];
+  /** Whether a `delete` asks for confirmation before running — the lesson's own frontmatter opt-out (a
+   *  delete-heavy course sets it false). Defaults to true (confirm shown). */
+  confirmDelete?: boolean;
   theme: TerminalTheme;
   fontSizePx: number;
   layout?: CourseLayout;
@@ -154,6 +158,10 @@ export function TerminalPane({
   // already-saved override (Settings > Education's tester, or resolving it right here) short-circuits this to
   // true without re-probing every mount — same trust model LessonRunnerView's runPreflight already uses.
   const [binaryFound, setBinaryFound] = useState<boolean | null>(() => (getBinaryPath(cliName) ? true : null));
+  // A `<cli> delete …` command the student has entered but not yet confirmed — the UI guardrail that replaces
+  // the old server-side "deleting is blocked" rule (VpK deliberately lets a student delete on their own
+  // training cluster, but a stray Enter shouldn't wipe something out unprompted). null = nothing pending.
+  const [confirmCmd, setConfirmCmd] = useState<string | null>(null);
   const draftRef = useRef('');
   const colors = TERMINAL_COLORS[theme];
   // Layered on top of whatever the lesson itself declares — see terminalAllowlist.ts's own doc comment for why
@@ -166,9 +174,17 @@ export function TerminalPane({
   // per-candidate at run() time, same as cliName's own override.
   const extraBinaries = initialExtraAllowedBinaries();
 
+  // Persist the whole session (input line + transcript + recall) so it carries across a pop-out/pop-in. Debounce
+  // the write rather than stringifying the entire (possibly large) session on every keystroke — but flush the
+  // latest synchronously on unmount, because a pop-out unmounts this pane and the popup reads the session right
+  // after, so a pending debounced write must not be dropped.
+  const sessionRef = useRef({ line, history, commandLog });
+  sessionRef.current = { line, history, commandLog };
   useEffect(() => {
-    setStoredSession({ line, history, commandLog });
+    const t = setTimeout(() => setStoredSession(sessionRef.current), 250);
+    return () => clearTimeout(t);
   }, [line, history, commandLog]);
+  useEffect(() => () => setStoredSession(sessionRef.current), []);
 
   useEffect(() => {
     if (getBinaryPath(cliName)) {
@@ -189,16 +205,42 @@ export function TerminalPane({
     };
   }, [cliName]);
 
-  async function run() {
-    const cmd = line.trim();
+  // True for a `<cli> delete …` command (not a standalone binary) — used to gate it behind a confirm.
+  function isDeleteCommand(cmd: string): boolean {
+    const tokens = cmd.split(/\s+/).filter(Boolean);
+    const cliArgv = cli && cli.length > 0 ? cli : [cliName];
+    if (!cliArgv.every((part, i) => tokens[i] === part)) return false; // an extra standalone binary — no verb concept
+    return tokens[cliArgv.length] === 'delete';
+  }
+
+  // Runs one command through the gates (clear-screen, then the delete confirm) — shared by the input's Run/Enter
+  // and by the "re-run after fixing the CLI path" retry, so both honor the same confirm behavior.
+  async function submit(cmd: string) {
+    if (running) return; // the Run button is disabled while running, but Enter isn't — guard against a fast double-Enter firing two concurrent posts of the same line
     if (!cmd) return;
-    setHistoryIndex(null);
-    setCommandLog((p) => [...p, cmd]);
     if (CLEAR_COMMANDS.has(cmd.toLowerCase())) {
+      setHistoryIndex(null);
+      setCommandLog((p) => [...p, cmd]);
+      setConfirmCmd(null);
       setHistory([]);
       setLine('');
       return;
     }
+    if (confirmDelete && isDeleteCommand(cmd)) {
+      setConfirmCmd(cmd); // ask before deleting — the student explicitly confirms via the banner below
+      return;
+    }
+    await execute(cmd);
+  }
+
+  async function run() {
+    await submit(line.trim());
+  }
+
+  async function execute(cmd: string) {
+    setConfirmCmd(null);
+    setHistoryIndex(null);
+    setCommandLog((p) => [...p, cmd]);
     setRunning(true);
     const candidates = [cliName, ...extraBinaries];
     const matched = resolveLeadingCommand(cmd, candidates);
@@ -330,8 +372,15 @@ export function TerminalPane({
                 </>
               )}
               <p className="border-t pt-2" style={{ borderColor: colors.border, color: colors.mutedFg }}>
-                Always blocked, regardless of the lists above: deleting a Node, and any mutating verb combined
-                with -A/--all-namespaces.
+                This is a real cluster — nothing here is held back
+                {confirmDelete ? (
+                  <>
+                    , though a <code>delete</code> asks you to confirm first
+                  </>
+                ) : (
+                  ''
+                )}
+                . Run it against a cluster you can afford to break.
               </p>
             </div>
           </>
@@ -386,6 +435,31 @@ export function TerminalPane({
           {running ? '…' : 'Run'}
         </button>
       </div>
+      {confirmCmd && (
+        <div className="mx-2 mt-2 rounded border p-2 text-xs" style={{ borderColor: colors.errorFg }}>
+          <p className="flex items-center gap-1.5" style={{ color: colors.errorFg }}>
+            <TriangleAlert size={13} />
+            This deletes resources from the live cluster. Run it?
+          </p>
+          <pre className="my-1.5 whitespace-pre-wrap" style={{ color: colors.fg, fontSize: fontSizePx }}>$ {confirmCmd}</pre>
+          <div className="flex gap-2">
+            <button
+              onClick={() => void execute(confirmCmd)}
+              className="rounded border px-2 py-1 cursor-pointer"
+              style={{ borderColor: colors.errorFg, color: colors.errorFg }}
+            >
+              Run delete
+            </button>
+            <button
+              onClick={() => setConfirmCmd(null)}
+              className="rounded border px-2 py-1 cursor-pointer"
+              style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex-1 overflow-auto px-3 py-2 space-y-3 font-mono min-h-0" style={{ fontSize: fontSizePx }}>
         {[...history].reverse().map((entry, i) => (
           <div key={history.length - 1 - i}>
@@ -416,6 +490,7 @@ export function TerminalPane({
                       onResolved={(path) => {
                         setBinaryPath(entry.fixableCli as string, path);
                         if (entry.fixableCli === cliName) setBinaryFound(true);
+                        void submit(entry.line); // re-run the command that failed, now that its binary is resolved
                       }}
                     />
                   </div>

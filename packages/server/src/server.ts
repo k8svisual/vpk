@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative, extname } from 'node:path';
 import { homedir } from 'node:os';
@@ -134,7 +134,9 @@ const runtimeDir = isCompiledBinary ? join(homedir(), '.vpk') : join(here, '../.
 if (isCompiledBinary && process.platform !== 'win32') {
   try {
     const shell = process.env.SHELL ?? '/bin/zsh';
-    const shellPath = execSync(`${shell} -ilc 'echo -n "$PATH"'`, { encoding: 'utf8', timeout: 3000 }).trim();
+    // execFileSync (shell as the executable, flags as an argv array) rather than execSync of an interpolated
+    // string — so a $SHELL containing shell metacharacters can't turn this into command injection at startup.
+    const shellPath = execFileSync(shell, ['-ilc', 'echo -n "$PATH"'], { encoding: 'utf8', timeout: 3000 }).trim();
     if (shellPath) {
       process.env.PATH = Array.from(new Set([...shellPath.split(':'), ...(process.env.PATH ?? '').split(':')].filter(Boolean))).join(':');
     }

@@ -1,0 +1,396 @@
+<title>VpK code audit — dmg-fixes-and-help</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#eceff3; --surface:#ffffff; --surface-2:#f5f7fa;
+    --ink:#1a1e26; --ink-muted:#5c6672; --ink-faint:#8a94a3;
+    --border:#dde2e9; --border-strong:#c9d1db;
+    --accent:#2f6bd8;
+    --high:#d23a3a; --high-bg:#fbe9e9;
+    --med:#b3760e;  --med-bg:#f7efdb;
+    --low:#3f6ea3;  --low-bg:#e8eff6;
+    --safe:#2c8a63; --safe-bg:#e3f2ea;
+    --shadow:0 1px 2px rgba(20,30,50,.05), 0 8px 24px -16px rgba(20,30,50,.25);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0d1117; --surface:#151b23; --surface-2:#1b222c;
+      --ink:#e7ebf0; --ink-muted:#9aa4b2; --ink-faint:#6b7684;
+      --border:#262d38; --border-strong:#333c48;
+      --accent:#5c8cf0;
+      --high:#f2726f; --high-bg:#2a1719;
+      --med:#e0a13c;  --med-bg:#2a2214;
+      --low:#7aa7de;  --low-bg:#16202c;
+      --safe:#5cc08e; --safe-bg:#14251d;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.6);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eceff3; --surface:#ffffff; --surface-2:#f5f7fa;
+    --ink:#1a1e26; --ink-muted:#5c6672; --ink-faint:#8a94a3;
+    --border:#dde2e9; --border-strong:#c9d1db; --accent:#2f6bd8;
+    --high:#d23a3a; --high-bg:#fbe9e9; --med:#b3760e; --med-bg:#f7efdb;
+    --low:#3f6ea3; --low-bg:#e8eff6; --safe:#2c8a63; --safe-bg:#e3f2ea;
+    color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1117; --surface:#151b23; --surface-2:#1b222c;
+    --ink:#e7ebf0; --ink-muted:#9aa4b2; --ink-faint:#6b7684;
+    --border:#262d38; --border-strong:#333c48; --accent:#5c8cf0;
+    --high:#f2726f; --high-bg:#2a1719; --med:#e0a13c; --med-bg:#2a2214;
+    --low:#7aa7de; --low-bg:#16202c; --safe:#5cc08e; --safe-bg:#14251d;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px; line-height:1.62; letter-spacing:-.003em;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace}
+  code{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    font-size:.86em; background:var(--surface-2); border:1px solid var(--border);
+    border-radius:4px; padding:.06em .34em; color:var(--ink); white-space:nowrap}
+  a{color:var(--accent)}
+  .wrap{max-width:900px; margin:0 auto; padding:0 24px}
+
+  /* header */
+  header.top{border-bottom:1px solid var(--border); background:
+    linear-gradient(180deg,var(--surface),transparent);}
+  .eyebrow{font-family:ui-monospace,Menlo,monospace; font-size:11px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); font-weight:600}
+  h1{font-size:clamp(26px,4.5vw,34px); line-height:1.12; margin:.35em 0 .3em;
+    font-weight:680; letter-spacing:-.02em; text-wrap:balance}
+  .sub{color:var(--ink-muted); font-size:15px; max-width:60ch}
+  .meta{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:18px;
+    font-size:12.5px; color:var(--ink-faint); font-family:ui-monospace,Menlo,monospace}
+  .meta b{color:var(--ink-muted); font-weight:500}
+  .top .wrap{padding-top:40px; padding-bottom:30px}
+
+  /* verdict callout */
+  .verdict{margin-top:22px; border:1px solid var(--border-strong); border-left:3px solid var(--high);
+    background:var(--surface); border-radius:10px; padding:16px 18px; box-shadow:var(--shadow)}
+  .verdict h2{margin:0 0 6px; font-size:15px; font-weight:640; letter-spacing:-.01em; display:flex; gap:8px; align-items:center}
+  .verdict p{margin:0; color:var(--ink-muted); font-size:14px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--high);display:inline-block;flex:0 0 auto}
+
+  /* scoreboard */
+  .board{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+    gap:12px; margin:28px 0 8px}
+  .tile{background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:14px 15px; box-shadow:var(--shadow); position:relative; overflow:hidden}
+  .tile::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--c)}
+  .tile .n{font-size:30px; font-weight:680; letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1}
+  .tile .l{font-family:ui-monospace,Menlo,monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:.09em; color:var(--ink-muted); margin-top:8px}
+  .tile.high{--c:var(--high)} .tile.med{--c:var(--med)} .tile.low{--c:var(--low)}
+  .tile.nit{--c:var(--ink-faint)} .tile.safe{--c:var(--safe)}
+  .tile.safe .n{color:var(--safe)}
+
+  /* section */
+  section{padding:34px 0 4px}
+  .band{display:flex; align-items:baseline; gap:12px; margin:0 0 4px}
+  .band h2{font-size:19px; font-weight:660; letter-spacing:-.02em; margin:0}
+  .band .count{font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--ink-faint)}
+  .band-desc{color:var(--ink-muted); font-size:13.5px; margin:2px 0 18px; max-width:64ch}
+
+  /* finding */
+  .finding{background:var(--surface); border:1px solid var(--border);
+    border-left:3px solid var(--c,var(--border)); border-radius:10px;
+    padding:16px 18px 15px; margin-bottom:14px; box-shadow:var(--shadow)}
+  .finding.high{--c:var(--high)} .finding.med{--c:var(--med)} .finding.low{--c:var(--low)}
+  .fhead{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:9px}
+  .chip{font-family:ui-monospace,Menlo,monospace; font-size:10.5px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:999px; line-height:1.5}
+  .chip.high{color:var(--high); background:var(--high-bg)}
+  .chip.med{color:var(--med); background:var(--med-bg)}
+  .chip.low{color:var(--low); background:var(--low-bg)}
+  .tag{font-family:ui-monospace,Menlo,monospace; font-size:11px; color:var(--ink-faint);
+    border:1px solid var(--border); border-radius:5px; padding:1px 7px}
+  .ref{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--ink-muted);
+    margin-left:auto; text-align:right}
+  .new{font-family:ui-monospace,Menlo,monospace; font-size:10px; letter-spacing:.04em;
+    color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:1px 6px; opacity:.85}
+  .finding h3{font-size:16.5px; font-weight:640; letter-spacing:-.015em; margin:0 0 7px; line-height:1.3; text-wrap:balance}
+  .finding p{margin:0 0 8px; font-size:14px; color:var(--ink-muted)}
+  .finding p:last-child{margin-bottom:0}
+  .finding .lead{color:var(--ink)}
+  .kv{font-family:ui-monospace,Menlo,monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.06em; font-weight:600; margin-right:6px}
+  .kv.repro{color:var(--ink-faint)} .kv.fix{color:var(--safe)}
+  pre{margin:8px 0; background:var(--surface-2); border:1px solid var(--border); border-radius:7px;
+    padding:10px 12px; overflow-x:auto; font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.5; color:var(--ink)}
+
+  /* nits + safe lists */
+  .list{background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:6px 4px; box-shadow:var(--shadow)}
+  .row{display:flex; gap:12px; padding:10px 14px; border-bottom:1px solid var(--border); align-items:baseline}
+  .row:last-child{border-bottom:0}
+  .row .r-ref{font-family:ui-monospace,Menlo,monospace; font-size:11.5px; color:var(--ink-faint);
+    flex:0 0 auto; min-width:0}
+  .row .r-txt{font-size:13.5px; color:var(--ink-muted)}
+  .safe .row{align-items:flex-start}
+  .check{color:var(--safe); flex:0 0 auto; font-weight:700}
+
+  /* order of ops */
+  ol.ops{counter-reset:op; list-style:none; margin:0; padding:0}
+  ol.ops li{counter-increment:op; position:relative; padding:12px 0 12px 42px; border-bottom:1px solid var(--border)}
+  ol.ops li:last-child{border-bottom:0}
+  ol.ops li::before{content:counter(op); position:absolute; left:0; top:11px;
+    width:26px; height:26px; border-radius:7px; background:var(--surface-2); border:1px solid var(--border);
+    font-family:ui-monospace,Menlo,monospace; font-size:13px; font-weight:600; color:var(--accent);
+    display:grid; place-items:center}
+  ol.ops b{font-weight:620; color:var(--ink)}
+  ol.ops span{color:var(--ink-muted); font-size:13.5px}
+
+  footer{border-top:1px solid var(--border); margin-top:44px; padding:26px 0 60px;
+    color:var(--ink-faint); font-size:12.5px}
+  footer .wrap{display:flex; flex-direction:column; gap:6px}
+  footer b{color:var(--ink-muted); font-weight:500}
+  hr.soft{border:0; border-top:1px solid var(--border); margin:0}
+  .callout{background:var(--surface-2); border:1px solid var(--border); border-radius:9px;
+    padding:13px 15px; margin:16px 0 0; font-size:13.5px; color:var(--ink-muted)}
+  .callout b{color:var(--ink)}
+  @media (max-width:520px){ .ref,.new{margin-left:0} .fhead{gap:6px} }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">Code audit · engineering review</div>
+    <h1>VpK — deep audit of the <span class="mono">dmg-fixes-and-help</span> branch</h1>
+    <p class="sub">A four-lens review of everything changed this session — command execution, packaging, and UI — read against the actual code. Findings are ranked by severity with file references, impact, and a suggested fix. Nothing was modified; this is a report.</p>
+    <div class="meta">
+      <span><b>Scope</b> 39 files, diff vs <span>main</span></span>
+      <span><b>Reviewers</b> security · correctness · frontend · build</span>
+      <span><b>Gate</b> typecheck ✓ · 770 tests ✓ · lint ✓</span>
+      <span><b>Date</b> 2026-07-12</span>
+    </div>
+
+    <div class="verdict">
+      <h2><span class="dot"></span>Headline: one real chain worth fixing before this ships wide</h2>
+      <p>The build is solid and the packaging bug from earlier is genuinely fixed. The one thing to prioritize is a security chain the terminal work opened up: the course terminal now trusts a client-supplied list of runnable binaries, and lesson markdown is rendered unsanitized — together they make <b>“open a shared course → run arbitrary code”</b> reachable. The server binds <span class="mono">127.0.0.1</span> only and is single-tenant, which caps remote exposure, but courses are explicitly meant to be shared and imported, so this vector is real. Two quick UI bugs and two one-line guard bypasses round out the priority list.</p>
+    </div>
+
+    <div class="board">
+      <div class="tile high"><div class="n">4</div><div class="l">High</div></div>
+      <div class="tile med"><div class="n">6</div><div class="l">Medium</div></div>
+      <div class="tile low"><div class="n">9</div><div class="l">Low</div></div>
+      <div class="tile nit"><div class="n">11</div><div class="l">Nits</div></div>
+      <div class="tile safe"><div class="n">20+</div><div class="l">Verified safe</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="band"><h2>High</h2><span class="count">fix first</span></div>
+    <p class="band-desc">The two security items chain into remote-ish code execution; the two frontend items freeze the app’s only “fix a missing CLI” recovery path whenever the server hiccups.</p>
+
+    <article class="finding high">
+      <div class="fhead"><span class="chip high">High</span><span class="tag">security</span><span class="new">this session</span><span class="ref">server.ts:714 · command.ts:101–105</span></div>
+      <h3>The course terminal trusts client-supplied <code>extraBinaries</code> — an arbitrary-binary exec primitive</h3>
+      <p class="lead"><code>checkCommandPolicy</code> short-circuits to “allowed” for the whole command line whenever <code>argv[0]</code> is in <code>policy.extraBinaries</code> — and <code>/course/command</code> fills that list straight from the request body, with no server-side allowlist. The safety claim (“student-controlled, never lesson content”) is enforced only in the browser; the server has no independent basis for it. By contrast <code>/course/task-check</code> correctly never accepts <code>extraBinaries</code> — that route is the model to copy.</p>
+      <p><span class="kv repro">Repro</span><code>POST /course/command</code> with <code>{"line":"bash -c '…'","cli":"bash","allow":[],"extraBinaries":["bash"]}</code> runs arbitrary code as the user. The tokenizer rejects a bare <code>|</code>, but <code>bash -c '&lt;script&gt;'</code> is one quoted token, so naming any shell/interpreter as <code>argv[0]</code> sails through.</p>
+      <p><span class="kv fix">Fix</span>Don’t trust <code>extraBinaries</code> from the request. Either drop it server-side and enforce the same cli/verb gate the task-check route uses, or persist the student’s opted-in binaries server-side and intersect the request against that set. At minimum, refuse shell/interpreter binaries (<code>sh bash zsh python perl ruby node env xargs find</code>) as extra binaries.</p>
+    </article>
+
+    <article class="finding high">
+      <div class="fhead"><span class="chip high">High</span><span class="tag">security</span><span class="ref">LessonRunnerView.tsx:896–900</span></div>
+      <h3>Lesson markdown is rendered unsanitized — XSS that chains with the above into “import a course → RCE”</h3>
+      <p class="lead"><code>marked.parse()</code> output is injected via <code>dangerouslySetInnerHTML</code> with no sanitizer. <code>marked</code> passes raw HTML through by default — <code>&lt;script&gt;</code> won’t run via innerHTML, but <code>&lt;img src=x onerror=…&gt;</code> and <code>&lt;svg onload=…&gt;</code> do. Lessons are written by Teacher tools to <code>~/.vpk/courses</code> and are explicitly designed to be zipped, shared, and imported — so this is not strictly trusted repo content.</p>
+      <p><span class="kv repro">Chain</span>Import a third-party course → a malicious <code>onerror</code> fires in the app origin → it <code>fetch()</code>s <code>/course/command</code> with <code>extraBinaries:["bash"]</code> (finding above) → code execution. This is the vector that turns the first finding from “local process only” into “open a shared course and get owned.”</p>
+      <p><span class="kv fix">Fix</span>Sanitize <code>marked</code> output (e.g. DOMPurify) or configure a renderer that drops raw HTML. Worth doing even independent of the first finding — unsanitized lesson HTML has access to every <code>/course/*</code> and <code>/settings</code> route. <span style="opacity:.8">(Pre-existing, but newly weaponized by the <code>extraBinaries</code> change.)</span></p>
+    </article>
+
+    <article class="finding high">
+      <div class="fhead"><span class="chip high">High</span><span class="tag">frontend</span><span class="new">this session</span><span class="ref">cliProbe.ts:5–13</span></div>
+      <h3><code>probeCli</code> has no error handling — a server hiccup permanently freezes the CLI-fix UI</h3>
+      <p class="lead">Unlike its sibling <code>runProbeCommand</code>, <code>probeCli</code> awaits <code>fetch</code> and <code>res.json()</code> with no guard, so a network blip or non-JSON 500 makes the promise <em>reject</em>. In <code>CliPathFixer.check()</code> that leaves <code>status</code> stuck on <code>'checking'</code>, so <code>busy</code> stays true and the input + Check button are disabled <b>forever</b> — freezing the only recovery path for a missing binary at exactly the moment the server is unreachable. Every rejection also hits the global unhandled-rejection handler, spamming the server error log.</p>
+      <p><span class="kv fix">Fix</span>Wrap <code>probeCli</code>’s fetch/JSON in try/catch returning <code>false</code> (mirror <code>runProbeCommand</code>), or give each <code>check()</code> a catch that sets an error status. This primitive backs all four new tester components.</p>
+    </article>
+
+    <article class="finding high">
+      <div class="fhead"><span class="chip high">High</span><span class="tag">frontend</span><span class="new">this session</span><span class="ref">cliProbe.ts:40</span></div>
+      <h3><code>runProbeCommand</code> parses JSON before checking <code>res.ok</code></h3>
+      <p class="lead">The <code>fetch</code> is wrapped, but <code>await res.json()</code> is not, and the <code>!res.ok</code> check happens after parsing. A non-JSON error response (a 500 HTML page, a proxy error during dev restart) throws in <code>res.json()</code>, rejecting <code>probeVerb</code>/<code>probeStandalone</code> → <code>VerbTester</code>/<code>BinaryTester</code> stuck on <code>'checking'</code> plus unhandled-rejection noise. Same class as above.</p>
+      <p><span class="kv fix">Fix</span>Parse inside try/catch, or check <code>res.ok</code>/content-type before <code>.json()</code>.</p>
+    </article>
+  </section>
+
+  <hr class="soft">
+
+  <section>
+    <div class="band"><h2>Medium</h2><span class="count">worth doing soon</span></div>
+    <p class="band-desc">Two one-line guard bypasses in the command policy, a boot-safety gap in the new seed extraction, and three UI robustness issues in the new testers/terminal.</p>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">security</span><span class="ref">command.ts:117–120</span></div>
+      <h3>“Deleting Nodes is never allowed” is bypassable via the <code>no</code> short alias</h3>
+      <p class="lead">The guard matches <code>node</code>, <code>nodes</code>, <code>node/…</code>, <code>nodes/…</code> — but kubectl/oc also accept <code>no</code> as the built-in short name for Nodes. With <code>delete</code> in a step’s allow-list, <code>kubectl delete no worker-1</code> (or <code>no/worker-1</code>, or fully-qualified <code>node.v1.</code>) evades the only thing standing between an allowed delete and destroying a Node.</p>
+      <p><span class="kv fix">Fix</span>Normalize the resource token and match the segment before <code>.</code>/<code>/</code> against <code>{node, nodes, no}</code>.</p>
+    </article>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">security</span><span class="ref">command.ts:90, 121–123</span></div>
+      <h3>The mutating <code>--all-namespaces</code> block is bypassable via <code>=true</code></h3>
+      <p class="lead"><code>ALL_NAMESPACES_FLAGS</code> is matched by exact token equality, but kubectl (pflag) also accepts <code>--all-namespaces=true</code> as a single token — so <code>kubectl delete pods --all-namespaces=true</code> slips past the cluster-wide-mutation guard.</p>
+      <p><span class="kv fix">Fix</span>Match <code>a === '-A' || a === '--all-namespaces' || a.startsWith('--all-namespaces=')</code>.</p>
+    </article>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">correctness</span><span class="new">this session</span><span class="ref">seedCourses.ts:16–25 · content.ts:36</span></div>
+      <h3>Seed-course extraction has no error handling and runs at module load — a bad asset kills server boot</h3>
+      <p class="lead"><code>extractSeedCourses()</code> runs as a side effect when <code>content.ts</code> is imported, with no try/catch. If any single embedded asset is unreadable, the <code>readFileSync</code> throws an uncaught exception at import time and the packaged server fails to start entirely — instead of degrading to an empty catalog the way the snapshot-dir setup does elsewhere.</p>
+      <p><span class="kv fix">Fix</span>Wrap the extraction body in try/catch, log via <code>pushLog</code>, and continue.</p>
+    </article>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">frontend</span><span class="new">this session</span><span class="ref">VerbTester.tsx:53 · BinaryTester.tsx:46</span></div>
+      <h3>Auto-probe-on-mount fires a burst of real process spawns when Settings opens</h3>
+      <p class="lead">Every tester row runs <code>check()</code> on mount with no debounce or <code>AbortController</code>. Opening Settings › Education with N verbs + M binaries immediately fires up to <code>2N+M</code> HTTP posts, each of which spawns a real CLI process server-side (<code>&lt;cli&gt; &lt;verb&gt; --help</code>). Ten verbs + five binaries ≈ 25 spawns the instant the tab renders; closing the modal mid-flight cancels nothing.</p>
+      <p><span class="kv fix">Fix</span>Probe lazily on the first “Test” click, or gate the auto-probe to the visible tab and stagger it.</p>
+    </article>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">frontend</span><span class="new">this session</span><span class="ref">CliPathFixer.tsx:44</span></div>
+      <h3><code>CliPathFixer</code>’s success timer isn’t cleared on unmount</h3>
+      <p class="lead">The <code>setTimeout(() =&gt; onResolved(...), 700)</code> before firing <code>onResolved</code> has no cleanup. If the component unmounts inside that window for a reason other than the resolve itself — closing the Settings modal, closing the terminal popout — the timer still fires <code>onResolved</code>, writing to localStorage (<code>setBinaryPath</code>) for a fix the user was abandoning.</p>
+      <p><span class="kv fix">Fix</span>Hold the timer id in a ref and <code>clearTimeout</code> in a <code>useEffect</code> cleanup.</p>
+    </article>
+
+    <article class="finding med">
+      <div class="fhead"><span class="chip med">Med</span><span class="tag">frontend</span><span class="ref">TerminalPane.tsx:192–218</span></div>
+      <h3>The terminal double-submits on a fast double-Enter</h3>
+      <p class="lead">The Run button is <code>disabled={running}</code>, but the Enter handler calls <code>run()</code> unconditionally and <code>run()</code> has no in-flight guard and never clears the input. Two quick Enters fire two concurrent <code>/course/command</code> posts of the same line and append two transcript + recall entries.</p>
+      <p><span class="kv fix">Fix</span>Early-return in <code>run()</code> when <code>running</code>, or guard the Enter branch with <code>!running</code>.</p>
+    </article>
+  </section>
+
+  <hr class="soft">
+
+  <section>
+    <div class="band"><h2>Low</h2><span class="count">nice to tidy</span></div>
+    <p class="band-desc">Robustness and hygiene — real but low-likelihood or low-impact given the localhost, single-tenant model.</p>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">correctness</span><span class="ref">seedCourses.ts:17</span></div>
+      <h3>First-run seeding guards on directory existence, not completeness</h3>
+      <p>It returns early if <code>~/.vpk/courses</code> exists, and the dir only comes into being mid-extraction — so a crash partway through (compounded by the no-try/catch item above) leaves it partial, and every later startup skips re-seeding. The student is stuck with an incomplete catalog and no self-heal. <span class="kv fix">Fix</span>Extract to a temp dir and atomically rename on success, or check a “seeded” manifest instead of bare existence.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">correctness</span><span class="ref">content.ts · walkMarkdownFiles</span></div>
+      <h3>A <code>.md</code> resource can masquerade as a lesson</h3>
+      <p>Resources now live under <code>&lt;course&gt;/resources/</code>, and <code>.md</code> is an allowed upload type — but the lesson scan recurses into every subdirectory. A markdown resource with valid frontmatter would show up as a lesson in the catalog. Latent today (no <code>.md</code> resources shipped). <span class="kv fix">Fix</span>Skip any <code>resources/</code> path segment in <code>walkMarkdownFiles</code>/<code>listLessonFiles</code>.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">security</span><span class="ref">command.ts:167–203</span></div>
+      <h3><code>runCourseCommand</code> has no timeout and buffers output unbounded</h3>
+      <p>Neither <code>/course/command</code> nor <code>/course/task-check</code> passes a timeout or size cap; stdout/stderr accumulate without limit. An allowed long-running or streaming command hangs the request and grows memory (a local DoS). <code>probeBinary</code> caps at 3s; the real runners don’t. <span class="kv fix">Fix</span>Add a wall-clock timeout + output-size cap and wire an AbortController from the route.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">security</span><span class="new">this session</span><span class="ref">server.ts:136–137</span></div>
+      <h3>Startup PATH probe interpolates <code>$SHELL</code> into an <code>execSync</code> string</h3>
+      <p><code>execSync(`${shell} -ilc '…'`)</code> string-interpolates <code>$SHELL</code> into a command handed to <code>/bin/sh -c</code>. A <code>$SHELL</code> with metacharacters is startup command injection — practically it needs an attacker-controlled launch environment (already-compromised territory), and only runs in the compiled binary on non-Windows. <span class="kv fix">Fix</span><code>execFileSync(shell, ['-ilc','echo -n "$PATH"'])</code> — no string interpolation. (Also note fish uses space-separated <code>$PATH</code>; the colon-split mis-parses but fails safe-ish.)</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">frontend</span><span class="ref">TerminalPane.tsx:163–171</span></div>
+      <h3>Per-keystroke localStorage churn in the terminal</h3>
+      <p>The whole session is <code>JSON.stringify</code>’d and written on every change of <code>line</code> (i.e. every keystroke), and the allow-lists re-read localStorage + parse ×2 and rebuild a <code>Set</code> on every render. Correct, just wasteful for a long session. <span class="kv fix">Fix</span>Debounce the write (or key it off <code>history</code>/<code>commandLog</code>, not <code>line</code>) and memoize the allow-list reads.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">frontend</span><span class="ref">VerbTester.tsx:39–51</span></div>
+      <h3>Stale-outcome race in the testers</h3>
+      <p><code>check()</code> has no in-flight cancellation, so if <code>testCli</code> flips (via the CLI override) or the effect re-fires while a probe runs, the later-<em>resolving</em> probe wins and can paint a stale status. <span class="kv fix">Fix</span>Use a per-run <code>cancelled</code> token — the pattern already used correctly in <code>TerminalPane</code>’s binary-probe effect.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">frontend</span><span class="ref">BinaryTester.tsx:43</span></div>
+      <h3><code>probeStandalone</code> is fire-and-forget with no <code>.catch</code></h3>
+      <p>The best-effort <code>--help</code> run has no rejection handler, so a network/JSON failure produces unhandled-rejection noise (UI stays fine since status is already <code>ok</code>). <span class="kv fix">Fix</span>Add <code>.catch(()=&gt;{})</code> or set a benign outcome.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">frontend</span><span class="ref">terminalAllowlist.ts:23–32</span></div>
+      <h3>Allow-lists aren’t deduped → duplicate-key risk</h3>
+      <p><code>readStringList</code> doesn’t dedupe, and the UI keys list rows and the “Allowed” popover by the verb/binary string. The add handlers prevent dups, so it can’t happen through the UI — but a hand-edited or pre-existing storage value with duplicates would collide React keys. <span class="kv fix">Fix</span><code>Array.from(new Set(...))</code> in <code>readStringList</code>.</p>
+    </article>
+
+    <article class="finding low">
+      <div class="fhead"><span class="chip low">Low</span><span class="tag">build</span><span class="ref">build-course-assets.ts:53</span></div>
+      <h3>Generated import specifier is single-quoted without escaping</h3>
+      <p>The embed generator emits <code>'../../../courses/${coursePath}'</code> as a raw single-quoted string; a course filename containing <code>'</code> or <code>\</code> would emit syntactically broken TypeScript and fail the compile. Input is repo-controlled and current names are clean, so latent. <span class="kv fix">Fix</span><code>JSON.stringify</code> the specifier, or reject such names. (Same shape in <code>build-web-assets.ts</code>.)</p>
+    </article>
+  </section>
+
+  <hr class="soft">
+
+  <section>
+    <div class="band"><h2>Nits</h2><span class="count">cosmetic · stale comments</span></div>
+    <p class="band-desc">No behavior impact — mostly comments that drifted as the code moved this session, plus a couple of tiny coverage gaps.</p>
+    <div class="list">
+      <div class="row"><span class="r-ref">content.ts:30</span><span class="r-txt">Comment says <code>-&gt; v2/courses</code>; the path actually resolves to repo-root <code>courses/</code> (leftover from the superseded vpk-new layout).</span></div>
+      <div class="row"><span class="r-ref">App.tsx:69</span><span class="r-txt">Comment claims hidden ids are only <code>catalog</code>/<code>teacher</code>, but <code>course</code> is also added when hidden. Behavior correct; comment stale.</span></div>
+      <div class="row"><span class="r-ref">CourseResourcesPanel.tsx:6</span><span class="r-txt">Doc-comment still references the removed <code>courseResourcesDir</code> setting; the code uses the correct per-course routes.</span></div>
+      <div class="row"><span class="r-ref">content.ts:31</span><span class="r-txt">Recomputes <code>~/.vpk/courses</code> independently of <code>server.ts</code>’s <code>runtimeDir</code> — harmless duplication.</span></div>
+      <div class="row"><span class="r-ref">LessonRunnerView.tsx:429</span><span class="r-txt">Effect deps <code>[activeLessonId, lessonId]</code> are redundant (they change together); no double-fire.</span></div>
+      <div class="row"><span class="r-ref">HelpPanel.tsx:359,379</span><span class="r-txt">Cross-links keyed by source label, commands by index — fine for static content, fragile if it grows.</span></div>
+      <div class="row"><span class="r-ref">helpContent.ts:searchHelp</span><span class="r-txt">Search doesn’t index image alt/caption or link URLs — a coverage gap, not a bug.</span></div>
+      <div class="row"><span class="r-ref">App.tsx:275,526</span><span class="r-txt">Brief “none found in (no directory configured)” flash on first mount before <code>/snapshots</code> resolves. Cosmetic.</span></div>
+      <div class="row"><span class="r-ref">build-course-assets.ts</span><span class="r-txt"><code>walk().sort()</code> sorts pre-normalized paths — order stable on mac/linux release hosts; only a theoretical Windows-build caveat.</span></div>
+      <div class="row"><span class="r-ref">server.ts:743 (probe-cli)</span><span class="r-txt">Spawns any client-supplied path (argument-less, killed immediately) — intended existence oracle, documented risk, not a bug.</span></div>
+      <div class="row"><span class="r-ref">TerminalPane.tsx:411</span><span class="r-txt">UX gap: fixing a path via the inline transcript fixer doesn’t clear or auto-retry the errored line — user must retype.</span></div>
+    </div>
+  </section>
+
+  <hr class="soft">
+
+  <section>
+    <div class="band"><h2>Verified safe</h2><span class="count">coverage</span></div>
+    <p class="band-desc">Explicitly checked and found sound — so the report shows what was covered, not just what broke.</p>
+    <div class="list safe">
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>No shell anywhere in the exec path.</b> All spawning uses <code>spawn(cmd, argsArray)</code> with no <code>shell:true</code> — classic metacharacter injection is structurally impossible at the exec layer.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>Path-traversal guards hold.</b> Resource and lesson path resolution reject <code>..</code>, separators, and absolute paths, and re-check with <code>resolve</code> + <code>startsWith(dir+sep)</code>. The new <code>&lt;course&gt;/resources/</code> layout preserves them.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>The course embed → extract round-trip works end-to-end.</b> The <code>../../../courses</code> path is correct (the earlier <code>../../courses</code> bug is genuinely fixed), the committed placeholder is empty, and a packaged binary will actually ship the four seed courses to <code>~/.vpk/courses</code>.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>The DMG build is self-healing.</b> Resetting the generated placeholders before the typecheck gate means a prior interrupted build can’t break the next one.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b><code>/course/task-check</code> is a genuine boundary</b> — it never accepts <code>extraBinaries</code> and re-gates argv server-side. It’s the model the terminal route should follow.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>The <code>courseResourcesDir</code> removal is clean</b> — no dangling references anywhere; settings type, defaults, load/save, and tests all consistent (18/18 touched tests pass).</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>Nav gating is correct.</b> Catalog/Course/Teacher render without a snapshot and are independently gated by their visibility toggles; the “none found in &lt;dir&gt;” message threads through both call sites.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>The Help rewrite matches the code.</b> 23 topics, no duplicate ids, all 16 view ids covered, all 5 figures present; Settings/Education, the Course terminal, and pop-out claims all spot-checked accurate.</span></div>
+      <div class="row"><span class="check">✓</span><span class="r-txt"><b>The empty-catalog blank-terminal fallback and the popped-out width fix</b> handle cancellation and state resets soundly; <code>resolveLeadingCommand</code> escapes regex correctly and the terminal transcript keys are stable.</span></div>
+    </div>
+    <div class="callout">Server binds <b>127.0.0.1</b> only, registers no CORS plugin, and the app is single-tenant/localhost — this materially caps remote exploitability of the security findings. The realistic path to the High-severity chain is <b>importing a shared/third-party course</b>, which the course model explicitly invites.</div>
+  </section>
+
+  <hr class="soft">
+
+  <section>
+    <div class="band"><h2>Suggested order</h2><span class="count">if you fix a few</span></div>
+    <ol class="ops">
+      <li><b>Stop trusting client <code>extraBinaries</code> in <code>/course/command</code></b> <span>— the one change that closes the exec primitive; block shell/interpreter binaries at minimum.</span></li>
+      <li><b>Sanitize lesson markdown</b> <span>— removes the app-origin XSS and breaks the import-a-course → RCE chain.</span></li>
+      <li><b>Add error handling to <code>cliProbe</code></b> <span>— two small try/catches un-freeze the CLI-fix UI and stop the error-log spam; highest bang-for-buck UI fix.</span></li>
+      <li><b>Harden the two policy guards</b> <span>— the <code>no</code> alias and <code>--all-namespaces=true</code> are one-line matches each.</span></li>
+      <li><b>Wrap seed extraction in try/catch</b> <span>— cheap insurance against a packaged-app boot failure.</span></li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b>Method</b> — four parallel review agents (security · correctness · frontend · build), each reading full current file contents on branch <span class="mono">dmg-fixes-and-help</span>; findings de-duplicated and re-ranked here. Confirmed issues traced through the code; a few marked latent/needs-verification are noted inline.</span>
+    <span><b>Status</b> — report only; no code was changed. Build, tests, and lint were green at audit time.</span>
+    <span><b>Counts</b> — 4 High · 6 Medium · 9 Low · 11 Nits · 20+ areas verified safe.</span>
+  </div>
+</footer>

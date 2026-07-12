@@ -659,6 +659,7 @@ export function SettingsModal({
                         <VerbTester
                           verb={verb}
                           cli={testCli}
+                          index={i}
                           colors={{
                             border: 'var(--vpk-field-border)',
                             fg: 'var(--vpk-fg)',
@@ -717,6 +718,7 @@ export function SettingsModal({
                       <div className="mt-1.5">
                         <BinaryTester
                           name={name}
+                          index={i}
                           colors={{
                             border: 'var(--vpk-field-border)',
                             fg: 'var(--vpk-fg)',

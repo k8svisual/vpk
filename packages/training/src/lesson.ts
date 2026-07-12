@@ -54,6 +54,10 @@ export interface LessonFrontmatter {
    *  estimatedMinutes is set). Set false to keep the time budget documented for planning purposes without
    *  putting a visibly ticking clock in front of the student. */
   showCountdown?: boolean;
+  /** Author opt-out for the terminal's "confirm before running a delete" prompt — defaults to true (a delete
+   *  asks for confirmation before running). Set false for courses where deleting is a frequent, expected part
+   *  of the exercises, so the student isn't prompted on every delete. The teacher owns this per lesson. */
+  confirmDelete?: boolean;
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';

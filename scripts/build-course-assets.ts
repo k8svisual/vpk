@@ -37,7 +37,11 @@ function main() {
     process.exit(1);
   }
 
-  const files = walk(COURSES_DIR, COURSES_DIR).sort();
+  // Normalize path separators BEFORE sorting so the generated order is identical regardless of the build host's
+  // OS (on Windows the raw paths would contain `\`, which sorts differently from `/`).
+  const files = walk(COURSES_DIR, COURSES_DIR)
+    .map((p) => p.split(sep).join('/'))
+    .sort();
   if (files.length === 0) {
     console.error(`${COURSES_DIR} is empty — nothing to embed.`);
     process.exit(1);
@@ -45,12 +49,13 @@ function main() {
 
   const importLines: string[] = [];
   const mapEntries: string[] = [];
-  files.forEach((relPath, i) => {
-    const coursePath = relPath.split(sep).join('/');
+  files.forEach((coursePath, i) => {
     const varName = `c${i}`;
     // ../../../courses — three levels up from packages/server/src/ reaches the REPO ROOT's courses/ dir.
     // (webAssets uses ../../web because packages/web is a sibling package UNDER packages/; courses/ is not.)
-    importLines.push(`import ${varName} from '../../../courses/${coursePath}' with { type: 'file' };`);
+    // JSON.stringify the specifier so a filename containing a quote/backslash can't emit broken TypeScript.
+    const specifier = JSON.stringify(`../../../courses/${coursePath}`);
+    importLines.push(`import ${varName} from ${specifier} with { type: 'file' };`);
     mapEntries.push(`  ${JSON.stringify(coursePath)}: ${varName} as unknown as string,`);
   });
 

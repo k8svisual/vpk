@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { getBinaryPath, setBinaryPath } from './commandApproval';
-import { probeCli, probeVerb, type CommandProbeOutcome } from './cliProbe';
+import { probeCli, probeVerb, PROBE_STAGGER_MS, type CommandProbeOutcome } from './cliProbe';
 import { CliPathFixer } from './CliPathFixer';
 import { CommandResultModal } from './CommandResultModal';
 
@@ -25,33 +25,53 @@ export function VerbTester({
   verb,
   cli,
   colors,
+  index = 0,
 }: {
   verb: string;
   /** Bare CLI name to test against (e.g. 'kubectl') — resolved through any stored path override before
    *  probing, same as the terminal itself does. */
   cli: string;
   colors: { border: string; fg: string; mutedFg: string; inputBg?: string; buttonBg?: string; errorFg: string; okFg: string };
+  /** Row position in the list — used only to stagger the auto-probe so N rows don't spawn N server processes
+   *  at the same instant when the tab opens. */
+  index?: number;
 }) {
   const [status, setStatus] = useState<Status>('checking');
   const [outcome, setOutcome] = useState<CommandProbeOutcome | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  // Guards against setState after unmount, and `runIdRef` against a stale run winning: each probe runs a real
+  // server process, so a modal closed mid-flight (or a second check started before the first resolves) must not
+  // write its result into a gone component or over a newer run.
+  const aliveRef = useRef(true);
+  const runIdRef = useRef(0);
 
   async function check() {
+    const runId = ++runIdRef.current;
     setStatus('checking');
     setOutcome(null);
     const path = getBinaryPath(cli) ?? cli;
     const found = await probeCli(path);
+    if (!aliveRef.current || runId !== runIdRef.current) return;
     if (!found) {
       setStatus('cli-missing');
       return;
     }
     const result = await probeVerb(path, verb);
+    if (!aliveRef.current || runId !== runIdRef.current) return;
     setOutcome(result);
     setStatus(result.ok ? 'ok' : 'verb-bad');
   }
 
   useEffect(() => {
-    void check();
+    aliveRef.current = true;
+    // Stagger the initial auto-probe by row position so opening the tab with many rows doesn't fire every
+    // `<cli> <verb> --help` spawn at once; the timer is cleared on unmount so quickly closing the tab cancels
+    // any probe that hasn't started yet.
+    const timer = setTimeout(() => void check(), index * PROBE_STAGGER_MS);
+    return () => {
+      aliveRef.current = false;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per (cli, verb) identity, not on every render of `check`
   }, [cli, verb]);
 

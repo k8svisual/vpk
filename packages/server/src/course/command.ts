@@ -86,18 +86,20 @@ export interface CommandPolicy {
 
 export type PolicyDecision = { allowed: true } | { allowed: false; reason: string };
 
-const MUTATING_VERBS = new Set(['apply', 'create', 'delete', 'edit', 'patch', 'replace', 'scale', 'label', 'annotate', 'set', 'rollout', 'expose', 'taint', 'drain', 'cordon', 'uncordon']);
-const ALL_NAMESPACES_FLAGS = new Set(['--all-namespaces', '-A']);
-
-/** Checks a tokenized command against the lesson's policy. Four gates, in order:
+/** Checks a tokenized command against the lesson's policy. Three gates, in order:
  *   0. If argv[0] is one of `policy.extraBinaries`, the whole command is trusted as-is — see that field's own
  *      doc comment for why no further gating applies to these.
  *   1. Otherwise it must literally start with the configured `cli` argv — never a different binary. This is
  *      the hard boundary that keeps the terminal from being a general shell: nothing but the one kubectl-
  *      compatible command the lesson is scoped to, plus whatever the student explicitly opted into above.
  *   2. Its verb must be in the lesson's `allow` list.
- *   3. Two destructive-global blocks that apply regardless of `allow` (§5: "blocked by default"): deleting a
- *      Node, and any mutating verb combined with -A/--all-namespaces. */
+ *
+ * There are DELIBERATELY no destructive-operation blocks beyond the verb gate. VpK's training terminal exists
+ * to teach real Kubernetes, including `delete` (Nodes included) and cluster-wide `--all-namespaces` operations,
+ * typically against the student's own local cluster — so a lesson that puts `delete` in its `allow` list means
+ * the student is meant to run it. The guardrail for accidental destruction lives in the UI instead: the
+ * terminal asks the student to confirm a `delete` before it runs (see TerminalPane.tsx), rather than the server
+ * refusing legitimate lesson commands. */
 export function checkCommandPolicy(argv: string[], cli: string[], policy: CommandPolicy): PolicyDecision {
   if (argv.length === 0) return { allowed: false, reason: 'Empty command.' };
   if (policy.extraBinaries?.includes(argv[0] ?? '')) {
@@ -111,15 +113,6 @@ export function checkCommandPolicy(argv: string[], cli: string[], policy: Comman
   if (!verb) return { allowed: false, reason: 'No command given.' };
   if (!policy.allow.includes(verb)) {
     return { allowed: false, reason: `"${verb}" isn't allowed in this step. Allowed: ${policy.allow.join(', ') || '(none)'}.` };
-  }
-
-  const rest = argv.slice(cli.length + 1);
-  const targetsNode = rest.some((a) => a === 'node' || a === 'nodes' || a.startsWith('node/') || a.startsWith('nodes/'));
-  if (verb === 'delete' && targetsNode) {
-    return { allowed: false, reason: 'Deleting Nodes is never allowed from a lesson step.' };
-  }
-  if (MUTATING_VERBS.has(verb) && rest.some((a) => ALL_NAMESPACES_FLAGS.has(a))) {
-    return { allowed: false, reason: `"${verb}" across all namespaces (-A/--all-namespaces) is blocked — scope it to your own namespace.` };
   }
   return { allowed: true };
 }
@@ -160,10 +153,20 @@ export function probeBinary(cli: string, signal?: AbortSignal): Promise<boolean>
   });
 }
 
+// This is a STRUCTURED runner (buffers output, resolves once on process close) — not an interactive/streaming
+// terminal — so a command that never completes on its own (`logs -f`, `get -w`, `port-forward`) would otherwise
+// hang the request forever, and a very chatty command would grow the buffer without bound. A wall-clock
+// timeout and an output-size cap bound both. The timeout is a safety net, generous enough not to cut a normal
+// finite command (a `kubectl wait` etc.), not a tight budget.
+const COMMAND_TIMEOUT_MS = 120_000;
+const MAX_OUTPUT_BYTES = 2_000_000;
+
 /** Runs one argv (no shell). Unlike cliSource.ts's runCli, this ALWAYS resolves — a non-zero exit is a
  *  normal result to show the student, not a rejection — and checks `signal?.aborted` before spawning at all,
  *  so an already-aborted signal short-circuits cleanly instead of the subprocess running to completion with
- *  no way to be told to stop (see liveCheck.ts's own comment on this exact class of bug in runCli). */
+ *  no way to be told to stop (see liveCheck.ts's own comment on this exact class of bug in runCli). Also self-
+ *  limits: it stops the process (group) after COMMAND_TIMEOUT_MS or once accumulated output passes
+ *  MAX_OUTPUT_BYTES, appending a note, so no single command can hang the server or exhaust memory. */
 export function runCourseCommand(argv: string[], signal?: AbortSignal): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const [cmd, ...args] = argv;
@@ -180,24 +183,56 @@ export function runCourseCommand(argv: string[], signal?: AbortSignal): Promise<
     const child = spawn(cmd, args, { detached: true });
     let stdout = '';
     let stderr = '';
+    let bytes = 0;
     let aborted = false;
-    const onAbort = () => {
-      aborted = true;
+    let timedOut = false;
+    let truncated = false;
+
+    const killGroup = () => {
       if (child.pid) {
         try {
           process.kill(-child.pid, 'SIGTERM');
         } catch {
-          // already exited between the signal firing and this running — nothing left to kill
+          // already exited — nothing left to kill
         }
       }
     };
+    const onAbort = () => {
+      aborted = true;
+      killGroup();
+    };
     signal?.addEventListener('abort', onAbort, { once: true });
-    child.stdout.on('data', (d: Buffer) => (stdout += d.toString()));
-    child.stderr.on('data', (d: Buffer) => (stderr += d.toString()));
-    child.on('error', reject);
-    child.on('close', (code) => {
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killGroup();
+    }, COMMAND_TIMEOUT_MS);
+
+    const append = (chunk: Buffer, toStderr: boolean) => {
+      if (bytes >= MAX_OUTPUT_BYTES) {
+        if (!truncated) {
+          truncated = true;
+          killGroup();
+        }
+        return;
+      }
+      const s = chunk.toString();
+      bytes += Buffer.byteLength(s);
+      if (toStderr) stderr += s;
+      else stdout += s;
+    };
+    child.stdout.on('data', (d: Buffer) => append(d, false));
+    child.stderr.on('data', (d: Buffer) => append(d, true));
+    child.on('error', (e) => {
+      clearTimeout(timer);
       signal?.removeEventListener('abort', onAbort);
-      resolve({ argv, stdout, stderr, exitCode: aborted ? null : code, durationMs: Date.now() - startedAt });
+      reject(e);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      if (truncated) stderr += `\n[output truncated at ${MAX_OUTPUT_BYTES} bytes]`;
+      if (timedOut) stderr += `\n[command stopped after ${COMMAND_TIMEOUT_MS / 1000}s — this terminal runs a command and waits for it to finish, so streaming commands like "-f"/"-w" don't work here]`;
+      resolve({ argv, stdout, stderr, exitCode: aborted || timedOut ? null : code, durationMs: Date.now() - startedAt });
     });
   });
 }

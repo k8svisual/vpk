@@ -27,7 +27,8 @@ import { extractSeedCourses } from './seedCourses';
 // content itself) that Teacher tools can actually save lessons/resources into.
 const isCompiledBinary = import.meta.url.includes('$bunfs');
 const here = dirname(fileURLToPath(import.meta.url));
-// packages/server/src/course/content.ts -> v2/courses
+// Dev: four levels up from packages/server/src/course/ reaches the repo root's courses/ dir. Compiled: a
+// writable ~/.vpk/courses (see the comment above), seeded on first run below.
 export const DEFAULT_COURSES_DIR = isCompiledBinary ? join(homedir(), '.vpk', 'courses') : join(here, '../../../../courses');
 // First-run-only: seeds the packaged app's writable courses directory from the binary's embedded copy (see
 // seedCourses.ts) so a fresh install ships with the same courses/ content as a dev checkout, not an empty
@@ -44,6 +45,10 @@ function walkMarkdownFiles(dir: string): string[] {
   }
   const files: string[] = [];
   for (const entry of entries) {
+    // Skip each course's own `resources/` folder — uploaded resources can be `.md` too (see course/
+    // resources.ts's CONTENT_TYPES), and now that they live inside the course tree a markdown resource with
+    // frontmatter would otherwise be scanned and shown as a bogus lesson in the catalog.
+    if (entry.isDirectory() && entry.name === 'resources') continue;
     const full = join(dir, entry.name);
     if (entry.isDirectory()) files.push(...walkMarkdownFiles(full));
     else if (entry.isFile() && entry.name.endsWith('.md')) files.push(full);

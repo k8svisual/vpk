@@ -25,7 +25,10 @@ function readStringList(key: string): string[] {
     const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+    if (!Array.isArray(parsed)) return [];
+    // Dedupe here (not just in the add handlers) so a hand-edited or pre-existing storage value with
+    // duplicates can't produce colliding React keys where these are rendered by value.
+    return Array.from(new Set(parsed.filter((v): v is string => typeof v === 'string')));
   } catch {
     return []; // localStorage can throw in locked-down/private-browsing contexts, or the JSON could be corrupt
   }

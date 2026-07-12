@@ -2,14 +2,29 @@
  *  in one file so there's a single definition of "what counts as found/working" instead of several ad hoc
  *  fetches drifting apart. */
 
+/** Per-row delay for the tester rows' auto-probe on mount. Each probe spawns a real server process, so a list
+ *  of rows staggers them (row index × this) rather than firing every spawn the instant the tab renders. */
+export const PROBE_STAGGER_MS = 120;
+
+/** NEVER rejects — a network failure or a non-JSON error response (a 500 HTML page, a dev-server restart)
+ *  resolves to `false` rather than throwing. The callers (CliPathFixer, VerbTester, BinaryTester) treat the
+ *  boolean as their whole status; an unhandled rejection here would leave those testers stuck on "checking…"
+ *  forever — freezing the only "point me at the missing binary" recovery UI at exactly the moment the server
+ *  is unreachable. "Couldn't confirm it resolves" and "confirmed missing" collapse to the same false here on
+ *  purpose; the user simply retries once the server is back. */
 export async function probeCli(cli: string): Promise<boolean> {
-  const res = await fetch('/course/probe-cli', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ cli }),
-  });
-  const json = (await res.json()) as { found?: boolean };
-  return json.found === true;
+  try {
+    const res = await fetch('/course/probe-cli', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ cli }),
+    });
+    if (!res.ok) return false;
+    const json = (await res.json()) as { found?: boolean };
+    return json.found === true;
+  } catch {
+    return false;
+  }
 }
 
 export interface CommandProbeResult {
@@ -37,8 +52,16 @@ async function runProbeCommand(body: { line: string; cli: string; allow: string[
   } catch {
     return { ok: false, error: 'Could not reach the VpK server.' };
   }
-  const json = (await res.json()) as CommandProbeResult | { error: string };
-  if (!res.ok || 'error' in json) return { ok: false, error: 'error' in json ? json.error : 'Request failed.' };
+  // Guard the parse too, not just the fetch: a non-JSON error response (a 500 HTML page, a proxy error during
+  // a dev-server restart) makes res.json() throw — left unguarded that rejected probeVerb/probeStandalone and
+  // stuck their testers on "checking…" forever. Any unreadable/failed response collapses to a shown error.
+  let json: CommandProbeResult | { error: string };
+  try {
+    json = (await res.json()) as CommandProbeResult | { error: string };
+  } catch {
+    return { ok: false, error: res.ok ? 'The server returned an unreadable response.' : `Request failed (HTTP ${res.status}).` };
+  }
+  if (!res.ok || 'error' in json) return { ok: false, error: 'error' in json ? json.error : `Request failed (HTTP ${res.status}).` };
   return { ok: json.exitCode === 0, result: json };
 }
 

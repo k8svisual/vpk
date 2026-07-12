@@ -69,25 +69,25 @@ describe('checkCommandPolicy', () => {
     expect(checkCommandPolicy([], cli, readOnly)).toEqual({ allowed: false, reason: 'Empty command.' });
   });
 
-  it('always blocks deleting a Node, even if delete is on the allow list', () => {
+  // VpK's terminal is a training tool for real Kubernetes on the student's own cluster: destructive operations
+  // are intentionally permitted when the lesson's `allow` list includes the verb (the terminal confirms a
+  // `delete` in the UI instead of the server refusing it). These document that there is NO server-side
+  // destructive-operation block beyond the verb gate.
+  it('allows deleting a Node when the lesson allows delete (training tool, student cluster)', () => {
     const permissive = { allow: ['delete'] };
-    expect(checkCommandPolicy(['kubectl', 'delete', 'node', 'minikube'], cli, permissive).allowed).toBe(false);
-    expect(checkCommandPolicy(['kubectl', 'delete', 'nodes/minikube'], cli, permissive).allowed).toBe(false);
+    expect(checkCommandPolicy(['kubectl', 'delete', 'node', 'minikube'], cli, permissive).allowed).toBe(true);
+    expect(checkCommandPolicy(['kubectl', 'delete', 'no', 'worker-1'], cli, permissive).allowed).toBe(true);
   });
 
-  it('does not block deleting a non-Node resource named "node-app" or similar', () => {
-    const permissive = { allow: ['delete'] };
-    expect(checkCommandPolicy(['kubectl', 'delete', 'pod', 'node-app-1'], cli, permissive).allowed).toBe(true);
-  });
-
-  it('always blocks a mutating verb combined with -A/--all-namespaces', () => {
+  it('allows a mutating verb with --all-namespaces when the verb is allowed', () => {
     const permissive = { allow: ['delete', 'apply'] };
-    expect(checkCommandPolicy(['kubectl', 'delete', 'pods', '--all', '-A'], cli, permissive).allowed).toBe(false);
-    expect(checkCommandPolicy(['kubectl', 'apply', '-f', 'x.yaml', '--all-namespaces'], cli, permissive).allowed).toBe(false);
+    expect(checkCommandPolicy(['kubectl', 'delete', 'pods', '--all', '-A'], cli, permissive).allowed).toBe(true);
+    expect(checkCommandPolicy(['kubectl', 'apply', '-f', 'x.yaml', '--all-namespaces'], cli, permissive).allowed).toBe(true);
+    expect(checkCommandPolicy(['kubectl', 'delete', 'pods', '--all-namespaces=true'], cli, permissive).allowed).toBe(true);
   });
 
-  it('does NOT block a read verb combined with -A — that is normal, safe usage', () => {
-    expect(checkCommandPolicy(['kubectl', 'get', 'pods', '-A'], cli, readOnly).allowed).toBe(true);
+  it('still blocks a verb that is not on the allow list, destructive or not', () => {
+    expect(checkCommandPolicy(['kubectl', 'delete', 'node', 'minikube'], cli, readOnly).allowed).toBe(false);
   });
 
   it('allows a whole binary on extraBinaries, bypassing the cli/verb gate entirely', () => {

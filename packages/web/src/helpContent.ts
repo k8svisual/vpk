@@ -623,7 +623,8 @@ export const HELP_TOPICS: HelpTopic[] = [
         fields: [
           { label: 'Standalone commands', description: 'Whole extra binaries you opt into in Settings > Education (grep, jq, curl, …) run here directly as their own program; the caption adds "(plus grep, jq, …)". The terminal is never a shell.' },
           { label: 'Recall & clear', description: '↑/↓ walk previously typed commands (your in-progress draft is preserved); "clear"/"cls" wipes the visible transcript but keeps recall history.' },
-          { label: 'Allowed popover', description: 'Lists exactly what works here — the CLI, every allowed verb with a plain-English description (verbs you added tagged "(added by you)"), any standalone commands, and the two always-blocked rules (deleting a Node; any mutating verb with -A/--all-namespaces).' },
+          { label: 'Allowed popover', description: 'Lists exactly what works here — the CLI, every allowed verb with a plain-English description (verbs you added tagged "(added by you)"), and any standalone commands. Destructive operations aren\'t held back (this is a training tool for a real cluster) — but running a "delete" asks you to confirm first.' },
+          { label: 'Delete confirmation', description: 'Because the terminal runs against a real cluster, a "delete" command shows the exact command and a "Run delete" / "Cancel" prompt first, so a stray keystroke can\'t wipe something out. A lesson can turn this off (frontmatter "confirmDelete: false") for delete-heavy courses where the prompt would just be in the way.' },
           { label: 'Layout & resize', description: 'A Stack / Side-by-side button switches content-beside vs content-above; drag the divider to resize.' },
           { label: 'Pop out', description: 'Opens the terminal in its own browser window, freeing full width for the lesson. The whole session — input line, full run history/output, and ↑/↓ recall — carries over both ways, so nothing is lost popping in or out; closing that window brings it back.' },
           { label: 'Missing-CLI fixer', description: 'If the CLI (or any command) isn\'t found on PATH, an inline path-fixer lets you point VpK at the binary right there.' },
@@ -685,12 +686,18 @@ export function searchHelp(query: string): HelpTopic[] {
     let score = 0;
     if (topic.title.toLowerCase().includes(q)) score += 10;
     if (topic.summary.toLowerCase().includes(q)) score += 3;
+    for (const img of topic.images ?? []) {
+      if (img.alt.toLowerCase().includes(q) || img.caption?.toLowerCase().includes(q)) score += 1;
+    }
     for (const s of topic.sections ?? []) {
       if (s.heading.toLowerCase().includes(q)) score += 4;
       if (s.body?.toLowerCase().includes(q)) score += 2;
       for (const f of s.fields ?? []) {
         if (f.label.toLowerCase().includes(q)) score += 4;
         if (f.description.toLowerCase().includes(q)) score += 2;
+      }
+      for (const img of s.images ?? []) {
+        if (img.alt.toLowerCase().includes(q) || img.caption?.toLowerCase().includes(q)) score += 1;
       }
     }
     for (const f of topic.fields ?? []) {
@@ -706,7 +713,7 @@ export function searchHelp(query: string): HelpTopic[] {
       if (c.command.toLowerCase().includes(q)) score += 1;
     }
     for (const l of topic.links ?? []) {
-      if (l.label.toLowerCase().includes(q)) score += 1;
+      if (l.label.toLowerCase().includes(q) || l.url.toLowerCase().includes(q)) score += 1;
     }
     if (score > 0) scored.push({ topic, score });
   }

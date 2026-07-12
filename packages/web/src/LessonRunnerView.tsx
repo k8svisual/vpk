@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { marked } from 'marked';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { renderLessonHtml } from './lessonMarkdown';
 import {
   CheckCircle2,
-  CircleAlert,
   ListChecks,
   Loader2,
   Play,
@@ -11,7 +10,6 @@ import {
   Terminal as TerminalIcon,
   TriangleAlert,
   X,
-  XCircle,
 } from 'lucide-react';
 import { FlipClock } from './FlipClock';
 import { TerminalPane } from './TerminalPane';
@@ -49,6 +47,9 @@ interface LessonFrontmatter {
    *  set). Set to false to keep the time BUDGET documented in the lesson without putting a visibly ticking
    *  clock in front of the student (some courses want the estimate for planning purposes only, not pressure). */
   showCountdown?: boolean;
+  /** Author opt-out for the terminal's delete confirmation — defaults to true. Set false for delete-heavy
+   *  courses so the student isn't prompted on every delete (see TerminalPane's confirmDelete prop). */
+  confirmDelete?: boolean;
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';
 interface LessonBlock {
@@ -318,6 +319,7 @@ export function LessonRunnerView({
     const cli = cliOverride ? [cliOverride] : lesson.frontmatter.cli;
     const params = new URLSearchParams({ popout: 'terminal', allow: allow.join(',') });
     if (cli && cli.length > 0) params.set('cli', cli.join(','));
+    if (lesson.frontmatter.confirmDelete === false) params.set('confirmDelete', '0');
     const popup = window.open(`${window.location.pathname}?${params.toString()}`, 'vpk-course-terminal', 'width=640,height=560');
     if (!popup) {
       pushToast("Pop-up blocked — allow pop-ups for this site to open a separate terminal window.");
@@ -330,6 +332,19 @@ export function LessonRunnerView({
   function bringTerminalBack() {
     terminalPopupRef.current?.close();
     terminalPopupRef.current = null;
+    // Return to a 50/50 split of the pane (the student can then drag the divider to their liking) rather than
+    // restoring whatever width the terminal had before it popped out — the pop-out gave the lesson the full
+    // width, so coming back to an even split is the least surprising reset.
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      if (layout === 'row') {
+        const max = Math.min(TERMINAL_MAX_WIDTH, rect.width - LESSON_MIN_WIDTH);
+        setTerminalWidth(Math.max(TERMINAL_MIN_WIDTH, Math.min(max, Math.round(rect.width / 2))));
+      } else {
+        const max = Math.min(TERMINAL_MAX_HEIGHT, rect.height - LESSON_MIN_HEIGHT);
+        setTerminalHeight(Math.max(TERMINAL_MIN_HEIGHT, Math.min(max, Math.round(rect.height / 2))));
+      }
+    }
     setTerminalPoppedOut(false);
   }
 
@@ -660,6 +675,7 @@ export function LessonRunnerView({
             <TerminalPane
               allow={effectiveLesson.frontmatter.allow ?? ['get']}
               cli={effectiveLesson.frontmatter.cli}
+              confirmDelete={effectiveLesson.frontmatter.confirmDelete}
               theme={terminalTheme}
               fontSizePx={terminalFontSize}
               layout={layout}
@@ -719,8 +735,11 @@ function CourseHeader({
   const overtime = remainingMs !== null && remainingMs < 0;
   const timeFmt: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' };
 
+  const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
   return (
-    <div className="border rounded px-3 py-2 flex items-center justify-between gap-4 text-xs shrink-0 no-print" style={panelStyle}>
+    <div className="border rounded shrink-0 no-print overflow-hidden" style={panelStyle}>
+    <div className="px-3 py-2 flex items-center justify-between gap-4 text-xs">
       <div className="flex items-center gap-2 min-w-0">
         <span className="font-semibold text-sm truncate">{title}</span>
         <button
@@ -759,12 +778,18 @@ function CourseHeader({
         <span>Start {startTime.toLocaleTimeString([], timeFmt)}</span>
         {stopTime && <span>Stop {stopTime.toLocaleTimeString([], timeFmt)}</span>}
         {remainingMs !== null && <FlipClock totalMs={Math.abs(remainingMs)} danger={overtime} label={overtime ? 'over' : 'left'} />}
-        {totalTasks > 0 && (
-          <span>
-            {completedTasks}/{totalTasks} tasks
-          </span>
-        )}
       </div>
+    </div>
+    {totalTasks > 0 && (
+      <div className="px-3 pb-2">
+        <div style={{ height: 6, borderRadius: 99, background: 'var(--vpk-bg)', overflow: 'hidden', border: '1px solid var(--vpk-border)' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--vpk-status-ok)', borderRadius: 99, transition: 'width 0.3s ease' }} />
+        </div>
+        <div className="mt-1" style={{ fontSize: 11, color: 'var(--vpk-fg-muted)' }}>
+          {completedTasks} of {totalTasks} check{totalTasks === 1 ? '' : 's'} passed
+        </div>
+      </div>
+    )}
     </div>
   );
 }
@@ -837,7 +862,7 @@ function LessonPane({
   if (colors?.answer) docStyle['--lesson-answer-bg'] = colors.answer;
 
   return (
-    <div className={`space-y-4 pb-8 ${wide ? '' : 'max-w-2xl'} ${colors?.page ? 'p-3 rounded' : ''}`} style={docStyle}>
+    <div className={`space-y-5 pb-8 ${wide ? '' : 'max-w-3xl'} ${colors?.page ? 'p-3 rounded' : ''}`} style={docStyle}>
       <header>
         <h2 className="text-base font-semibold">{lesson.frontmatter.title}</h2>
         <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
@@ -893,11 +918,105 @@ function LessonSegmentView({
 }
 
 function ProseBlock({ markdown, questionBg }: { markdown: string; questionBg?: string }) {
-  const html = useMemo(() => marked.parse(markdown, { async: false }) as string, [markdown]);
+  // renderLessonHtml sanitizes the rendered HTML — see lessonMarkdown.ts for why lesson content is untrusted.
+  const html = useMemo(() => renderLessonHtml(markdown), [markdown]);
   const style = questionBg ? { background: questionBg, padding: '0.5em 0.75em', borderRadius: 6 } : undefined;
-  // Lesson content is authored/reviewed repo content, never student input — marked's default renderer
-  // doesn't execute embedded scripts either way.
   return <div className="lesson-prose text-sm" style={style} dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+// ── Shared block-card grammar ────────────────────────────────────────────────────────────────────────────
+// Every lesson block (environment readout, check, task) renders as one BlockCard: a colored left stripe + a
+// type chip + a status pill, so a student reads WHAT a block is and WHERE it stands before reading a word.
+// A "tone" is just a base theme color; the soft chip/pill background is derived from it with color-mix so it
+// tracks every VpK theme (light/dark/solarized/etc.) instead of hard-coding a second palette per state.
+interface CardTone {
+  /** Solid color for the stripe + pill dot + chip/pill text. */
+  base: string;
+  /** Translucent-tinted fill for the chip and pill, derived from `base`. */
+  soft: string;
+}
+function toneOf(base: string): CardTone {
+  return { base, soft: `color-mix(in srgb, ${base} 14%, var(--vpk-surface))` };
+}
+const TONE_ENV = toneOf('var(--vpk-accent)');
+const TONE_TASK = toneOf('var(--vpk-status-warn)');
+const TONE_IDLE = toneOf('var(--vpk-status-unknown)');
+const TONE_OK = toneOf('var(--vpk-status-ok)');
+const TONE_ERR = toneOf('var(--vpk-status-error)');
+
+function StatusPill({ label, tone }: { label: string; tone: CardTone }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full font-semibold shrink-0"
+      style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 10.5, padding: '2px 9px', color: tone.base, background: tone.soft }}
+    >
+      <span className="rounded-full" style={{ width: 6, height: 6, background: tone.base }} />
+      {label}
+    </span>
+  );
+}
+
+function CardButton({ onClick, children, variant = 'default' }: { onClick: () => void; children: ReactNode; variant?: 'default' | 'primary' }) {
+  const style =
+    variant === 'primary'
+      ? { background: 'var(--vpk-accent)', color: 'var(--vpk-accent-fg)', border: '1px solid transparent' }
+      : { background: 'var(--vpk-bg)', color: 'var(--vpk-fg)', border: '1px solid var(--vpk-border)' };
+  return (
+    <button
+      onClick={onClick}
+      className="shrink-0 cursor-pointer inline-flex items-center gap-1"
+      style={{ fontSize: 12.5, fontWeight: 550, padding: '5px 11px', borderRadius: 7, whiteSpace: 'nowrap', ...style }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** The one card shell all lesson blocks route through — stripe (`tone.base`) + type chip + title + optional
+ *  status pill + optional action, over an optional body separated by a hairline rule. `pillTone` defaults to
+ *  the card tone so a Check whose stripe already encodes its result doesn't need to repeat the color. */
+function BlockCard({
+  chip,
+  tone,
+  title,
+  pill,
+  pillTone,
+  action,
+  children,
+}: {
+  chip: string;
+  tone: CardTone;
+  title: ReactNode;
+  pill?: string;
+  pillTone?: CardTone;
+  action?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{ background: 'var(--vpk-surface)', border: '1px solid var(--vpk-border)', borderLeft: `3px solid ${tone.base}` }}
+    >
+      <div className="flex items-center gap-2.5 px-3.5 py-2.5">
+        <span
+          className="uppercase font-semibold rounded shrink-0"
+          style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 10, letterSpacing: '0.06em', padding: '2px 7px', color: tone.base, background: tone.soft }}
+        >
+          {chip}
+        </span>
+        <span className="font-medium flex-1 min-w-0" style={{ fontSize: 14, letterSpacing: '-0.005em' }}>
+          {title}
+        </span>
+        {pill && <StatusPill label={pill} tone={pillTone ?? tone} />}
+        {action}
+      </div>
+      {children && (
+        <div className="px-3.5 pb-3 pt-2.5" style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--vpk-fg-muted)', borderTop: '1px solid var(--vpk-border)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** The first real consumer of a vpk-detect block's RUNTIME behavior — until now the block existed only as
@@ -926,36 +1045,38 @@ function DetectCard({ cli }: { cli?: string[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const pill = error ? 'Unreachable' : !facts ? 'Probing…' : facts.contextReachable ? 'Reachable' : 'Unreachable';
+  const pillTone = error ? TONE_ERR : !facts ? TONE_IDLE : facts.contextReachable ? TONE_OK : TONE_ERR;
+  const nodesGood = facts ? facts.nodes.ready === facts.nodes.total && facts.nodes.total > 0 : false;
+  const okStyle = { color: 'var(--vpk-status-ok)', fontWeight: 600 } as const;
+
   return (
-    <div className="border rounded p-3 text-sm" style={panelStyle}>
-      <div className="font-medium mb-1">Detected environment</div>
-      {error && (
-        <p className="text-xs" style={errorStyle}>
-          {error}
-        </p>
-      )}
+    <BlockCard chip="Environment" tone={TONE_ENV} title="Detected environment" pill={pill} pillTone={pillTone}>
+      {error && <p style={errorStyle}>{error}</p>}
       {!facts && !error && (
-        <p className="text-xs flex items-center gap-1" style={mutedStyle}>
-          <Loader2 size={12} className="animate-spin" /> Probing…
+        <p className="flex items-center gap-1.5" style={mutedStyle}>
+          <Loader2 size={13} className="animate-spin" /> Probing the cluster…
         </p>
       )}
       {facts && (
-        <dl className="text-xs grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5" style={mutedStyle}>
-          <dt>Context</dt>
-          <dd>{facts.contextReachable ? (facts.contextName ?? 'reachable') : 'not reachable'}</dd>
-          <dt>Provisioner</dt>
-          <dd>{facts.provisioner ?? 'unknown'}</dd>
-          <dt>Nodes</dt>
-          <dd>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <dt style={{ color: 'var(--vpk-fg-muted)' }}>Context</dt>
+          <dd className="m-0" style={{ color: 'var(--vpk-fg)' }}>{facts.contextReachable ? (facts.contextName ?? 'reachable') : 'not reachable'}</dd>
+          <dt style={{ color: 'var(--vpk-fg-muted)' }}>Provisioner</dt>
+          <dd className="m-0" style={{ color: 'var(--vpk-fg)' }}>{facts.provisioner ?? 'unknown'}</dd>
+          <dt style={{ color: 'var(--vpk-fg-muted)' }}>Nodes</dt>
+          <dd className="m-0" style={nodesGood ? okStyle : { color: 'var(--vpk-fg)' }}>
             {facts.nodes.ready}/{facts.nodes.total} Ready
           </dd>
-          <dt>Server version</dt>
-          <dd>{facts.serverVersion ?? 'unknown'}</dd>
-          <dt>Multi-node capable</dt>
-          <dd>{facts.capabilities.multiNode ? 'yes' : 'no — single node only'}</dd>
+          <dt style={{ color: 'var(--vpk-fg-muted)' }}>Server version</dt>
+          <dd className="m-0" style={{ color: 'var(--vpk-fg)' }}>{facts.serverVersion ?? 'unknown'}</dd>
+          <dt style={{ color: 'var(--vpk-fg-muted)' }}>Multi-node capable</dt>
+          <dd className="m-0" style={facts.capabilities.multiNode ? okStyle : { color: 'var(--vpk-fg)' }}>
+            {facts.capabilities.multiNode ? 'yes' : 'no — single node only'}
+          </dd>
         </dl>
       )}
-    </div>
+    </BlockCard>
   );
 }
 
@@ -1040,62 +1161,61 @@ function CheckCard({ block, lesson, onStatusChange }: { block: LessonBlock; less
     abortRef.current?.abort();
   }
 
-  const icon =
-    status === 'pass' ? (
-      <CheckCircle2 size={15} style={{ color: 'var(--vpk-status-ok)' }} />
-    ) : status === 'fail' ? (
-      <XCircle size={15} style={errorStyle} />
-    ) : status === 'error' ? (
-      <CircleAlert size={15} style={errorStyle} />
-    ) : running ? (
-      <Loader2 size={15} className="animate-spin" style={mutedStyle} />
-    ) : null;
+  // Stripe + pill both encode the check's result (grey when not run, green pass, red fail/error) so state
+  // reads across the room; "Running…" borrows the accent so an in-flight check is visibly distinct from idle.
+  const { tone, pillLabel } =
+    status === 'pass'
+      ? { tone: TONE_OK, pillLabel: 'Passed' }
+      : status === 'fail'
+        ? { tone: TONE_ERR, pillLabel: 'Failed' }
+        : status === 'error'
+          ? { tone: TONE_ERR, pillLabel: 'Error' }
+          : status === 'cancelled'
+            ? { tone: TONE_IDLE, pillLabel: 'Cancelled' }
+            : running
+              ? { tone: TONE_ENV, pillLabel: 'Running…' }
+              : { tone: TONE_IDLE, pillLabel: 'Not run' };
+
+  const action = running ? (
+    <CardButton onClick={cancel}>Cancel</CardButton>
+  ) : (
+    <CardButton onClick={() => void run()} variant={status ? 'default' : 'primary'}>
+      {status ? 'Run again' : 'Run check'}
+    </CardButton>
+  );
+
+  const hasBody = Boolean(latestResult || latest?.type === 'error' || latest?.type === 'cancelled' || (data.hint && !status));
 
   return (
-    <div className="border rounded p-3 text-sm" style={panelStyle}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="font-medium">{data.describe ?? 'Check'}</span>
+    <BlockCard chip="Check" tone={tone} title={data.describe ?? 'Check'} pill={pillLabel} action={action}>
+      {hasBody && (
+        <div className="space-y-1.5">
+          {latestResult && (
+            <>
+              <div>
+                {latestResult.checks[0]?.summary} — {latestResult.level}
+              </div>
+              {latestResult.feedback.map((f, i) => (
+                <div key={i} className="flex gap-2" style={f.severity === 'blocker' ? errorStyle : undefined}>
+                  <span
+                    className="rounded-full shrink-0"
+                    style={{ width: 6, height: 6, marginTop: 6, background: f.severity === 'blocker' ? 'var(--vpk-status-error)' : 'var(--vpk-status-unknown)' }}
+                  />
+                  <span>{f.message}</span>
+                </div>
+              ))}
+            </>
+          )}
+          {latest?.type === 'error' && <p style={errorStyle}>{latest.error}</p>}
+          {latest?.type === 'cancelled' && <p>Cancelled.</p>}
+          {data.hint && !status && (
+            <p className="italic" style={{ color: 'var(--vpk-fg-muted)' }}>
+              {data.hint}
+            </p>
+          )}
         </div>
-        {running ? (
-          <button onClick={cancel} className="text-xs px-2 py-1 rounded border cursor-pointer" style={panelStyle}>
-            Cancel
-          </button>
-        ) : (
-          <button onClick={() => void run()} className="text-xs px-2 py-1 rounded border cursor-pointer" style={panelStyle}>
-            {status ? 'Run again' : 'Run check'}
-          </button>
-        )}
-      </div>
-      {latestResult && (
-        <div className="text-xs mt-2 space-y-1">
-          <div style={mutedStyle}>
-            {latestResult.checks[0]?.summary} — {latestResult.level}
-          </div>
-          {latestResult.feedback.map((f, i) => (
-            <div key={i} style={f.severity === 'blocker' ? errorStyle : mutedStyle}>
-              {f.message}
-            </div>
-          ))}
-        </div>
       )}
-      {latest?.type === 'error' && (
-        <p className="text-xs mt-2" style={errorStyle}>
-          {latest.error}
-        </p>
-      )}
-      {latest?.type === 'cancelled' && (
-        <p className="text-xs mt-2" style={mutedStyle}>
-          Cancelled.
-        </p>
-      )}
-      {data.hint && !status && (
-        <p className="text-xs mt-2 italic" style={mutedStyle}>
-          {data.hint}
-        </p>
-      )}
-    </div>
+    </BlockCard>
   );
 }
 
@@ -1117,58 +1237,50 @@ function TaskCard({
   onStart: () => void;
   onCompleteManual: () => void;
 }) {
-  const icon =
-    status === 'complete' ? (
-      <CheckCircle2 size={15} style={{ color: 'var(--vpk-status-ok)' }} />
-    ) : status === 'polling' ? (
-      <Loader2 size={15} className="animate-spin" style={mutedStyle} />
-    ) : status === 'timed-out' ? (
-      <TriangleAlert size={15} style={errorStyle} />
-    ) : null;
+  // The stripe stays the Task type-color (violet-ish warn) regardless of state — a task is always a task; the
+  // PILL carries where it stands. Only 'complete' flips the stripe green as a done affordance.
+  const stripeTone = status === 'complete' ? TONE_OK : TONE_TASK;
+  const { pillLabel, pillTone } =
+    status === 'complete'
+      ? { pillLabel: 'Complete', pillTone: TONE_OK }
+      : status === 'polling'
+        ? { pillLabel: 'Checking…', pillTone: TONE_TASK }
+        : status === 'timed-out'
+          ? { pillLabel: 'Paused', pillTone: TONE_ERR }
+          : status === 'in-progress'
+            ? { pillLabel: 'In progress', pillTone: TONE_TASK }
+            : { pillLabel: 'Ready', pillTone: TONE_IDLE };
+
+  const action =
+    status === 'idle' ? (
+      <CardButton onClick={onStart} variant="primary">
+        <Play size={12} />
+        Start
+      </CardButton>
+    ) : status === 'in-progress' ? (
+      <CardButton onClick={onCompleteManual}>
+        <CheckCircle2 size={12} />
+        Complete
+      </CardButton>
+    ) : undefined;
+
+  const bodyText =
+    status === 'polling'
+      ? 'Checking in the background — this completes on its own once the command passes.'
+      : status === 'timed-out'
+        ? 'Taking longer than expected — open Progress to re-check when ready.'
+        : data.hint && status === 'idle'
+          ? data.hint
+          : undefined;
 
   return (
-    <div className="border rounded p-3 text-sm" style={panelStyle}>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          {icon}
-          <span className="font-medium">{data.describe ?? data.id}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {status === 'idle' && (
-            <button onClick={onStart} className="text-xs px-2 py-1 rounded border cursor-pointer flex items-center gap-1" style={panelStyle}>
-              <Play size={11} />
-              Start
-            </button>
-          )}
-          {status === 'in-progress' && (
-            <button onClick={onCompleteManual} className="text-xs px-2 py-1 rounded border cursor-pointer flex items-center gap-1" style={panelStyle}>
-              <CheckCircle2 size={11} />
-              Complete
-            </button>
-          )}
-          {status === 'polling' && (
-            <span className="text-xs" style={mutedStyle}>
-              Checking in the background…
-            </span>
-          )}
-          {status === 'timed-out' && (
-            <span className="text-xs" style={errorStyle}>
-              Paused — see Progress
-            </span>
-          )}
-          {status === 'complete' && (
-            <span className="text-xs" style={{ color: 'var(--vpk-status-ok)' }}>
-              Complete
-            </span>
-          )}
-        </div>
-      </div>
-      {data.hint && status === 'idle' && (
-        <p className="text-xs mt-2 italic" style={mutedStyle}>
-          {data.hint}
+    <BlockCard chip="Task" tone={stripeTone} title={data.describe ?? data.id} pill={pillLabel} pillTone={pillTone} action={action}>
+      {bodyText && (
+        <p className={status === 'idle' ? 'italic' : undefined} style={status === 'timed-out' ? errorStyle : undefined}>
+          {bodyText}
         </p>
       )}
-    </div>
+    </BlockCard>
   );
 }
 
@@ -1178,11 +1290,10 @@ function TaskCard({
 function PlaceholderCard({ kind, data }: { kind: LessonBlockKind; data: unknown }) {
   const label = kind === 'setup' ? 'Setup' : kind === 'teardown' ? 'Teardown' : 'Quiz';
   return (
-    <div className="border rounded p-3 text-xs" style={{ ...panelStyle, ...mutedStyle }}>
-      <div className="font-medium mb-1">
-        {label} <span className="italic">(not yet automated)</span>
-      </div>
-      <pre className="overflow-auto">{JSON.stringify(data, null, 2)}</pre>
-    </div>
+    <BlockCard chip={label} tone={TONE_IDLE} title="Not yet automated" pill="Pending" pillTone={TONE_IDLE}>
+      <pre className="overflow-auto m-0" style={{ fontSize: 12 }}>
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </BlockCard>
   );
 }

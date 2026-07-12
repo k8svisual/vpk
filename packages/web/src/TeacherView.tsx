@@ -362,6 +362,7 @@ function ReferencePanel({ onClose }: { onClose: () => void }) {
           <RefField name="showCountdown" desc="false hides the ticking clock while keeping estimatedMinutes for planning. Defaults to true." />
           <RefField name="prereqs" desc="List of other lesson ids, e.g. [getting-started-00-cluster]." />
           <RefField name="allow" desc="List of verbs the terminal permits, e.g. [get, describe, create, delete]." />
+          <RefField name="confirmDelete" desc="false skips the terminal's 'confirm before running a delete' prompt — set it for delete-heavy courses. Defaults to true." />
           <RefField name="cli" desc="Which CLI this lesson targets, e.g. [oc]. Defaults to kubectl if omitted." />
           <RefField name="passWhen" desc='"functional" or "conformant" — what counts as passing a check.' />
           <RefField name="floor" desc='"loose" | "standard" | "strict" | "pinned" — minimum strictness.' />

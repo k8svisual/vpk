@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, FileImage, Loader2, Pencil, Trash2, UploadCloud } from 'lucide-react';
 
 /**
- * Teacher tools' Resources panel — images, sample files, anything a lesson links to, stored under Settings >
- * Education's `courseResourcesDir` in one subdirectory per course (see server's course/resources.ts doc
- * comment). Scoped to whichever course the editor currently has open (TeacherView derives `course` from the
- * lesson path's first segment) — resources aren't per-lesson-file, they're per-course, since a course
- * directory can (eventually) hold more than one lesson file sharing the same images/samples.
+ * Teacher tools' Resources panel — images, sample files, anything a lesson links to, stored inside the
+ * course's own directory at `<coursesDir>/<course>/resources/` (see server's course/resources.ts doc comment).
+ * Scoped to whichever course the editor currently has open (TeacherView derives `course` from the lesson
+ * path's first segment) — resources aren't per-lesson-file, they're per-course, since a course directory can
+ * (eventually) hold more than one lesson file sharing the same images/samples.
  */
 
 interface ResourceFile {

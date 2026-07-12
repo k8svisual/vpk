@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Loader2, X } from 'lucide-react';
 import { getBinaryPath, setBinaryPath } from './commandApproval';
-import { probeCli, probeStandalone, type CommandProbeOutcome } from './cliProbe';
+import { probeCli, probeStandalone, PROBE_STAGGER_MS, type CommandProbeOutcome } from './cliProbe';
 import { CliPathFixer } from './CliPathFixer';
 import { CommandResultModal } from './CommandResultModal';
 
@@ -22,29 +22,43 @@ type Status = 'checking' | 'ok' | 'missing';
 export function BinaryTester({
   name,
   colors,
+  index = 0,
 }: {
   name: string;
   colors: { border: string; fg: string; mutedFg: string; inputBg?: string; buttonBg?: string; errorFg: string; okFg: string };
+  /** Row position — used only to stagger the auto-probe so many rows don't spawn at once. */
+  index?: number;
 }) {
   const [status, setStatus] = useState<Status>('checking');
   const [outcome, setOutcome] = useState<CommandProbeOutcome | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const aliveRef = useRef(true);
+  const runIdRef = useRef(0);
 
   async function check() {
+    const runId = ++runIdRef.current;
     setStatus('checking');
     setOutcome(null);
     const path = getBinaryPath(name) ?? name;
     const found = await probeCli(path);
+    if (!aliveRef.current || runId !== runIdRef.current) return;
     if (!found) {
       setStatus('missing');
       return;
     }
     setStatus('ok');
-    void probeStandalone(path).then(setOutcome);
+    void probeStandalone(path).then((o) => {
+      if (aliveRef.current && runId === runIdRef.current) setOutcome(o);
+    });
   }
 
   useEffect(() => {
-    void check();
+    aliveRef.current = true;
+    const timer = setTimeout(() => void check(), index * PROBE_STAGGER_MS);
+    return () => {
+      aliveRef.current = false;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per `name` identity, not on every render of `check`
   }, [name]);
 

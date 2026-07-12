@@ -65,9 +65,10 @@ type ViewId =
   | 'catalog'
   | 'teacher';
 
-/** Filters a nav group list down to visible items given the Settings > UI "show in menu" toggles — items not
- *  named here are always visible; `hiddenIds` only ever contains 'catalog'/'teacher' when their toggle is
- *  off. A group left with zero items is dropped entirely rather than rendered as an empty header. */
+/** Filters a nav group list down to visible items given the Settings > Education "show in menu" toggles —
+ *  items not named here are always visible; `hiddenIds` only ever contains the Training group's 'course',
+ *  'catalog', and/or 'teacher' when their toggles are off. A group left with zero items is dropped entirely
+ *  rather than rendered as an empty header. */
 function filterRailGroups(groups: RailGroup<ViewId>[], hiddenIds: ReadonlySet<ViewId>): RailGroup<ViewId>[] {
   return groups.map((g) => ({ ...g, items: g.items.filter((it) => !hiddenIds.has(it.id)) })).filter((g) => g.items.length > 0);
 }
@@ -136,6 +137,9 @@ export function App() {
   const [view, setView] = useState<ViewId>('ownerref');
   const [showSplash, setShowSplash] = useState(() => !hasPlayedSplashThisSession());
   const [snaps, setSnaps] = useState<Snapshots>({ dir: '', current: '', files: [] });
+  // False until the first /snapshots fetch resolves — gates the "none found" empty-state so it doesn't flash
+  // during the brief pre-fetch window when `snaps` is still its empty initial value.
+  const [snapsLoaded, setSnapsLoaded] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   // The Pod SchematicView actually renders — captured from `selected` only at the moment the user navigates
   // INTO the Schematic view (see the effect below), then left alone. Every icon inside the diagram itself
@@ -266,7 +270,13 @@ export function App() {
   const [namespaces, setNamespaces] = useState<string[]>([]);
 
   const refreshSnaps = useCallback(
-    () => fetch('/snapshots').then((r) => r.json() as Promise<Snapshots>).then(setSnaps),
+    () =>
+      fetch('/snapshots')
+        .then((r) => r.json() as Promise<Snapshots>)
+        .then((s) => {
+          setSnaps(s);
+          setSnapsLoaded(true);
+        }),
     [],
   );
   // No snapshot files exist in the configured directory at all — every view (other than Demo Data, which
@@ -522,7 +532,7 @@ export function App() {
                 </option>
               ))}
             </select>
-            {noSnapshots && (
+            {snapsLoaded && noSnapshots && (
               <span style={{ color: 'var(--vpk-status-error)' }}>none found in {snaps.dir || '(no directory configured)'}</span>
             )}
           </label>

@@ -356,8 +356,8 @@ function TopicCard({
               <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--vpk-fg-muted)' }}>
                 Links to / from other screens
               </div>
-              {topic.crossLinks.map((c) => (
-                <div key={c.from} className="flex items-start gap-1.5">
+              {topic.crossLinks.map((c, i) => (
+                <div key={`${c.from}-${i}`} className="flex items-start gap-1.5">
                   <ArrowRight size={12} className="mt-0.5 shrink-0" style={{ color: 'var(--vpk-accent)' }} />
                   <div>
                     <span className="text-xs font-medium" style={{ color: 'var(--vpk-fg)' }}>
