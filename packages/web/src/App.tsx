@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, Terminal, BookOpen, GraduationCap, TerminalSquare, Printer, CircleHelp } from 'lucide-react';
+import { Share2, Search, LayoutTemplate, Network, Shield, Database, Layers, Box, KeyRound, UserSearch, Settings as SettingsIcon, BarChart3, ScrollText, X, FlaskConical, AlertTriangle, Table2, NotebookPen, BookOpen, GraduationCap, TerminalSquare, Printer, CircleHelp } from 'lucide-react';
 import { NavRail, type RailGroup, type RailItem } from './NavRail';
 import { DemoDataView } from './DemoDataView';
 import { LessonRunnerView } from './LessonRunnerView';
@@ -106,7 +106,7 @@ const RAIL_GROUPS: RailGroup<ViewId>[] = [
     title: 'Training',
     items: [
       { id: 'catalog', label: 'Catalog', icon: BookOpen },
-      { id: 'course', label: 'Course', icon: Terminal },
+      { id: 'course', label: 'Course', icon: NotebookPen },
       { id: 'teacher', label: 'Teacher', icon: GraduationCap },
     ],
   },
