@@ -2,42 +2,22 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  deleteResourceFile,
-  ensureCourseResourceDir,
-  findResourceReferences,
-  listCourseResourceDirs,
-  listResourceFiles,
-  readResourceFile,
-  renameResourceFile,
-  saveResourceFile,
-} from './resources';
+import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './resources';
 
-describe('ensureCourseResourceDir / listCourseResourceDirs', () => {
+describe('ensureCourseResourceDir', () => {
   let dir: string;
   afterEach(() => {
     if (dir) rmSync(dir, { recursive: true, force: true });
   });
 
-  it('creates the course subdirectory, idempotently', () => {
+  it('creates the course\'s resources subdirectory, idempotently', () => {
     dir = mkdtempSync(join(tmpdir(), 'vpk-resources-'));
     ensureCourseResourceDir(dir, 'course05');
-    expect(existsSync(join(dir, 'course05'))).toBe(true);
+    expect(existsSync(join(dir, 'course05', 'resources'))).toBe(true);
     expect(() => ensureCourseResourceDir(dir, 'course05')).not.toThrow();
   });
 
-  it('lists every course directory that has one, even if empty', () => {
-    dir = mkdtempSync(join(tmpdir(), 'vpk-resources-'));
-    ensureCourseResourceDir(dir, 'course02');
-    ensureCourseResourceDir(dir, 'course05');
-    expect(listCourseResourceDirs(dir)).toEqual(['course02', 'course05']);
-  });
-
-  it('returns an empty list, not a throw, for a resources directory that does not exist', () => {
-    expect(listCourseResourceDirs('/nowhere/does/not/exist')).toEqual([]);
-  });
-
-  it('rejects a course name that would escape the resources directory', () => {
+  it('rejects a course name that would escape the courses directory', () => {
     dir = mkdtempSync(join(tmpdir(), 'vpk-resources-'));
     expect(() => ensureCourseResourceDir(dir, '../escape')).toThrow();
     expect(() => ensureCourseResourceDir(dir, 'a/b')).toThrow();

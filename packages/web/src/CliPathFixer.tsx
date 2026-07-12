@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
+import { probeCli } from './cliProbe';
 
-async function probeCli(cli: string): Promise<boolean> {
-  const res = await fetch('/course/probe-cli', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ cli }) });
-  const json = (await res.json()) as { found?: boolean };
-  return json.found === true;
-}
+/** How long the ✓ stays visible before `onResolved` fires — some callers react to onResolved by immediately
+ *  hiding this whole component (TerminalPane's not-found box disappears the instant binaryFound flips true),
+ *  so without a pause the checkmark would never actually get painted — a status change that vanishes before
+ *  it's visible isn't feedback. */
+const RESOLVED_DELAY_MS = 700;
+
+type CheckStatus = 'idle' | 'checking' | 'found' | 'not-found';
 
 /**
  * Shared "this CLI binary isn't on PATH — point at it directly" fixer: a path field + Check button that
@@ -26,47 +29,55 @@ export function CliPathFixer({
 }: {
   cli: string;
   onResolved: (path: string) => void;
-  colors: { border: string; fg: string; mutedFg: string; inputBg?: string; buttonBg?: string; errorFg: string };
+  colors: { border: string; fg: string; mutedFg: string; inputBg?: string; buttonBg?: string; errorFg: string; okFg: string };
 }) {
   const [path, setPath] = useState(cli);
-  const [checking, setChecking] = useState(false);
-  const [notFound, setNotFound] = useState(false);
+  const [status, setStatus] = useState<CheckStatus>('idle');
 
   async function check() {
     const trimmed = path.trim();
     if (!trimmed) return;
-    setChecking(true);
-    setNotFound(false);
-    try {
-      const found = await probeCli(trimmed);
-      if (found) onResolved(trimmed);
-      else setNotFound(true);
-    } finally {
-      setChecking(false);
+    setStatus('checking');
+    const found = await probeCli(trimmed);
+    if (found) {
+      setStatus('found');
+      setTimeout(() => onResolved(trimmed), RESOLVED_DELAY_MS);
+    } else {
+      setStatus('not-found');
     }
   }
 
+  const busy = status === 'checking' || status === 'found';
+
   return (
     <div className="space-y-1">
-      <div className="flex gap-1.5">
+      <div className="flex items-center gap-1.5">
         <input
           value={path}
           onChange={(e) => setPath(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void check()}
-          className="flex-1 rounded border px-2 py-1 font-mono text-xs"
+          disabled={busy}
+          className="flex-1 rounded border px-2 py-1 font-mono text-xs disabled:opacity-70"
           style={{ borderColor: colors.border, background: colors.inputBg, color: colors.fg }}
           placeholder={`/usr/local/bin/${cli}`}
         />
         <button
           onClick={() => void check()}
-          disabled={checking}
+          disabled={busy}
           className="cursor-pointer rounded border px-2 py-1 text-xs disabled:cursor-not-allowed"
           style={{ borderColor: colors.border, background: colors.buttonBg, color: colors.fg }}
         >
-          {checking ? <Loader2 size={12} className="animate-spin" /> : 'Check'}
+          {status === 'checking' ? <Loader2 size={12} className="animate-spin" /> : 'Check'}
         </button>
+        {status === 'found' && <Check size={15} style={{ color: colors.okFg }} aria-label="Found" />}
+        {status === 'not-found' && <X size={15} style={{ color: colors.errorFg }} aria-label="Not found" />}
       </div>
-      {notFound && (
+      {status === 'found' && (
+        <p className="text-xs" style={{ color: colors.okFg }}>
+          Found — this command works.
+        </p>
+      )}
+      {status === 'not-found' && (
         <p className="text-xs" style={{ color: colors.errorFg }}>
           Still not found at that path.
         </p>

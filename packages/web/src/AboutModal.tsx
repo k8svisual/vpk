@@ -27,6 +27,9 @@ export function AboutModal({ open, onClose }: { open: boolean; onClose: () => vo
             <div className="text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>
               Visually presented Kubernetes
             </div>
+            <div className="text-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              v{__VPK_VERSION__}
+            </div>
           </div>
         </div>
 

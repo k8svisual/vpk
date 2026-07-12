@@ -9,16 +9,17 @@ import { STRUCTURAL_COLORS, defaultStructuralColor, getStoredStructuralColorOver
 import { VendorIconsPanel } from './VendorIconsPanel';
 import { NetworkCatalogPanel } from './NetworkCatalogPanel';
 import type { TerminalTheme } from './courseSettings';
-import { ChipList } from './Chips';
-import { initialExtraAllowedVerbs, setStoredExtraAllowedVerbs } from './terminalAllowlist';
+import { initialExtraAllowedBinaries, initialExtraAllowedVerbs, setStoredExtraAllowedBinaries, setStoredExtraAllowedVerbs } from './terminalAllowlist';
 import { clearBinaryPath, getBinaryPath, setBinaryPath } from './commandApproval';
 import { CliPathFixer } from './CliPathFixer';
+import { VerbTester } from './VerbTester';
+import { BinaryTester } from './BinaryTester';
+import { GENERIC_VERB_DESCRIPTION, VERB_DESCRIPTIONS } from './verbDescriptions';
 
 interface Settings {
   snapshotDir: string;
   redactSecrets: boolean;
   disablePullingSecrets: boolean;
-  courseResourcesDir: string;
 }
 
 /** A picker row is either a real Kind (color comes from kindColorOverrides.ts, default from colorForKind) or a
@@ -145,7 +146,6 @@ export function SettingsModal({
 }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [dir, setDir] = useState('');
-  const [resourcesDir, setResourcesDir] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // Kind color overrides are localStorage-only (see kindColorOverrides.ts), not part of the server-persisted
@@ -166,6 +166,14 @@ export function SettingsModal({
   // safe to expose as a plain editable list (single-tenant assumption).
   const [extraVerbs, setExtraVerbs] = useState<string[]>([]);
   const [newVerb, setNewVerb] = useState('');
+  // Which CLI each row's VerbTester probes against — the override if the student set one, else kubectl (the
+  // more common default); oc is a documented superset of kubectl for these verbs, so testing against kubectl
+  // is representative either way unless the override says otherwise.
+  const testCli = courseCliOverride || 'kubectl';
+  // Same localStorage-only model as extraVerbs, but for whole standalone binaries (grep, jq, curl, ...) —
+  // see terminalAllowlist.ts's own doc comment for why these are a separate list from extraVerbs.
+  const [extraBinaries, setExtraBinaries] = useState<string[]>([]);
+  const [newBinary, setNewBinary] = useState('');
   // Which of the two CLIs' path-tester is expanded (or neither) — commandApproval.ts's binary-path store
   // itself has no "which CLI is active" concept (it's a plain map), so this is purely local UI state re-read
   // fresh each time the modal opens, same as the other localStorage-backed sections above.
@@ -181,13 +189,13 @@ export function SettingsModal({
       .then((s) => {
         setSettings(s);
         setDir(s.snapshotDir);
-        setResourcesDir(s.courseResourcesDir);
       });
     setKindOverrides(getStoredKindColorOverrides());
     setApiGroupOverrides(getStoredApiGroupColorOverrides());
     setStructuralOverrides(getStoredStructuralColorOverrides());
     setFontSize(getStoredFontSize() ?? 'medium');
     setExtraVerbs(initialExtraAllowedVerbs());
+    setExtraBinaries(initialExtraAllowedBinaries());
     setTestingCli(null);
     setCliPaths({ kubectl: getBinaryPath('kubectl'), oc: getBinaryPath('oc') });
   }, [open]);
@@ -231,6 +239,24 @@ export function SettingsModal({
     const next = extraVerbs.filter((_, idx) => idx !== i);
     setExtraVerbs(next);
     setStoredExtraAllowedVerbs(next);
+  }
+
+  function addExtraBinary() {
+    const name = newBinary.trim();
+    if (!name || extraBinaries.includes(name)) {
+      setNewBinary('');
+      return;
+    }
+    const next = [...extraBinaries, name];
+    setExtraBinaries(next);
+    setStoredExtraAllowedBinaries(next);
+    setNewBinary('');
+  }
+
+  function removeExtraBinary(i: number) {
+    const next = extraBinaries.filter((_, idx) => idx !== i);
+    setExtraBinaries(next);
+    setStoredExtraAllowedBinaries(next);
   }
 
   function resolveCliPath(cli: string, path: string) {
@@ -308,7 +334,6 @@ export function SettingsModal({
     }
     setSettings(body);
     setDir(body.snapshotDir);
-    setResourcesDir(body.courseResourcesDir);
     onSaved();
   }
 
@@ -556,33 +581,6 @@ export function SettingsModal({
 
         {tab === 'education' && (
           <>
-            <label className="mb-4 flex flex-col gap-1 text-xs">
-              <span style={{ color: 'var(--vpk-fg-muted)' }}>Course resources directory</span>
-              <div className="flex gap-2">
-                <input
-                  value={resourcesDir}
-                  onChange={(e) => setResourcesDir(e.target.value)}
-                  placeholder="/path/to/course-resources"
-                  className="flex-1 rounded border px-2 py-1"
-                  style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
-                />
-                <button
-                  disabled={saving || resourcesDir === (settings?.courseResourcesDir ?? '')}
-                  onClick={() => void save({ courseResourcesDir: resourcesDir })}
-                  className="cursor-pointer rounded border px-2 py-1 disabled:cursor-default disabled:opacity-50"
-                  style={{ borderColor: 'var(--vpk-border)' }}
-                >
-                  Save
-                </button>
-              </div>
-              <span style={{ color: 'var(--vpk-fg-muted)' }}>
-                Where Teacher tools' Resources panel stores images/sample files a course links to — one
-                subdirectory per course, separate from the lesson markdown itself. Created automatically if it
-                doesn't exist yet. Required before the Resources panel will show anything.
-              </span>
-              {error && tab === 'education' && <span style={{ color: 'var(--vpk-status-error)' }}>{error}</span>}
-            </label>
-
             <label className="mb-2 flex items-start gap-2 text-xs">
               <input type="checkbox" checked={showCourse} onChange={(e) => onShowCourseChange(e.target.checked)} />
               <span style={{ color: 'var(--vpk-fg)' }}>
@@ -640,13 +638,105 @@ export function SettingsModal({
                   Add
                 </button>
               </div>
-              <ChipList items={extraVerbs} label={(v) => v} onRemove={removeExtraVerb} />
+              {extraVerbs.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {extraVerbs.map((verb, i) => (
+                    <div key={verb} className="rounded border p-2" style={{ borderColor: 'var(--vpk-border)' }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <span style={{ color: 'var(--vpk-fg)' }}>
+                          <code>{verb}</code>{' '}
+                          <span style={{ color: 'var(--vpk-fg-muted)' }}>{VERB_DESCRIPTIONS[verb] ?? GENERIC_VERB_DESCRIPTION}</span>
+                        </span>
+                        <button
+                          onClick={() => removeExtraVerb(i)}
+                          className="shrink-0 cursor-pointer rounded border px-2 py-0.5"
+                          style={{ borderColor: 'var(--vpk-border)' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="mt-1.5">
+                        <VerbTester
+                          verb={verb}
+                          cli={testCli}
+                          colors={{
+                            border: 'var(--vpk-field-border)',
+                            fg: 'var(--vpk-fg)',
+                            mutedFg: 'var(--vpk-fg-muted)',
+                            inputBg: 'var(--vpk-bg)',
+                            buttonBg: 'var(--vpk-surface)',
+                            errorFg: 'var(--vpk-status-error)',
+                            okFg: 'var(--vpk-status-ok)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <span style={{ color: 'var(--vpk-fg-muted)' }}>
                 Verbs added here work in the terminal on every lesson, on top of whatever that lesson's own
                 <code> allow</code> list declares — this doesn't loosen a lesson's own auto-graded task checks,
                 only what you can type in the terminal yourself. Only meaningful for a single student on their
                 own machine/cluster (this app has no multi-tenant mode yet), which is exactly why it's safe to
-                self-expand here.
+                self-expand here. Each command tests itself against <code>{testCli}</code>{' '}
+                {courseCliOverride ? '(your Terminal CLI override)' : '(default — set an override above to test against oc instead)'} by
+                running it with <code>--help</code>, which never touches a cluster.
+              </span>
+            </div>
+
+            <div className="mb-4 flex flex-col gap-1 text-xs">
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>Additional standalone commands</span>
+              <div className="flex gap-2">
+                <input
+                  value={newBinary}
+                  onChange={(e) => setNewBinary(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addExtraBinary()}
+                  placeholder="e.g. grep, jq, curl"
+                  className="flex-1 rounded border px-2 py-1"
+                  style={{ borderColor: 'var(--vpk-field-border)', background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
+                />
+                <button onClick={addExtraBinary} className="cursor-pointer rounded border px-2 py-1" style={{ borderColor: 'var(--vpk-border)' }}>
+                  Add
+                </button>
+              </div>
+              {extraBinaries.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {extraBinaries.map((name, i) => (
+                    <div key={name} className="rounded border p-2" style={{ borderColor: 'var(--vpk-border)' }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <code style={{ color: 'var(--vpk-fg)' }}>{name}</code>
+                        <button
+                          onClick={() => removeExtraBinary(i)}
+                          className="shrink-0 cursor-pointer rounded border px-2 py-0.5"
+                          style={{ borderColor: 'var(--vpk-border)' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <div className="mt-1.5">
+                        <BinaryTester
+                          name={name}
+                          colors={{
+                            border: 'var(--vpk-field-border)',
+                            fg: 'var(--vpk-fg)',
+                            mutedFg: 'var(--vpk-fg-muted)',
+                            inputBg: 'var(--vpk-bg)',
+                            buttonBg: 'var(--vpk-surface)',
+                            errorFg: 'var(--vpk-status-error)',
+                            okFg: 'var(--vpk-status-ok)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <span style={{ color: 'var(--vpk-fg-muted)' }}>
+                Different from the kubectl/oc verbs above — these run as their OWN program (like{' '}
+                <code>grep foo file.txt</code>, not a kubectl subcommand), which the terminal otherwise never
+                allows (it only ever runs the one configured CLI, never a shell). Only meaningful for a single
+                student on their own machine (no multi-tenant mode yet), same as the verbs above.
               </span>
             </div>
 
@@ -689,6 +779,7 @@ export function SettingsModal({
                           inputBg: 'var(--vpk-bg)',
                           buttonBg: 'var(--vpk-surface)',
                           errorFg: 'var(--vpk-status-error)',
+                          okFg: 'var(--vpk-status-ok)',
                         }}
                         onResolved={(path) => resolveCliPath(cliName, path)}
                       />

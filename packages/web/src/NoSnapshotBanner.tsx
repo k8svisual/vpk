@@ -9,7 +9,7 @@ import { Info } from 'lucide-react';
  * this means there is currently nothing to pick at all. Informational (accent color), not a warning — an
  * empty snapshot directory on first run isn't an error condition, just a "here's what to do next" nudge.
  */
-export function NoSnapshotBanner({ onCapture }: { onCapture: () => void }) {
+export function NoSnapshotBanner({ dir, onCapture }: { dir: string; onCapture: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
       <Info size={36} style={{ color: 'var(--vpk-accent)' }} />
@@ -18,6 +18,13 @@ export function NoSnapshotBanner({ onCapture }: { onCapture: () => void }) {
       </p>
       <p className="max-w-sm text-sm" style={{ color: 'var(--vpk-fg-muted)' }}>
         There's nothing to show until you select a snapshot or capture one from a live cluster.
+        {dir && (
+          <>
+            {' '}
+            Looked for snapshot files in <code>{dir}</code> and found none — change this under Settings &gt;
+            Snapshot if that's not where yours live.
+          </>
+        )}
       </p>
       <button
         onClick={onCapture}

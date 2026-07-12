@@ -18,6 +18,14 @@ interface LessonSummary {
   path: string;
 }
 
+interface LessonsResponse {
+  lessons?: LessonSummary[];
+  /** Where the server is actually looking for course markdown — shown in the empty state below so "no
+   *  courses" comes with an actionable next step instead of a dead end. */
+  coursesDir?: string;
+  error?: string;
+}
+
 const panelStyle = { borderColor: 'var(--vpk-border)' } as const;
 const mutedStyle = { color: 'var(--vpk-fg-muted)' } as const;
 const errorStyle = { color: 'var(--vpk-status-error)' } as const;
@@ -53,16 +61,20 @@ function StatusBadge({ lessonId }: { lessonId: string }) {
 
 export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) => void }) {
   const [lessons, setLessons] = useState<LessonSummary[] | null>(null);
+  const [coursesDir, setCoursesDir] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch('/course/lessons')
       .then((r) => r.json())
-      .then((d: { lessons?: LessonSummary[]; error?: string }) => {
+      .then((d: LessonsResponse) => {
         if (cancelled) return;
         if (d.error) setError(d.error);
-        else setLessons(d.lessons ?? []);
+        else {
+          setLessons(d.lessons ?? []);
+          setCoursesDir(d.coursesDir ?? '');
+        }
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(String(e instanceof Error ? e.message : e));
@@ -89,7 +101,14 @@ export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) =
   if (lessons.length === 0) {
     return (
       <p className="text-sm" style={mutedStyle}>
-        No courses found under the courses/ directory.
+        No courses found{coursesDir ? (
+          <>
+            {' '}
+            under <code>{coursesDir}</code> — add lesson markdown files there and reopen this view
+          </>
+        ) : (
+          '.'
+        )}
       </p>
     );
   }

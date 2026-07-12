@@ -3,13 +3,17 @@ import { extname, join, resolve, sep } from 'node:path';
 import { DEFAULT_COURSES_DIR, listLessonFiles } from './content';
 
 /**
- * Course-resources: images, sample files, anything a lesson links to that isn't itself lesson markdown. Kept
- * in a SEPARATE directory from courses/ (Settings > Education's `courseResourcesDir`) with one subdirectory
- * per course, named after that course's lesson-file directory (course02/00-using-oc.md -> resources live
- * under `<courseResourcesDir>/course02/`) — the same "course" identity a lesson's own path already carries,
- * so Teacher tools can derive the resources subdirectory from whichever lesson is open without a second
- * naming scheme. Every write here (upload/rename/delete) resolves through `resolveResourceDirPath`'s
- * traversal guard, same discipline as content.ts's `resolveLessonPath` for lesson files.
+ * Course-resources: images, sample files, anything a lesson links to that isn't itself lesson markdown. Live
+ * INSIDE the course's own directory under `coursesDir` (content.ts's `DEFAULT_COURSES_DIR`), one `resources/`
+ * subfolder per course (course02/00-using-oc.md -> resources live under `<coursesDir>/course02/resources/`) —
+ * the same "course" identity a lesson's own path already carries, so Teacher tools can derive the resources
+ * subdirectory from whichever lesson is open without a second naming scheme, and a course's content + assets
+ * travel together as one folder (copy/zip/back up a course, get everything). Previously a separately
+ * configured directory (Settings > Education's `courseResourcesDir`) — folded into the course's own tree since
+ * there was never a real reason for the two to live apart, and a second directory setting was one more thing
+ * to configure before Teacher tools worked at all. Every write here (upload/rename/delete) resolves through
+ * `resolveResourceDirPath`'s traversal guard, same discipline as content.ts's `resolveLessonPath` for lesson
+ * files.
  */
 
 export interface ResourceFileEntry {
@@ -18,18 +22,18 @@ export interface ResourceFileEntry {
   mtimeMs: number;
 }
 
-function resolveResourceDirPath(resourcesDir: string, course: string): string {
+function resolveResourceDirPath(coursesDir: string, course: string): string {
   if (!course || course.includes('/') || course.includes('\\') || course === '.' || course === '..') {
     throw new Error(`Invalid course directory name: "${course}".`);
   }
-  return resolve(resourcesDir, course);
+  return resolve(coursesDir, course, 'resources');
 }
 
-function resolveResourceFilePath(resourcesDir: string, course: string, name: string): string {
+function resolveResourceFilePath(coursesDir: string, course: string, name: string): string {
   if (!name || name.includes('/') || name.includes('\\') || name === '.' || name === '..') {
     throw new Error(`Invalid file name: "${name}".`);
   }
-  const dir = resolveResourceDirPath(resourcesDir, course);
+  const dir = resolveResourceDirPath(coursesDir, course);
   const full = resolve(dir, name);
   if (full !== dir && !full.startsWith(dir + sep)) {
     throw new Error(`Refusing to touch a path outside the course's resource directory: "${name}".`);
@@ -41,16 +45,16 @@ function resolveResourceFilePath(resourcesDir: string, course: string, name: str
  *  "New" course flow, so the folder exists the moment a course is created, before the student ever uploads
  *  anything) and defensively on every upload (idempotent, so an upload never fails just because the eager
  *  create step was skipped somehow). */
-export function ensureCourseResourceDir(resourcesDir: string, course: string): void {
-  mkdirSync(resolveResourceDirPath(resourcesDir, course), { recursive: true });
+export function ensureCourseResourceDir(coursesDir: string, course: string): void {
+  mkdirSync(resolveResourceDirPath(coursesDir, course), { recursive: true });
 }
 
 /** Every file directly inside a course's resource subdirectory (no nested folders — one flat bucket per
  *  course keeps the Resources panel and the reference-search below simple). Returns `[]` for a course with no
  *  resources yet (including one whose directory doesn't exist), not a throw — same "absent is normal, not
  *  exceptional" stance as content.ts's directory walks. */
-export function listResourceFiles(resourcesDir: string, course: string): ResourceFileEntry[] {
-  const dir = resolveResourceDirPath(resourcesDir, course);
+export function listResourceFiles(coursesDir: string, course: string): ResourceFileEntry[] {
+  const dir = resolveResourceDirPath(coursesDir, course);
   let names: string[];
   try {
     names = readdirSync(dir).filter((n) => {
@@ -71,38 +75,25 @@ export function listResourceFiles(resourcesDir: string, course: string): Resourc
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Every course directory name that has a resources subdirectory at all (even an empty one) — lets the
- *  Teacher UI show "0 files" for a freshly-created course rather than nothing. */
-export function listCourseResourceDirs(resourcesDir: string): string[] {
-  try {
-    return readdirSync(resourcesDir, { withFileTypes: true })
-      .filter((e) => e.isDirectory())
-      .map((e) => e.name)
-      .sort();
-  } catch {
-    return [];
-  }
-}
-
 /** Decodes `dataBase64` and writes it as `name` under the course's resource directory, creating the directory
  *  first if needed. Overwrites an existing file of the same name (the Resources panel's own "replace" case;
  *  the caller is responsible for confirming that's what the user wants — this function doesn't guess). */
-export function saveResourceFile(resourcesDir: string, course: string, name: string, dataBase64: string): ResourceFileEntry {
-  ensureCourseResourceDir(resourcesDir, course);
-  const full = resolveResourceFilePath(resourcesDir, course, name);
+export function saveResourceFile(coursesDir: string, course: string, name: string, dataBase64: string): ResourceFileEntry {
+  ensureCourseResourceDir(coursesDir, course);
+  const full = resolveResourceFilePath(coursesDir, course, name);
   const buf = Buffer.from(dataBase64, 'base64');
   writeFileSync(full, buf);
   const st = statSync(full);
   return { name, size: st.size, mtimeMs: st.mtimeMs };
 }
 
-export function deleteResourceFile(resourcesDir: string, course: string, name: string): void {
-  rmSync(resolveResourceFilePath(resourcesDir, course, name), { force: true });
+export function deleteResourceFile(coursesDir: string, course: string, name: string): void {
+  rmSync(resolveResourceFilePath(coursesDir, course, name), { force: true });
 }
 
-export function renameResourceFile(resourcesDir: string, course: string, oldName: string, newName: string): ResourceFileEntry {
-  const oldFull = resolveResourceFilePath(resourcesDir, course, oldName);
-  const newFull = resolveResourceFilePath(resourcesDir, course, newName);
+export function renameResourceFile(coursesDir: string, course: string, oldName: string, newName: string): ResourceFileEntry {
+  const oldFull = resolveResourceFilePath(coursesDir, course, oldName);
+  const newFull = resolveResourceFilePath(coursesDir, course, newName);
   renameSync(oldFull, newFull);
   const st = statSync(newFull);
   return { name: newName, size: st.size, mtimeMs: st.mtimeMs };
@@ -126,8 +117,8 @@ const CONTENT_TYPES: Record<string, string> = {
   '.pdf': 'application/pdf',
 };
 
-export function readResourceFile(resourcesDir: string, course: string, name: string): { data: Buffer; contentType: string } {
-  const full = resolveResourceFilePath(resourcesDir, course, name);
+export function readResourceFile(coursesDir: string, course: string, name: string): { data: Buffer; contentType: string } {
+  const full = resolveResourceFilePath(coursesDir, course, name);
   return { data: readFileSync(full), contentType: CONTENT_TYPES[extname(name).toLowerCase()] ?? 'application/octet-stream' };
 }
 

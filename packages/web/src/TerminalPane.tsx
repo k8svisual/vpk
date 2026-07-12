@@ -2,8 +2,9 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { ListChecks, PanelBottom, PanelRight, SquareArrowOutUpRight, Terminal as TerminalIcon, TriangleAlert, X } from 'lucide-react';
 import type { CourseLayout, TerminalTheme } from './courseSettings';
 import { getBinaryPath, setBinaryPath } from './commandApproval';
-import { initialExtraAllowedVerbs } from './terminalAllowlist';
+import { initialExtraAllowedBinaries, initialExtraAllowedVerbs } from './terminalAllowlist';
 import { CliPathFixer } from './CliPathFixer';
+import { GENERIC_VERB_DESCRIPTION, VERB_DESCRIPTIONS } from './verbDescriptions';
 
 /**
  * The lesson terminal — extracted out of LessonRunnerView.tsx (not just a local function there) specifically
@@ -29,6 +30,10 @@ interface HistoryEntry {
   line: string;
   result?: CommandResult;
   error?: string;
+  /** Set when `error` looks like "binary not found" — the bare candidate name (cliName or one of
+   *  extraBinaries) that was actually attempted, so the transcript can offer CliPathFixer inline for exactly
+   *  that command instead of the student having to go find it in Settings. */
+  fixableCli?: string;
 }
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
@@ -38,68 +43,51 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return json as T;
 }
 
-/** If `path` is a resolved override for the CLI the student was shown (`bareName`), rewrite just the LEADING
- *  token of a typed command line to that path before sending it to the server — /course/command's own policy
- *  check requires the tokenized line and the separately-sent `cli` field to agree (see
- *  server/src/course/command.ts's checkCommandPolicy), and the actual spawn uses argv[0] from the line itself,
- *  not the `cli` field, so a stored override does nothing for real execution unless the line's own leading
- *  word is substituted too — not just the `cli` field. Only rewrites a whole leading word (never a substring
- *  buried in a later argument); a command that doesn't actually start with `bareName` is left untouched and
- *  reported to the server as-is, so it gets the server's own normal "only X commands are allowed here" error
- *  instead of being silently rewritten into something the student didn't type. */
-function resolveLeadingCli(cmd: string, bareName: string, path: string | null): { sentLine: string; sentCli: string } {
-  if (!path || path === bareName) return { sentLine: cmd, sentCli: bareName };
+function leadingWordMatches(cmd: string, bareName: string): boolean {
   const escaped = bareName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^${escaped}(?=\\s|$)`);
-  if (!re.test(cmd)) return { sentLine: cmd, sentCli: bareName };
-  return { sentLine: cmd.replace(re, path), sentCli: path };
+  return new RegExp(`^${escaped}(?=\\s|$)`).test(cmd);
 }
 
-const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string }> = {
-  // var(--vpk-status-error) is tuned for the app's light surfaces — too dark to read on pure black, so the
-  // terminal gets its own brighter red independent of the app-wide error color.
-  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b' },
-  light: { bg: '#ffffff', fg: '#111111', border: '#cccccc', mutedFg: '#555555', inputBg: '#f2f2f2', buttonBg: '#e2e2e2', errorFg: 'var(--vpk-status-error)' },
+/** Rewrites just the LEADING token of a typed command line to its resolved path override before sending it to
+ *  the server — /course/command's own policy check requires the tokenized line and the separately-sent `cli`/
+ *  `extraBinaries` fields to agree (see server/src/course/command.ts's checkCommandPolicy), and the actual
+ *  spawn uses argv[0] from the line itself, not those fields, so a stored override does nothing for real
+ *  execution unless the line's own leading word is substituted too.
+ *
+ *  Tries `candidates` (the primary `cli` bare name, then any extra standalone binaries — see
+ *  terminalAllowlist.ts) in order and reports which one actually matched, so callers know both what to send
+ *  AND what a failure should offer to fix. Returns null if the typed line doesn't start with any candidate at
+ *  all — left untouched in that case, so it's reported to the server as-is and gets the server's own normal
+ *  "only X commands are allowed here" error instead of being silently rewritten into something the student
+ *  didn't type. */
+function resolveLeadingCommand(cmd: string, candidates: string[]): { sentLine: string; bareName: string } | null {
+  for (const bareName of candidates) {
+    if (!leadingWordMatches(cmd, bareName)) continue;
+    const path = getBinaryPath(bareName);
+    if (!path || path === bareName) return { sentLine: cmd, bareName };
+    const escaped = bareName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return { sentLine: cmd.replace(new RegExp(`^${escaped}(?=\\s|$)`), path), bareName };
+  }
+  return null;
+}
+
+const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string; okFg: string }> = {
+  // var(--vpk-status-error)/var(--vpk-status-ok) are tuned for the app's light surfaces — too dark/muddy to
+  // read on pure black, so the terminal gets its own brighter red/green independent of the app-wide colors.
+  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b', okFg: '#4ade80' },
+  light: {
+    bg: '#ffffff',
+    fg: '#111111',
+    border: '#cccccc',
+    mutedFg: '#555555',
+    inputBg: '#f2f2f2',
+    buttonBg: '#e2e2e2',
+    errorFg: 'var(--vpk-status-error)',
+    okFg: 'var(--vpk-status-ok)',
+  },
 };
 
 const CLEAR_COMMANDS = new Set(['clear', 'cls']);
-
-// Plain-English gloss for the verbs a lesson commonly allows — shown by the "Allowed" popover below so a
-// student can see not just WHICH verbs work here but what each one actually does, without leaving the
-// terminal. Mirrors (but doesn't import) server/src/course/command.ts's MUTATING_VERBS/checkCommandPolicy —
-// that's the actual enforcement, this is just documentation for the student; a verb missing from this map
-// still works fine if the lesson allows it, it just falls back to the generic description below.
-const VERB_DESCRIPTIONS: Record<string, string> = {
-  get: 'List or show one or more resources',
-  describe: 'Show detailed information about a resource',
-  logs: 'Print a container’s logs',
-  explain: 'Show documentation for a resource type’s fields',
-  top: 'Show current CPU/memory usage',
-  exec: 'Run a command inside a container',
-  'port-forward': 'Forward a local port to a Pod or Service',
-  cp: 'Copy files to or from a container',
-  events: 'List recent Events',
-  diff: 'Show what apply would change, without changing anything',
-  wait: 'Wait for a condition on a resource',
-  apply: 'Create or update a resource from a file/manifest',
-  create: 'Create a new resource',
-  delete: 'Delete a resource',
-  edit: 'Edit a resource directly',
-  patch: 'Update specific fields of a resource',
-  replace: 'Replace an existing resource',
-  scale: 'Change a workload’s replica count',
-  label: 'Add, change, or remove labels on a resource',
-  annotate: 'Add, change, or remove annotations on a resource',
-  set: 'Update specific fields (image, resources, …) on a resource',
-  rollout: 'Manage a workload’s rollout — status, history, undo, restart',
-  expose: 'Create a Service for an existing resource',
-  taint: 'Add or remove a taint on a Node',
-  drain: 'Safely evict every Pod from a Node for maintenance',
-  cordon: 'Mark a Node unschedulable',
-  uncordon: 'Mark a Node schedulable again',
-  run: 'Run a new Pod directly from an image',
-};
-const GENERIC_VERB_DESCRIPTION = 'Kubernetes CLI verb';
 
 // The whole visible terminal session — input line, run transcript, and Up/Down recall log — carries across a
 // pop-out/pop-in via localStorage (not sessionStorage — sessionStorage only clones ONCE, at the moment
@@ -173,6 +161,10 @@ export function TerminalPane({
   // JSON.parse) rather than cached in state, so editing the list in Settings while a lesson is already open is
   // reflected the next time this component re-renders for any reason, without extra plumbing to subscribe to it.
   const effectiveAllow = Array.from(new Set([...allow, ...initialExtraAllowedVerbs()]));
+  // Whole extra binaries (grep, jq, curl, ...) the student opted into in Settings > Education — read fresh
+  // each render for the same reason as effectiveAllow above. Bare names as typed; path overrides are resolved
+  // per-candidate at run() time, same as cliName's own override.
+  const extraBinaries = initialExtraAllowedBinaries();
 
   useEffect(() => {
     setStoredSession({ line, history, commandLog });
@@ -208,12 +200,18 @@ export function TerminalPane({
       return;
     }
     setRunning(true);
+    const candidates = [cliName, ...extraBinaries];
+    const matched = resolveLeadingCommand(cmd, candidates);
+    const sentLine = matched?.sentLine ?? cmd;
+    const sentCli = getBinaryPath(cliName) ?? cliName;
+    const sentExtraBinaries = extraBinaries.map((b) => getBinaryPath(b) ?? b);
     try {
-      const { sentLine, sentCli } = resolveLeadingCli(cmd, cliName, getBinaryPath(cliName));
-      const result = await postJson<CommandResult>('/course/command', { line: sentLine, allow: effectiveAllow, cli: sentCli });
+      const result = await postJson<CommandResult>('/course/command', { line: sentLine, allow: effectiveAllow, cli: sentCli, extraBinaries: sentExtraBinaries });
       setHistory((p) => [...p, { line: cmd, result }]);
     } catch (e: unknown) {
-      setHistory((p) => [...p, { line: cmd, error: String(e instanceof Error ? e.message : e) }]);
+      const message = String(e instanceof Error ? e.message : e);
+      const fixableCli = /not found/i.test(message) ? (matched?.bareName ?? cliName) : undefined;
+      setHistory((p) => [...p, { line: cmd, error: message, fixableCli }]);
     } finally {
       setRunning(false);
     }
@@ -304,7 +302,8 @@ export function TerminalPane({
                 </button>
               </div>
               <p className="mb-2" style={{ color: colors.mutedFg }}>
-                Only <code>{cliName}</code> commands run here — anything else is rejected before it runs.
+                Only <code>{cliName}</code> commands{extraBinaries.length > 0 ? ', plus the standalone commands below,' : ''} run here —
+                anything else is rejected before it runs.
               </p>
               <ul className="mb-3 space-y-1">
                 {effectiveAllow.map((verb) => (
@@ -315,8 +314,23 @@ export function TerminalPane({
                   </li>
                 ))}
               </ul>
+              {extraBinaries.length > 0 && (
+                <>
+                  <p className="mb-1 border-t pt-2 font-semibold" style={{ borderColor: colors.border }}>
+                    Standalone commands (added by you)
+                  </p>
+                  <ul className="mb-3 space-y-1">
+                    {extraBinaries.map((name) => (
+                      <li key={name}>
+                        <code className="font-semibold">{name}</code>
+                        <span style={{ color: colors.mutedFg }}> — runs directly, not gated by verb</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <p className="border-t pt-2" style={{ borderColor: colors.border, color: colors.mutedFg }}>
-                Always blocked, regardless of the list above: deleting a Node, and any mutating verb combined
+                Always blocked, regardless of the lists above: deleting a Node, and any mutating verb combined
                 with -A/--all-namespaces.
               </p>
             </div>
@@ -340,9 +354,16 @@ export function TerminalPane({
         </div>
       ) : (
         <p className="px-3 pt-2 text-xs" style={{ color: colors.mutedFg }}>
-          Runs <code>{cliName}</code> only — allowed here: {effectiveAllow.join(', ')}. For minikube/k3d/other
-          cluster tools, use your own system terminal. ↑/↓ recall previous commands, <code>clear</code>/
-          <code>cls</code> wipes the screen. Appearance, font size, and CLI are in Settings &gt; Education.
+          Runs <code>{cliName}</code>
+          {extraBinaries.length > 0 && (
+            <>
+              {' '}
+              (plus <code>{extraBinaries.join(', ')}</code>)
+            </>
+          )}{' '}
+          — allowed here: {effectiveAllow.join(', ')}. For minikube/k3d/other cluster tools, use your own system
+          terminal. ↑/↓ recall previous commands, <code>clear</code>/<code>cls</code> wipes the screen. Appearance,
+          font size, and additional commands are in Settings &gt; Education.
         </p>
       )}
       <div className="flex gap-2 p-2 border-b" style={{ borderColor: colors.border }}>
@@ -383,9 +404,23 @@ export function TerminalPane({
               </>
             )}
             {entry.error && (
-              <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
-                {entry.error}
-              </pre>
+              <>
+                <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
+                  {entry.error}
+                </pre>
+                {entry.fixableCli && (
+                  <div className="mt-1 max-w-sm">
+                    <CliPathFixer
+                      cli={entry.fixableCli}
+                      colors={colors}
+                      onResolved={(path) => {
+                        setBinaryPath(entry.fixableCli as string, path);
+                        if (entry.fixableCli === cliName) setBinaryFound(true);
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </div>
         ))}

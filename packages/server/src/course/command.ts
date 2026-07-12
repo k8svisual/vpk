@@ -74,6 +74,14 @@ export interface CommandPolicy {
    *  "anything" — an author has to explicitly opt a step into which verbs are safe, matching the design's
    *  "policy layer... blocked by default" stance (§5). */
   allow: string[];
+  /** Bare names or resolved absolute paths of additional WHOLE binaries the terminal may run directly as
+   *  argv[0] (e.g. grep, jq, curl) — student-opted-in via Settings > Education (see @vpk/web's
+   *  terminalAllowlist.ts), distinct from `allow`'s verb-gating of `cli` itself. Unlike `cli`+`allow`, there's
+   *  no per-verb gate for these — once a binary is on this list the whole rest of argv is trusted, since a
+   *  generic tool like `curl` has no lesson-defined "verb" concept to gate on. Optional and empty by default:
+   *  this is purely a student-controlled terminal convenience, never set by lesson content (task-check's own
+   *  policy never passes it), so it can't loosen what a lesson itself is allowed to auto-run. */
+  extraBinaries?: string[];
 }
 
 export type PolicyDecision = { allowed: true } | { allowed: false; reason: string };
@@ -81,17 +89,23 @@ export type PolicyDecision = { allowed: true } | { allowed: false; reason: strin
 const MUTATING_VERBS = new Set(['apply', 'create', 'delete', 'edit', 'patch', 'replace', 'scale', 'label', 'annotate', 'set', 'rollout', 'expose', 'taint', 'drain', 'cordon', 'uncordon']);
 const ALL_NAMESPACES_FLAGS = new Set(['--all-namespaces', '-A']);
 
-/** Checks a tokenized command against the lesson's policy. Three gates, in order:
- *   1. It must literally start with the configured `cli` argv — never a different binary. This is the
- *      hard boundary that keeps the terminal from being a general shell: no `rm`, no `curl`, nothing but
- *      the one kubectl-compatible command the lesson is scoped to.
+/** Checks a tokenized command against the lesson's policy. Four gates, in order:
+ *   0. If argv[0] is one of `policy.extraBinaries`, the whole command is trusted as-is — see that field's own
+ *      doc comment for why no further gating applies to these.
+ *   1. Otherwise it must literally start with the configured `cli` argv — never a different binary. This is
+ *      the hard boundary that keeps the terminal from being a general shell: nothing but the one kubectl-
+ *      compatible command the lesson is scoped to, plus whatever the student explicitly opted into above.
  *   2. Its verb must be in the lesson's `allow` list.
  *   3. Two destructive-global blocks that apply regardless of `allow` (§5: "blocked by default"): deleting a
  *      Node, and any mutating verb combined with -A/--all-namespaces. */
 export function checkCommandPolicy(argv: string[], cli: string[], policy: CommandPolicy): PolicyDecision {
   if (argv.length === 0) return { allowed: false, reason: 'Empty command.' };
+  if (policy.extraBinaries?.includes(argv[0] ?? '')) {
+    return { allowed: true };
+  }
   if (!cli.every((part, i) => argv[i] === part)) {
-    return { allowed: false, reason: `Only "${cli.join(' ')}" commands are allowed here.` };
+    const extra = policy.extraBinaries?.length ? `, or ${policy.extraBinaries.join(', ')}` : '';
+    return { allowed: false, reason: `Only "${cli.join(' ')}"${extra} commands are allowed here.` };
   }
   const verb = argv[cli.length];
   if (!verb) return { allowed: false, reason: 'No command given.' };

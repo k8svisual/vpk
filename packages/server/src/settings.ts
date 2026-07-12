@@ -14,18 +14,11 @@ export interface Settings {
    *  controls whether its `.data`/`.stringData` payload is kept. When true, the payload is discarded before
    *  the snapshot is even written to disk, so `redactSecrets` has nothing left to reveal for these Secrets. */
   disablePullingSecrets: boolean;
-  /** Where Teacher tools' course-resources (images, sample files, anything a lesson links to) live on disk —
-   *  same "server-enforced, not just a display preference" reasoning as snapshotDir, since it decides where
-   *  uploaded files actually land. One subdirectory per course, named after that course's lesson-file
-   *  directory (see course/resources.ts). Empty string means "not configured yet" — Teacher's Resources
-   *  panel prompts for one instead of silently writing under a guessed path. */
-  courseResourcesDir: string;
 }
 
-const DEFAULTS: Pick<Settings, 'redactSecrets' | 'disablePullingSecrets' | 'courseResourcesDir'> = {
+const DEFAULTS: Pick<Settings, 'redactSecrets' | 'disablePullingSecrets'> = {
   redactSecrets: true,
   disablePullingSecrets: false,
-  courseResourcesDir: '',
 };
 
 /** Loads persisted settings from `configPath`, filling in defaults for anything missing/invalid. Never throws —
@@ -39,7 +32,6 @@ export function loadSettings(configPath: string, defaultSnapshotDir: string): Se
       snapshotDir: typeof raw.snapshotDir === 'string' && raw.snapshotDir ? raw.snapshotDir : defaultSnapshotDir,
       redactSecrets: typeof raw.redactSecrets === 'boolean' ? raw.redactSecrets : DEFAULTS.redactSecrets,
       disablePullingSecrets: typeof raw.disablePullingSecrets === 'boolean' ? raw.disablePullingSecrets : DEFAULTS.disablePullingSecrets,
-      courseResourcesDir: typeof raw.courseResourcesDir === 'string' ? raw.courseResourcesDir : DEFAULTS.courseResourcesDir,
     };
   } catch (e) {
     pushLog('warn', `Ignoring unreadable settings file at ${configPath}, using defaults: ${String(e)}`);

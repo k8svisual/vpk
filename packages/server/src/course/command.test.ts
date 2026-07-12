@@ -89,6 +89,18 @@ describe('checkCommandPolicy', () => {
   it('does NOT block a read verb combined with -A — that is normal, safe usage', () => {
     expect(checkCommandPolicy(['kubectl', 'get', 'pods', '-A'], cli, readOnly).allowed).toBe(true);
   });
+
+  it('allows a whole binary on extraBinaries, bypassing the cli/verb gate entirely', () => {
+    expect(checkCommandPolicy(['grep', '-r', 'foo', '.'], cli, { allow: [], extraBinaries: ['grep'] })).toEqual({ allowed: true });
+  });
+
+  it('matches extraBinaries against a resolved path, not just a bare name', () => {
+    expect(checkCommandPolicy(['/usr/bin/jq', '.foo'], cli, { allow: [], extraBinaries: ['/usr/bin/jq'] }).allowed).toBe(true);
+  });
+
+  it('still rejects a binary that is neither cli nor on extraBinaries', () => {
+    expect(checkCommandPolicy(['curl', 'https://example.com'], cli, { allow: ['get'], extraBinaries: ['grep', 'jq'] }).allowed).toBe(false);
+  });
 });
 
 describe('probeBinary', () => {

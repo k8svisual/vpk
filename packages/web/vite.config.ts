@@ -8,6 +8,12 @@ import { dirname, join } from 'node:path';
 const here = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_API_PORT = 4200;
 
+// Root package.json's version is the one actually shipped (scripts/build-dmg.sh reads it for the .app's
+// Info.plist) — packages/web's and packages/server's own package.json `version` fields are unused workspace
+// placeholders. Baked in at build time via `define` (not fetched from the server at runtime) so the About
+// modal shows a version in BOTH dev and the compiled binary with no new route needed — see AboutModal.tsx.
+const VPK_VERSION = (JSON.parse(readFileSync(join(here, '../../package.json'), 'utf8')) as { version: string }).version;
+
 /** The API server writes its actual bound port to this file once listening (server.ts's `listenWithRetry`) —
  *  it may differ from the default if that port was already taken. Read once at Vite's own startup, so the
  *  proxy still finds the API even when it had to fall back to a different port. Falls back to the default if
@@ -26,6 +32,9 @@ const API = `http://127.0.0.1:${discoverApiPort()}`;
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  define: {
+    __VPK_VERSION__: JSON.stringify(VPK_VERSION),
+  },
   server: {
     proxy: {
       '/ownerref': API,

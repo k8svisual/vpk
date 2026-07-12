@@ -1,7 +1,9 @@
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
 import { parseLesson, type ParsedLesson } from '@vpk/training';
+import { extractSeedCourses } from './seedCourses';
 
 /**
  * Lesson content lookup — reads authored markdown lesson files off disk (redesign/training-course.md §6/§13's
@@ -17,9 +19,21 @@ import { parseLesson, type ParsedLesson } from '@vpk/training';
  * under `coursesDir` only.
  */
 
+// import.meta.url resolves to a virtual /$bunfs/... path inside a `bun build --compile` standalone binary —
+// a plain relative join off it (the old, dev-only behavior below) resolves to nothing real once compiled, the
+// same class of bug server.ts's own defaultSnapshot/customIconsDir already had to work around. Anchored to the
+// user's home directory for the same reasons server.ts's runtimeDir is: stable regardless of where the binary
+// currently sits, survives it moving, and is a real writable location (unlike the read-only embedded seed
+// content itself) that Teacher tools can actually save lessons/resources into.
+const isCompiledBinary = import.meta.url.includes('$bunfs');
 const here = dirname(fileURLToPath(import.meta.url));
 // packages/server/src/course/content.ts -> v2/courses
-export const DEFAULT_COURSES_DIR = join(here, '../../../../courses');
+export const DEFAULT_COURSES_DIR = isCompiledBinary ? join(homedir(), '.vpk', 'courses') : join(here, '../../../../courses');
+// First-run-only: seeds the packaged app's writable courses directory from the binary's embedded copy (see
+// seedCourses.ts) so a fresh install ships with the same courses/ content as a dev checkout, not an empty
+// catalog. A no-op in dev (DEFAULT_COURSES_DIR already exists as the real repo folder) and a no-op on every
+// run after the first (extractSeedCourses never touches an already-existing directory).
+if (isCompiledBinary) extractSeedCourses(DEFAULT_COURSES_DIR);
 
 function walkMarkdownFiles(dir: string): string[] {
   let entries: import('node:fs').Dirent[];

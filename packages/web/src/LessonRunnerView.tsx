@@ -148,6 +148,10 @@ export function LessonRunnerView({
 }) {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Set instead of attempting the hardcoded DEFAULT_LESSON_ID when the Course nav item is opened directly
+  // (not via a Catalog selection) and the catalog is genuinely empty — a "here's what to do" screen with a
+  // still-usable terminal, rather than a raw 404 for a lesson id that was never going to exist.
+  const [catalogEmpty, setCatalogEmpty] = useState<{ coursesDir: string } | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
   const [terminalHeight, setTerminalHeight] = useState(360);
   const [layout, setLayout] = useState<CourseLayout>(initialCourseLayout);
@@ -378,6 +382,7 @@ export function LessonRunnerView({
     let cancelled = false;
     setLesson(null);
     setLoadError(null);
+    setCatalogEmpty(null);
     setStartTime(null);
     setCheckStatuses({});
     setTaskRuntime({});
@@ -386,21 +391,42 @@ export function LessonRunnerView({
     Object.values(pollTimersRef.current).forEach(clearInterval);
     pollTimersRef.current = {};
     taskStartedAtRef.current = {};
-    getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(activeLessonId)}`)
-      .then((l) => {
+
+    async function load() {
+      if (!lessonId) {
+        // Opened directly from the nav rail, not a Catalog selection — check the catalog before falling back
+        // to the hardcoded DEFAULT_LESSON_ID, so a genuinely empty courses/ directory gets a graceful "add
+        // content here" screen (with a still-usable terminal) instead of a raw 404 for a lesson id that was
+        // never going to exist.
+        try {
+          const catalog = await getJson<{ lessons: unknown[]; coursesDir: string }>('/course/lessons');
+          if (cancelled) return;
+          if (catalog.lessons.length === 0) {
+            setCatalogEmpty({ coursesDir: catalog.coursesDir });
+            return;
+          }
+        } catch {
+          // Catalog check itself failed — fall through to the normal lesson-load attempt/error below, so
+          // whatever's actually wrong (server unreachable, etc.) still surfaces via loadError.
+        }
+      }
+      try {
+        const l = await getJson<ParsedLesson>(`/course/lesson?id=${encodeURIComponent(activeLessonId)}`);
         if (!cancelled) {
           setLesson(l);
           setStartTime(new Date());
           markCourseStarted(activeLessonId);
         }
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
         if (!cancelled) setLoadError(String(e instanceof Error ? e.message : e));
-      });
+      }
+    }
+    void load();
+
     return () => {
       cancelled = true;
     };
-  }, [activeLessonId]);
+  }, [activeLessonId, lessonId]);
 
   // Runs the preflight once the lesson has actually loaded (needs its task blocks/frontmatter) — separate
   // effect from the load effect above since `lesson` isn't set synchronously there.
@@ -505,6 +531,25 @@ export function LessonRunnerView({
     document.body.style.userSelect = 'none';
   }
 
+  if (catalogEmpty) {
+    return (
+      <div className="flex h-full min-h-0 gap-4">
+        <div className="flex w-72 shrink-0 flex-col justify-center gap-2 text-sm">
+          <p className="font-medium" style={{ color: 'var(--vpk-fg)' }}>
+            No courses yet
+          </p>
+          <p style={mutedStyle}>
+            Add lesson markdown files under <code>{catalogEmpty.coursesDir}</code> and reopen this view to see them
+            in the Catalog.
+          </p>
+          <p style={mutedStyle}>In the meantime, the terminal on the right still works on its own.</p>
+        </div>
+        <div className="min-h-0 flex-1">
+          <TerminalPane allow={['get', 'describe', 'logs', 'explain', 'top', 'events']} theme={terminalTheme} fontSizePx={terminalFontSize} />
+        </div>
+      </div>
+    );
+  }
   if (loadError) {
     return (
       <p className="text-sm" style={errorStyle}>

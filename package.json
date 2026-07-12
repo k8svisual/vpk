@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "build:web": "cd packages/web && bun run build",
     "build:web-assets": "bun scripts/build-web-assets.ts",
+    "build:course-assets": "bun scripts/build-course-assets.ts",
     "build:binary": "bun scripts/build-binary.ts"
   },
   "devDependencies": {

@@ -522,6 +522,9 @@ export function App() {
                 </option>
               ))}
             </select>
+            {noSnapshots && (
+              <span style={{ color: 'var(--vpk-status-error)' }}>none found in {snaps.dir || '(no directory configured)'}</span>
+            )}
           </label>
           <button
             onClick={() => setCaptureConfirmOpen(true)}
@@ -663,14 +666,16 @@ export function App() {
                   context invariant. */}
               {view === 'cluster3d' && noSnapshots && (
                 <div className="absolute inset-0" style={{ background: 'var(--vpk-bg)' }}>
-                  <NoSnapshotBanner onCapture={() => setCaptureConfirmOpen(true)} />
+                  <NoSnapshotBanner dir={snaps.dir} onCapture={() => setCaptureConfirmOpen(true)} />
                 </div>
               )}
             </ErrorBoundary>
-            {/* Every other view is entirely gated on a snapshot existing — Demo Data is the one exception,
-                since it generates its own synthetic data and needs no capture at all. */}
-            {view !== 'cluster3d' && view !== 'demo' && noSnapshots ? (
-              <NoSnapshotBanner onCapture={() => setCaptureConfirmOpen(true)} />
+            {/* Every other view is entirely gated on a snapshot existing — Demo Data and the Training group
+                (Catalog/Course/Teacher) are the exceptions: Demo Data generates its own synthetic data and
+                needs no capture at all, and Training's own content (lessons, the terminal, course authoring)
+                has nothing to do with which cluster snapshot happens to be loaded. */}
+            {view !== 'cluster3d' && view !== 'demo' && view !== 'catalog' && view !== 'course' && view !== 'teacher' && noSnapshots ? (
+              <NoSnapshotBanner dir={snaps.dir} onCapture={() => setCaptureConfirmOpen(true)} />
             ) : (
               <>
                 {view === 'ownerref' && (

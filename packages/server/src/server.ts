@@ -1,5 +1,5 @@
-import Fastify, { type FastifyReply } from 'fastify';
-import { spawn } from 'node:child_process';
+import Fastify from 'fastify';
+import { spawn, execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, isAbsolute, basename, relative, extname } from 'node:path';
 import { homedir } from 'node:os';
@@ -81,7 +81,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, probeBinary, runCourseCommand, tokenizeCommand } from './course/command';
-import { findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
+import { DEFAULT_COURSES_DIR, findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
 import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './course/resources';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
@@ -120,6 +120,29 @@ import { loadNetworkCatalogOverrides, saveNetworkCatalogOverrides } from './netw
 const isCompiledBinary = import.meta.url.includes('$bunfs');
 const here = dirname(fileURLToPath(import.meta.url));
 const runtimeDir = isCompiledBinary ? join(homedir(), '.vpk') : join(here, '../../..');
+
+// GUI-launched apps on macOS/Linux (Finder double-click, LaunchServices, a .desktop file) inherit a minimal
+// PATH (typically /usr/bin:/bin:/usr/sbin:/sbin) — NOT the user's shell PATH from ~/.zshrc/~/.zprofile, so
+// kubectl/oc/etc. installed via Homebrew or an asdf/nvm-style manager resolve fine from a Terminal-launched
+// `bun run dev` but come back "not found" from the packaged .app (course/command.ts's probeBinary/
+// runCourseCommand both spawn with plain inherited process.env — see their own doc comments). Only matters for
+// the compiled binary — a terminal-launched dev server already has the real PATH. Best-effort: asking the
+// user's own login shell to print its PATH (the same technique Electron's `fix-path` package uses) picks up
+// Homebrew/asdf/nvm without hardcoding version-specific paths; falls back to just the common Homebrew install
+// locations if the shell probe itself fails (unusual $SHELL, sandboxed environment, ...) rather than leaving
+// PATH untouched.
+if (isCompiledBinary && process.platform !== 'win32') {
+  try {
+    const shell = process.env.SHELL ?? '/bin/zsh';
+    const shellPath = execSync(`${shell} -ilc 'echo -n "$PATH"'`, { encoding: 'utf8', timeout: 3000 }).trim();
+    if (shellPath) {
+      process.env.PATH = Array.from(new Set([...shellPath.split(':'), ...(process.env.PATH ?? '').split(':')].filter(Boolean))).join(':');
+    }
+  } catch {
+    const fallback = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/local/sbin'];
+    process.env.PATH = Array.from(new Set([...(process.env.PATH ?? '').split(':').filter(Boolean), ...fallback])).join(':');
+  }
+}
 // Cast needed because tsc still resolves the real on-disk JSON file's content type alongside the `*.snapshot.json
 // -> string` ambient override above (a union of the two) rather than fully replacing it — the runtime value
 // really is just a path string either way (see embeddedFileTypes.d.ts's doc comment).
@@ -231,22 +254,10 @@ app.post('/settings', async (req, reply) => {
     reply.code(400);
     return { error: `snapshot directory does not exist: ${nextSnapshotDir}` };
   }
-  // Unlike snapshotDir (must already exist — it's where the user's existing captures live), courseResourcesDir
-  // is a workspace VpK itself writes into, so a not-yet-existing path is created rather than rejected.
-  const nextCourseResourcesDir = typeof body.courseResourcesDir === 'string' ? body.courseResourcesDir.trim() : settings.courseResourcesDir;
-  if (nextCourseResourcesDir && !existsSync(nextCourseResourcesDir)) {
-    try {
-      mkdirSync(nextCourseResourcesDir, { recursive: true });
-    } catch (e: unknown) {
-      reply.code(400);
-      return { error: `could not create course resources directory: ${e instanceof Error ? e.message : String(e)}` };
-    }
-  }
   settings = {
     snapshotDir: nextSnapshotDir,
     redactSecrets: typeof body.redactSecrets === 'boolean' ? body.redactSecrets : settings.redactSecrets,
     disablePullingSecrets: typeof body.disablePullingSecrets === 'boolean' ? body.disablePullingSecrets : settings.disablePullingSecrets,
-    courseResourcesDir: nextCourseResourcesDir,
   };
   saveSettings(configPath, settings);
   return settings;
@@ -500,7 +511,12 @@ app.get('/course/lesson', async (req, reply) => {
 // `path` is included alongside each lesson's frontmatter so the Course Catalog can link a selection straight
 // to a lesson id (via /course/lesson?id=) while Teacher tools can address the same entry by file path (via
 // /course/lesson/source and /course/lesson/save) — one listing serves both.
-app.get('/course/lessons', async () => ({ lessons: listLessonFiles().map(({ path, lesson }) => ({ ...lesson.frontmatter, path })) }));
+app.get('/course/lessons', async () => ({
+  lessons: listLessonFiles().map(({ path, lesson }) => ({ ...lesson.frontmatter, path })),
+  // Surfaced so the Catalog/Course views can tell the student exactly where to add course content when this
+  // list comes back empty, rather than a generic "no courses found" with no actionable next step.
+  coursesDir: DEFAULT_COURSES_DIR,
+}));
 
 // Teacher tools: raw markdown source for the editor to load — see content.ts's readLessonSource doc comment
 // on why this is deliberately unparsed.
@@ -555,28 +571,19 @@ app.post('/course/lesson/validate', async (req, reply) => {
   }
 });
 
-// Teacher tools: course resources (images, sample files, anything a lesson links to) — a separate directory
-// tree from courses/ itself (Settings > Education's courseResourcesDir), one subdirectory per course. Every
-// route here 400s with a clear message if that directory hasn't been configured yet, rather than guessing a
-// location no one asked for.
-function requireCourseResourcesDir(reply: FastifyReply): string | null {
-  if (!settings.courseResourcesDir) {
-    reply.code(400);
-    return null;
-  }
-  return settings.courseResourcesDir;
-}
+// Teacher tools: course resources (images, sample files, anything a lesson links to) — live inside the
+// course's own directory under DEFAULT_COURSES_DIR (see course/resources.ts's doc comment), one `resources/`
+// subfolder per course. No separate configuration needed — unlike the old courseResourcesDir setting, a
+// course's own directory always exists (or is createable) by construction.
 
 app.get('/course/resources', async (req, reply) => {
   const { course } = (req.query ?? {}) as { course?: string };
-  const dir = requireCourseResourcesDir(reply);
-  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
   if (!course) {
     reply.code(400);
     return { error: 'expected ?course=<course-directory-name>' };
   }
   try {
-    return { files: listResourceFiles(dir, course) };
+    return { files: listResourceFiles(DEFAULT_COURSES_DIR, course) };
   } catch (e: unknown) {
     reply.code(400);
     return { error: e instanceof Error ? e.message : String(e) };
@@ -585,14 +592,12 @@ app.get('/course/resources', async (req, reply) => {
 
 app.post('/course/resources/ensure-dir', async (req, reply) => {
   const { course } = (req.body ?? {}) as { course?: string };
-  const dir = requireCourseResourcesDir(reply);
-  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
   if (!course) {
     reply.code(400);
     return { error: 'expected { course: string }' };
   }
   try {
-    ensureCourseResourceDir(dir, course);
+    ensureCourseResourceDir(DEFAULT_COURSES_DIR, course);
     return { ok: true };
   } catch (e: unknown) {
     reply.code(400);
@@ -606,14 +611,12 @@ app.post('/course/resources/ensure-dir', async (req, reply) => {
 // startup.
 app.post('/course/resources/upload', async (req, reply) => {
   const { course, name, dataBase64 } = (req.body ?? {}) as { course?: string; name?: string; dataBase64?: string };
-  const dir = requireCourseResourcesDir(reply);
-  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
   if (!course || !name || typeof dataBase64 !== 'string') {
     reply.code(400);
     return { error: 'expected { course: string, name: string, dataBase64: string }' };
   }
   try {
-    const file = saveResourceFile(dir, course, name, dataBase64);
+    const file = saveResourceFile(DEFAULT_COURSES_DIR, course, name, dataBase64);
     pushLog('info', `Teacher tools: uploaded resource "${name}" -> ${course}/`);
     return { file };
   } catch (e: unknown) {
@@ -635,14 +638,12 @@ app.get('/course/resources/references', async (req, reply) => {
 
 app.delete('/course/resources/file', async (req, reply) => {
   const { course, name } = (req.query ?? {}) as { course?: string; name?: string };
-  const dir = requireCourseResourcesDir(reply);
-  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
   if (!course || !name) {
     reply.code(400);
     return { error: 'expected ?course=<course>&name=<filename>' };
   }
   try {
-    deleteResourceFile(dir, course, name);
+    deleteResourceFile(DEFAULT_COURSES_DIR, course, name);
     pushLog('info', `Teacher tools: deleted resource "${name}" from ${course}/`);
     return { ok: true };
   } catch (e: unknown) {
@@ -653,14 +654,12 @@ app.delete('/course/resources/file', async (req, reply) => {
 
 app.post('/course/resources/rename', async (req, reply) => {
   const { course, oldName, newName } = (req.body ?? {}) as { course?: string; oldName?: string; newName?: string };
-  const dir = requireCourseResourcesDir(reply);
-  if (!dir) return { error: 'No course resources directory configured — set one in Settings > Education.' };
   if (!course || !oldName || !newName) {
     reply.code(400);
     return { error: 'expected { course: string, oldName: string, newName: string }' };
   }
   try {
-    const file = renameResourceFile(dir, course, oldName, newName);
+    const file = renameResourceFile(DEFAULT_COURSES_DIR, course, oldName, newName);
     pushLog('info', `Teacher tools: renamed resource "${oldName}" -> "${newName}" in ${course}/`);
     return { file };
   } catch (e: unknown) {
@@ -672,13 +671,8 @@ app.post('/course/resources/rename', async (req, reply) => {
 // Static serving for uploaded resources — a lesson references one as e.g. `/course-resources/course02/diagram.png`.
 app.get('/course-resources/:course/:name', async (req, reply) => {
   const { course, name } = req.params as { course: string; name: string };
-  const dir = settings.courseResourcesDir;
-  if (!dir) {
-    reply.code(404);
-    return { error: 'No course resources directory configured.' };
-  }
   try {
-    const { data, contentType } = readResourceFile(dir, course, name);
+    const { data, contentType } = readResourceFile(DEFAULT_COURSES_DIR, course, name);
     reply.header('content-type', contentType);
     return data;
   } catch {
@@ -689,10 +683,16 @@ app.get('/course-resources/:course/:name', async (req, reply) => {
 
 // The student's terminal — a STRUCTURED runner, never a shell/PTY (§5): tokenizes the typed line, checks it
 // against the current lesson step's verb allowlist, and runs it as exactly the configured kubectl-compatible
-// CLI. `allow` is required in the body — there is no server-side default policy, since "what's safe to run"
-// is a per-lesson-step decision the content itself must make.
+// CLI (or one of `extraBinaries` — see command.ts's CommandPolicy doc comment). `allow` is required in the
+// body — there is no server-side default policy, since "what's safe to run" is a per-lesson-step decision the
+// content itself must make.
 app.post('/course/command', async (req, reply) => {
-  const { line, cli: cliOverride, allow } = (req.body ?? {}) as { line?: string; cli?: string; allow?: string[] };
+  const { line, cli: cliOverride, allow, extraBinaries } = (req.body ?? {}) as {
+    line?: string;
+    cli?: string;
+    allow?: string[];
+    extraBinaries?: string[];
+  };
   if (typeof line !== 'string' || !line.trim()) {
     reply.code(400);
     return { error: 'expected { line: string, allow: string[] }' };
@@ -711,16 +711,29 @@ app.post('/course/command', async (req, reply) => {
     return { error: e instanceof Error ? e.message : String(e) };
   }
 
-  const decision = checkCommandPolicy(argv, cliArgv, { allow });
+  const decision = checkCommandPolicy(argv, cliArgv, { allow, extraBinaries: Array.isArray(extraBinaries) ? extraBinaries : undefined });
   if (!decision.allowed) {
     pushLog('warn', `Course command blocked: "${line}" — ${decision.reason}`);
     reply.code(403);
     return { error: decision.reason };
   }
 
-  const result = await runCourseCommand(argv);
-  pushLog('info', `Course command: "${line}" -> exit ${result.exitCode}`);
-  return result;
+  // spawn's own 'error' event (child.on('error', reject) in runCourseCommand) rejects with the raw Node
+  // ErrnoException — left uncaught, that becomes Fastify's generic 500 "Internal Server Error", which tells a
+  // student nothing about WHY (e.g. that argv[0] simply isn't on PATH). Catching here and reporting `code`
+  // turns that into something actionable instead — the client pattern-matches "ENOENT" on this message to
+  // decide whether offering a path override (CliPathFixer) makes sense.
+  try {
+    const result = await runCourseCommand(argv);
+    pushLog('info', `Course command: "${line}" -> exit ${result.exitCode}`);
+    return result;
+  } catch (e: unknown) {
+    const err = e as NodeJS.ErrnoException;
+    const reason = err.code === 'ENOENT' ? `"${argv[0]}" (ENOENT) — not found. Check it's installed and on PATH, or set its path in Settings.` : (err.message ?? String(e));
+    pushLog('warn', `Course command failed to run: "${line}" — ${reason}`);
+    reply.code(400);
+    return { error: `Couldn't run ${reason}` };
+  }
 });
 
 // Probes whether a CLI binary resolves on this machine's PATH (or at an absolute path the student supplies) —

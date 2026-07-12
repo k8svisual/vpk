@@ -51,13 +51,16 @@ bun run build:web
 echo "==> Embedding the web app into the server bundle"
 bun run build:web-assets
 
+echo "==> Embedding seed course content into the server bundle"
+bun run build:course-assets
+
 echo "==> Compiling $BUN_TARGET"
 bun scripts/build-binary.ts "$BUN_TARGET"
 
-# webAssets.generated.ts is only ever meant to hold real content transiently, right before a compile (see its
-# own header comment) — restore the committed empty placeholder so this script doesn't leave your working tree
-# dirty every time you run it locally.
-git checkout -- packages/server/src/webAssets.generated.ts
+# webAssets.generated.ts/courseAssets.generated.ts are only ever meant to hold real content transiently, right
+# before a compile (see their own header comments) — restore the committed empty placeholders so this script
+# doesn't leave your working tree dirty every time you run it locally.
+git checkout -- packages/server/src/webAssets.generated.ts packages/server/src/courseAssets.generated.ts
 
 echo "==> Building icons (scripts/build-icons.sh)"
 ./scripts/build-icons.sh
