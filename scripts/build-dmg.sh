@@ -41,6 +41,12 @@ echo ""
 echo "==> Installing dependencies"
 bun install
 
+# The *.generated.ts asset files hold real `with { type: 'file' }` imports only transiently, right before the
+# compile below — tsc can't resolve those non-code module imports, so typecheck REQUIRES them empty. A prior
+# build that failed/was interrupted after populating them (before the restore at the end) would otherwise leave
+# them populated and break this build's typecheck. Reset them up front so a rebuild is always self-healing.
+git checkout -- packages/server/src/webAssets.generated.ts packages/server/src/courseAssets.generated.ts 2>/dev/null || true
+
 echo "==> Typecheck + tests (same gate the release workflow runs)"
 bun run typecheck
 bun run test

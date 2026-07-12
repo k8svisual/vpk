@@ -48,7 +48,9 @@ function main() {
   files.forEach((relPath, i) => {
     const coursePath = relPath.split(sep).join('/');
     const varName = `c${i}`;
-    importLines.push(`import ${varName} from '../../courses/${coursePath}' with { type: 'file' };`);
+    // ../../../courses — three levels up from packages/server/src/ reaches the REPO ROOT's courses/ dir.
+    // (webAssets uses ../../web because packages/web is a sibling package UNDER packages/; courses/ is not.)
+    importLines.push(`import ${varName} from '../../../courses/${coursePath}' with { type: 'file' };`);
     mapEntries.push(`  ${JSON.stringify(coursePath)}: ${varName} as unknown as string,`);
   });
 
