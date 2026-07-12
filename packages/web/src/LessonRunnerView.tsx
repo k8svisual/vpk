@@ -52,9 +52,10 @@ interface LessonFrontmatter {
   /** Author opt-out for the terminal's delete confirmation — defaults to true. Set false for delete-heavy
    *  courses so the student isn't prompted on every delete (see TerminalPane's confirmDelete prop). */
   confirmDelete?: boolean;
-  /** Opt into the embedded graphic panel below the terminal — 'schematic' shows a live, isolated view of the
-   *  student's own cluster (see CourseGraphicPanel). Omitted = no panel. */
-  graphic?: 'schematic' | 'cluster3d';
+  /** Opt into the embedded graphic panel below the terminal — a live, isolated view of the student's own
+   *  cluster (see CourseGraphicPanel). Both a Pod Schematic and a top-down Cluster Wheel are always available
+   *  via the panel's tabs; this value just picks which one opens first. Omitted = no panel. */
+  graphic?: 'schematic' | 'wheel';
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';
 interface LessonBlock {
@@ -377,6 +378,7 @@ export function LessonRunnerView({
     const cli = cliOverride ? [cliOverride] : lesson.frontmatter.cli;
     const params = new URLSearchParams({ popout: 'graphic' });
     if (cli && cli.length > 0) params.set('cli', cli.join(','));
+    if (lesson.frontmatter.graphic === 'wheel') params.set('view', 'wheel');
     const popup = window.open(`${window.location.pathname}?${params.toString()}`, 'vpk-course-graphic', 'width=720,height=640');
     if (!popup) {
       pushToast('Pop-up blocked — allow pop-ups for this site to open the graphic in a separate window.');
@@ -687,9 +689,11 @@ export function LessonRunnerView({
     ? { ...lesson, frontmatter: { ...lesson.frontmatter, cli: [cliOverride] } }
     : lesson;
 
-  // Only 'schematic' embeds today — 'cluster3d' is reserved (Scene3D's single-WebGL-context design needs
-  // separate handling before it can live in an embeddable/poppable pane).
-  const graphicEnabled = effectiveLesson.frontmatter.graphic === 'schematic';
+  // The panel embeds server-drawn SVGs (Pod Schematic + top-down Cluster Wheel) — both lightweight, unlike the
+  // singleton-WebGL 3D scene, which is why the Wheel is drawn flat here rather than a second Scene3D. The
+  // frontmatter value selects which tab opens first; any recognized value enables the panel.
+  const graphicKind = effectiveLesson.frontmatter.graphic;
+  const graphicEnabled = graphicKind === 'schematic' || graphicKind === 'wheel';
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -825,7 +829,12 @@ export function LessonRunnerView({
                     </button>
                   </div>
                 ) : (
-                  <CourseGraphicPanel cli={effectiveLesson.frontmatter.cli} refreshSignal={graphicRefreshSignal} onPopOut={popOutGraphic} />
+                  <CourseGraphicPanel
+                    cli={effectiveLesson.frontmatter.cli}
+                    refreshSignal={graphicRefreshSignal}
+                    onPopOut={popOutGraphic}
+                    defaultView={graphicKind === 'wheel' ? 'wheel' : 'schematic'}
+                  />
                 )}
               </div>
             </>

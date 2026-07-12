@@ -93,6 +93,7 @@ import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 import { getSchematic } from './schematic';
 import { renderSchematicSvg } from './render/schematicSvg';
+import { renderWheelSvg } from './render/wheelSvg';
 import { renderContainerSchematicSvg } from './render/containerSchematicSvg';
 import { renderServiceFlowSvg, renderIngressPathSvg, renderServiceNodesSvg, renderTopologySvg } from './render/networkSvg';
 import { redactSecret } from './redact';
@@ -562,6 +563,20 @@ app.get('/course/graphic/schematic.svg', async (req, reply) => {
   }
   reply.header('content-type', 'image/svg+xml');
   return renderSchematicSvg(dto);
+});
+
+// The whole capture as a top-down 2D Wheel SVG, from the ISOLATED course graph — the "Wheel" tab's counterpart
+// to schematic.svg. Deliberately an SVG (not a second Scene3D): the 3D Wheel is a single-WebGL-context singleton
+// that can't be mounted twice, so the course panel renders it flat instead (see render/wheelSvg.ts). Reuses
+// projectClusterWheel exactly as the main /scene/wheel does, but never against the global `graph`.
+app.get('/course/graphic/wheel.svg', async (req, reply) => {
+  const g = getCourseGraph();
+  if (!g) {
+    reply.code(404);
+    return { error: 'not found (capture the cluster first)' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  return renderWheelSvg(projectClusterWheel(g));
 });
 
 // Teacher tools: raw markdown source for the editor to load — see content.ts's readLessonSource doc comment

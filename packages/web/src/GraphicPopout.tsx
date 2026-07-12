@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { CourseGraphicPanel } from './CourseGraphicPanel';
+import { CourseGraphicPanel, type GraphicView } from './CourseGraphicPanel';
 
 /**
  * Rendered by main.tsx instead of <App /> when the URL has ?popout=graphic — the whole page IS the course
@@ -16,6 +16,7 @@ export function GraphicPopout() {
   const params = new URLSearchParams(window.location.search);
   const cliParam = params.get('cli');
   const cli = cliParam ? cliParam.split(',').filter(Boolean) : undefined;
+  const defaultView: GraphicView = params.get('view') === 'wheel' ? 'wheel' : 'schematic';
 
   useEffect(() => {
     document.title = 'VpK — Your cluster';
@@ -23,7 +24,7 @@ export function GraphicPopout() {
 
   return (
     <div className="h-screen p-2" style={{ background: 'var(--vpk-bg)' }}>
-      <CourseGraphicPanel cli={cli} />
+      <CourseGraphicPanel cli={cli} defaultView={defaultView} />
     </div>
   );
 }

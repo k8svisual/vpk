@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Boxes, Camera, Loader2, RefreshCw, SquareArrowOutUpRight, TriangleAlert } from 'lucide-react';
+import { Boxes, Camera, CircleDot, Loader2, Network, RefreshCw, SquareArrowOutUpRight, TriangleAlert } from 'lucide-react';
 
 /**
  * The Course view's embedded graphic panel — a live visualization of the STUDENT's own cluster, shown below
@@ -8,10 +8,14 @@ import { Boxes, Camera, Loader2, RefreshCw, SquareArrowOutUpRight, TriangleAlert
  * main views render, so a student can watch what they build in the course without disturbing anything they
  * were exploring elsewhere.
  *
- * v1 renders one Pod's server-drawn Schematic SVG (lightweight, unlike the singleton-WebGL 3D scene) with a
- * namespace/pod picker; the capture defaults the picker to the newest Pod so "what you just deployed" surfaces
- * on top. Refreshes on demand (button) and automatically when the parent bumps `refreshSignal` (a task/check
- * passed) — but only once a first capture exists, so a completed task never triggers a capture out of nowhere.
+ * Two views share the one capture, chosen by a tab toggle (`defaultView` sets which opens first, from the
+ * lesson's `graphic:` frontmatter): "Schematic" renders one Pod's server-drawn Schematic SVG with a
+ * namespace/pod picker (the capture defaults the picker to the newest Pod so "what you just deployed" surfaces
+ * on top); "Wheel" renders the whole capture as a top-down 2D Cluster Wheel SVG. Both are server-drawn SVGs
+ * (lightweight, unlike the singleton-WebGL 3D scene — which can't be mounted twice for this isolated capture,
+ * so the Wheel is drawn flat instead; see server/src/render/wheelSvg.ts). Refreshes on demand (button) and
+ * automatically when the parent bumps `refreshSignal` (a task/check passed) — but only once a first capture
+ * exists, so a completed task never triggers a capture out of nowhere.
  */
 
 const panelStyle = { borderColor: 'var(--vpk-border)' } as const;
@@ -42,12 +46,26 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
   return json as T;
 }
 
-export function CourseGraphicPanel({ cli, refreshSignal, onPopOut }: { cli?: string[]; refreshSignal?: number; onPopOut?: () => void }) {
+export type GraphicView = 'schematic' | 'wheel';
+
+export function CourseGraphicPanel({
+  cli,
+  refreshSignal,
+  onPopOut,
+  defaultView = 'schematic',
+}: {
+  cli?: string[];
+  refreshSignal?: number;
+  onPopOut?: () => void;
+  defaultView?: GraphicView;
+}) {
+  const [view, setView] = useState<GraphicView>(defaultView);
   const [pods, setPods] = useState<PodRef[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [capturedAt, setCapturedAt] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [svg, setSvg] = useState<string | null>(null);
+  const [wheelSvg, setWheelSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const aliveRef = useRef(true);
   useEffect(() => {
@@ -125,15 +143,63 @@ export function CourseGraphicPanel({ cli, refreshSignal, onPopOut }: { cli?: str
     };
   }, [selectedId, capturedAt]);
 
+  // Re-fetch the Wheel SVG (the whole capture, no per-Pod id) whenever a capture lands. Fetched only once the
+  // Wheel tab has been opened, so a Schematic-first lesson doesn't render the wheel it never shows — but once
+  // fetched it keeps up with every re-capture, matching the schematic.
+  const wheelSeenRef = useRef(false);
+  if (view === 'wheel') wheelSeenRef.current = true;
+  useEffect(() => {
+    if (!capturedAt || !wheelSeenRef.current) {
+      if (!capturedAt) setWheelSvg(null);
+      return;
+    }
+    let cancelled = false;
+    fetch('/course/graphic/wheel.svg')
+      .then(async (r) => {
+        if (!r.ok) throw new Error('render failed');
+        return r.text();
+      })
+      .then((text) => {
+        if (!cancelled) setWheelSvg(text);
+      })
+      .catch(() => {
+        if (!cancelled) setWheelSvg(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [view, capturedAt]);
+
   return (
     <div className="border rounded flex flex-col h-full min-h-0" style={{ ...panelStyle, background: 'var(--vpk-surface)' }}>
       <div className="px-3 py-2 border-b flex items-center justify-between gap-2 text-xs shrink-0" style={panelStyle}>
-        <span className="flex items-center gap-1.5 font-medium">
-          <Boxes size={13} />
-          Your cluster
+        <span className="flex items-center gap-2 font-medium min-w-0">
+          <span className="flex items-center gap-1.5 shrink-0">
+            <Boxes size={13} />
+            Your cluster
+          </span>
+          {/* Both views read the SAME capture — this just picks which is on screen (the singleton-WebGL 3D
+              scene can't be embedded here, so the Wheel is a server-drawn top-down SVG; see wheelSvg.ts). */}
+          <span className="flex items-center rounded border overflow-hidden shrink-0" style={panelStyle}>
+            {(['schematic', 'wheel'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className="flex items-center gap-1 px-2 py-1 cursor-pointer"
+                style={{
+                  background: view === v ? 'var(--vpk-accent, #2f6df6)' : 'var(--vpk-bg)',
+                  color: view === v ? '#fff' : 'var(--vpk-fg-muted)',
+                }}
+                title={v === 'schematic' ? "One Pod's schematic" : 'Top-down Cluster Wheel'}
+              >
+                {v === 'schematic' ? <Network size={12} /> : <CircleDot size={12} />}
+                {v === 'schematic' ? 'Schematic' : 'Wheel'}
+              </button>
+            ))}
+          </span>
         </span>
         <span className="flex items-center gap-1.5">
-          {pods.length > 0 && (
+          {view === 'schematic' && pods.length > 0 && (
             <select
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
@@ -184,10 +250,18 @@ export function CourseGraphicPanel({ cli, refreshSignal, onPopOut }: { cli?: str
               Capture your live cluster to see it here — an isolated snapshot that won't change what the main views show.
             </p>
           </div>
-        ) : capturing && !svg ? (
+        ) : capturing && !(view === 'wheel' ? wheelSvg : svg) ? (
           <div className="h-full flex items-center justify-center gap-1.5 text-xs" style={mutedStyle}>
             <Loader2 size={13} className="animate-spin" /> Capturing…
           </div>
+        ) : view === 'wheel' ? (
+          wheelSvg ? (
+            <div className="course-graphic-svg p-2" dangerouslySetInnerHTML={{ __html: wheelSvg }} />
+          ) : (
+            <div className="h-full flex items-center justify-center gap-1.5 text-xs" style={mutedStyle}>
+              <Loader2 size={13} className="animate-spin" /> Rendering wheel…
+            </div>
+          )
         ) : svg ? (
           <div className="course-graphic-svg p-2" dangerouslySetInnerHTML={{ __html: svg }} />
         ) : (
