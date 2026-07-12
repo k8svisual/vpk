@@ -617,6 +617,7 @@ export function LessonRunnerView({
             taskRuntime={taskRuntime}
             onStartTask={startTask}
             onCompleteTask={completeTaskManually}
+            wide={terminalPoppedOut}
           />
         </div>
         {!terminalPoppedOut && (
@@ -813,12 +814,17 @@ function LessonPane({
   taskRuntime,
   onStartTask,
   onCompleteTask,
+  wide,
 }: {
   lesson: ParsedLesson;
   onCheckStatus: (id: string, status: CheckStatus) => void;
   taskRuntime: Record<string, TaskRuntimeStatus>;
   onStartTask: (task: LessonTaskData) => void;
   onCompleteTask: (task: LessonTaskData) => void;
+  /** Drop the max-w-2xl reading-width cap so the content fills its (now much wider) pane — used when the
+   *  terminal is popped out to its own window, which is the whole point of popping out: give the lesson the
+   *  full width instead of leaving it stranded at reading width with empty space out to the placeholder. */
+  wide?: boolean;
 }) {
   const colors = lesson.frontmatter.colors;
   // Page background is an explicit inline style (only added when authored, so unstyled lessons render
@@ -831,7 +837,7 @@ function LessonPane({
   if (colors?.answer) docStyle['--lesson-answer-bg'] = colors.answer;
 
   return (
-    <div className={`max-w-2xl space-y-4 pb-8 ${colors?.page ? 'p-3 rounded' : ''}`} style={docStyle}>
+    <div className={`space-y-4 pb-8 ${wide ? '' : 'max-w-2xl'} ${colors?.page ? 'p-3 rounded' : ''}`} style={docStyle}>
       <header>
         <h2 className="text-base font-semibold">{lesson.frontmatter.title}</h2>
         <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
