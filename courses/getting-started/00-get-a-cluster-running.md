@@ -1,6 +1,7 @@
 ---
 id: getting-started-00-cluster
 title: Get a Cluster Running
+description: Stand up a local Kubernetes cluster and confirm your tools can reach it — the starting point for everything else.
 difficulty: 1
 provisioning: true
 passWhen: functional
@@ -8,6 +9,7 @@ floor: loose
 timeoutMs: 300000
 pollMs: 5000
 allow: [get]
+graphic: schematic
 ---
 
 Before you can do anything with Kubernetes, you need a cluster to point at. This lesson gets one running on

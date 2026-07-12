@@ -85,6 +85,7 @@ import { DEFAULT_COURSES_DIR, findLessonById, listLessonFiles, readLessonSource,
 import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './course/resources';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
+import { courseGraphState, getCourseGraph, setCourseGraph } from './course/graphic';
 import { pushLog, getLogs, clearLogs } from './logBuffer';
 import { collectSystemDiagnostics } from './diagnostics';
 import { listResources } from './resources';
@@ -519,6 +520,49 @@ app.get('/course/lessons', async () => ({
   // list comes back empty, rather than a generic "no courses found" with no actionable next step.
   coursesDir: DEFAULT_COURSES_DIR,
 }));
+
+// ── Course graphic panel (isolated from the global snapshot — see course/graphic.ts) ──────────────────────
+// Captures the student's LIVE cluster into a separate in-memory graph and renders it beside the lesson, WITHOUT
+// touching the snapshot the main views show. `cli` is the lesson's own CLI (kubectl/oc); the capture is always
+// `core` scope (the whole-cluster overview a student wants to see, not every CRD).
+app.post('/course/graphic/capture', async (req, reply) => {
+  const { cli: cliOverride, keepSecretData } = (req.body ?? {}) as { cli?: string; keepSecretData?: boolean };
+  const cliArgv = cliOverride?.trim() ? cliOverride.trim().split(/\s+/) : cli;
+  const controller = new AbortController();
+  pushLog('info', `Course graphic capture — cli="${cliArgv.join(' ')}"`);
+  try {
+    const { items } = await captureCore({
+      cli: cliArgv,
+      keepSecretData: keepSecretData ?? !settings.disablePullingSecrets,
+      keepConfigMapData: true,
+      scope: 'core',
+      signal: controller.signal,
+    });
+    setCourseGraph(items);
+    return { ok: true, ...courseGraphState() };
+  } catch (e: unknown) {
+    reply.code(500);
+    pushLog('error', `Course graphic capture failed: ${String(e)}`);
+    return { error: String(e instanceof Error ? e.message : e) };
+  }
+});
+
+// Current isolated-capture state (pods + when it was captured) — lets the panel repopulate its picker on
+// mount/pop-out without re-capturing, since the capture lives on the server across panel remounts.
+app.get('/course/graphic/state', async () => courseGraphState());
+
+// One Pod's schematic SVG, rendered from the ISOLATED course graph (never the global one).
+app.get('/course/graphic/schematic.svg', async (req, reply) => {
+  const g = getCourseGraph();
+  const q = req.query as { id?: string };
+  const dto = g && q.id ? getSchematic(g, q.id) : undefined;
+  if (!dto) {
+    reply.code(404);
+    return { error: 'not found (capture the cluster first, or not a Pod id in it)' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  return renderSchematicSvg(dto);
+});
 
 // Teacher tools: raw markdown source for the editor to load — see content.ts's readLessonSource doc comment
 // on why this is deliberately unparsed.

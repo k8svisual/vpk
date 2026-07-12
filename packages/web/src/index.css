@@ -322,6 +322,16 @@
    current view's own content (SVG diagrams, tables, lesson prose, ...) is meant to end up on paper. `main`'s
    own overflow-auto is overridden so the browser prints the FULL scrollable content, not just whatever
    happened to be visible in the viewport when Print was clicked. */
+/* The Course graphic panel inlines the server-rendered schematic SVG (which carries its own width/height for
+   the standalone view). Scale it to the embedded panel's width instead, centered, so it fits whatever the
+   student sizes the panel to. */
+.course-graphic-svg svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
 @media print {
   .no-print {
     display: none !important;

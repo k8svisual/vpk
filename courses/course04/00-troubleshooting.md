@@ -1,6 +1,7 @@
 ---
 id: troubleshooting-04-diagnose-and-fix
 title: Troubleshooting Kubernetes
+description: Diagnose and fix broken workloads — crash loops, failed scheduling, and bad config — using logs, events, and describe.
 difficulty: 3
 prereqs: [openshift-02-using-oc]
 estimatedMinutes: 90

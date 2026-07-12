@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { TerminalPopout } from './TerminalPopout';
+import { GraphicPopout } from './GraphicPopout';
 import { applyTheme, initialTheme } from './theme';
 import { applyFontSize, initialFontSize } from './fontSize';
 import { applyKindColorOverrides, getStoredKindColorOverrides } from './kindColorOverrides';
@@ -28,7 +29,7 @@ applyKindColorOverrides(getStoredKindColorOverrides());
 // param added) rather than a different route — same bundle, same index.html, so the popup window gets the
 // exact CSS/theme the main window has for free, none of the stylesheet-cloning a raw `window.open('', ...)` +
 // cross-document portal would need.
-const isTerminalPopout = new URLSearchParams(window.location.search).get('popout') === 'terminal';
+const popout = new URLSearchParams(window.location.search).get('popout');
 
 const el = document.getElementById('root');
-if (el) createRoot(el).render(isTerminalPopout ? <TerminalPopout /> : <App />);
+if (el) createRoot(el).render(popout === 'terminal' ? <TerminalPopout /> : popout === 'graphic' ? <GraphicPopout /> : <App />);

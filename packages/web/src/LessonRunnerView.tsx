@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { renderLessonHtml } from './lessonMarkdown';
 import {
+  Boxes,
   CheckCircle2,
   ListChecks,
   Loader2,
@@ -19,6 +20,7 @@ import { approveCommand, getBinaryPath, isCommandApproved, setBinaryPath } from 
 import { ToastStack, type ToastItem } from './Toast';
 import { CourseProgressModal, type TaskProgressEntry, type TaskRuntimeStatus } from './CourseProgressModal';
 import { TaskApprovalPanel, type UnresolvedTaskCommand } from './TaskApprovalPanel';
+import { CourseGraphicPanel } from './CourseGraphicPanel';
 
 /**
  * The real lesson/terminal experience (redesign/training-course.md §5/§6), superseding CourseSmokeView now
@@ -50,6 +52,9 @@ interface LessonFrontmatter {
   /** Author opt-out for the terminal's delete confirmation — defaults to true. Set false for delete-heavy
    *  courses so the student isn't prompted on every delete (see TerminalPane's confirmDelete prop). */
   confirmDelete?: boolean;
+  /** Opt into the embedded graphic panel below the terminal — 'schematic' shows a live, isolated view of the
+   *  student's own cluster (see CourseGraphicPanel). Omitted = no panel. */
+  graphic?: 'schematic' | 'cluster3d';
 }
 type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';
 interface LessonBlock {
@@ -121,6 +126,10 @@ const LESSON_MIN_WIDTH = 280;
 const TERMINAL_MIN_HEIGHT = 160;
 const TERMINAL_MAX_HEIGHT = 900;
 const LESSON_MIN_HEIGHT = 160;
+/** The embedded graphic panel's height within the terminal column, and the minimum the terminal keeps above
+ *  it — the graphic-resize divider clamps between these so neither pane can be dragged away entirely. */
+const GRAPHIC_MIN_HEIGHT = 140;
+const TERMINAL_MIN_ABOVE_GRAPHIC = 120;
 /** Background poll cadence for an armed auto-completion task — matches the terminal-friendly ~few-second
  *  cadence liveCheck.ts's DEFAULT_POLL_MS already uses server-side for a different polling case. */
 const TASK_POLL_MS = 4000;
@@ -155,6 +164,11 @@ export function LessonRunnerView({
   const [catalogEmpty, setCatalogEmpty] = useState<{ coursesDir: string } | null>(null);
   const [terminalWidth, setTerminalWidth] = useState(420);
   const [terminalHeight, setTerminalHeight] = useState(360);
+  // Height of the embedded graphic panel within the terminal column (when the lesson opts into `graphic:`);
+  // the terminal takes the remaining space above it. graphicRefreshSignal is bumped whenever a check passes
+  // or a task completes, telling the panel to re-capture so the student sees the result of what they just did.
+  const [graphicHeight, setGraphicHeight] = useState(260);
+  const [graphicRefreshSignal, setGraphicRefreshSignal] = useState(0);
   const [layout, setLayout] = useState<CourseLayout>(initialCourseLayout);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [now, setNow] = useState<Date | null>(null);
@@ -172,9 +186,16 @@ export function LessonRunnerView({
   // and the unmount cleanup can both reach it without threading it through props.
   const [terminalPoppedOut, setTerminalPoppedOut] = useState(false);
   const terminalPopupRef = useRef<Window | null>(null);
+  // The embedded graphic panel has the same pop-out-to-its-own-window story as the terminal (own window handle
+  // in a ref, close-detection poll, unmount cleanup) — the isolated capture lives on the server, so the popout
+  // window and the embedded slot both just read /course/graphic/state; nothing client-side needs syncing.
+  const [graphicPoppedOut, setGraphicPoppedOut] = useState(false);
+  const graphicPopupRef = useRef<Window | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lessonScrollRef = useRef<HTMLDivElement>(null);
+  const sideRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const graphicDraggingRef = useRef(false);
   const toastIdRef = useRef(0);
   const taskStartedAtRef = useRef<Record<string, number>>({});
   const pollTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
@@ -348,6 +369,29 @@ export function LessonRunnerView({
     setTerminalPoppedOut(false);
   }
 
+  // Opens GraphicPopout (main.tsx's ?popout=graphic branch) in its own window — the graphic's equivalent of
+  // popOutTerminal. Only `cli` needs to ride along (the capture itself lives server-side); the popped-out
+  // panel reads /course/graphic/state exactly like the embedded one.
+  function popOutGraphic() {
+    if (!lesson) return;
+    const cli = cliOverride ? [cliOverride] : lesson.frontmatter.cli;
+    const params = new URLSearchParams({ popout: 'graphic' });
+    if (cli && cli.length > 0) params.set('cli', cli.join(','));
+    const popup = window.open(`${window.location.pathname}?${params.toString()}`, 'vpk-course-graphic', 'width=720,height=640');
+    if (!popup) {
+      pushToast('Pop-up blocked — allow pop-ups for this site to open the graphic in a separate window.');
+      return;
+    }
+    graphicPopupRef.current = popup;
+    setGraphicPoppedOut(true);
+  }
+
+  function bringGraphicBack() {
+    graphicPopupRef.current?.close();
+    graphicPopupRef.current = null;
+    setGraphicPoppedOut(false);
+  }
+
   // Polls rather than listening for a popup-side event — closing a window doesn't reliably fire anything
   // observable from the OPENER side (no 'close' event, and cross-window 'beforeunload' isn't guaranteed), so
   // `.closed` is the standard way to notice. Only runs while actually popped out.
@@ -362,10 +406,24 @@ export function LessonRunnerView({
     return () => clearInterval(interval);
   }, [terminalPoppedOut]);
 
-  // Closes the popup if the Course view itself unmounts (navigating away, clicking Stop) — otherwise the
-  // terminal window is orphaned, still open but with no lesson left for "bring it back" to return it to.
   useEffect(() => {
-    return () => terminalPopupRef.current?.close();
+    if (!graphicPoppedOut) return;
+    const interval = setInterval(() => {
+      if (graphicPopupRef.current?.closed) {
+        graphicPopupRef.current = null;
+        setGraphicPoppedOut(false);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [graphicPoppedOut]);
+
+  // Closes either popup if the Course view itself unmounts (navigating away, clicking Stop) — otherwise the
+  // popped-out window is orphaned, still open but with no lesson left for "bring it back" to return it to.
+  useEffect(() => {
+    return () => {
+      terminalPopupRef.current?.close();
+      graphicPopupRef.current?.close();
+    };
   }, []);
 
   const activeLessonId = lessonId ?? DEFAULT_LESSON_ID;
@@ -474,6 +532,18 @@ export function LessonRunnerView({
   const totalTasks = useMemo(() => (lesson ? lesson.segments.filter((s) => s.type === 'block' && s.block.kind === 'check').length : 0), [lesson]);
   const completedTasks = useMemo(() => Object.values(checkStatuses).filter((s) => s === 'pass').length, [checkStatuses]);
 
+  // Nudge the embedded graphic panel to re-capture whenever the student passes a check or completes a task —
+  // that's exactly when the cluster changed under them, so it's when "show me what I just did" pays off. Keyed
+  // on the COUNTS so it fires on an increase, and skipped on the very first render (empty ref) so simply
+  // opening a lesson doesn't trigger a capture.
+  const graphicProgressKeyRef = useRef('');
+  const completedTaskCount = useMemo(() => Object.values(taskRuntime).filter((s) => s === 'complete').length, [taskRuntime]);
+  useEffect(() => {
+    const key = `${completedTasks}:${completedTaskCount}`;
+    if (graphicProgressKeyRef.current && key !== graphicProgressKeyRef.current) setGraphicRefreshSignal((n) => n + 1);
+    graphicProgressKeyRef.current = key;
+  }, [completedTasks, completedTaskCount]);
+
   // vpk-task blocks (Start/Complete lifecycle) are a SEPARATE progress concept from the totalTasks/
   // completedTasks pair above (which stays scoped to vpk-check blocks, unchanged, matching what
   // courseProgress.ts's Catalog badge already tracks) — surfaced only in the Progress modal, not merged into
@@ -546,6 +616,36 @@ export function LessonRunnerView({
     document.body.style.userSelect = 'none';
   }
 
+  // The graphic panel sits at the BOTTOM of the terminal column, so its height is measured up from the
+  // column's bottom edge; dragging the divider up grows the graphic, down grows the terminal above it. Its own
+  // effect (not the terminal's) since it's always a vertical resize regardless of the row/column main layout.
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!graphicDraggingRef.current || !sideRef.current) return;
+      const rect = sideRef.current.getBoundingClientRect();
+      const max = Math.max(GRAPHIC_MIN_HEIGHT, rect.height - TERMINAL_MIN_ABOVE_GRAPHIC);
+      setGraphicHeight(Math.min(max, Math.max(GRAPHIC_MIN_HEIGHT, rect.bottom - e.clientY)));
+    }
+    function onUp() {
+      if (!graphicDraggingRef.current) return;
+      graphicDraggingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  function startGraphicResize() {
+    graphicDraggingRef.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }
+
   if (catalogEmpty) {
     return (
       <div className="flex h-full min-h-0 gap-4">
@@ -586,6 +686,10 @@ export function LessonRunnerView({
   const effectiveLesson: ParsedLesson = cliOverride
     ? { ...lesson, frontmatter: { ...lesson.frontmatter, cli: [cliOverride] } }
     : lesson;
+
+  // Only 'schematic' embeds today — 'cluster3d' is reserved (Scene3D's single-WebGL-context design needs
+  // separate handling before it can live in an embeddable/poppable pane).
+  const graphicEnabled = effectiveLesson.frontmatter.graphic === 'schematic';
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -649,38 +753,82 @@ export function LessonRunnerView({
           </div>
         )}
         <div
-          className="shrink-0 no-print"
-          // Popped out, there's nothing to drag-resize (the terminal isn't rendering here at all) — a small
-          // fixed footprint for the placeholder card instead of the full terminalWidth/terminalHeight is what
-          // actually gives the lesson pane the extra room this feature is for.
-          style={terminalPoppedOut ? (layout === 'row' ? { width: 210 } : { height: 64 }) : layout === 'row' ? { width: terminalWidth } : { height: terminalHeight }}
+          ref={sideRef}
+          className="shrink-0 no-print flex flex-col min-h-0"
+          // When the terminal is popped out AND there's no graphic panel keeping the column occupied, shrink to
+          // a small placeholder footprint so the lesson gets the freed width — but if a graphic panel is here,
+          // keep the full width so the graphic isn't squished into nothing.
+          style={
+            terminalPoppedOut && !graphicEnabled
+              ? layout === 'row'
+                ? { width: 210 }
+                : { height: 64 }
+              : layout === 'row'
+                ? { width: terminalWidth }
+                : { height: terminalHeight }
+          }
         >
-          {terminalPoppedOut ? (
-            <div
-              className="h-full flex flex-col items-center justify-center gap-1.5 border rounded p-2 text-center"
-              style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
-            >
-              <TerminalIcon size={14} />
-              <span className="text-xs">Terminal is open in a separate window</span>
-              <button
-                onClick={bringTerminalBack}
-                className="rounded border px-2 py-1 text-xs cursor-pointer"
-                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+          <div className="flex-1 min-h-0">
+            {terminalPoppedOut ? (
+              <div
+                className="h-full flex flex-col items-center justify-center gap-1.5 border rounded p-2 text-center"
+                style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
               >
-                Bring it back
-              </button>
-            </div>
-          ) : (
-            <TerminalPane
-              allow={effectiveLesson.frontmatter.allow ?? ['get']}
-              cli={effectiveLesson.frontmatter.cli}
-              confirmDelete={effectiveLesson.frontmatter.confirmDelete}
-              theme={terminalTheme}
-              fontSizePx={terminalFontSize}
-              layout={layout}
-              onToggleLayout={toggleLayout}
-              onPopOut={popOutTerminal}
-            />
+                <TerminalIcon size={14} />
+                <span className="text-xs">Terminal is open in a separate window</span>
+                <button
+                  onClick={bringTerminalBack}
+                  className="rounded border px-2 py-1 text-xs cursor-pointer"
+                  style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+                >
+                  Bring it back
+                </button>
+              </div>
+            ) : (
+              <TerminalPane
+                allow={effectiveLesson.frontmatter.allow ?? ['get']}
+                cli={effectiveLesson.frontmatter.cli}
+                confirmDelete={effectiveLesson.frontmatter.confirmDelete}
+                theme={terminalTheme}
+                fontSizePx={terminalFontSize}
+                layout={layout}
+                onToggleLayout={toggleLayout}
+                onPopOut={popOutTerminal}
+              />
+            )}
+          </div>
+          {graphicEnabled && (
+            <>
+              <div
+                onMouseDown={startGraphicResize}
+                role="separator"
+                aria-orientation="horizontal"
+                title="Drag to resize the graphic"
+                className="shrink-0 group flex items-center justify-center no-print h-2 cursor-row-resize"
+              >
+                <div className="h-px w-full group-hover:h-0.5 transition-[height]" style={{ background: 'var(--vpk-border)' }} />
+              </div>
+              <div className="shrink-0 min-h-0" style={{ height: graphicPoppedOut ? 64 : graphicHeight }}>
+                {graphicPoppedOut ? (
+                  <div
+                    className="h-full flex flex-col items-center justify-center gap-1.5 border rounded p-2 text-center"
+                    style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+                  >
+                    <Boxes size={14} />
+                    <span className="text-xs">Graphic is open in a separate window</span>
+                    <button
+                      onClick={bringGraphicBack}
+                      className="rounded border px-2 py-1 text-xs cursor-pointer"
+                      style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)' }}
+                    >
+                      Bring it back
+                    </button>
+                  </div>
+                ) : (
+                  <CourseGraphicPanel cli={effectiveLesson.frontmatter.cli} refreshSignal={graphicRefreshSignal} onPopOut={popOutGraphic} />
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>

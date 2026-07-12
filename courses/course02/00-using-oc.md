@@ -1,6 +1,7 @@
 ---
 id: openshift-02-using-oc
 title: Using the oc CLI
+description: Learn the OpenShift oc client — projects, resources, and the everyday commands for inspecting and editing a cluster.
 difficulty: 2
 prereqs: [getting-started-00-cluster]
 estimatedMinutes: 45

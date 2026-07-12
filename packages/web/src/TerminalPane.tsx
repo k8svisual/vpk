@@ -5,6 +5,7 @@ import { getBinaryPath, setBinaryPath } from './commandApproval';
 import { initialExtraAllowedBinaries, initialExtraAllowedVerbs } from './terminalAllowlist';
 import { CliPathFixer } from './CliPathFixer';
 import { GENERIC_VERB_DESCRIPTION, VERB_DESCRIPTIONS } from './verbDescriptions';
+import { renderTerminalOutput } from './terminalHighlight';
 
 /**
  * The lesson terminal — extracted out of LessonRunnerView.tsx (not just a local function there) specifically
@@ -71,10 +72,10 @@ function resolveLeadingCommand(cmd: string, candidates: string[]): { sentLine: s
   return null;
 }
 
-const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string; okFg: string }> = {
+const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: string; mutedFg: string; inputBg: string; buttonBg: string; errorFg: string; okFg: string; warnFg: string }> = {
   // var(--vpk-status-error)/var(--vpk-status-ok) are tuned for the app's light surfaces — too dark/muddy to
   // read on pure black, so the terminal gets its own brighter red/green independent of the app-wide colors.
-  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b', okFg: '#4ade80' },
+  dark: { bg: '#000000', fg: '#f5f5f5', border: '#6b6b6b', mutedFg: '#9a9a9a', inputBg: '#454545', buttonBg: '#6e6e6e', errorFg: '#ff6b6b', okFg: '#4ade80', warnFg: '#e0b23a' },
   light: {
     bg: '#ffffff',
     fg: '#111111',
@@ -84,6 +85,7 @@ const TERMINAL_COLORS: Record<TerminalTheme, { bg: string; fg: string; border: s
     buttonBg: '#e2e2e2',
     errorFg: 'var(--vpk-status-error)',
     okFg: 'var(--vpk-status-ok)',
+    warnFg: 'var(--vpk-status-warn)',
   },
 };
 
@@ -466,10 +468,10 @@ export function TerminalPane({
             <div className="font-semibold">$ {entry.line}</div>
             {entry.result && (
               <>
-                <div style={{ color: colors.mutedFg }}>
+                <div style={{ color: entry.result.exitCode === 0 ? colors.okFg : entry.result.exitCode === null ? colors.mutedFg : colors.errorFg }}>
                   exit {entry.result.exitCode ?? 'aborted'} ({entry.result.durationMs}ms)
                 </div>
-                {entry.result.stdout && <pre className="whitespace-pre-wrap">{entry.result.stdout}</pre>}
+                {entry.result.stdout && <pre className="whitespace-pre-wrap">{renderTerminalOutput(entry.result.stdout, theme, colors)}</pre>}
                 {entry.result.stderr && (
                   <pre className="whitespace-pre-wrap" style={{ color: colors.errorFg }}>
                     {entry.result.stderr}

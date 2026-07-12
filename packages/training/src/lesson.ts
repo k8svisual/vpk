@@ -13,6 +13,10 @@ import type { CommandExpect, Strictness } from './types';
 export interface LessonFrontmatter {
   id: string;
   title: string;
+  /** One- or two-sentence summary shown on the lesson's Catalog card (and nowhere else) — the "what will I
+   *  learn / why pick this" blurb a student reads before starting. Plain text, no markdown; keep it short
+   *  (the card clamps it). Optional: a card with no description just shows its title + difficulty/time. */
+  description?: string;
   difficulty?: number;
   prereqs?: string[];
   estimatedMinutes?: number;
@@ -58,6 +62,12 @@ export interface LessonFrontmatter {
    *  asks for confirmation before running). Set false for courses where deleting is a frequent, expected part
    *  of the exercises, so the student isn't prompted on every delete. The teacher owns this per lesson. */
   confirmDelete?: boolean;
+  /** Opt a lesson into the embedded graphic panel below the terminal — a live visualization of the student's
+   *  OWN cluster, captured into an isolated snapshot that never disturbs the main views' loaded snapshot (see
+   *  server/src/course/graphic.ts). `schematic` shows a chosen Pod's schematic diagram; omitted = no panel.
+   *  (`cluster3d` is reserved for the 3D field, not embeddable yet — Scene3D is a single-WebGL-context
+   *  singleton, so it needs separate handling.) */
+  graphic?: 'schematic' | 'cluster3d';
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';

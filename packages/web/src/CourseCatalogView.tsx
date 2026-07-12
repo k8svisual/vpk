@@ -13,6 +13,7 @@ import { getCourseProgress, type CourseStatus } from './courseProgress';
 interface LessonSummary {
   id: string;
   title: string;
+  description?: string;
   difficulty?: number;
   estimatedMinutes?: number;
   path: string;
@@ -148,6 +149,11 @@ export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) =
                   <GraduationCap size={14} />
                   {lesson.title}
                 </div>
+                {lesson.description && (
+                  <p className="text-xs mt-1 line-clamp-3" style={mutedStyle}>
+                    {lesson.description}
+                  </p>
+                )}
                 <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
                   {lesson.difficulty !== undefined && <span>Difficulty {lesson.difficulty}</span>}
                   {lesson.estimatedMinutes !== undefined && (

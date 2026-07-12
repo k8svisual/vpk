@@ -1,6 +1,7 @@
 ---
 id: docker-03-using-docker
 title: Using Docker
+description: Build and run container images with the docker CLI — the layer underneath the images your Kubernetes workloads run.
 difficulty: 1
 prereqs: [getting-started-00-cluster]
 estimatedMinutes: 30
