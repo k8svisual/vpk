@@ -365,7 +365,7 @@ function ReferencePanel({ onClose }: { onClose: () => void }) {
           <RefField name="prereqs" desc="List of other lesson ids, e.g. [getting-started-00-cluster]." />
           <RefField name="allow" desc="List of verbs the terminal permits, e.g. [get, describe, create, delete]." />
           <RefField name="confirmDelete" desc="false skips the terminal's 'confirm before running a delete' prompt — set it for delete-heavy courses. Defaults to true." />
-          <RefField name="graphic" desc="Embeds a live, isolated visualization of the student's own cluster below the terminal. Both a Pod Schematic and a top-down Cluster Wheel are always available via the panel's tabs; the value picks which opens first — schematic or wheel. Omitted = no panel." />
+          <RefField name="clusterViews" desc="List of live-cluster views offered as pop-out launcher chips below the terminal — each opens the REAL interactive view of the student's own cluster (from an isolated capture) in its own window. Values: cluster3d, schematic. e.g. [cluster3d, schematic]. Omitted = no launcher." />
           <RefField name="cli" desc="Which CLI this lesson targets, e.g. [oc]. Defaults to kubectl if omitted." />
           <RefField name="passWhen" desc='"functional" or "conformant" — what counts as passing a check.' />
           <RefField name="floor" desc='"loose" | "standard" | "strict" | "pinned" — minimum strictness.' />

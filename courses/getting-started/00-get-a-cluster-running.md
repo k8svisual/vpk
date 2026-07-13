@@ -9,7 +9,7 @@ floor: loose
 timeoutMs: 300000
 pollMs: 5000
 allow: [get]
-graphic: schematic
+clusterViews: [cluster3d, schematic]
 ---
 
 Before you can do anything with Kubernetes, you need a cluster to point at. This lesson gets one running on

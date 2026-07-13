@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, extend, useFrame, useThree, type MaterialNode } from '@react-three/fiber';
 import { Line, OrbitControls, Text, Sky, Stars, shaderMaterial } from '@react-three/drei';
 import { Color, DoubleSide, type ShaderMaterial } from 'three';
@@ -1725,16 +1725,24 @@ const FIELD_CAMERA_POSITION: [number, number, number] = [4, 4, 8];
  *  only ever applies at that canvas's initial mount — without this, switching modes keeps whatever orbit
  *  position the previous mode was left at, which can leave the new mode's geometry off-screen or absurdly
  *  close up. */
-function CameraReset({ mode }: { mode: Mode }) {
+function CameraReset({ mode, dataReady }: { mode: Mode; dataReady: boolean }) {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls) as { target: { set: (x: number, y: number, z: number) => void }; update: () => void } | null;
-  useEffect(() => {
+  const frame = useCallback(() => {
     const [x, y, z] = mode === 'wheel' ? WHEEL_CAMERA_POSITION : FIELD_CAMERA_POSITION;
     camera.position.set(x, y, z);
     controls?.target.set(0, 0, 0);
     camera.lookAt(0, 0, 0);
     controls?.update();
   }, [mode, camera, controls]);
+  // Reframe when the mode changes (Field↔Wheel), when the controls first resolve, and once this mode's data has
+  // actually rendered. That last case matters for a freshly-opened pop-out window, whose Canvas mounts before
+  // layout settles — the earlier reframes can land against a not-yet-sized viewport, and reapplying when the
+  // wheel/nodes are ready (controls present by then) keeps the scene from opening off-screen. No-op in the main
+  // app, where the camera is already at this default by the time data arrives.
+  useEffect(() => {
+    frame();
+  }, [frame, dataReady]);
   return null;
 }
 
@@ -1756,6 +1764,8 @@ export function Scene3D({
   theme,
   fogEnabled,
   gridEnabled,
+  courseData = false,
+  initialMode = 'field',
 }: {
   onSelect: (id: string) => void;
   /** "Clear" button — unselects whatever's currently selected (and, with it, every derived highlight: the
@@ -1784,8 +1794,19 @@ export function Scene3D({
   fogEnabled: boolean;
   /** Settings' "Grid floor" toggle (see gridSetting.ts) — on by default. */
   gridEnabled: boolean;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/scene/*
+   *  twins of /scene/* (same projections, never the global `graph`). Set only by the course cluster-view
+   *  pop-out (ClusterViewPopout); the main app leaves it false. */
+  courseData?: boolean;
+  /** Which sub-view to open on. Defaults to 'field' (the main app's landing view). The course cluster-view
+   *  pop-out passes 'wheel' — its headline, and the one that frames itself correctly on a fresh window (the
+   *  Field camera assumes a mount-time container size the pop-out doesn't have yet, needing a "Reset view"). */
+  initialMode?: Mode;
 }) {
-  const [mode, setMode] = useState<Mode>('field');
+  // The scene endpoints have course-scoped twins that read the isolated capture; everything else about the
+  // component is identical, so a single base swap points the whole 3D view at the student's own cluster.
+  const sceneBase = courseData ? '/course/graphic/scene' : '/scene';
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [wheel, setWheel] = useState<ClusterWheel | null>(null);
   // Separate from `selected`/the ring: a 3D click shows the small Properties popup first (matching the
   // legacy app), not the full editor — the editor only opens when the popup's own button is clicked.
@@ -1827,12 +1848,12 @@ export function Scene3D({
   useEffect(() => {
     setAllNodes([]); // clear the PREVIOUS snapshot's Nodes immediately rather than leaving them showing until this fetch resolves
     const start = performance.now();
-    console.log('[Scene3D] fetching /scene/nodes...');
+    console.log(`[Scene3D] fetching ${sceneBase}/nodes...`);
     // Guards against a slower response for a PREVIOUS snapshot landing after a newer one has already started
     // (e.g. swapping snapshots twice in quick succession) — without this the stale response can overwrite the
     // Field view's node set with the wrong snapshot's data.
     let cancelled = false;
-    fetch('/scene/nodes')
+    fetch(`${sceneBase}/nodes`)
       .then((r) => r.json() as Promise<SceneNode[]>)
       .then((nodes) => {
         if (cancelled) return;
@@ -1848,7 +1869,7 @@ export function Scene3D({
     return () => {
       cancelled = true;
     };
-  }, [snapshotKey]);
+  }, [snapshotKey, sceneBase]);
 
   // Recomputed on every filter tweak so the top-right count row and the "Hide excluded" button both reflect
   // the CURRENT nodeFilters, not whatever was true the moment the button was last clicked.
@@ -1993,13 +2014,13 @@ export function Scene3D({
   useEffect(() => {
     if (mode !== 'wheel' || wheel) return;
     const start = performance.now();
-    console.log(`[Scene3D] fetching /scene/wheel (nodeIds=${wheelNodeIds?.length ?? 'all'})...`);
+    console.log(`[Scene3D] fetching ${sceneBase}/wheel (nodeIds=${wheelNodeIds?.length ?? 'all'})...`);
     // Guards against a slower response for a PREVIOUS snapshot/nodeIds combination landing after a newer
     // request has already started (e.g. switching snapshots, or clicking "View in Wheel" again, while a prior
     // /scene/wheel fetch is still in flight — both null `wheel` and re-trigger this effect) — without this the
     // stale response can overwrite the current wheel with the wrong snapshot's data.
     let cancelled = false;
-    fetch('/scene/wheel', {
+    fetch(`${sceneBase}/wheel`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ nodeIds: wheelNodeIds }),
@@ -2018,7 +2039,7 @@ export function Scene3D({
     return () => {
       cancelled = true;
     };
-  }, [mode, wheel, wheelNodeIds]);
+  }, [mode, wheel, wheelNodeIds, sceneBase]);
 
   // WheelScene mounts its whole Pod set (one PodHex + up to two MetricBar meshes each — see the uncapped-Pod
   // warning inside WheelScene) in a single React commit, which is the actual freeze on a large cluster, not
@@ -2234,7 +2255,7 @@ export function Scene3D({
         ) : null}
         {gridEnabled && <gridHelper args={[gridSize, gridDivisions, '#d9d9d5', '#e8e8e5']} />}
         <OrbitControls makeDefault />
-        <CameraReset mode={mode} />
+        <CameraReset mode={mode} dataReady={mode === 'wheel' ? wheelReady : allNodes.length > 0} />
       </Canvas>
     </div>
   );

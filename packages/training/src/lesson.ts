@@ -62,12 +62,11 @@ export interface LessonFrontmatter {
    *  asks for confirmation before running). Set false for courses where deleting is a frequent, expected part
    *  of the exercises, so the student isn't prompted on every delete. The teacher owns this per lesson. */
   confirmDelete?: boolean;
-  /** Opt a lesson into the embedded graphic panel below the terminal — a live visualization of the student's
-   *  OWN cluster, captured into an isolated snapshot that never disturbs the main views' loaded snapshot (see
-   *  server/src/course/graphic.ts). `schematic` shows a chosen Pod's schematic diagram; omitted = no panel.
-   *  (`cluster3d` is reserved for the 3D field, not embeddable yet — Scene3D is a single-WebGL-context
-   *  singleton, so it needs separate handling.) */
-  graphic?: 'schematic' | 'cluster3d';
+  /** Which live-cluster views this lesson offers as pop-out launcher chips below the terminal — each opens the
+   *  REAL interactive view (`cluster3d` = 3D, `schematic` = Pod schematic) in its own window, showing the
+   *  student's OWN cluster from an isolated capture that never disturbs the main views' loaded snapshot (see
+   *  server/src/course/graphic.ts). e.g. `[cluster3d, schematic]`. Omitted/empty = no launcher. */
+  clusterViews?: ('cluster3d' | 'schematic')[];
 }
 
 export type LessonBlockKind = 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task';

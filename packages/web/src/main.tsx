@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { TerminalPopout } from './TerminalPopout';
-import { GraphicPopout } from './GraphicPopout';
+import { ClusterViewPopout } from './ClusterViewPopout';
 import { applyTheme, initialTheme } from './theme';
 import { applyFontSize, initialFontSize } from './fontSize';
 import { applyKindColorOverrides, getStoredKindColorOverrides } from './kindColorOverrides';
@@ -32,4 +32,4 @@ applyKindColorOverrides(getStoredKindColorOverrides());
 const popout = new URLSearchParams(window.location.search).get('popout');
 
 const el = document.getElementById('root');
-if (el) createRoot(el).render(popout === 'terminal' ? <TerminalPopout /> : popout === 'graphic' ? <GraphicPopout /> : <App />);
+if (el) createRoot(el).render(popout === 'terminal' ? <TerminalPopout /> : popout === 'clusterview' ? <ClusterViewPopout /> : <App />);

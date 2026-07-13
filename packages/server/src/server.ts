@@ -93,7 +93,6 @@ import { listNetworkServices, listNetworkNodes } from './network';
 import { listStorageGroups } from './storage';
 import { getSchematic } from './schematic';
 import { renderSchematicSvg } from './render/schematicSvg';
-import { renderWheelSvg } from './render/wheelSvg';
 import { renderContainerSchematicSvg } from './render/containerSchematicSvg';
 import { renderServiceFlowSvg, renderIngressPathSvg, renderServiceNodesSvg, renderTopologySvg } from './render/networkSvg';
 import { redactSecret } from './redact';
@@ -565,18 +564,57 @@ app.get('/course/graphic/schematic.svg', async (req, reply) => {
   return renderSchematicSvg(dto);
 });
 
-// The whole capture as a top-down 2D Wheel SVG, from the ISOLATED course graph — the "Wheel" tab's counterpart
-// to schematic.svg. Deliberately an SVG (not a second Scene3D): the 3D Wheel is a single-WebGL-context singleton
-// that can't be mounted twice, so the course panel renders it flat instead (see render/wheelSvg.ts). Reuses
-// projectClusterWheel exactly as the main /scene/wheel does, but never against the global `graph`.
-app.get('/course/graphic/wheel.svg', async (req, reply) => {
+// Shared 404 for the course view-data endpoints below — a capture must exist before any of them can render.
+// Structural `reply` type (just `.code`) so this needs no Fastify type import.
+function courseNotCaptured(reply: { code: (n: number) => unknown }): { error: string } {
+  reply.code(404);
+  return { error: 'not found (capture the cluster first)' };
+}
+
+// ── Course "live cluster" view data ──────────────────────────────────────────────────────────────────────
+// The SAME projections the main 3D/Schematic views use, but ALWAYS against the ISOLATED course graph
+// (getCourseGraph), never the global `graph`. These back the pop-out windows a lesson offers via its
+// `clusterViews:` frontmatter: the student sees their own cluster in the real, interactive views — side-by-side
+// with the lesson — without ever disturbing the snapshot the main app has loaded. A 404 means "capture first".
+
+// 3D Wheel data — GET (unrestricted) mirrors /scene/wheel; POST carries a Node-id restriction the same way.
+app.get('/course/graphic/scene/wheel', async (_req, reply) => {
   const g = getCourseGraph();
-  if (!g) {
+  if (!g) return courseNotCaptured(reply);
+  return projectClusterWheel(g);
+});
+app.post('/course/graphic/scene/wheel', async (req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  const { nodeIds } = (req.body ?? {}) as { nodeIds?: string[] };
+  return projectClusterWheel(g, nodeIds && nodeIds.length > 0 ? new Set(nodeIds) : undefined);
+});
+
+// 3D Field data (mirrors /scene/nodes).
+app.get('/course/graphic/scene/nodes', async (_req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  return projectClusterNodeField(g);
+});
+
+// Pod/resource list for the Schematic view's namespace→Pod picker (mirrors /resources).
+app.get('/course/graphic/resources', async (_req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  return listResources(g);
+});
+
+// Container schematic — the Pod schematic's drill-in (mirrors /container-schematic.svg).
+app.get('/course/graphic/container-schematic.svg', async (req, reply) => {
+  const g = getCourseGraph();
+  const q = req.query as { id?: string; container?: string; volume?: string };
+  const dto = g && q.id ? getSchematic(g, q.id) : undefined;
+  if (!dto) {
     reply.code(404);
-    return { error: 'not found (capture the cluster first)' };
+    return { error: 'not found (capture the cluster first, or not a Pod id in it)' };
   }
   reply.header('content-type', 'image/svg+xml');
-  return renderWheelSvg(projectClusterWheel(g));
+  return renderContainerSchematicSvg(dto, { selectedContainer: q.container ?? null, selectedVolume: q.volume ?? null });
 });
 
 // Teacher tools: raw markdown source for the editor to load — see content.ts's readLessonSource doc comment

@@ -38,6 +38,7 @@ export function SchematicView({
   onManualNamespaceChange,
   manualPodId,
   onManualPodIdChange,
+  courseData = false,
 }: {
   podId: string | null;
   /** The optional second argument is a YAML path (e.g. ['spec', 'containers', 2] or ['status', 'conditions'])
@@ -64,7 +65,15 @@ export function SchematicView({
   onManualNamespaceChange: (namespace: string) => void;
   manualPodId: string;
   onManualPodIdChange: (podId: string) => void;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twins
+   *  of /resources and /schematic.svg (same projections, never the global `graph`). Set only by the course
+   *  cluster-view pop-out (ClusterViewPopout); the main app leaves it false. */
+  courseData?: boolean;
 }) {
+  // Course mode swaps the three data URLs for their isolated-capture twins; everything else is identical.
+  const resourcesUrl = courseData ? '/course/graphic/resources' : '/resources';
+  const schematicSvgUrl = courseData ? '/course/graphic/schematic.svg' : '/schematic.svg';
+  const containerSchematicSvgUrl = courseData ? '/course/graphic/container-schematic.svg' : '/container-schematic.svg';
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
   // Which of the two diagrams for this Pod is showing: the default "pod" (its place in the namespace/cluster —
@@ -93,7 +102,7 @@ export function SchematicView({
   // lifetime (App.tsx remounts SchematicView on every view change, so it never flips mid-mount).
   useEffect(() => {
     if (onReturn) return; // 3D-linked mode never needs the picker's data
-    fetch('/resources')
+    fetch(resourcesUrl)
       .then((r) => r.json() as Promise<{ id: string; kind: string; name: string; namespace?: string }[]>)
       .then((rows) => setPods(rows.filter((r) => r.kind === 'Pod').map((r) => ({ id: r.id, name: r.name, namespace: r.namespace }))))
       .catch(() => setPods([]));
@@ -139,9 +148,9 @@ export function SchematicView({
       const params = new URLSearchParams({ id: effectivePodId });
       if (selectedContainer) params.set('container', selectedContainer);
       if (selectedVolume) params.set('volume', selectedVolume);
-      url = `/container-schematic.svg?${params.toString()}`;
+      url = `${containerSchematicSvgUrl}?${params.toString()}`;
     } else {
-      url = `/schematic.svg?id=${encodeURIComponent(effectivePodId)}`;
+      url = `${schematicSvgUrl}?id=${encodeURIComponent(effectivePodId)}`;
     }
     // Guards against a slower response for a PREVIOUS Pod/container/volume selection landing after a newer
     // one has already started — SVG render time varies with Pod size, so a fast click to a different Pod (or
@@ -166,7 +175,7 @@ export function SchematicView({
     return () => {
       cancelled = true;
     };
-  }, [effectivePodId, diagram, selectedContainer, selectedVolume]);
+  }, [effectivePodId, diagram, selectedContainer, selectedVolume, schematicSvgUrl, containerSchematicSvgUrl]);
 
   // Same placement algorithm as Tooltip.tsx: prefer below-and-centered on the anchor, flip above if that
   // would overflow the viewport's bottom, then clamp both axes so it's always fully on-screen.
