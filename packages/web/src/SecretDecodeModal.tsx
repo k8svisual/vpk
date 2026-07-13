@@ -24,7 +24,17 @@ function decodeValue(base64: string): string {
 /** Opened from a Schematic Secret icon's "Decode" button (see ResourceListModal, or the single-item case in
  *  SchematicView) — fetches that Secret's real definition and shows each key's decoded value, rather than the
  *  base64 ciphertext-looking text `DefinitionModal`'s raw YAML view would show. */
-export function SecretDecodeModal({ resourceId, onClose }: { resourceId: string | null; onClose: () => void }) {
+export function SecretDecodeModal({
+  resourceId,
+  onClose,
+  courseData = false,
+}: {
+  resourceId: string | null;
+  onClose: () => void;
+  /** Fetch from the isolated course-capture twin of /definition instead of the global graph — see
+   *  DefinitionModal's own courseData doc comment. */
+  courseData?: boolean;
+}) {
   const [name, setName] = useState('');
   const [rows, setRows] = useState<DecodedRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +50,8 @@ export function SecretDecodeModal({ resourceId, onClose }: { resourceId: string 
     // no-store: this endpoint's response depends on the live "Redact Secrets" setting, which can be toggled
     // between two fetches of the SAME id — a normally-cached GET would silently keep showing whichever
     // redacted/real state was current the first time this id was ever fetched.
-    fetch(`/definition?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
+    const url = courseData ? '/course/graphic/definition' : '/definition';
+    fetch(`${url}?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((raw: unknown) => {
         if (cancelled) return;
@@ -58,7 +69,7 @@ export function SecretDecodeModal({ resourceId, onClose }: { resourceId: string 
     return () => {
       cancelled = true;
     };
-  }, [resourceId]);
+  }, [resourceId, courseData]);
 
   if (!resourceId) return null;
 

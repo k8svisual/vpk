@@ -426,6 +426,7 @@ export function EventsView({
   initialPodName,
   initialPodId,
   onReturn,
+  courseData = false,
 }: {
   onSelect: (id: string) => void;
   /** Pre-filters the Namespace/Pod selects below — set only when entered via the Schematic's purple "has
@@ -440,6 +441,10 @@ export function EventsView({
   initialPodId?: string;
   /** Shown as a "Return" pill when set — same pattern as SchematicView/RbacView's own onReturn. */
   onReturn?: () => void;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twin
+   *  of /events. Set only by the course cluster-view pop-out (ClusterViewPopout), reached via the Schematic
+   *  pop-out's own "has Events" badge; the main app leaves it false. */
+  courseData?: boolean;
 }) {
   const [events, setEvents] = useState<EventRecord[]>([]);
   // A Pod-scoped visit is here to review that Pod's whole history, not just its Warnings — and the aggregate
@@ -476,11 +481,11 @@ export function EventsView({
   const scrollDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    fetch('/events')
+    fetch(courseData ? '/course/graphic/events' : '/events')
       .then((r) => r.json() as Promise<EventRecord[]>)
       .then(setEvents)
       .catch(() => setEvents([]));
-  }, []);
+  }, [courseData]);
 
   // Options are derived from the data itself (not a separate /namespaces fetch) — only namespaces/Pods that
   // actually HAVE Events in this snapshot are worth offering here.

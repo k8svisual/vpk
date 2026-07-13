@@ -30,6 +30,7 @@ export function RbacView({
   onSelect,
   onReturn,
   returnLabel,
+  courseData = false,
 }: {
   /** A ServiceAccount resource id to open with — set when entered via the Schematic's "RBAC ▸" pill. */
   initialSaId?: string;
@@ -40,7 +41,14 @@ export function RbacView({
   /** Shown as a "Return" pill when set — present only when entered FROM another view. */
   onReturn?: () => void;
   returnLabel?: string;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twins
+   *  of /security, /definition and /rbac.svg. Set only by the course cluster-view pop-out (ClusterViewPopout),
+   *  reached via the Schematic pop-out's own "RBAC ▸" pill; the main app leaves it false. */
+  courseData?: boolean;
 }) {
+  const securityUrl = courseData ? '/course/graphic/security' : '/security';
+  const definitionUrl = courseData ? '/course/graphic/definition' : '/definition';
+  const rbacSvgUrl = courseData ? '/course/graphic/rbac.svg' : '/rbac.svg';
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [selected, setSelected] = useState('');
   const [svg, setSvg] = useState('');
@@ -51,11 +59,11 @@ export function RbacView({
   const tipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/security')
+    fetch(securityUrl)
       .then((r) => r.json() as Promise<SubjectOption[]>)
       .then((list) => setSubjects(list.map((s) => ({ kind: s.kind, name: s.name, namespace: s.namespace }))))
       .catch(() => setSubjects([]));
-  }, []);
+  }, [securityUrl]);
 
   // Arriving from the Security view: the subject identity is already known — select it directly.
   useEffect(() => {
@@ -68,7 +76,7 @@ export function RbacView({
     // Guards against a slower response for a PREVIOUS initialSaId landing after a newer one has already
     // started (e.g. a fast round-trip through Schematic's "RBAC ▸" pill for two different Pods).
     let cancelled = false;
-    fetch(`/definition?id=${encodeURIComponent(initialSaId)}`)
+    fetch(`${definitionUrl}?id=${encodeURIComponent(initialSaId)}`)
       .then((r) => r.json())
       .then((raw: unknown) => {
         if (cancelled) return;
@@ -81,7 +89,7 @@ export function RbacView({
     return () => {
       cancelled = true;
     };
-  }, [initialSaId]);
+  }, [initialSaId, definitionUrl]);
 
   useEffect(() => {
     if (showTimer.current) clearTimeout(showTimer.current);
@@ -96,7 +104,7 @@ export function RbacView({
     // already started — without this a fast switch through the subject dropdown can leave the diagram
     // showing the wrong subject's RBAC graph once the stale response finally lands.
     let cancelled = false;
-    fetch(`/rbac.svg?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(name)}&ns=${encodeURIComponent(ns)}`)
+    fetch(`${rbacSvgUrl}?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(name)}&ns=${encodeURIComponent(ns)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('no RBAC bindings found for this subject in this snapshot');
         return r.text();
@@ -114,7 +122,7 @@ export function RbacView({
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, rbacSvgUrl]);
 
   useLayoutEffect(() => {
     if (!hovered || !tipRef.current) {

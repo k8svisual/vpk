@@ -217,6 +217,7 @@ export function ContainerImagesView({
   onSelect,
   initialRegistry,
   onReturn,
+  courseData = false,
 }: {
   /** Second arg jumps DefinitionModal straight to the clicked container's node in the raw resource, instead
    *  of landing on the kind's generic default field (see DefinitionModal's FocusPath). */
@@ -227,6 +228,10 @@ export function ContainerImagesView({
   initialRegistry?: string;
   /** Shown as a "Return" pill when set — present only when this page was entered FROM the 3D view. */
   onReturn?: () => void;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twin
+   *  of /container-images. Set only by the course cluster-view pop-out (ClusterViewPopout), reached via the
+   *  3D pop-out's own "View Repository" button; the main app leaves it false. */
+  courseData?: boolean;
 }) {
   const [usages, setUsages] = useState<Usage[]>([]);
   const [mode, setMode] = useState<Mode>('tree');
@@ -234,11 +239,11 @@ export function ContainerImagesView({
   const [repoFilter, setRepoFilter] = useState('');
 
   useEffect(() => {
-    fetch('/container-images')
+    fetch(courseData ? '/course/graphic/container-images' : '/container-images')
       .then((r) => r.json() as Promise<Usage[]>)
       .then(setUsages)
       .catch(() => setUsages([]));
-  }, []);
+  }, [courseData]);
 
   // A plain useState initializer only runs once on mount — this re-applies the incoming scope if the user
   // clicks a DIFFERENT registry cylinder's "View Repository" button while already on this page.

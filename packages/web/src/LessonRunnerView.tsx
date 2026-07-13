@@ -720,8 +720,8 @@ export function LessonRunnerView({
                 <button
                   key={id}
                   onClick={() => openClusterView(id)}
-                  className="flex items-center gap-1 rounded border px-2 py-0.5 cursor-pointer"
-                  style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg)', background: 'var(--vpk-surface)' }}
+                  className="flex items-center gap-1 rounded border px-2 py-0.5 cursor-pointer font-medium"
+                  style={{ borderColor: 'var(--vpk-accent)', color: 'var(--vpk-accent-fg)', background: 'var(--vpk-accent)' }}
                   title={`Open the live ${label} view of your cluster in its own window`}
                 >
                   <Icon size={12} />

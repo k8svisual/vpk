@@ -22,6 +22,7 @@ export function OwnerRefView({
   onSelect,
   onReturn,
   snapshotKey,
+  courseData = false,
 }: {
   /** A specific resource id to focus on — set when entered via the 3D view's "View OwnerRef" button. */
   focusId?: string | null;
@@ -31,7 +32,13 @@ export function OwnerRefView({
   /** Resets the manual picker when the loaded snapshot changes — a previously chosen resource id is almost
    *  certainly stale (may not even exist) in a different snapshot. */
   snapshotKey: string;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twins
+   *  of /resources and /ownerref. Set only by the course cluster-view pop-out (ClusterViewPopout), reached via
+   *  the 3D pop-out's own "View OwnerRef" button; the main app leaves it false. */
+  courseData?: boolean;
 }) {
+  const resourcesUrl = courseData ? '/course/graphic/resources' : '/resources';
+  const ownerRefUrl = courseData ? '/course/graphic/ownerref' : '/ownerref';
   const [svg, setSvg] = useState('');
   const [error, setError] = useState('');
 
@@ -47,13 +54,13 @@ export function OwnerRefView({
   useEffect(() => {
     if (onReturn) return; // 3D-linked mode never needs the picker's data
     setOwnedResources([]);
-    fetch('/resources')
+    fetch(resourcesUrl)
       .then((r) => r.json() as Promise<{ id: string; kind: string; name: string; namespace?: string; hasOwnerRefs: boolean }[]>)
       .then((rows) =>
         setOwnedResources(rows.filter((r) => r.hasOwnerRefs).map((r) => ({ id: r.id, kind: r.kind, name: r.name, namespace: r.namespace }))),
       )
       .catch(() => setOwnedResources([]));
-  }, [snapshotKey, onReturn]);
+  }, [snapshotKey, onReturn, resourcesUrl]);
 
   // A different snapshot's resource ids are unrelated to this one's — start the picker over rather than
   // pointing at (or silently 404-ing on) a stale selection.
@@ -88,7 +95,7 @@ export function OwnerRefView({
     // started — this view is never key-remounted on selection change (see its own doc comment above), so a
     // fast pick through the Namespace→Resource picker can otherwise leave the diagram showing the wrong graph.
     let cancelled = false;
-    fetch(`/ownerref?id=${encodeURIComponent(effectiveFocusId)}`)
+    fetch(`${ownerRefUrl}?id=${encodeURIComponent(effectiveFocusId)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error('not found in this snapshot');
         return r.text();
@@ -106,7 +113,7 @@ export function OwnerRefView({
     return () => {
       cancelled = true;
     };
-  }, [effectiveFocusId]);
+  }, [effectiveFocusId, ownerRefUrl]);
 
   function onClick(e: MouseEvent<HTMLDivElement>) {
     const node = (e.target as Element).closest('[data-resource-id]');

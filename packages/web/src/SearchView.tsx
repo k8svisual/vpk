@@ -69,6 +69,7 @@ export function SearchView({
   onSelect,
   initialKind,
   onReturn,
+  courseData = false,
 }: {
   onSelect: (id: string) => void;
   /** Scopes the Kind dropdown below on arrival — set when a 3D resource-pane sphere's "Search" button sent
@@ -78,6 +79,10 @@ export function SearchView({
   /** Shown as a "Return" pill when set — present only when Search was entered FROM the 3D view, so a normal
    *  nav-rail visit to Search doesn't get an button back to a view the user was never in. */
   onReturn?: () => void;
+  /** Render the ISOLATED course capture instead of the global snapshot — fetches the /course/graphic/* twin
+   *  of /resources. Set only by the course cluster-view pop-out (ClusterViewPopout), reached via the 3D
+   *  pop-out's own "Search" button; the main app leaves it false. */
+  courseData?: boolean;
 }) {
   const [rows, setRows] = useState<ResourceRow[]>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -88,11 +93,11 @@ export function SearchView({
   const [sorting, setSorting] = useState<SortingState>([{ id: 'kind', desc: false }]);
 
   useEffect(() => {
-    fetch('/resources')
+    fetch(courseData ? '/course/graphic/resources' : '/resources')
       .then((r) => r.json() as Promise<ResourceRow[]>)
       .then(setRows)
       .catch(() => setRows([]));
-  }, []);
+  }, [courseData]);
 
   // A plain useState initializer only runs once on mount — this re-applies the incoming scope (replacing any
   // prior selection) if the user clicks a DIFFERENT pane sphere's Search button while already on this page.

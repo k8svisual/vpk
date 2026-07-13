@@ -424,7 +424,7 @@ export function SchematicView({
           onClose={() => setResourceList(null)}
         />
       )}
-      <SecretDecodeModal resourceId={decodeSecretId} onClose={() => setDecodeSecretId(null)} />
+      <SecretDecodeModal resourceId={decodeSecretId} onClose={() => setDecodeSecretId(null)} courseData={courseData} />
     </>
   );
 }

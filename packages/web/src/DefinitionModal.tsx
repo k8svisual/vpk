@@ -54,6 +54,7 @@ export function DefinitionModal({
   focusPath,
   onClose,
   theme,
+  courseData = false,
 }: {
   resourceId: string | null;
   focusPath?: FocusPath;
@@ -62,6 +63,9 @@ export function DefinitionModal({
    *  separate CSS-variable mechanism (theme.ts) that a syntax-highlighted editor can't just inherit via var(),
    *  so this is passed down explicitly rather than read from some shared/global theme state. */
   theme: Theme;
+  /** Fetch from the isolated course-capture twin of /definition instead of the global graph — set only by the
+   *  course cluster-view pop-out (ClusterViewPopout), whose resource ids come from the capture, not `graph`. */
+  courseData?: boolean;
 }) {
   const [raw, setRaw] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +85,8 @@ export function DefinitionModal({
     // no-store: whether Secret data comes back redacted depends on the live "Redact Secrets" setting, which
     // can be toggled between two views of the SAME id — a normally-cached GET would keep showing whichever
     // state was current the first time this id was ever fetched.
-    fetch(`/definition?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
+    const url = courseData ? '/course/graphic/definition' : '/definition';
+    fetch(`${url}?id=${encodeURIComponent(resourceId)}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((data: unknown) => {
         if (!cancelled) setRaw(data);
@@ -92,7 +97,7 @@ export function DefinitionModal({
     return () => {
       cancelled = true;
     };
-  }, [resourceId]);
+  }, [resourceId, courseData]);
 
   useEffect(() => {
     if (!resourceId) return;

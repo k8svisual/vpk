@@ -604,6 +604,82 @@ app.get('/course/graphic/resources', async (_req, reply) => {
   return listResources(g);
 });
 
+// Raw resource definition for DefinitionModal/SecretDecodeModal, sourced from the isolated capture (mirrors
+// /definition) — the capture's resource ids don't exist in the global `graph`, so those views need their own
+// course-scoped twin of this route rather than being pointed at /definition.
+app.get('/course/graphic/definition', async (req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  const q = req.query as { id?: string };
+  const resource = q.id ? g.nodes.get(q.id) : undefined;
+  if (!resource) {
+    reply.code(404);
+    return { error: 'not found' };
+  }
+  return settings.redactSecrets ? redactSecret(resource.raw) : resource.raw;
+});
+
+// Subject list for RbacView's picker, sourced from the isolated capture (mirrors /security) — backs the
+// Schematic pop-out's "RBAC ▸" pill, which switches that same window into the RBAC view against the capture.
+app.get('/course/graphic/security', async (_req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  return projectSecuritySubjects(g);
+});
+
+// Event list for EventsView, sourced from the isolated capture (mirrors /events) — backs the Schematic
+// pop-out's purple "has Events" corner badge, which switches that same window into the Events view.
+app.get('/course/graphic/events', async (_req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  return projectEvents(g);
+});
+
+// OwnerRef ownership graph, sourced from the isolated capture (mirrors /ownerref) — backs the 3D pop-out's
+// "View OwnerRef" button, which switches that same window into the OwnerRef view for the selected resource.
+app.get('/course/graphic/ownerref', async (req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  const q = req.query as { ns?: string; id?: string };
+  const focus: OwnerRefFocus = q.id ? { resourceId: q.id } : { namespace: q.ns ?? 'kube-system' };
+  reply.header('content-type', 'image/svg+xml');
+  return renderOwnerRefSvg(projectOwnerRef(g, focus), q.id);
+});
+
+// Container image list for ContainerImagesView, sourced from the isolated capture (mirrors /container-images)
+// — backs the 3D pop-out's image-registry stack's "View Repository" button.
+app.get('/course/graphic/container-images', async (_req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  return projectContainerImages(g);
+});
+
+// One subject's RBAC schematic, sourced from the isolated capture (mirrors /rbac.svg, including its `saId`
+// convenience lookup — resolved against the course graph, not the global one, since that's where the id lives).
+app.get('/course/graphic/rbac.svg', async (req, reply) => {
+  const g = getCourseGraph();
+  if (!g) return courseNotCaptured(reply);
+  const q = req.query as { kind?: string; name?: string; ns?: string; saId?: string };
+  let kind = q.kind;
+  let name = q.name;
+  let ns = q.ns || undefined;
+  if (q.saId) {
+    const sa = g.nodes.get(q.saId);
+    if (sa) {
+      kind = sa.kind;
+      name = sa.name;
+      ns = sa.namespace;
+    }
+  }
+  const view = kind && name ? projectRbacSubject(g, kind, name, ns) : undefined;
+  if (!view) {
+    reply.code(404);
+    return { error: 'no RBAC bindings found for this subject in this capture' };
+  }
+  reply.header('content-type', 'image/svg+xml');
+  return renderRbacSvg(view);
+});
+
 // Container schematic — the Pod schematic's drill-in (mirrors /container-schematic.svg).
 app.get('/course/graphic/container-schematic.svg', async (req, reply) => {
   const g = getCourseGraph();
