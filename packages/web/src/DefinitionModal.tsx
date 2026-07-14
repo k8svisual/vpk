@@ -15,7 +15,7 @@ export type FocusPath = (string | number)[];
 const vscodeForest = vscodeLightInit({ settings: { background: '#f7faf5', gutterBackground: '#eef3ea' } });
 const vscodeOcean = vscodeLightInit({ settings: { background: '#f7fbfd', gutterBackground: '#eaf2f6' } });
 
-function editorThemeFor(theme: Theme): Extension {
+export function editorThemeFor(theme: Theme): Extension {
   switch (theme) {
     case 'dark':
       return vscodeDark;

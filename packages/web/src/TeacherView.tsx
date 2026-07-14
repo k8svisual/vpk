@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, CircleAlert, FilePlus2, GraduationCap, HelpCircle, Loader2, Save, ShieldCheck, X } from 'lucide-react';
+import CodeMirror from '@uiw/react-codemirror';
+import { markdown } from '@codemirror/lang-markdown';
 import { CourseResourcesPanel } from './CourseResourcesPanel';
 import { renderLessonHtml } from './lessonMarkdown';
 import { BlockCard, TONE_ENV, TONE_IDLE, TONE_OK, TONE_TASK, type CardTone } from './LessonRunnerView';
+import { editorThemeFor } from './DefinitionModal';
+import type { Theme } from './theme';
 
 /**
  * Teacher tools — create/edit lesson `.md` files directly (redesign/training-course.md's authoring loop:
@@ -154,6 +158,7 @@ function courseOfPath(path: string): string {
 export function TeacherView({
   initialPath,
   onOpened,
+  theme,
 }: {
   /** Set when this view was reached via an "Edit this lesson" shortcut (Catalog card / Course header) rather
    *  than the plain nav rail — opens straight to that lesson's Content tab on mount. */
@@ -162,11 +167,18 @@ export function TeacherView({
    *  nav-rail visit to Teacher (this component remounts fresh every time) would silently reopen the same
    *  lesson instead of showing the normal "select a course" empty state. */
   onOpened?: () => void;
-} = {}) {
+  /** Picks the matching CodeMirror editor theme for the Content tab (see DefinitionModal.tsx's editorThemeFor,
+   *  reused here) — same reasoning as DefinitionModal's own `theme` prop: the app's color themes are a CSS-
+   *  variable mechanism a syntax-highlighted editor can't just inherit via var(). */
+  theme: Theme;
+}) {
   const [lessons, setLessons] = useState<LessonSummary[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [source, setSource] = useState('');
+  // Mirrors whatever was last loaded from disk or successfully saved — `source !== savedSource` is the
+  // "unsaved changes" signal the discard-confirmation guards and the header's dirty indicator both key off.
+  const [savedSource, setSavedSource] = useState('');
   const [loadingSource, setLoadingSource] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -185,21 +197,38 @@ export function TeacherView({
 
   useEffect(refreshList, []);
 
+  // Whether the draft has edits the last load/save doesn't reflect — the single signal both discard-confirm
+  // guards below and the header's "Unsaved changes" indicator key off.
+  const dirty = source !== savedSource;
+
+  /** Guards any action about to overwrite `source`/`selectedPath` out from under an unsaved edit — used by
+   *  both openLesson and confirmNewLesson. Named for what it protects, not how (plain window.confirm, same
+   *  convention CourseResourcesPanel's delete and DemoDataView's clear already use — no bespoke modal). */
+  function confirmDiscardIfDirty(): boolean {
+    if (!dirty) return true;
+    return confirm(`Discard unsaved changes to "${selectedPath}"?`);
+  }
+
   function openLesson(path: string) {
+    if (!confirmDiscardIfDirty()) return;
     setSelectedPath(path);
     setSaveResult(null);
     setValidation(null);
     setEditorTab('content');
     setLoadingSource(true);
     getJson<{ source: string }>(`/course/lesson/source?path=${encodeURIComponent(path)}`)
-      .then((d) => setSource(d.source))
+      .then((d) => {
+        setSource(d.source);
+        setSavedSource(d.source);
+      })
       .catch((e: unknown) => setSaveResult({ ok: false, message: String(e instanceof Error ? e.message : e) }))
       .finally(() => setLoadingSource(false));
   }
 
   // Opens the "Edit this lesson" shortcut's target on mount — a fresh mount happens every time this view is
   // entered (App.tsx conditionally renders <TeacherView/> only while view === 'teacher'), so mount-once here
-  // is exactly "once per visit", not "once ever".
+  // is exactly "once per visit", not "once ever". `dirty` is trivially false at this point (source/savedSource
+  // both start empty), so confirmDiscardIfDirty inside openLesson never prompts here.
   useEffect(() => {
     if (initialPath) {
       openLesson(initialPath);
@@ -216,8 +245,10 @@ export function TeacherView({
   function confirmNewLesson() {
     const path = newPath.trim();
     if (!path) return;
+    if (!confirmDiscardIfDirty()) return;
     setSelectedPath(path);
     setSource(NEW_LESSON_TEMPLATE);
+    setSavedSource(NEW_LESSON_TEMPLATE);
     setSaveResult(null);
     setValidation(null);
     setEditorTab('content');
@@ -236,6 +267,20 @@ export function TeacherView({
     setSaving(true);
     setSaveResult(null);
     try {
+      // Optimistic-concurrency check — catches a change made outside THIS editor (another tab, an external
+      // editor, a git pull) since this draft was loaded, which a plain overwrite would otherwise silently
+      // discard. Reuses the existing source route rather than a new endpoint/response field. Best-effort only:
+      // a brand-new never-saved lesson has nothing on disk to compare against yet, so a failed/404 pre-check
+      // never blocks the save — only a successfully-fetched, actually-different on-disk version does.
+      try {
+        const onDisk = await getJson<{ source: string }>(`/course/lesson/source?path=${encodeURIComponent(selectedPath)}`);
+        if (onDisk.source !== savedSource && !confirm('This file changed on disk since you opened it. Overwrite it with your version?')) {
+          setSaving(false);
+          return;
+        }
+      } catch {
+        // Nothing on disk yet to conflict with (e.g. first save of a new lesson) — proceed.
+      }
       const res = await fetch('/course/lesson/save', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -246,6 +291,7 @@ export function TeacherView({
         setSaveResult({ ok: false, message: json.error });
       } else {
         setSaveResult({ ok: true, message: `Saved "${json.frontmatter?.title}" (id: ${json.frontmatter?.id}).` });
+        setSavedSource(source);
         refreshList();
       }
     } catch (e: unknown) {
@@ -352,7 +398,14 @@ export function TeacherView({
         ) : (
           <>
             <div className="px-3 py-2 border-b flex items-center justify-between gap-2 text-xs" style={panelStyle}>
-              <span className="font-mono">{selectedPath}</span>
+              <span className="flex items-center gap-2">
+                <span className="font-mono">{selectedPath}</span>
+                {dirty && (
+                  <span style={{ color: 'var(--vpk-status-warn, #b58900)' }} title="Unsaved edits — Save to write them back to disk">
+                    • Unsaved changes
+                  </span>
+                )}
+              </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setHelpOpen((o) => !o)}
@@ -414,13 +467,17 @@ export function TeacherView({
                 <Loader2 size={14} className="animate-spin" /> Loading…
               </p>
             ) : editorTab === 'content' ? (
-              <textarea
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                spellCheck={false}
-                className="flex-1 w-full p-3 text-xs font-mono resize-none outline-none"
-                style={{ background: 'var(--vpk-bg)', color: 'var(--vpk-fg)' }}
-              />
+              <div className="flex-1 min-h-0 overflow-auto">
+                <CodeMirror
+                  key={selectedPath}
+                  value={source}
+                  onChange={setSource}
+                  height="100%"
+                  theme={editorThemeFor(theme)}
+                  extensions={[markdown()]}
+                  basicSetup={{ foldGutter: true, lineNumbers: true, highlightActiveLine: true }}
+                />
+              </div>
             ) : editorTab === 'preview' ? (
               <PreviewPane validation={validation} />
             ) : (

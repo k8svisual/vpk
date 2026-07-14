@@ -796,7 +796,7 @@ export function App() {
                 onEdit={showTeacherTools ? editLesson : undefined}
               />
             )}
-            {view === 'teacher' && <TeacherView initialPath={editLessonPath} onOpened={() => setEditLessonPath(undefined)} />}
+            {view === 'teacher' && <TeacherView initialPath={editLessonPath} onOpened={() => setEditLessonPath(undefined)} theme={theme} />}
           </main>
         </div>
       </div>
