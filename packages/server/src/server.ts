@@ -81,7 +81,7 @@ import { renderOwnerRefSvg } from './render/ownerRefSvg';
 import { renderRbacSvg } from './render/rbacSvg';
 import { captureCore, validateCli } from './capture/cliSource';
 import { checkCommandPolicy, probeBinary, runCourseCommand, tokenizeCommand } from './course/command';
-import { DEFAULT_COURSES_DIR, findLessonById, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
+import { DEFAULT_COURSES_DIR, findLessonById, findLessonPath, listLessonFiles, readLessonSource, saveLessonSource, validateLessonSource } from './course/content';
 import { deleteResourceFile, ensureCourseResourceDir, findResourceReferences, listResourceFiles, readResourceFile, renameResourceFile, saveResourceFile } from './course/resources';
 import { probeClusterFacts } from './course/env';
 import { runStepLive } from './course/liveCheck';
@@ -508,7 +508,9 @@ app.get('/course/lesson', async (req, reply) => {
     reply.code(404);
     return { error: `No lesson with id "${id}".` };
   }
-  return lesson;
+  // Included so the Course view can offer an "Edit this lesson" shortcut straight into Teacher tools, which
+  // addresses lessons by file path (via /course/lesson/source and /course/lesson/save), not by id.
+  return { ...lesson, path: findLessonPath(id) };
 });
 
 // `path` is included alongside each lesson's frontmatter so the Course Catalog can link a selection straight

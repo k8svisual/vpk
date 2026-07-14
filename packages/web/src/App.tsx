@@ -208,6 +208,14 @@ export function App() {
   // The Course Catalog's current pick — undefined means "use LessonRunnerView's own default" (Lesson Zero),
   // so the Course view stays usable even if the student never visits the Catalog at all.
   const [selectedLessonId, setSelectedLessonId] = useState<string | undefined>(undefined);
+  // Set by the Catalog card's / Course header's "Edit" shortcut — the lesson TeacherView should open on
+  // mount. Cleared once TeacherView has consumed it (its own onOpened callback) so a LATER plain nav-rail
+  // visit to Teacher shows the normal empty state instead of silently reopening the last-edited lesson.
+  const [editLessonPath, setEditLessonPath] = useState<string | undefined>(undefined);
+  function editLesson(path: string) {
+    setEditLessonPath(path);
+    setView('teacher');
+  }
   // Course-mode terminal/CLI preferences — same "App.tsx owns it, instant apply, no /settings round-trip"
   // pattern as theme/fog/grid (see courseSettings.ts/terminalFontSize.ts doc comments for why each exists).
   const [courseCliOverride, setCourseCliOverride] = useState<string>(initialCliOverride);
@@ -775,6 +783,7 @@ export function App() {
                   setSelectedLessonId(id);
                   setView('course');
                 }}
+                onEdit={showTeacherTools ? editLesson : undefined}
               />
             )}
             {view === 'course' && (
@@ -784,9 +793,10 @@ export function App() {
                 terminalTheme={terminalTheme}
                 terminalFontSize={terminalFontSize}
                 onStop={() => setView(showCourseCatalog ? 'catalog' : 'ownerref')}
+                onEdit={showTeacherTools ? editLesson : undefined}
               />
             )}
-            {view === 'teacher' && <TeacherView />}
+            {view === 'teacher' && <TeacherView initialPath={editLessonPath} onOpened={() => setEditLessonPath(undefined)} />}
           </main>
         </div>
       </div>

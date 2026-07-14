@@ -6,6 +6,7 @@ import {
   ListChecks,
   Loader2,
   Network,
+  Pencil,
   Play,
   Printer,
   Square,
@@ -93,6 +94,10 @@ type LessonSegment = { type: 'prose'; markdown: string } | { type: 'block'; bloc
 interface ParsedLesson {
   frontmatter: LessonFrontmatter;
   segments: LessonSegment[];
+  /** This lesson's file path, relative to coursesDir (e.g. course02/00-using-oc.md) — included by
+   *  GET /course/lesson so the header's "Edit this lesson" shortcut can address it the way Teacher tools
+   *  does (by path, not by frontmatter id). Undefined only if the server response predates this field. */
+  path?: string;
 }
 
 interface ClusterFacts {
@@ -155,6 +160,7 @@ export function LessonRunnerView({
   terminalTheme,
   terminalFontSize,
   onStop,
+  onEdit,
 }: {
   lessonId?: string;
   /** Empty string means "no override, use the lesson's own frontmatter cli" — see courseSettings.ts. */
@@ -165,6 +171,10 @@ export function LessonRunnerView({
    *  courseProgress.ts, so there's nothing extra to persist here) and navigates away. App.tsx owns where
    *  "away" means, since that's nav-rail/view state this component doesn't have access to. */
   onStop?: () => void;
+  /** "Edit" button in the header — jumps to Teacher tools with THIS lesson's file loaded, by path (see
+   *  ParsedLesson's own path doc comment). Omitted entirely (no button rendered) when Teacher tools are
+   *  hidden — App.tsx only passes this when Settings > Education's "show Teacher tools" is on. */
+  onEdit?: (path: string) => void;
 }) {
   const [lesson, setLesson] = useState<ParsedLesson | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -644,6 +654,7 @@ export function LessonRunnerView({
           hasTasks={lessonTaskBlocks.length > 0}
           onPrint={() => setPrintModalOpen(true)}
           onStop={onStop}
+          onEdit={onEdit && lesson.path ? () => onEdit(lesson.path!) : undefined}
           onOpenProgress={() => setProgressModalOpen(true)}
         />
       )}
@@ -794,6 +805,7 @@ function CourseHeader({
   hasTasks,
   onPrint,
   onStop,
+  onEdit,
   onOpenProgress,
 }: {
   title: string;
@@ -807,6 +819,9 @@ function CourseHeader({
   hasTasks: boolean;
   onPrint: () => void;
   onStop?: () => void;
+  /** "Edit" button — jumps to Teacher tools with this lesson's file loaded. Omitted (no button) until the
+   *  lesson's path has loaded and Teacher tools are enabled — see LessonRunnerView's own onEdit doc comment. */
+  onEdit?: () => void;
   onOpenProgress: () => void;
 }) {
   const stopTime = estimatedMinutes !== undefined ? new Date(startTime.getTime() + estimatedMinutes * 60_000) : null;
@@ -830,6 +845,17 @@ function CourseHeader({
           <Printer size={12} />
           Print
         </button>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className="flex items-center gap-1 rounded border px-2 py-1 shrink-0 cursor-pointer"
+            style={{ borderColor: 'var(--vpk-border)', color: 'var(--vpk-fg-muted)' }}
+            title="Edit this lesson in Teacher tools"
+          >
+            <Pencil size={12} />
+            Edit
+          </button>
+        )}
         {hasTasks && (
           <button
             onClick={onOpenProgress}
@@ -1003,20 +1029,20 @@ function ProseBlock({ markdown, questionBg }: { markdown: string; questionBg?: s
 // type chip + a status pill, so a student reads WHAT a block is and WHERE it stands before reading a word.
 // A "tone" is just a base theme color; the soft chip/pill background is derived from it with color-mix so it
 // tracks every VpK theme (light/dark/solarized/etc.) instead of hard-coding a second palette per state.
-interface CardTone {
+export interface CardTone {
   /** Solid color for the stripe + pill dot + chip/pill text. */
   base: string;
   /** Translucent-tinted fill for the chip and pill, derived from `base`. */
   soft: string;
 }
-function toneOf(base: string): CardTone {
+export function toneOf(base: string): CardTone {
   return { base, soft: `color-mix(in srgb, ${base} 14%, var(--vpk-surface))` };
 }
-const TONE_ENV = toneOf('var(--vpk-accent)');
-const TONE_TASK = toneOf('var(--vpk-status-warn)');
-const TONE_IDLE = toneOf('var(--vpk-status-unknown)');
-const TONE_OK = toneOf('var(--vpk-status-ok)');
-const TONE_ERR = toneOf('var(--vpk-status-error)');
+export const TONE_ENV = toneOf('var(--vpk-accent)');
+export const TONE_TASK = toneOf('var(--vpk-status-warn)');
+export const TONE_IDLE = toneOf('var(--vpk-status-unknown)');
+export const TONE_OK = toneOf('var(--vpk-status-ok)');
+export const TONE_ERR = toneOf('var(--vpk-status-error)');
 
 function StatusPill({ label, tone }: { label: string; tone: CardTone }) {
   return (
@@ -1049,7 +1075,7 @@ function CardButton({ onClick, children, variant = 'default' }: { onClick: () =>
 /** The one card shell all lesson blocks route through — stripe (`tone.base`) + type chip + title + optional
  *  status pill + optional action, over an optional body separated by a hairline rule. `pillTone` defaults to
  *  the card tone so a Check whose stripe already encodes its result doesn't need to repeat the color. */
-function BlockCard({
+export function BlockCard({
   chip,
   tone,
   title,

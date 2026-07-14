@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle2, Circle, Clock, GraduationCap, PlayCircle } from 'lucide-react';
+import { BookOpen, CheckCircle2, Circle, Clock, GraduationCap, Pencil, PlayCircle } from 'lucide-react';
 import { getCourseProgress, type CourseStatus } from './courseProgress';
 
 /**
@@ -60,7 +60,16 @@ function StatusBadge({ lessonId }: { lessonId: string }) {
   );
 }
 
-export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) => void }) {
+export function CourseCatalogView({
+  onSelect,
+  onEdit,
+}: {
+  onSelect: (lessonId: string) => void;
+  /** Small Edit icon on each card, jumping straight to that lesson in Teacher tools by file path. Omitted
+   *  entirely (no icon rendered) when Teacher tools are hidden — App.tsx only passes this when Settings >
+   *  Education's "show Teacher tools" is on. */
+  onEdit?: (path: string) => void;
+}) {
   const [lessons, setLessons] = useState<LessonSummary[] | null>(null);
   const [coursesDir, setCoursesDir] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -139,33 +148,45 @@ export function CourseCatalogView({ onSelect }: { onSelect: (lessonId: string) =
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {entries.map((lesson) => (
-              <button
-                key={lesson.id}
-                onClick={() => onSelect(lesson.id)}
-                className="text-left border rounded p-3 cursor-pointer hover:brightness-95"
-                style={panelStyle}
-              >
-                <div className="flex items-center gap-1.5 font-medium text-sm">
-                  <GraduationCap size={14} />
-                  {lesson.title}
-                </div>
-                {lesson.description && (
-                  <p className="text-xs mt-1 line-clamp-3" style={mutedStyle}>
-                    {lesson.description}
-                  </p>
-                )}
-                <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
-                  {lesson.difficulty !== undefined && <span>Difficulty {lesson.difficulty}</span>}
-                  {lesson.estimatedMinutes !== undefined && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={11} />~{lesson.estimatedMinutes} min
-                    </span>
+              <div key={lesson.id} className="relative">
+                <button
+                  onClick={() => onSelect(lesson.id)}
+                  className="text-left border rounded p-3 cursor-pointer hover:brightness-95 w-full"
+                  style={panelStyle}
+                >
+                  <div className="flex items-center gap-1.5 font-medium text-sm pr-6">
+                    <GraduationCap size={14} />
+                    {lesson.title}
+                  </div>
+                  {lesson.description && (
+                    <p className="text-xs mt-1 line-clamp-3" style={mutedStyle}>
+                      {lesson.description}
+                    </p>
                   )}
-                </div>
-                <div className="text-xs mt-1">
-                  <StatusBadge lessonId={lesson.id} />
-                </div>
-              </button>
+                  <div className="text-xs mt-1 flex gap-3" style={mutedStyle}>
+                    {lesson.difficulty !== undefined && <span>Difficulty {lesson.difficulty}</span>}
+                    {lesson.estimatedMinutes !== undefined && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />~{lesson.estimatedMinutes} min
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs mt-1">
+                    <StatusBadge lessonId={lesson.id} />
+                  </div>
+                </button>
+                {onEdit && (
+                  <button
+                    onClick={() => onEdit(lesson.path)}
+                    aria-label="Edit in Teacher tools"
+                    title="Edit in Teacher tools"
+                    className="absolute top-2 right-2 rounded border p-1 cursor-pointer"
+                    style={{ ...panelStyle, background: 'var(--vpk-surface)', color: 'var(--vpk-fg-muted)' }}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </div>

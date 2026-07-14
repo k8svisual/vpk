@@ -122,7 +122,7 @@ describe('validateLessonSource', () => {
     expect(() => validateLessonSource('no frontmatter at all')).toThrow(/frontmatter/);
   });
 
-  it('reports counts and no warnings for a well-formed lesson with a complete check block', () => {
+  it('reports counts and no warnings for a well-formed lesson covering every block kind', () => {
     const source = [
       '---',
       'id: good-lesson',
@@ -132,17 +132,35 @@ describe('validateLessonSource', () => {
       '',
       'Some intro prose.',
       '',
+      '```vpk-detect',
+      'tools: [kubectl]',
+      '```',
+      '',
+      '```vpk-setup',
+      'note: nothing to seed',
+      '```',
+      '',
       '```vpk-check',
       'id: reachable',
       'describe: cluster is reachable',
       'kind: cluster',
       'assert: contextReachable',
       '```',
+      '',
+      '```vpk-teardown',
+      'note: nothing to clean up',
+      '```',
+      '',
+      '```vpk-quiz',
+      'question: What does kubectl get pods do?',
+      'answer: Lists Pods in the current namespace.',
+      '```',
     ].join('\n');
     const result = validateLessonSource(source);
     expect(result.frontmatter.id).toBe('good-lesson');
-    expect(result.counts).toEqual({ prose: 1, detect: 0, setup: 0, check: 1, teardown: 0, quiz: 0, task: 0 });
+    expect(result.counts).toEqual({ prose: 1, detect: 1, setup: 1, check: 1, teardown: 1, quiz: 1, task: 0 });
     expect(result.warnings).toEqual([]);
+    expect(result.segments.length).toBe(6);
   });
 
   it('warns when there are no check blocks at all', () => {
@@ -153,6 +171,18 @@ describe('validateLessonSource', () => {
   it('warns when estimatedMinutes is missing', () => {
     const result = validateLessonSource('---\nid: x\ntitle: X\n---\nbody');
     expect(result.warnings.some((w) => w.includes('estimatedMinutes'))).toBe(true);
+  });
+
+  it('warns when detect/setup/teardown/quiz blocks are all absent', () => {
+    const result = validateLessonSource('---\nid: x\ntitle: X\nestimatedMinutes: 5\n---\nJust prose, no blocks at all.');
+    expect(result.warnings).toContain("No vpk-detect block — the student won't see an environment/tool detection card.");
+    expect(result.warnings).toContain(
+      'No vpk-setup block — nothing documents starting-state assumptions for this lesson (authored only, not yet automated).',
+    );
+    expect(result.warnings).toContain(
+      'No vpk-teardown block — nothing documents cleanup for resources this lesson creates (authored only, not yet automated).',
+    );
+    expect(result.warnings).toContain('No vpk-quiz block — no comprehension check for the student (authored only, not yet automated).');
   });
 
   it('flags a check block missing required fields', () => {
@@ -178,6 +208,14 @@ describe('validateLessonSource', () => {
       'estimatedMinutes: 5',
       '---',
       '',
+      '```vpk-detect',
+      'tools: [kubectl]',
+      '```',
+      '',
+      '```vpk-setup',
+      'note: nothing to seed',
+      '```',
+      '',
       '```vpk-check',
       'id: c',
       'describe: d',
@@ -185,6 +223,15 @@ describe('validateLessonSource', () => {
       'namespace: default',
       'assert:',
       '  - { select: { kind: Service, name: s }, path: ".spec.ports[0].port", op: "==", value: 80 }',
+      '```',
+      '',
+      '```vpk-teardown',
+      'note: nothing to clean up',
+      '```',
+      '',
+      '```vpk-quiz',
+      'question: q',
+      'answer: a',
       '```',
     ].join('\n');
     const result = validateLessonSource(source);

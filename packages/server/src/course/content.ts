@@ -138,12 +138,15 @@ export function saveLessonSource(relativePath: string, source: string, coursesDi
 
 export interface LessonValidationResult {
   frontmatter: ParsedLesson['frontmatter'];
-  counts: Record<'prose' | 'detect' | 'setup' | 'check' | 'teardown' | 'quiz', number>;
+  counts: Record<'prose' | 'detect' | 'setup' | 'check' | 'teardown' | 'quiz' | 'task', number>;
   /** Non-fatal problems — the lesson still parsed and will load, but something about it likely won't work as
    *  the author intended (a check block missing a field its kind needs, no checks at all, ...). Structural
    *  problems (bad frontmatter, an unclosed fence) aren't warnings — parseLesson throws for those, and the
    *  route surfaces that as a 400 instead, since there's no lesson to report counts/warnings ABOUT. */
   warnings: string[];
+  /** File-order prose/block segments — same shape parseLesson produces. Included so the Teacher editor's
+   *  Preview tab can render the draft from this SAME call instead of a second round-trip. */
+  segments: ParsedLesson['segments'];
 }
 
 const PURE_CHECK_KINDS = new Set(['cluster', 'inventory', 'fields', 'value']);
@@ -170,10 +173,18 @@ export function validateLessonSource(source: string): LessonValidationResult {
     if (segment.block.kind === 'task') warnings.push(...validateTaskBlock(segment.block.data));
   }
   if (counts.check === 0) warnings.push('No vpk-check blocks — nothing in this lesson is automatically graded.');
+  if (counts.detect === 0) warnings.push("No vpk-detect block — the student won't see an environment/tool detection card.");
+  if (counts.setup === 0) {
+    warnings.push('No vpk-setup block — nothing documents starting-state assumptions for this lesson (authored only, not yet automated).');
+  }
+  if (counts.teardown === 0) {
+    warnings.push('No vpk-teardown block — nothing documents cleanup for resources this lesson creates (authored only, not yet automated).');
+  }
+  if (counts.quiz === 0) warnings.push('No vpk-quiz block — no comprehension check for the student (authored only, not yet automated).');
   if (lesson.frontmatter.estimatedMinutes === undefined) {
     warnings.push("No estimatedMinutes set — the Course view's header countdown clock won't show for this lesson.");
   }
-  return { frontmatter: lesson.frontmatter, counts, warnings };
+  return { frontmatter: lesson.frontmatter, counts, warnings, segments: lesson.segments };
 }
 
 function validateCheckBlock(data: unknown): string[] {
